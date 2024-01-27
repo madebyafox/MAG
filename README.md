@@ -1,0 +1,2 @@
+# MAG
+MAG-VIS project
