@@ -1,0 +1,227 @@
+---
+title: "MAG — Pilot 0 EDA"
+author: "ANONYMIZED"
+date: "2024-01-27"
+output:
+  html_document:
+    theme: flatly
+    code_folding: hide
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    toc_depth: 5
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+always_allow_html: yes
+font-family: DejaVu Sans
+mainfont: DejaVu Sans
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(tidyverse) #all the things
+library(summarytools) #data quality
+library(jtools) #Social Science regression utilities
+library(lubridate) #dealing with dates
+
+#VIZ
+library(kableExtra) #printing tables
+library(ggformula) #regression syntax viz
+# library(vcd) #mosaic plots
+# library(vcdExtra) #mosaic plot helpers
+library(ggstatsplot) #dummies
+
+#MODELLING
+library(easystats) #modelling helpers
+library(see)
+library(sjPlot)
+library(lme4)
+library(lmerTest) #for CIs in glmer
+
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+
+
+#ARF ONLY — MANUAL RUN
+# setwd("~/Code/IXN-Characterizing_Interaction/IXN-D_Characterizing_Interaction/ANALYSIS")
+
+```
+
+Data were exported from qualtrics to file `RAW_Vis Guise Pre-Pilot_January 27, 2024_16.57.csv` which was manually wrangled to `CLEAN_pilot_0.csv` by removing extraneous qualtrics columns and creating informative column names from question text. 
+
+
+```{r IMPORT, message=FALSE, warning=FALSE}
+
+df_raw <- read_csv("data/CLEAN_pilot_0.csv")
+
+#clean full dataset
+df_data <- df_raw %>% filter(
+  finished_survey == 'TRUE'#EXCLUDE non-finishers
+) %>% filter(
+  !(is.na(IPAddress)) #EXCLUDE no ip address [from survey preview]
+)
+```
+
+
+```{r CHART-SD}
+#JUST THE CHART RELATED SD QUESTIONS
+df_chart <- df_data %>% 
+  select(responseID,duration_sec,
+    contains("chart")
+  ) 
+
+#THIS IS THE SUPER COMPACT CODE
+#BUT ITS NOT HELPFUL BC WE CAN'T FACTORIZE THE SCALE COL
+#WITH ALL THE DIFF BIPLOAR VALUES
+df_compact_chart <- df_chart %>%
+  select(responseID, duration_sec, contains("chart")) %>%
+  select(!contains(c("why","explain"))) %>%
+  pivot_longer(
+    cols=(contains("chart")),
+    names_to = "vis",
+    values_to = "scale"
+  ) %>% mutate(
+    question = str_sub(vis,10),
+    vis = str_sub(vis,1,2),
+    vis = factor(vis,
+        levels = c("v1","v3","v2","v4","v5"),
+        labels = c("econ-parks","econ-iraq","mil-spend","bears","trees"))
+  )
+
+gf_bar(data = df_compact_chart, ~scale) %>% 
+  gf_facet_grid(.~question) + theme_minimal()
+
+
+
+##CHART INTENT
+df_intent <- df_compact_chart %>% 
+  filter(question =="intent") %>% 
+  mutate(
+    scale = factor(scale,
+                   levels = c(
+                     "Seeking to inform",
+                     "2",
+                     "3",
+                     "4",
+                     "Seeking to persuade",
+                     "Don't know/Can't Say"
+                   ),
+                    labels = c(
+                     "inform",
+                     "2",
+                     "3",
+                     "4",
+                     "persuade",
+                     "?"
+                   ))
+  )
+
+
+gf_bar(data = df_intent, ~scale) %>% 
+  gf_facet_grid(vis~.) + theme_minimal()
+
+
+##CHART POLITICS
+df_politics <- df_compact_chart %>% 
+  filter(question =="politics") %>% 
+  mutate(
+    scale = factor(scale,
+                   levels = c(
+                     "Politically motivated",
+                     "2",
+                     "3",
+                     "4",
+                     "Not politically motivated",
+                     "Don't know/Can't Say"
+                   ),
+                   labels = c(
+                     "political",
+                     "2",
+                     "3",
+                     "4",
+                     "apolitical",
+                     "?"
+                   ))
+  )
+
+gf_bar(data = df_politics, ~scale) %>% 
+  gf_facet_grid(vis~.) + theme_minimal()
+
+
+##CHART BIAS
+df_bias <- df_compact_chart %>% 
+  filter(question =="bias")  %>% 
+  mutate(
+    scale = factor(scale,
+                   levels = c(
+                     "Biased",
+                     "2",
+                     "3",
+                     "4",
+                     "Unbiased",
+                     "Don't know/Can't Say"
+                   ),
+                   labels = c(
+                     "baised",
+                     "2",
+                     "3",
+                     "4",
+                     "unbiased",
+                     "?"
+                   ))
+  )
+
+gf_bar(data = df_bias, ~scale) %>% 
+  gf_facet_grid(vis~.) + theme_minimal()
+
+
+##CHART COMPLEXITY
+df_complexity <- df_compact_chart %>% 
+  filter(question =="complexity") %>% 
+  mutate(
+    scale = factor(scale,
+                   levels = c(
+                     "Manipulative",
+                     "2",
+                     "3",
+                     "4",
+                     "Straightforward",
+                     "Don't know/Can't Say"
+                   ),
+                   labels = c(
+                     "manipulative",
+                     "2",
+                     "3",
+                     "4",
+                     "straightforward",
+                     "?"
+                   ))
+  )
+
+gf_bar(data = df_complexity, ~scale) %>% 
+  gf_facet_grid(vis~.) + theme_minimal()
+
+##CHART CONFIDENCE
+df_chart_confidence <- df_compact_chart %>% 
+  filter(question =="confidence") %>% 
+  mutate(
+    scale = factor(scale,
+                   levels = c(
+                     "Extremely unconfident",
+                     "Somewhat unconfident",
+                     "Neither confident nor unconfident",
+                     "Somewhat confident",
+                     "Extremely confident"
+                   ))
+  )
+
+gf_bar(data = df_chart_confidence, ~scale) %>% 
+  gf_facet_grid(vis~.) + theme_minimal()
+```
+
