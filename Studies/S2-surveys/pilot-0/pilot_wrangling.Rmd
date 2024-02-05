@@ -214,165 +214,165 @@ nums <- c( "Q_MAKER_ID_CONF", "Q_MAKER_AGE", "Q_MAKER_GENDER", "Q_MAKER_DESIGN",
 df_graphs %<>% mutate_each_(funs(factor(.)),vecs)
 df_graphs %<>% mutate_each_(funs(as.numeric(.)),nums)
 
-        
+##ENDED HERE 
 
 
 ```
 
 
 ```{r CHART-SD}
-#JUST THE CHART RELATED SD QUESTIONS
-df_chart <- df_data %>% 
-  select(responseID,duration_sec,
-    contains("chart")
-  ) 
-
-#THIS IS THE SUPER COMPACT CODE
-#BUT ITS NOT HELPFUL BC WE CAN'T FACTORIZE THE SCALE COL
-#WITH ALL THE DIFF BIPLOAR VALUES
-df_compact_chart <- df_chart %>%
-  select(responseID, duration_sec, contains("chart")) %>%
-  select(!contains(c("why","explain"))) %>%
-  pivot_longer(
-    cols=(contains("chart")),
-    names_to = "vis",
-    values_to = "scale"
-  ) %>% mutate(
-    question = str_sub(vis,10),
-    vis = str_sub(vis,1,2),
-    vis = factor(vis,
-        levels = c("v1","v3","v2","v4","v5"),
-        labels = c("econ-parks","econ-iraq","mil-spend","bears","trees"))
-  )
-
-gf_bar(data = df_compact_chart, ~scale) %>% 
-  gf_facet_grid(.~question) + theme_minimal()
-
-
-
-##CHART INTENT
-df_intent <- df_compact_chart %>% 
-  filter(question =="intent") %>% 
-  mutate(
-    scale = factor(scale,
-                   levels = c(
-                     "Seeking to inform",
-                     "2",
-                     "3",
-                     "4",
-                     "Seeking to persuade",
-                     "Don't know/Can't Say"
-                   ),
-                    labels = c(
-                     "inform",
-                     "2",
-                     "3",
-                     "4",
-                     "persuade",
-                     "?"
-                   ))
-  )
-
-
-gf_bar(data = df_intent, ~scale) %>% 
-  gf_facet_grid(vis~.) + theme_minimal()
-
-
-##CHART POLITICS
-df_politics <- df_compact_chart %>% 
-  filter(question =="politics") %>% 
-  mutate(
-    scale = factor(scale,
-                   levels = c(
-                     "Politically motivated",
-                     "2",
-                     "3",
-                     "4",
-                     "Not politically motivated",
-                     "Don't know/Can't Say"
-                   ),
-                   labels = c(
-                     "political",
-                     "2",
-                     "3",
-                     "4",
-                     "apolitical",
-                     "?"
-                   ))
-  )
-
-gf_bar(data = df_politics, ~scale) %>% 
-  gf_facet_grid(vis~.) + theme_minimal()
-
-
-##CHART BIAS
-df_bias <- df_compact_chart %>% 
-  filter(question =="bias")  %>% 
-  mutate(
-    scale = factor(scale,
-                   levels = c(
-                     "Biased",
-                     "2",
-                     "3",
-                     "4",
-                     "Unbiased",
-                     "Don't know/Can't Say"
-                   ),
-                   labels = c(
-                     "baised",
-                     "2",
-                     "3",
-                     "4",
-                     "unbiased",
-                     "?"
-                   ))
-  )
-
-gf_bar(data = df_bias, ~scale) %>% 
-  gf_facet_grid(vis~.) + theme_minimal()
-
-
-##CHART COMPLEXITY
-df_complexity <- df_compact_chart %>% 
-  filter(question =="complexity") %>% 
-  mutate(
-    scale = factor(scale,
-                   levels = c(
-                     "Manipulative",
-                     "2",
-                     "3",
-                     "4",
-                     "Straightforward",
-                     "Don't know/Can't Say"
-                   ),
-                   labels = c(
-                     "manipulative",
-                     "2",
-                     "3",
-                     "4",
-                     "straightforward",
-                     "?"
-                   ))
-  )
-
-gf_bar(data = df_complexity, ~scale) %>% 
-  gf_facet_grid(vis~.) + theme_minimal()
-
-##CHART CONFIDENCE
-df_chart_confidence <- df_compact_chart %>% 
-  filter(question =="confidence") %>% 
-  mutate(
-    scale = factor(scale,
-                   levels = c(
-                     "Extremely unconfident",
-                     "Somewhat unconfident",
-                     "Neither confident nor unconfident",
-                     "Somewhat confident",
-                     "Extremely confident"
-                   ))
-  )
-
-gf_bar(data = df_chart_confidence, ~scale) %>% 
-  gf_facet_grid(vis~.) + theme_minimal()
+# #JUST THE CHART RELATED SD QUESTIONS
+# df_chart <- df_data %>% 
+#   select(responseID,duration_sec,
+#     contains("chart")
+#   ) 
+# 
+# #THIS IS THE SUPER COMPACT CODE
+# #BUT ITS NOT HELPFUL BC WE CAN'T FACTORIZE THE SCALE COL
+# #WITH ALL THE DIFF BIPLOAR VALUES
+# df_compact_chart <- df_chart %>%
+#   select(responseID, duration_sec, contains("chart")) %>%
+#   select(!contains(c("why","explain"))) %>%
+#   pivot_longer(
+#     cols=(contains("chart")),
+#     names_to = "vis",
+#     values_to = "scale"
+#   ) %>% mutate(
+#     question = str_sub(vis,10),
+#     vis = str_sub(vis,1,2),
+#     vis = factor(vis,
+#         levels = c("v1","v3","v2","v4","v5"),
+#         labels = c("econ-parks","econ-iraq","mil-spend","bears","trees"))
+#   )
+# 
+# gf_bar(data = df_compact_chart, ~scale) %>% 
+#   gf_facet_grid(.~question) + theme_minimal()
+# 
+# 
+# 
+# ##CHART INTENT
+# df_intent <- df_compact_chart %>% 
+#   filter(question =="intent") %>% 
+#   mutate(
+#     scale = factor(scale,
+#                    levels = c(
+#                      "Seeking to inform",
+#                      "2",
+#                      "3",
+#                      "4",
+#                      "Seeking to persuade",
+#                      "Don't know/Can't Say"
+#                    ),
+#                     labels = c(
+#                      "inform",
+#                      "2",
+#                      "3",
+#                      "4",
+#                      "persuade",
+#                      "?"
+#                    ))
+#   )
+# 
+# 
+# gf_bar(data = df_intent, ~scale) %>% 
+#   gf_facet_grid(vis~.) + theme_minimal()
+# 
+# 
+# ##CHART POLITICS
+# df_politics <- df_compact_chart %>% 
+#   filter(question =="politics") %>% 
+#   mutate(
+#     scale = factor(scale,
+#                    levels = c(
+#                      "Politically motivated",
+#                      "2",
+#                      "3",
+#                      "4",
+#                      "Not politically motivated",
+#                      "Don't know/Can't Say"
+#                    ),
+#                    labels = c(
+#                      "political",
+#                      "2",
+#                      "3",
+#                      "4",
+#                      "apolitical",
+#                      "?"
+#                    ))
+#   )
+# 
+# gf_bar(data = df_politics, ~scale) %>% 
+#   gf_facet_grid(vis~.) + theme_minimal()
+# 
+# 
+# ##CHART BIAS
+# df_bias <- df_compact_chart %>% 
+#   filter(question =="bias")  %>% 
+#   mutate(
+#     scale = factor(scale,
+#                    levels = c(
+#                      "Biased",
+#                      "2",
+#                      "3",
+#                      "4",
+#                      "Unbiased",
+#                      "Don't know/Can't Say"
+#                    ),
+#                    labels = c(
+#                      "baised",
+#                      "2",
+#                      "3",
+#                      "4",
+#                      "unbiased",
+#                      "?"
+#                    ))
+#   )
+# 
+# gf_bar(data = df_bias, ~scale) %>% 
+#   gf_facet_grid(vis~.) + theme_minimal()
+# 
+# 
+# ##CHART COMPLEXITY
+# df_complexity <- df_compact_chart %>% 
+#   filter(question =="complexity") %>% 
+#   mutate(
+#     scale = factor(scale,
+#                    levels = c(
+#                      "Manipulative",
+#                      "2",
+#                      "3",
+#                      "4",
+#                      "Straightforward",
+#                      "Don't know/Can't Say"
+#                    ),
+#                    labels = c(
+#                      "manipulative",
+#                      "2",
+#                      "3",
+#                      "4",
+#                      "straightforward",
+#                      "?"
+#                    ))
+#   )
+# 
+# gf_bar(data = df_complexity, ~scale) %>% 
+#   gf_facet_grid(vis~.) + theme_minimal()
+# 
+# ##CHART CONFIDENCE
+# df_chart_confidence <- df_compact_chart %>% 
+#   filter(question =="confidence") %>% 
+#   mutate(
+#     scale = factor(scale,
+#                    levels = c(
+#                      "Extremely unconfident",
+#                      "Somewhat unconfident",
+#                      "Neither confident nor unconfident",
+#                      "Somewhat confident",
+#                      "Extremely confident"
+#                    ))
+#   )
+# 
+# gf_bar(data = df_chart_confidence, ~scale) %>% 
+#   gf_facet_grid(vis~.) + theme_minimal()
 ```
 
