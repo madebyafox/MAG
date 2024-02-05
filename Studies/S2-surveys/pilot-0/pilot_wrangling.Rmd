@@ -1,0 +1,378 @@
+---
+title: "MAG — Pilot 0 EDA"
+author: "ANONYMIZED"
+date: "2024-02-04"
+output:
+  html_document:
+    theme: flatly
+    code_folding: hide
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    toc_depth: 5
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+always_allow_html: yes
+font-family: DejaVu Sans
+mainfont: DejaVu Sans
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(tidyverse) #all the things
+library(magrittr) #special pipes like %<>%
+library(summarytools) #data quality
+library(jtools) #Social Science regression utilities
+library(lubridate) #dealing with dates
+
+#VIZ
+library(kableExtra) #printing tables
+library(ggformula) #regression syntax viz
+# library(vcd) #mosaic plots
+# library(vcdExtra) #mosaic plot helpers
+library(ggstatsplot) #dummies
+
+#MODELLING
+library(easystats) #modelling helpers
+library(see)
+library(sjPlot)
+library(lme4)
+library(lmerTest) #for CIs in glmer
+
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+
+
+#ARF ONLY — MANUAL RUN
+# setwd("~/Code/IXN-Characterizing_Interaction/IXN-D_Characterizing_Interaction/ANALYSIS")
+
+```
+
+Data were exported from qualtrics to file `RAW_Vis Guise Pre-Pilot_January 27, 2024_16.57.csv` which was manually wrangled to `CLEAN_pilot_0.csv` by removing extraneous qualtrics columns and creating informative column names from question text. 
+
+
+```{r IMPORT, message=FALSE, warning=FALSE}
+
+df_raw <- read_csv("data/CLEAN_v2_testdata.csv", col_names = TRUE)
+
+#WRANGLE
+
+#DROP first two rows —— qualtrics specs 
+df_data <- df_raw[-c(1:2),] %>%  select(
+#DROP junk columns
+  -EndDate, -IPAddress,-Progress,-RecordedDate,
+  -RecipientLastName, -RecipientFirstName, -RecordedDate, -RecipientEmail,
+  -ExternalReference, -LocationLatitude, -LocationLongitude, 
+  -UserLanguage, -Q_RecaptchaScore
+  # -contains("Q1") #junk end columns
+) %>% rename (  #RENAME COLUMNS
+  ID_QUALTRICS = ResponseId,
+  duration_sec = `Duration (in seconds)`,
+  BROWSER_OS = `BROWSER_Operating System`,
+  PLATFORM = Q_PLATFORM
+) %>% mutate(
+  StartDate = mdy_hm(StartDate),
+  DistributionChannel = factor(DistributionChannel),
+  duration_sec = as.numeric(duration_sec), #weird boolean data should only be for the test generator
+  PLATFORM = factor(PLATFORM)
+  )
+
+#SUBJECTS ONLY 
+#TODO eventually combine with demographic data 
+df_subjects <- df_data %>% select(
+  ID_QUALTRICS, ID_PROLIFIC, 
+  DistributionChannel, 
+  duration_sec, 
+  PLATFORM
+) 
+  
+df_responses <- df_data %>% select(
+  ID_QUALTRICS, PLATFORM, contains("_")
+)
+
+
+#SUPER FLIPPIN HACKY JANKS BC QUALTRICS IS THE WORST 
+
+#get the data for the first graph
+graph_1 <- df_responses %>% 
+  select(ID_QUALTRICS, PLATFORM, contains("1_")) %>% 
+  mutate(
+    graph = "s1",
+    in_loop = `1_loop-number`
+  ) %>% rename_all(~stringr::str_replace(.,"^1_","")) #strip the 1_ prefix
+
+#get the data for the second graph
+graph_2 <- df_responses %>% 
+  select(ID_QUALTRICS, PLATFORM, contains("2_")) %>% 
+  mutate(
+    graph = "s2",
+    in_loop = `2_loop-number`
+  ) %>% rename_all(~stringr::str_replace(.,"^2_","")) #strip the 2_ prefix
+
+
+#get the data for the third graph
+graph_3 <- df_responses %>% 
+  select(ID_QUALTRICS, PLATFORM, contains("3_")) %>% 
+  mutate(
+    graph = "s3",
+    in_loop = `3_loop-number`
+  ) %>% rename_all(~stringr::str_replace(.,"^3_","")) #strip the 3_ prefix
+
+
+#get the data for the fourth graph
+graph_4 <- df_responses %>% 
+  select(ID_QUALTRICS, PLATFORM, contains("4_")) %>% 
+  mutate(
+    graph = "s4",
+    in_loop = `4_loop-number`
+  ) %>% rename_all(~stringr::str_replace(.,"^4_","")) #strip the 4_ prefix
+
+
+#get the data for the fifth graph
+graph_5 <- df_responses %>% 
+  select(ID_QUALTRICS, PLATFORM, contains("5_")) %>% 
+  mutate(
+    graph = "s5",
+    in_loop = `5_loop-number`
+  ) %>% rename_all(~stringr::str_replace(.,"^5_","")) #strip the 5_ prefix
+
+
+#get the data for the sixth graph
+graph_6 <- df_responses %>% 
+  select(ID_QUALTRICS, PLATFORM, contains("6_")) %>% 
+  mutate(
+    graph = "s6",
+    in_loop = `6_loop-number`
+  ) %>% rename_all(~stringr::str_replace(.,"^6_","")) #strip the 6_ prefix
+
+
+#get the data for the seventh graph
+graph_7 <- df_responses %>% 
+  select(ID_QUALTRICS, PLATFORM, contains("7_")) %>% 
+  mutate(
+    graph = "s7",
+    in_loop = `7_loop-number`
+  ) %>% rename_all(~stringr::str_replace(.,"^7_","")) #strip the 7_ prefix
+
+#get the data for the eigth graph
+graph_8 <- df_responses %>% 
+  select(ID_QUALTRICS, PLATFORM, contains("8_")) %>% 
+  mutate(
+    graph = "s8",
+    in_loop = `8_loop-number`
+  ) %>% rename_all(~stringr::str_replace(.,"^8_","")) #strip the 8_ prefix
+
+#get the data for the ninth graph
+graph_9 <- df_responses %>% 
+  select(ID_QUALTRICS, PLATFORM, contains("9_")) %>% 
+  mutate(
+    graph = "s9",
+    in_loop = `9_loop-number`
+  ) %>% rename_all(~stringr::str_replace(.,"^9_","")) #strip the 9_ prefix
+
+#get the data for the tenth graph
+graph_10 <- df_responses %>% 
+  select(ID_QUALTRICS, PLATFORM, contains("10_")) %>% 
+  mutate(
+    graph = "s10",
+    in_loop = `10_loop-number`
+  ) %>% rename_all(~stringr::str_replace(.,"^10_","")) #strip the 10_ prefix
+
+
+#nrow(df_graphs) should be nrow(df_raw) X 10, if each participant saw 10 graphs
+df_graphs <- bind_rows(graph_1 ,graph_2, graph_3, graph_4, graph_5, 
+                       graph_6, graph_7, graph_8, graph_9, graph_10)
+
+
+#get rid of trailing _1
+df_graphs <- df_graphs %>% 
+  rename_all(~stringr::str_replace(.,"_65","")) %>%  #strip the _65 suffix
+  rename_all(~stringr::str_replace(.,"_1","")) %>%   #strip the _1 suffix
+  select(-`loop-number`) 
+
+x <- colnames(df_graphs) 
+#columns that should be vectors
+vecs <- c("ID_QUALTRICS","PLATFORM","Q_ENCOUNTER",
+          "comment", "share", "share_comment", "research","unfollow", "NOTHING", 
+           "Q_MAKER_ID", "Q_INSTRUMENT_ID", "graph", "in_loop")
+#columns that should be doubles
+nums <- c( "Q_MAKER_ID_CONF", "Q_MAKER_AGE", "Q_MAKER_GENDER", "Q_MAKER_DESIGN", 
+           "Q_MAKER_DATA", "Q_MAKER_SPECTRUM", "Q_MAKER_EXPERT", 
+          "Q_MAKER_BIAS", "Q_MAKER_ALIGNMENT", "Q_MAKER_COMPETENCE", "Q_MAKER_TRUST",
+          "Q_MAKER_POLITE", "Q_MAKER_CARE", "Q_INSTRUMENT_CONF", "Q_CHART_INFORM",
+          "Q_CHART_LIKE", "Q_CHART_EFFECTIVE", "Q_CHART_TRUST", "Q_CHART_AESTHETIC") 
+
+
+#super duper special pipe that is like an apply?
+# https://stackoverflow.com/questions/33180058/coerce-multiple-columns-to-factors-at-once
+df_graphs %<>% mutate_each_(funs(factor(.)),vecs)
+df_graphs %<>% mutate_each_(funs(as.numeric(.)),nums)
+
+        
+
+
+```
+
+
+```{r CHART-SD}
+#JUST THE CHART RELATED SD QUESTIONS
+df_chart <- df_data %>% 
+  select(responseID,duration_sec,
+    contains("chart")
+  ) 
+
+#THIS IS THE SUPER COMPACT CODE
+#BUT ITS NOT HELPFUL BC WE CAN'T FACTORIZE THE SCALE COL
+#WITH ALL THE DIFF BIPLOAR VALUES
+df_compact_chart <- df_chart %>%
+  select(responseID, duration_sec, contains("chart")) %>%
+  select(!contains(c("why","explain"))) %>%
+  pivot_longer(
+    cols=(contains("chart")),
+    names_to = "vis",
+    values_to = "scale"
+  ) %>% mutate(
+    question = str_sub(vis,10),
+    vis = str_sub(vis,1,2),
+    vis = factor(vis,
+        levels = c("v1","v3","v2","v4","v5"),
+        labels = c("econ-parks","econ-iraq","mil-spend","bears","trees"))
+  )
+
+gf_bar(data = df_compact_chart, ~scale) %>% 
+  gf_facet_grid(.~question) + theme_minimal()
+
+
+
+##CHART INTENT
+df_intent <- df_compact_chart %>% 
+  filter(question =="intent") %>% 
+  mutate(
+    scale = factor(scale,
+                   levels = c(
+                     "Seeking to inform",
+                     "2",
+                     "3",
+                     "4",
+                     "Seeking to persuade",
+                     "Don't know/Can't Say"
+                   ),
+                    labels = c(
+                     "inform",
+                     "2",
+                     "3",
+                     "4",
+                     "persuade",
+                     "?"
+                   ))
+  )
+
+
+gf_bar(data = df_intent, ~scale) %>% 
+  gf_facet_grid(vis~.) + theme_minimal()
+
+
+##CHART POLITICS
+df_politics <- df_compact_chart %>% 
+  filter(question =="politics") %>% 
+  mutate(
+    scale = factor(scale,
+                   levels = c(
+                     "Politically motivated",
+                     "2",
+                     "3",
+                     "4",
+                     "Not politically motivated",
+                     "Don't know/Can't Say"
+                   ),
+                   labels = c(
+                     "political",
+                     "2",
+                     "3",
+                     "4",
+                     "apolitical",
+                     "?"
+                   ))
+  )
+
+gf_bar(data = df_politics, ~scale) %>% 
+  gf_facet_grid(vis~.) + theme_minimal()
+
+
+##CHART BIAS
+df_bias <- df_compact_chart %>% 
+  filter(question =="bias")  %>% 
+  mutate(
+    scale = factor(scale,
+                   levels = c(
+                     "Biased",
+                     "2",
+                     "3",
+                     "4",
+                     "Unbiased",
+                     "Don't know/Can't Say"
+                   ),
+                   labels = c(
+                     "baised",
+                     "2",
+                     "3",
+                     "4",
+                     "unbiased",
+                     "?"
+                   ))
+  )
+
+gf_bar(data = df_bias, ~scale) %>% 
+  gf_facet_grid(vis~.) + theme_minimal()
+
+
+##CHART COMPLEXITY
+df_complexity <- df_compact_chart %>% 
+  filter(question =="complexity") %>% 
+  mutate(
+    scale = factor(scale,
+                   levels = c(
+                     "Manipulative",
+                     "2",
+                     "3",
+                     "4",
+                     "Straightforward",
+                     "Don't know/Can't Say"
+                   ),
+                   labels = c(
+                     "manipulative",
+                     "2",
+                     "3",
+                     "4",
+                     "straightforward",
+                     "?"
+                   ))
+  )
+
+gf_bar(data = df_complexity, ~scale) %>% 
+  gf_facet_grid(vis~.) + theme_minimal()
+
+##CHART CONFIDENCE
+df_chart_confidence <- df_compact_chart %>% 
+  filter(question =="confidence") %>% 
+  mutate(
+    scale = factor(scale,
+                   levels = c(
+                     "Extremely unconfident",
+                     "Somewhat unconfident",
+                     "Neither confident nor unconfident",
+                     "Somewhat confident",
+                     "Extremely confident"
+                   ))
+  )
+
+gf_bar(data = df_chart_confidence, ~scale) %>% 
+  gf_facet_grid(vis~.) + theme_minimal()
+```
+
