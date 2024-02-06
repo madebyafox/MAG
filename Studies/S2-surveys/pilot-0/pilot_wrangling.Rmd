@@ -38,6 +38,7 @@ library(ggformula) #regression syntax viz
 # library(vcd) #mosaic plots
 # library(vcdExtra) #mosaic plot helpers
 library(ggstatsplot) #dummies
+library(GGally) #extends ggplot for EDA 
 
 #MODELLING
 library(easystats) #modelling helpers
@@ -48,8 +49,9 @@ library(lmerTest) #for CIs in glmer
 
 options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 
-#POWER ANALYSIS
-library(pwrss)
+#POWER ANALYSIS & SIMULATION
+library(pwr)
+library(simr)
 
 #ARF ONLY — MANUAL RUN
 # setwd("~/Code/IXN-Characterizing_Interaction/IXN-D_Characterizing_Interaction/ANALYSIS")
@@ -274,6 +276,7 @@ df_responses <- df_responses %>% select(-one_of(explains)) %>%
 
 #REMOVE TEMP DATAFRAMES
 rm(graph_1, graph_2, graph_3, graph_4, graph_5, graph_6, graph_7, graph_8, graph_9, graph_10)
+rm(explains,nums,vecs,x)
 
 
 #SANITY CHECK 
@@ -311,7 +314,86 @@ df_responses%>% summarytools::dfSummary(
 
 # EXPLORATORY DATA ANALYSIS
 
+What questions do we expect we will want to answer? 
+
+Are the SDs affected by particular GRAPH? 
+Are the SDs consistent across participants for a particular GRAPH?
+Do the SDs differ across samples for a particular GRAPH? 
+How accurate are subjects' confidence in their MAKER and TOOL attributions? 
+
+
+
+
+## SIMULUATE
+
+
+
+
+
+
+
+
+
+## WIP 
+
+```{r}
+
+
+## PAIRPLOT OF ALL NUMERIC VARS BY GRAPH
+#select all numeric columns and graph
+df <- df_responses %>% select(
+  graph, where(is.numeric)) #select all numeric columns
+
+ggscatmat(df, columns = 3:9, color = "graph", alpha = 0.8) + 
+  ggtitle("MAKER ATTRIBUTIONS BY GRAPH")
+
+# SIMULATIONS
+# 
+# df_sim$graph = df$graph
+# 
+# 
+# #CREATE A COPY OF DF WITH NO DATA 
+# 
+# set.seed(8)
+# # x = runif(n = 500, min=0, max=100)
+# df_sim <- df %>% mutate(
+#   Q_MAKER_ID_CONF = round(rnorm( n = nrow(df), mean = 50, sd = 20),0)
+# ) 
+# 
+# 
+# 
+# 
+# glimpse(df_sim)
+# 
+# 
+# gf_histogram(~df_sim$Q_MAKER_ID_CONF)
+# 
+# df_sim <- cbind(df_sim, df$graph)
+# 
+# 
+# library(simstudy)
+# #DEFINE PARAMETERS
+# rm(def)
+# def <- defData(varname = "lower", dist = "uniform", formula = "0;0")
+# def <- defData(def, varname = "upper", dist = "uniform", formula = "100;100")
+# def <- defData(def, varname = "duration_sec", dist = "normal", formula = 50, variance=2)
+# def <- defData(def, varname = "Q_MAKER_ID_CONF", dist = "normal", formula = 50, variance = 15)
+# def <- defData(def, varname = "Q_MAKER_AGE", dist = "poisson",formula = 50)
+# (sim <- genData(5,def))
+# sim$Q_MAKER_GENDER = sim$Q_MAKER_AGE
+
+
+
+```
+
+
+
+
+
+
+
 ## PLATFORM
+**What social media platform do participants choose to engage with?" 
 
 ```{r engagement}
 
@@ -325,48 +407,5 @@ ggbarstats( data = df_subjects,
             x = PLATFORM, y = POOL) + 
 ggtitle( label = "Participant PLATFORM choice by POOL")
 
-
-
-## STATISTICAL POWER
-# ncp non-centrality parameter (lambda)
-# df degrees of freedom. eg. for the test of homogeneity or independence df = (nrow - 1)*(ncol - 1)
-
-
-
-df = (nrow(df_subjects) - 1) * (nlevels(df_subjects$PLATFORM) - 1)
-power.chisq.test(ncp = 15, 
-                 df = df, 
-                 alpha = 0.05,
-                 verbose = TRUE,
-                 plot = TRUE)
-
-#SEE 
-# https://ladal.edu.au/pwr.html#Power_Analysis_for_(chi)2-tests
-# w = effect size, cohen's guidelines are 
-# small ≥ 0.1, medium ≥ 0.3, and large ≥ 0.5
-#N = number of observations 
-
-
-## DEGREES OF FREEDOM
-#The degrees of freedom for the chi-square are calculated using the following #formula: df = (r-1)(c-1) where r is the number of rows and c is the number of #columns. If the observed chi-square test statistic is greater than the critical ##value, the null hypothesis can be rejected.
-
-
-## CHI SQUARE GOODNESS OF FIT 
-## ie. are the 6 platforms chosen in equal probability?
-#1—CALCULATE EFFECT SIZE OF GIVEN EFFECT
-c = 6   #number of categories of platform
-null <- rep(1/c, c) #equal probability across all six categories 
-
-prop_platform <- df_subjects %>% group_by(PLATFORM) %>% summarise(
-  n = sum(n)
-)
-
-
-
-n = nrow(df_subjects) 
-pwr.chisq.test(w = 0.4, 
-               N = n,
-               df = df,
-               sig.level=0.05)
 
 ```
