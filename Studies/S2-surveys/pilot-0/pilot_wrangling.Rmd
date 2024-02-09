@@ -523,6 +523,14 @@ plot(p_curve_treat)
 ```{r}
 library(mixedpower)
 
+
+
+
+
+
+
+
+
 # ------------------------------------------ #
 # INFORMATION ABOUT MODEL USED FOR SIMULATION
 
@@ -550,6 +558,13 @@ power <- mixedpower(model = model, data = data,
                        critical_value = 2, n_sim = 1000,
                        SESOI = c(-4.3,  0.30 ,-0.34, -0.27))
 
+
+# ------------------------------------------ #
+# LOOK AT RESULTS
+power
+
+saveRDS(power, file="mixedpower-simulation.RDS")
+power <- readRDS(file="mixedpower-simulation.RDS")
 # ------------------------------------------ #
 # PLOT THE RESULTS
 multiplotPower(power)
@@ -559,6 +574,139 @@ multiplotPower(power)
 
 ```
 
+
+# AMY SIMULATION
+
+```{r}
+library(mixedpower)
+#see also 
+# https://lkumle.github.io/power_notebooks/Scenario3_notebook.html
+
+
+#CREATE SIMULATED DATA 
+# 1. create subject IDs  -> let's start with 20 subjects
+n = 100
+subject_ID <- (1:n)
+
+# 2. create stimuli IDS -> every subject should read 4 words
+t = 4
+stimuli_ID <- (1:t)
+
+# 3. combine subject IDs and stimui IDs
+artificial_data <- expand.grid(Subject = subject_ID, Word = stimuli_ID)
+
+##FIXED EFFECTS 
+
+# 1. create vector including identifier for native language, coded as -0.5 and +0.5 [not sure why]
+native_language <- c(rep(-0.5, n/2), rep(0.5, n/2))
+
+# --> we will have 10 subjects in every group, each of whom reads 100 words
+# --> the vector needs to contain 1000 "-0.5" and 1000 "0.5" entries
+
+# 2. add vector to data set
+artificial_data["NativeLanguage"] <- native_language
+
+
+# In a next step, we will generate frequency ratings for our second fixed effect. Since they will heavily influence our data structure, we need to be able to justify which frequency ratings we use. Ideally, we would already have actual frequency ratings on hand or know the frequencies’ distribution from which we can sample. In this example, we choose to sample from a normal distribution with a mean of 5 and standard deviation of 1. Afterwards, we will center the variable.
+
+
+#  1. generate frequency ratings
+frequency_ratings <- rnorm(n*t, mean = 50, sd = 30) # draw 80 frequency rating (one for every graph)
+
+# 2. add to data frame
+artificial_data["Frequency"] <- frequency_ratings # multiply by 20 (for every subject)
+# CenteredFrequency <- scale(artificial_data$Frequency, scale = F)
+# artificial_data <- cbind(artificial_data, CenteredFrequency)
+
+glimpse(artificial_data)
+
+
+#### POWER ANALYSIS 
+# ------------------------------------------ #
+# SPECIFY BETA COEFFICIENTS FOR FIXED EFFECTS
+fixed_effects <-  c(50, -20, 10, 5) # order follows the order in model summary and formula
+
+# ------------------------------------------ #
+# SET RANDOM INTERCEPT VARIANCE
+random_variance <- list(10,20 )
+  # list(1.04, 0.65)
+
+# ------------------------------------------ #
+# SET RESIDUAL STANDARD DEVIATION
+sigma <- 2
+  # 0.26
+
+##SIMULATE LMER 
+# ------------------------------------------ #
+# CREATE LMER
+artificial_lmer <- makeLmer(formula = Speed ~ NativeLanguage * Frequency +
+                                      (1 | Subject) + (1 | Word),
+                           fixef = fixed_effects, VarCorr = random_variance, sigma = sigma,
+                           data = artificial_data)
+
+# lets have a look!
+summary(artificial_lmer)
+
+
+
+# ------------------------------------------ #
+# POWER ANALYSIS WITH SIMR
+power_simr <- powerSim(artificial_lmer, test= fixed("NativeLanguage"),  nsim=100)
+
+# ------------------------------------------ #
+# let's have a look:
+print(power_simr)
+
+
+
+#PRINT POWER CURVE 
+# THIS IS WHAT DIDN'T WANT TO RUN
+# p_curve_treat <- powerCurve(power_simr, test=fixed("NativeLanguage"), along="Subject")
+# plot(p_curve_treat)
+
+
+# ------------------------------------------ #
+# INFORMATION ABOUT MODEL USED FOR SIMULATION
+
+model <- artificial_lmer # which model do we want to simulate power for?
+data <- artificial_data # data used to fit the model
+fixed_effects <- c("NativeLanguage", "CenteredFrequency") # all fixed effects specified in artificial_glmer
+simvar <- "Subject" # which random variable do we want to vary in the simulation?
+
+# ------------------------------------------ #
+# SIMULATION PARAMETERS
+steps <- c(20,50,100,150,200) # which sample sizes do we want to look at?
+critical_value <- 2 # which t/z value do we want to use to test for significance?
+n_sim <- 1000 # how many single simulations should be used to estimate power?
+
+# ------------------------------------------ #
+# INCLUDE SESOI SIMULATION
+SESOI <-c(-4.3,  0.30 ,-0.34, -0.27) # specify SESOI (15% smaller betas)
+
+
+# ------------------------------------------ #
+# RUN SIMULATION WITH MIXEDPOWER
+power <- mixedpower(model = model, data = data,
+                       fixed_effects = c("NativeLanguage", "Frequency"),
+                       simvar = "Subject", steps = steps,
+                       critical_value = critical_value, n_sim = n_sim,
+                       SESOI = SESOI)
+
+
+# ------------------------------------------ #
+# LOOK AT RESULTS
+power
+
+saveRDS(power, file="mixedpower-simulation.RDS")
+power <- readRDS(file="mixedpower-simulation.RDS")
+# ------------------------------------------ #
+# PLOT THE RESULTS
+multiplotPower(power)
+
+
+
+
+```
 
 
 
