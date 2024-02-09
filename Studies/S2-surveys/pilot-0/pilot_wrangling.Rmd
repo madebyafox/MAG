@@ -521,7 +521,38 @@ plot(p_curve_treat)
 ```
 
 ```{r}
+library(mixedpower)
 
+# ------------------------------------------ #
+# INFORMATION ABOUT MODEL USED FOR SIMULATION
+
+model <- artificial_lmer # which model do we want to simulate power for?
+data <- artificial_data # data used to fit the model
+fixed_effects <- c("NativeLanguage", "CenteredFrequency") # all fixed effects specified in artificial_glmer
+simvar <- "Subject" # which random variable do we want to vary in the simulation?
+
+# ------------------------------------------ #
+# SIMULATION PARAMETERS
+steps <- c(20,60,100,140,180) # which sample sizes do we want to look at?
+critical_value <- 2 # which t/z value do we want to use to test for significance?
+n_sim <- 1000 # how many single simulations should be used to estimate power?
+
+# ------------------------------------------ #
+# INCLUDE SESOI SIMULATION
+SESOI <-c(-4.3,  0.30 ,-0.34, -0.27) # specify SESOI (15% smaller betas)
+
+
+# ------------------------------------------ #
+# RUN SIMULATION WITH MIXEDPOWER
+power <- mixedpower(model = model, data = data,
+                       fixed_effects = c("NativeLanguage", "CenteredFrequency"),
+                       simvar = "Subject", steps = c(20,60,100,140,180),
+                       critical_value = 2, n_sim = 1000,
+                       SESOI = c(-4.3,  0.30 ,-0.34, -0.27))
+
+# ------------------------------------------ #
+# PLOT THE RESULTS
+multiplotPower(power)
 
 
 
