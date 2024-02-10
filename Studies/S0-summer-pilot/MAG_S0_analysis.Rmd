@@ -1,5 +1,5 @@
 ---
-title: "MAG — Pilot 0 EDA"
+title: "MAG — S0  SUMMER PILOT EDA"
 author: "ANONYMIZED"
 date: "2024-01-27"
 output:
@@ -58,15 +58,73 @@ Data were exported from qualtrics to file `RAW_Vis Guise Pre-Pilot_January 27, 2
 
 ```{r IMPORT, message=FALSE, warning=FALSE}
 
-df_raw <- read_csv("data/CLEAN_pilot_0.csv")
+#DF RAW 1 ROW PER PARTICIPANT
+df_raw <- read_csv("data/CLEAN_S0_pilot.csv")
 
-#clean full dataset
+#DF DATA 1 ROW PER PARTICIPANT
+#PRELIM-CLEANING
 df_data <- df_raw %>% filter(
   finished_survey == 'TRUE'#EXCLUDE non-finishers
 ) %>% filter(
   !(is.na(IPAddress)) #EXCLUDE no ip address [from survey preview]
+) %>% select( #drop unecessary columns
+  -StartDate, -EndDate, -IPAddress, -Progress, -finished_survey, -RecordedDate,
+  -latitude, -longitude, -source, -language, -consent, -eligibility, -responseID,
+  -Status
+) %>% rename( #rename for consistency
+  ID.PROLIFIC = prolificID,
+  duration.sec = duration_sec 
+) %>% mutate( #factorize 
+  duration.min = round(duration.sec/60,1)
+) %>% relocate(
+  duration.min, .after=duration.sec
+) %>% relocate(ID.PROLIFIC) %>% 
+  mutate ( #factorize if NOT free response but IS a character
+  across(c(where(is.character),-contains("_explain"),-contains("_why")), factor)
+)  
+
+#DF FREE 1 ROW PER PARTICIPANT
+#GET ALL THE FREE RESPONSE DATA
+df_free <- df_data %>% select(
+  ID.PROLIFIC, duration.sec, duration.min,
+  contains("_explain"), contains("_why")
+) 
+
+#DF DEMOS 1 ROW PER PARTICIPANT
+#WS SURVEY and DEMOGRAPHICS
+df_demographics <- df_data %>% select(
+  ID.PROLIFIC, duration.sec, duration.min, contains("ws_"), contains("p_")
 )
+
+#DF DATA 1 ROW PER PARTICIPANT
+#DROP DEMOS and COMPREHENSION and FREE
+df_data <- df_data %>% 
+  select(
+    -contains("ws_"), -contains("p_"), 
+    -contains("_explain"), -contains("_why"),
+    -contains("q1"), -contains("q2"), -contains("q3")
+  )
+
+# #DF CHART 1 ROW PER PARTICIPANT-CHART
+# #RESHAPE 
+df_graphs <- df_data  %>% 
+  pivot_longer(
+    cols = v1_chart_intent:v5_author_confidence,
+    names_to = c("graph","subject","question"),
+    # names_pattern = "(v.)(chart.)(.)"
+    names_sep = "_"
+  ) %>% unite("question", subject:question, sep="_",remove = TRUE)
+
+
 ```
+
+
+
+
+
+
+
+
 
 
 ```{r CHART-SD}
