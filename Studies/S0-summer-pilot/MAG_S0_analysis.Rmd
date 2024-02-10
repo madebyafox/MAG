@@ -78,16 +78,17 @@ df_data <- df_raw %>% filter(
   duration.min = round(duration.sec/60,1)
 ) %>% relocate(
   duration.min, .after=duration.sec
-) %>% relocate(ID.PROLIFIC) %>% 
-  mutate ( #factorize if NOT free response but IS a character
-  across(c(where(is.character),-contains("_explain"),-contains("_why")), factor)
-)  
+) %>% relocate(ID.PROLIFIC) 
+# %>% JK DON'T FACTORIZE THIS IS GOING TO BE A PROBLEM POST PIVOT
+#   mutate ( #factorize if NOT free response but IS a character
+#   across(c(where(is.character),-contains("_explain"),-contains("_why")), factor)
+# )  
 
 #DF FREE 1 ROW PER PARTICIPANT
 #GET ALL THE FREE RESPONSE DATA
 df_free <- df_data %>% select(
   ID.PROLIFIC, duration.sec, duration.min,
-  contains("_explain"), contains("_why")
+  contains("_explain"), contains("_why"), contains("_who")
 ) 
 
 #DF DEMOS 1 ROW PER PARTICIPANT
@@ -101,24 +102,77 @@ df_demographics <- df_data %>% select(
 df_data <- df_data %>% 
   select(
     -contains("ws_"), -contains("p_"), 
-    -contains("_explain"), -contains("_why"),
+    -contains("_explain"), -contains("_why"), -contains("_who"),
     -contains("q1"), -contains("q2"), -contains("q3")
   )
 
-# #DF CHART 1 ROW PER PARTICIPANT-CHART
+# #DF CHART 1 ROW PER PARTICIPANT-CHART-QUESTION
 # #RESHAPE 
 df_graphs <- df_data  %>% 
-  pivot_longer(
+  pivot_longer( #PIVOT ALL THE WAY LONG
     cols = v1_chart_intent:v5_author_confidence,
     names_to = c("graph","subject","question"),
     # names_pattern = "(v.)(chart.)(.)"
-    names_sep = "_"
-  ) %>% unite("question", subject:question, sep="_",remove = TRUE)
-
-
+    names_sep = "_") %>% 
+  unite( #COMBINE SUBJECT AND QUESTION
+    col = "question", 
+    subject:question, 
+    sep="_",
+    remove = TRUE) %>% 
+  pivot_wider( #NOW PIVOT BACK UP ONE LEVEL
+    names_from = question,
+    values_from=value
+  ) %>% mutate_if(#RE-FACTORIZE
+    is.character,factor
+  ) %>% mutate( #SET LEVELS
+    chart_intent = factor (chart_intent,
+      levels = c("Seeking to inform","2","3","4","Seeking to persuade","Don't know/Can't Say"),
+      labels = c("inform","2","3","4","persuade","?")),
+    chart_politics = factor(chart_politics,
+      levels = c("Politically motivated","2","3","4","Not politically motivated","Don't know/Can't Say"),
+      labels = c("political","2","3","4","not-political","?")),
+    chart_bias = factor(chart_bias,
+      levels = c("Biased","2","3","4","Unbiased","Don't know/Can't Say"),
+      labels = c("baised","2","3","4","unbiased","?")),
+    chart_complexity = factor(chart_complexity, 
+      levels = c("Manipulative","2","3","4","Straightforward","Don't know/Can't Say"),
+      labels = c("manipulative",  "2",  "3",  "4",  "straightforward",  "?")),
+    chart_confidence = factor(chart_confidence,
+      levels = c("Extremely unconfident", "Somewhat unconfident", "Neither confident nor unconfident",  
+                 "Somewhat confident","Extremely confident"),
+      labels = c("1","2","3","4","5")),
+    author_expertise = factor(author_expertise,
+      levels = c("Amateur", "2","3", "Expert","Don't know/Can't say"),
+      labels = c("amateur","2","3","expert","?")),
+    author_responsibility = factor(author_responsibility,
+      levels = c("Responsible", "2", "3", "Irresponsible","Don't know/Can't say"),
+      labels = c("responsible","2", "3","irresponsible","?")),
+    author_honesty = factor(author_honesty,
+      levels = c("Honest", "2", "3", "Dishonest","Don't know/Can't say"),
+      labels = c("honest","2", "3","dishonest","?")),
+    author_grounded = factor(author_grounded,
+      levels = c("Down to earth", "2", "3", "Out of touch","Don't know/Can't say"),
+      labels = c("grounded","2", "3","not-grounded","?")),
+    author_alignment = factor(author_alignment,
+      levels = c("Like you", "2", "3", "Unlike you","Don't know/Can't say"),
+      labels = c("like-me","2", "3","unlike-me","?")),
+    author_confidence = factor(author_confidence,
+      levels = c("Extremely unconfident", "Somewhat unconfident", "Neither confident nor unconfident",  
+                 "Somewhat confident","Extremely confident"),
+      labels = c("1","2","3","4","5"))
+  )    
+    
 ```
 
 
+
+```{r vis}
+
+#PAIRPLOT
+
+
+
+```
 
 
 
