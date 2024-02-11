@@ -453,7 +453,7 @@ sim_treat_subject <- powerSim(model_ext_subject, test= fcompare(intent~politics)
 print(sim_treat_subject)
 p_curve_treat <- powerCurve(model_ext_subject, test=fcompare(intent~politics), along="subject")
 plot(p_curve_treat)
-savePlot(plot(p_curve_treat), file = "summer-pilot-intent-politics-powerCurve.png")
+# savePlot(plot(p_curve_treat), file = "summer-pilot-intent-politics-powerCurve.png")
 saveRDS(p_curve_treat, file = "summer-pilot-intent-politics-powerCurve.RDS")
 
 
