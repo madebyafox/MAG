@@ -47,6 +47,11 @@ library(sjPlot)
 library(lme4)
 library(lmerTest) #for CIs in glmer
 
+#POWER ANALYSIS
+library(simr)
+library(mixedpower)
+
+
 options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 
 
@@ -57,6 +62,7 @@ options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 
 Data were exported from qualtrics to file `RAW_Vis Guise Pre-Pilot_January 27, 2024_16.57.csv` which was manually wrangled to `CLEAN_pilot_0.csv` by removing extraneous qualtrics columns and creating informative column names from question text. 
 
+## Data Wrangling
 
 ```{r IMPORT, message=FALSE, warning=FALSE}
 
@@ -175,37 +181,7 @@ df_graphs <- df_data  %>%
 
 ```
 
-
-
-
-```{r}
-##MODEL FOR POWER ANALYSIS FOR FUTURE STUDIES 
-
-df <- df_graphs %>% 
-  select(ID.PROLIFIC, graph, genre, chart_intent, chart_politics) %>%
-  mutate(
-    subject = ID.PROLIFIC,
-    GENRE = genre,
-    INTENT = as.numeric(chart_intent),
-    POLITICS = chart_politics
-  )
-
-
-#visualize distribution
-gf_bar(~INTENT, data = df) + facet_grid(.~GENRE)
-
-
-#create LMM predicting chart intent from genre
-m <- lmer( INTENT ~ GENRE + (1|subject), data = df)
-summary(m)
-check_model(m)
-
-
-```
-
-
-
-
+## Visualize 
 
 ```{r vis}
 
@@ -241,13 +217,250 @@ ggbarstats(df_graphs,x = author_confidence      ,y = graph)+ easy_labs( title = 
   
 # ggbivariate(df, outcome = "chart_confidence", explanatory = c("chart_politics", "chart_intent","chart_complexity","graph"))
 ```
+## Model 
+```{r}
+##MODEL FOR POWER ANALYSIS FOR FUTURE STUDIES 
+
+df <- df_graphs %>% 
+  select(ID.PROLIFIC, graph, genre, chart_intent, chart_politics) %>%
+  mutate(
+    subject = ID.PROLIFIC,
+    GENRE = genre,
+    intent = as.numeric(chart_intent),
+    POLITICS = as.numeric(fct_rev(chart_politics))
+  ) %>% select(subject, intent, GENRE, POLITICS, graph)
+
+
+#visualize distribution
+gf_bar(~intent, data = df) + facet_grid(.~GENRE) + 
+  easy_labs(title = "Chart Intent by GENRE", 
+            subtitle = "2 (to inform) --> 6 (to persuade), 1=?")
+gf_bar(~POLITICS, data = df) + facet_grid(.~GENRE) + 
+    easy_labs(title = "Chart Politics by GENRE", 
+            subtitle = "2 (apolotical) --> 6 (political), 1=?")
+
+gf_point(intent ~ POLITICS, color = ~GENRE, data = df) %>% gf_jitter() + 
+      easy_labs(title = "CHART INTENT BY POLITICS & GENRE", 
+            subtitle = "1=? higher politics -> more political; higher intent -> to persuade")
+
+#create LMM predicting chart intent from genre
+m1 <- lmer( intent ~ GENRE + (1|subject) + (1|graph), data = df)
+summary(m1)
+check_model(m1)
+report(m1)
+
+
+#create LMM predicting chart intent from genre and politics
+m2 <- lmer( intent ~ GENRE + POLITICS + (1|subject) + (1|graph), data = df)
+summary(m2)
+check_model(m2)
+report(m2)
+
+
+#create LMM predicting chart intent from genre and politics with interaction term
+m3 <- lmer( intent ~ GENRE * POLITICS + (1|subject) + (1|graph), data = df)
+summary(m3)
+check_model(m3)
+report(m3)
+
+compare_parameters(m1,m2,m3)
+compare_performance(m1,m2,m3, rank=TRUE)
+
+
+```
+
+## Power Analysis
+
+M3 was the best fitting model, so we use this to estimate power for subsequent studies 
+
+```{r}
+
+#see also  # https://lkumle.github.io/power_notebooks/Scenario3_notebook.html
+
+## BUILD SIMULATED DATASET 
+
+#CREATE SIMULATED DATA 
+# 1. create subject IDs  
+n = 10
+subject_ID <- (1:n)
+
+# 2. create stimuli IDS -> every subject should read t words
+t = 5
+stimuli_ID <- (1:t)
+
+# 3. combine subject IDs and stimui IDs
+df_sim <- expand.grid(subject = subject_ID, graph = stimuli_ID)
+
+##FIXED EFFECTS 
+
+# 4. create vector including identifier for FIXED FACTOR GENRE
+#half news, half infographic
+genre <- c(rep("news", (n*t)/2), rep("infographic", (n*t)/2))
+
+# add vector to data set
+df_sim["genre"] <- genre
+
+# 5. create values for fixed factor politics
+pilot_mean <- mean(df$POLITICS)
+pilot_sd <- sd(df$POLITICS)
+politics <- rnorm(n*t, mean = pilot_mean, sd = pilot_sd) 
+
+# add to data frame
+df_sim["politics"] <- politics # multiply by 20 (for every subject)
+df_sim <- df_sim %>% mutate(
+  #don't make subject and graphs factors, needs to be numeric for later power simulations
+  genre = factor(genre, levels=c("news","infographic")) #have to match order of df
+)
+
+
+glimpse(df)
+glimpse(df_sim)
+
+####### POWER ANALYSIS
+
+# ------------------------------------------ #
+# SPECIFY BETA COEFFICIENTS FOR FIXED EFFECTS (get from pilot data model m3)
+# intent ~ GENRE * POLITICS + (1|subject),
+fixed_effects <-  c(1.47, -0.58, 0.37, 0.36) # order follows the order in model summary and formula
+
+# ------------------------------------------ #
+# SET RANDOM INTERCEPT VARIANCE
+random_variance <- list(0.09345, 0.003284)
+
+# ------------------------------------------ #
+# SET RESIDUAL STANDARD DEVIATION
+sigma <- sigma(m3)
+
+##SIMULATE LMER 
+# ------------------------------------------ #
+# CREATE LMER
+#m3 <- lmer( intent ~ GENRE * POLITICS + (1|subject), data = df)
+sim_lmer <- makeLmer(formula = intent ~ genre * politics + (1 | subject) + (1 | graph),
+                           fixef = fixed_effects, VarCorr = random_variance, sigma = sigma,
+                           data = df_sim)
+
+# lets have a look!
+summary(sim_lmer)
+
+```
+
+
+```{r}
+
+# ------------------------------------------ #
+# INFORMATION ABOUT MODEL USED FOR SIMULATION
+
+model <- sim_lmer # which model do we want to simulate power for?
+data <- df_sim # data used to fit the model
+fixed_effects <- c("genre", "politics") # all fixed effects specified in artificial_glmer
+simvar <- "subject" # which random variable do we want to vary in the simulation?
+
+
+# ------------------------------------------ #
+# SIMULATION PARAMETERS
+steps <- c(20,60,100,140,180) # which sample sizes do we want to look at?
+critical_value <- 2 # which t/z value do we want to use to test for significance?
+n_sim <- 1000 # how many single simulations should be used to estimate power?
+
+# ------------------------------------------ #
+# INCLUDE SESOI SIMULATION
+# SESOI <-c(-4.3,  0.30 ,-0.34, -0.27) # specify SESOI (15% smaller betas)
+
+
+
+
+# ------------------------------------------ #
+# RUN SIMULATION WITH MIXEDPOWER varying SUBJECTS
+subjects_power <- mixedpower(model = model, data = data,
+                       fixed_effects = fixed_effects,
+                       simvar = simvar, steps =steps,
+                       critical_value = critical_value, n_sim = 1000
+                       #, SESOI = c(-4.3,  0.30 ,-0.34, -0.27))
+)
+
+# ------------------------------------------ #
+# LOOK AT RESULTS
+subjects_power
+saveRDS(subjects_power, file="subjects_mixedpower-simulation.RDS")
+# subjects_power <- readRDS(file="subjects_mixedpower-simulation.RDS")
+# ------------------------------------------ #
+# PLOT THE RESULTS
+multiplotPower(subjects_power)
+#this run indicated 100 subjects for 5 graphs at the same effects found at summer pilot
 
 
 
 
 
+# ------------------------------------------ #
+# RUN SIMULATION WITH MIXEDPOWER — varying stimuli
+graphs_power <- mixedpower(model = model, data = data,
+                       fixed_effects = fixed_effects,
+                       simvar = "graph", steps =c(4,6,8),
+                       critical_value = critical_value, n_sim = 1000
+                       #, SESOI = c(-4.3,  0.30 ,-0.34, -0.27))
+)
+
+# ------------------------------------------ #
+# LOOK AT RESULTS
+graphs_power
+saveRDS(graphs_power, file="graphs_mixedpower-simulation.RDS")
+# subjects_power <- readRDS(file="subjects_mixedpower-simulation.RDS")
+# ------------------------------------------ #
+# PLOT THE RESULTS
+multiplotPower(graphs_power)
+#this run indicated 100 subjects for 5 graphs at the same effects found at summer pilot
+
+   
 
 
+
+
+# ------------------------------------------ #
+# RUN SIMULATION WITH MIXEDPOWER — varying SUBJECTS AND STIMULI
+r2_power <- R2power(model = model, data = data,
+                       fixed_effects = fixed_effects,
+                       simvar = "subject", steps = c(20,60,100,140,180),
+                       R2var="graph", R2level=30,
+                       critical_value = critical_value, n_sim = 1000
+                       #, SESOI = c(-4.3,  0.30 ,-0.34, -0.27))
+)
+
+# ------------------------------------------ #
+# LOOK AT RESULTS
+r2_power
+saveRDS(r2_power, file="graphs_mixedpower-simulation.RDS")
+# subjects_power <- readRDS(file="subjects_mixedpower-simulation.RDS")
+# ------------------------------------------ #
+# PLOT THE RESULTS
+multiplotPower(r2_power)
+#this run indicated 100 subjects for 5 graphs at the same effects found at summer pilot
+
+   
+
+```
+
+```{r}
+
+
+# ------------------------------------------ #
+# POWER ANALYSIS WITH SIMR
+power_simr <- powerSim(sim_lmer, test= fixed("genre"),  nsim=100)
+
+# ------------------------------------------ #
+# let's have a look:
+print(power_simr)
+
+
+#PRINT POWER CURVE 
+p_curve_treatment <- powerCurve(power_simr, test=fixed("genre"), along="subject")
+plot(p_curve_treatment)
+
+```
+
+
+
+```
 
 
 
