@@ -269,7 +269,7 @@ compare_performance(m1,m2,m3, rank=TRUE)
 
 ```
 
-## Power Analysis
+## Power Analysis with mixedpower
 
 M3 was the best fitting model, so we use this to estimate power for subsequent studies 
 
@@ -434,27 +434,36 @@ saveRDS(r2_power, file="graphs_mixedpower-simulation.RDS")
 # ------------------------------------------ #
 # PLOT THE RESULTS
 multiplotPower(r2_power)
-#this run indicated 100 subjects for 5 graphs at the same effects found at summer pilot
+#this run indicated only 20 subjects are needed? very confused
 
    
 
 ```
 
+## Power Analysis with powerSim
 ```{r}
 
 
 # ------------------------------------------ #
 # POWER ANALYSIS WITH SIMR
-power_simr <- powerSim(sim_lmer, test= fixed("genre"),  nsim=100)
-
-# ------------------------------------------ #
-# let's have a look:
+power_simr <- powerSim(sim_lmer, test= fcompare(intent~politics),  nsim=100)
 print(power_simr)
+model_ext_subject <- extend(sim_lmer, along="subject", n=20)
+sim_treat_subject <- powerSim(model_ext_subject, test= fcompare(intent~politics),  nsim=100)
+print(sim_treat_subject)
+p_curve_treat <- powerCurve(model_ext_subject, test=fcompare(intent~politics), along="subject")
+plot(p_curve_treat)
 
 
-#PRINT POWER CURVE 
-p_curve_treatment <- powerCurve(power_simr, test=fixed("genre"), along="subject")
-plot(p_curve_treatment)
+
+##_________________OBSERVED MODEL
+# actual_simr_politics <- powerSim(m3, test=fcompare(intent~POLITICS), nsim=100)
+# print(actual_simr_politics)
+# model_extend_sub <- extend(sim_lmer, along="subject", n=20)
+# sim_treat_subject <- powerSim(model_extend_sub, test=fcompare(intent~POLITICS), nsim=100)
+# p_curve_treat <- powerCurve(sim_treat_subject, test=fcompare(intent~POLITICS), along="subject")
+
+
 
 ```
 
