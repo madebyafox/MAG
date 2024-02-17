@@ -59,6 +59,18 @@ library(simr)
 
 TODO describe provenance
 
+Notes on Qualtrics Survey Status
+
+In Qualtrics, when a survey is: 
+- abandoned;  Finished = False and Progress < 100%
+- fails consent or pre-screening, Finished = TRUE, Progress = 100%, Q_TerminateFlag = "Screened"
+- complete; Finished = TRUE, Progress = 100%
+
+I've added End_State as an embedded data field, but it is not clear if it is being consistently set in Qualtrics
+
+
+
+
 ```{r WRANGLING, message=FALSE, warning=FALSE}
 
 #DF_RAW --> will always be the unaltered version of imported data
@@ -66,11 +78,8 @@ TODO describe provenance
 df_raw <- read_csv("data/CLEAN_MAG-VIS_S2_prototype_v5.csv", col_names = TRUE)
 
 
-
-
 ## TODO HANDLE CONSENT AND ELIGIBILITY 
 ## TODO HANDLE STUDY_ID AND SESSION_ID
-
 
 
 #### MASTER WIDE FORMAT DATA FRAME ##########################

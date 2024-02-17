@@ -1,0 +1,330 @@
+---
+title: "MAG — S2 WRANGLING EDA"
+author: "ANONYMIZED"
+date: "2024-02-04"
+output:
+  html_document:
+    theme: flatly
+    code_folding: hide
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    toc_depth: 5
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+always_allow_html: yes
+font-family: DejaVu Sans
+mainfont: DejaVu Sans
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(tidyverse) #all the things
+library(magrittr) #special pipes like %<>%
+library(summarytools) #data quality
+library(jtools) #Social Science regression utilities
+library(lubridate) #dealing with dates
+
+#VIZ
+library(kableExtra) #printing tables
+library(ggformula) #regression syntax viz
+# library(vcd) #mosaic plots
+# library(vcdExtra) #mosaic plot helpers
+library(ggstatsplot) #dummies
+library(GGally) #extends ggplot for EDA 
+library(ggeasy) #easy labelling
+
+#MODELLING
+library(easystats) #modelling helpers
+library(see)
+library(sjPlot)
+library(lme4)
+library(lmerTest) #for CIs in glmer
+
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+
+#POWER ANALYSIS & SIMULATION
+library(pwr)
+library(simr)
+
+#ARF ONLY — MANUAL RUN
+# setwd("~/Code/IXN-Characterizing_Interaction/IXN-D_Characterizing_Interaction/ANALYSIS")
+
+```
+
+TODO describe provenance
+
+Notes on Qualtrics Survey Status
+
+In Qualtrics, when a survey is: 
+- abandoned;  Finished = False and Progress < 100%
+- fails consent or pre-screening, Finished = TRUE, Progress = 100%, Q_TerminateFlag = "Screened"
+- complete; Finished = TRUE, Progress = 100%
+
+I've added End_State as an embedded data field, but it is not clear if it is being consistently set in Qualtrics
+
+
+
+
+```{r WRANGLING, message=FALSE, warning=FALSE}
+
+#### RAW DATA ####################################################################
+# will always be the unaltered version of imported data
+# 1 row per subject 
+# block 1 data collar 
+df_raw <- read_csv("data/CLEAN_MAG_S2_PROLIFIC-DATACOLLAR_1.csv", col_names = TRUE)
+
+
+#### MASTER WIDE FORMAT DATA FRAME [1 row / qualtrics submission] ################
+# drop first two rows (qualtrics_specs)
+df_master <- df_raw[-c(1:2),] %>% 
+  select(
+    -EndDate, -IPAddress, -RecordedDate,
+    -RecipientLastName, -RecipientFirstName, -RecipientEmail,
+    -ExternalReference, -LocationLatitude, -LocationLongitude, 
+    -DistributionChannel, -UserLanguage, -Q_RecaptchaScore,
+    -P_BROWSER_Version, -P_BROWSER_Resolution, 
+    -CONSENT, -ELIGIBILITY, 
+    -randomize_common, -stimulus_common, #hidden q that controls common stimulus url
+    -contains("First Click"), -contains("Last Click"), -contains("Click Count"),
+    -T_EMAIL, -T_BROWSER_Version, -T_BROWSER_Resolution, 
+    -ID_PROLIFIC, -ID_STUDY, -ID_SESSION #redundant to other cols 
+  )  %>% 
+  rename(
+    duration.sec = `Duration (in seconds)`,
+    EndState = End_State, 
+    TerminateFlag = Q_TerminateFlag,
+    Source = Status, #where the survey originated from (should not be preview or test)
+    PLATFORM = Q_PLATFORM,
+    ORDER = FL_74_DO,
+    ID.Qualtrics = ResponseId,
+    ID.Prolific = PROLIFIC_PID,
+    ID.Study = STUDY_ID,
+    ID.Session = SESSION_ID,
+    P_BROWSER_OS = `P_BROWSER_Operating System`,
+    T_BROWSER_OS = `T_BROWSER_Operating System`,
+    SCREEN_workFunction_TEXT = SCREEN_workFunction_22_TEXT, 
+    SCREEN_socialMedia_TEXT = SCREEN_socialMedia_18_TEXT
+  ) %>% 
+  mutate(
+    StartDate = mdy_hm(StartDate),
+    duration.sec = as.numeric(duration.sec), #weird booleans should only be for the test generator
+    duration.min = round(duration.sec/60,2)
+  ) %>%
+  rename_at(
+  #REPLACE RANDOM TRAILING _1 AND _65 FROM QUALTRICS
+    vars(contains('_65')), funs(sub('_65', '', .))
+  ) %>% 
+  rename_at(
+    vars(contains('_1')), funs(sub('_1', '', .))
+  ) %>% 
+  rename_at(
+   vars(contains('_Page Submit')), funs(sub('_Page Submit', '', .))
+  ) %>% 
+  rename_at( #CHANGE DETAIL QUESTION DELIMITER FOR PIVOT PURPOSES 
+   vars(contains('_CHART_')), funs(sub('_CHART_', '_CHART-', .))
+  ) %>% 
+  rename_at( #CHANGE DETAIL QUESTION DELIMITER FOR PIVOT PURPOSES 
+   vars(contains('_MAKER_')), funs(sub('_MAKER_', '_MAKER-', .))
+  ) %>% 
+  rename_at( #CHANGE DETAIL QUESTION DELIMITER FOR PIVOT PURPOSES 
+   vars(contains('_AGE_')), funs(sub('_AGE_', '_AGE-', .))
+  ) %>% 
+  rename_at( #CHANGE DETAIL QUESTION DELIMITER FOR PIVOT PURPOSES 
+   vars(contains('_GENDER_')), funs(sub('_GENDER_', '_GENDER-', .))
+  ) %>% 
+  rename_at( #CHANGE DETAIL QUESTION DELIMITER FOR PIVOT PURPOSES 
+   vars(contains('_TOOL_')), funs(sub('_TOOL_', '_TOOL-', .))
+   ) %>% 
+  select ( #reodering
+    ID.Qualtrics, ID.Prolific:ID.Session, 
+    Source, Progress, Finished, EndState, TerminateFlag, 
+    StartDate, duration.sec, duration.min, 
+    ORDER, PLATFORM,
+    P_BROWSER_Browser, P_BROWSER_OS, T_BROWSER_Browser, T_BROWSER_OS, 
+    D_gender:D_age, SCREEN_workMethod:SCREEN_socialMedia_TEXT, 
+    PURPOSE, FEEDBACK , 
+    `0_Q_B0_ENCOUNTER`:`4_Q_B6_CHART-LATENCY`
+  )  %>% 
+  mutate ( #set factors 
+    ID.Qualtrics = factor(ID.Qualtrics),
+    ID.Prolific = factor(ID.Prolific),
+    ID.Study = factor(ID.Study),
+    ID.Session = factor(ID.Session),
+    PLATFORM = factor(PLATFORM),
+    Source = factor(Source),
+    Finished = as.logical(Finished),
+    TerminateFlag = factor(TerminateFlag)
+  )
+
+
+#### SEGREGATE PARTICIPANTS WHO DID NOT COMPLETE ###############################
+## [1 row / qualtrics submission] ################
+## NOTE it is common for prolific participants to fail the 
+## screening verification, and then try again but change their 
+## screening verification answers (ie. one prolific ID for multiple qualrics IDs)
+df_nofinish <- df_master %>% 
+  filter( 
+    !is.na(TerminateFlag) | Finished == FALSE   
+  )
+
+
+#### MASTER VALID DATA [WIDE] 1 row per qualtrics entry #########################
+## [1 row / qualtrics submission] ################
+df_data <- df_master %>% filter(
+  ID.Qualtrics %nin% df_nofinish$ID.Qualtrics
+  # (Finished == TRUE ) & is.na(TerminateFlag)
+)
+
+#sanity check === SHOULD BE O
+#no qualtrics surveys in good data that weren't finished
+sum(df_data$ID.Qualtrics %in% df_nofinish$ID.Qualtrics)
+
+#sanity check === SHOULD BE O
+#no duplicated PROLIFIC ids in good data 
+sum(duplicated(df_data$ID.Prolific))
+
+
+#### MASTER SUBJECT DATA FRAME ##########################
+# 1 row per participant 
+# TODO HANDLE DEMOGRAPHICS WHEN THEY'RE ADDED 
+df_subjects <- df_data %>% select(
+  ID.Qualtrics:FEEDBACK,
+  contains("-DETAIL"), contains("-EXPLAIN")
+)  
+  
+#### QUESTION LEVEL DATA FRAME (LONG) ##########################
+# 1 row per participant-graph-question
+df_questions <- df_data %>% select(
+  ID.Qualtrics:ID.Study, PLATFORM, 
+  contains("_Q_"), contains("loop")
+) %>% pivot_longer( #PIVOT ON stimulus
+  cols = contains("_Q_"),
+  names_to = c("stimulus","dummy","BLOCK","QUESTION"),
+  values_to = c("value"),
+  names_sep = "_"
+) %>% select(-dummy) %>% 
+  unite(
+   BLOCK:stimulus, col="STIMULUS", sep="-", remove=FALSE
+) %>% 
+  mutate(
+    BLOCK = factor(BLOCK),
+    STIMULUS = factor(STIMULUS),
+    QUESTION = str_replace_all(QUESTION,"-","_"),
+    QUESTION = factor(QUESTION)
+) %>% 
+  select(-stimulus) %>% filter(!is.na(value))
+  
+
+
+#### CHART LEVEL DATA FRAME (LONG) ##########################
+# 1 row per participant X graph 
+# unnest https://stackoverflow.com/questions/58035452/pivot-wider-outputs-s3-vctrs-list-of-objects
+df_graphs_full <- df_questions %>% 
+  pivot_wider(
+    names_from = QUESTION,
+    values_from = value 
+  ) %>%  
+  tidyr::unnest() %>%  # handle r coerces values to lists
+  mutate(
+    across(contains("_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
+    across(contains("_CONF") | contains("_LATENCY"), as.numeric),
+    across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
+    across(CHART_LIKE:CHART_TRUST, as.numeric),
+    ENCOUNTER = factor(ENCOUNTER),
+    loop_number = as.numeric(loop_number),
+    loop_number = ifelse(is.na(loop_number), 0, loop_number)
+  )
+
+df_graphs <- df_graphs_full %>% 
+  select( !is.character)
+
+
+#CHECK BLOCKS PER PARTICIPANT
+# every participant should have 2 blocks
+check_subject_blocks <- df_questions %>%
+  group_by(ID.Qualtrics) %>% summarise(
+    n_block = length(unique(BLOCK))
+  )
+  
+
+#CHECK STIMULI PER PARTICIPANT
+# every participant should have 5 graphs
+check_subject_graphs <- df_questions %>% 
+  group_by(ID.Qualtrics) %>%summarise(
+    n_graphs = length(unique(STIMULUS))
+  ) #each participant should have five graphs
+
+```
+
+
+## PROFILE DATA 
+```{r}
+
+df_graphs%>% summarytools::dfSummary(
+             varnumbers = FALSE,
+             plain.ascii  = FALSE,
+             graph.magnif = 0.75,
+             style        = "grid",
+             tmp.img.dir  = "temp",
+             missing.col = FALSE, 
+             method = "render"
+)
+
+
+```
+
+
+## EDA
+
+```{r}
+
+gf_histogram( ~ MAKER_TRUST, data = df_graphs) %>% 
+  gf_facet_grid(STIMULUS ~ .) + easy_labs( title = "MAKER TRUST by GRAPH")
+
+gf_histogram( ~ CHART_TRUST, data = df_graphs) %>% 
+  gf_facet_grid(STIMULUS ~ .) + easy_labs( title = "CHART TRUST by GRAPH")
+
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+
+#MAKER CHARS 
+df <- df_graphs %>% select(ID.Study:STIMULUS, ENCOUNTER, MAKER_ID:MAKER_LATENCY) %>% 
+  mutate(
+    STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
+  )
+
+#MAKER CHARS 
+df <- df_graphs %>% select(ID.Study:STIMULUS, ENCOUNTER, MAKER_ID:MAKER_LATENCY) %>% 
+  mutate(
+    STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
+  )
+
+## CHART 
+df <- df_graphs %>% select(ID.Study, STIMULUS, ENCOUNTER, CHART_LIKE:loop_number) %>% 
+  mutate(
+    STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
+  )
+
+ggpairs(df, mapping = aes(color = STIMULUS)) 
+
+
+
+
+
+## BEST BETS 
+df <- df_graphs %>% select(ID.Study, STIMULUS, MAKER_ID, MAKER_GENDER, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_INTENT, CHART_TRUST, MAKER_TRUST) %>%  mutate(
+    STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
+  )
+
+ggpairs(df, mapping = aes(color = STIMULUS)) 
+
+```
