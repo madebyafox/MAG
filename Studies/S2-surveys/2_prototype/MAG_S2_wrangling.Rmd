@@ -28,7 +28,6 @@ library(Hmisc) # %nin% operator
 library(tidyverse) #all the things
 library(magrittr) #special pipes like %<>%
 library(summarytools) #data quality
-library(jtools) #Social Science regression utilities
 library(lubridate) #dealing with dates
 
 #VIZ
@@ -41,6 +40,7 @@ library(GGally) #extends ggplot for EDA
 library(ggeasy) #easy labelling
 
 #MODELLING
+library(jtools) #Social Science regression utilities
 library(easystats) #modelling helpers
 library(see)
 library(sjPlot)
@@ -82,9 +82,8 @@ df_raw_datacollar <- read_csv("data/CLEAN_MAG_S2_PROLIFIC-DATACOLLAR_1.csv", col
 df_raw_datacollar <- df_raw_datacollar[-c(1:2),]
 df_raw_bluecollar <- read_csv("data/CLEAN_MAG_S2_PROLIFIC-BLUECOLLAR_1.csv", col_names = TRUE)
 df_raw_bluecollar <- df_raw_bluecollar[-c(1:2),]
-
 df_raw <- rbind(df_raw_datacollar, df_raw_bluecollar)
-
+rm(df_raw_datacollar, df_raw_bluecollar)
 
 #### MASTER WIDE FORMAT DATA FRAME [1 row / qualtrics submission] ################
 # drop first two rows (qualtrics_specs)
@@ -129,7 +128,8 @@ df_master <- df_raw %>%
                       labels = c("bluecollar","datacollar")),
     StartDate = mdy_hm(StartDate),
     duration.sec = as.numeric(duration.sec), #weird booleans should only be for the test generator
-    duration.min = round(duration.sec/60,2)
+    duration.min = round(duration.sec/60,2),
+    Progress = as.numeric(Progress)
   ) %>%
   rename_at(
   #REPLACE RANDOM TRAILING _1 AND _65 FROM QUALTRICS
@@ -185,6 +185,13 @@ df_master <- df_raw %>%
 df_nofinish <- df_master %>% 
   filter( 
     !is.na(TerminateFlag) | Finished == FALSE   
+  ) %>% 
+  select(
+    ID.Qualtrics, ID.Study, Source, Progress, 
+    Finished, TerminateFlag, EndState) %>% 
+  mutate(
+    EndState = ifelse( (Progress < 100), "abandoned", EndState)
+    
   )
 
 
@@ -254,6 +261,7 @@ df_graphs_full <- df_questions %>%
     loop_number = ifelse(is.na(loop_number), 0, loop_number)
   )
 
+## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES
 df_graphs <- df_graphs_full %>% 
   select( !is.character)
 
@@ -264,6 +272,7 @@ check_subject_blocks <- df_questions %>%
   group_by(ID.Qualtrics) %>% summarise(
     n_block = length(unique(BLOCK))
   )
+all(check_subject_blocks$n_block==2)
   
 
 #CHECK STIMULI PER PARTICIPANT
@@ -272,8 +281,18 @@ check_subject_graphs <- df_questions %>%
   group_by(ID.Qualtrics) %>%summarise(
     n_graphs = length(unique(STIMULUS))
   ) #each participant should have five graphs
+all(check_subject_graphs$n_graphs==5)
+
+
+
+# title = "Participants by Condition and Data Collection Modality"
+# cols = c("Control Condition","Impasse Condition","Total for Period")
+(cont <- table(df_master$ID.Study))
+# cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
 
 ```
+
+`r nrow(df_raw)` submissions were received via Qualtrics (`r nrow(df_master %>% filter(ID.Study=="datacollar"))` data-collar, `r nrow(df_master %>% filter(ID.Study=="bluecollar"))` blue-collar). Of these submissions, `r nrow(df_nofinish)` were incomplete (`r nrow(df_nofinish %>% filter(EndState == "abandoned")) ` surveys abandoned, and `r nrow(df_nofinish %>% filter(TerminateFlag == "Screened"))` failed screening questions. 
 
 
 ## PROFILE DATA 
@@ -298,61 +317,64 @@ df_graphs%>% summarytools::dfSummary(
 ```{r}
 
 gf_histogram( ~ MAKER_TRUST, data = df_graphs) %>% 
-  gf_facet_grid(STIMULUS ~ .) + easy_labs( title = "MAKER TRUST by GRAPH")
+  gf_facet_grid(STIMULUS ~ .) %>%  easy_labs( title = "MAKER TRUST by GRAPH")
 
 gf_histogram( ~ CHART_TRUST, data = df_graphs) %>% 
-  gf_facet_grid(STIMULUS ~ .) + easy_labs( title = "CHART TRUST by GRAPH")
+  gf_facet_grid(STIMULUS ~ .) %>%  easy_labs( title = "CHART TRUST by GRAPH")
 
 
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 
-#MAKER CHARS 
-df <- df_graphs %>% select(ID.Study:STIMULUS, ENCOUNTER, MAKER_ID:MAKER_LATENCY) %>% 
-  mutate(
-    STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
-  )
-
-#MAKER CHARS 
-df <- df_graphs %>% select(ID.Study:STIMULUS, ENCOUNTER, MAKER_ID:MAKER_LATENCY) %>% 
-  mutate(
-    STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
-  )
-
-## CHART 
-df <- df_graphs %>% select(ID.Study, STIMULUS, ENCOUNTER, CHART_LIKE:loop_number) %>% 
-  mutate(
-    STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
-  )
-
-ggpairs(df, mapping = aes(color = STIMULUS)) 
-
-
-
+# #MAKER CHARS 
+# df <- df_graphs %>% select(ID.Study:STIMULUS, ENCOUNTER, MAKER_ID:MAKER_LATENCY) %>% 
+#   mutate(
+#     STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
+#   )
+# 
+# #MAKER CHARS 
+# df <- df_graphs %>% select(ID.Study:STIMULUS, ENCOUNTER, MAKER_ID:MAKER_LATENCY) %>% 
+#   mutate(
+#     STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
+#   )
+# 
+# ## CHART 
+# df <- df_graphs %>% select(ID.Study, STIMULUS, ENCOUNTER, CHART_LIKE:loop_number) %>% 
+#   mutate(
+#     STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
+#   )
+# 
+# ggpairs(df, mapping = aes(color = STIMULUS)) 
+# 
 
 
-## BEST BETS 
-df <- df_graphs %>% select(ID.Study, STIMULUS, MAKER_ID, MAKER_GENDER, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_INTENT, CHART_TRUST, MAKER_TRUST) %>%  mutate(
-    STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
-  )
 
-ggpairs(df, mapping = aes(color = STIMULUS)) 
 
+## MAKER CHARACTERISTICS 
+df_1 <- df_graphs %>% 
+  filter(STIMULUS == "B0-0") %>% 
+  select(ID.Study, MAKER_ID, MAKER_AGE, MAKER_GENDER, 
+         MAKER_DESIGN: MAKER_TRUST)
+         
+
+ggpairs(df_1, 
+        mapping = aes(color = ID.Study, alpha = 0.05),
+        showStrips = TRUE,
+        title = "STIMULUS 0 MAKER CHARACTERISTICS BY SAMPLE") + 
+    theme_minimal()
 ```
 
 
 ```{r}
 
 ##STATSPLOT
-ggwithinstats(
+grouped_ggwithinstats(
   data  = df_graphs,
   x     = STIMULUS,
   y     = CHART_TRUST,
-  title = "CHART TRUST BY GRAPH"
-)
-
-
+  grouping.var = ID.Study
+) 
 
 ggscatterstats(
   data = df_graphs, ## data frame from which variables are taken
@@ -360,7 +382,6 @@ ggscatterstats(
   y = MAKER_TRUST, ## dependent variable
   xlab = "CHART TRUST", ## label for the x-axis
   ylab = "MAKER TRUST", ## label for the y-axis
-  label.var = title, ## variable to use for labeling data points
   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
   xfill = "#CC79A7", ## fill for marginals on the x-axis
@@ -376,3 +397,5 @@ gf_point( data = df_graphs, MAKER_ALIGN~CHART_BEAUTY, color = ~STIMULUS) %>% gf_
 
 
 ```
+
+
