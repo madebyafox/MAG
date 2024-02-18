@@ -340,3 +340,39 @@ df <- df_graphs %>% select(ID.Study, STIMULUS, MAKER_ID, MAKER_GENDER, MAKER_ARG
 ggpairs(df, mapping = aes(color = STIMULUS)) 
 
 ```
+
+
+```{r}
+
+##STATSPLOT
+ggwithinstats(
+  data  = df_graphs,
+  x     = STIMULUS,
+  y     = CHART_TRUST,
+  title = "CHART TRUST BY GRAPH"
+)
+
+
+
+ggscatterstats(
+  data = df_graphs, ## data frame from which variables are taken
+  x = CHART_TRUST, ## predictor/independent variable
+  y = MAKER_TRUST, ## dependent variable
+  xlab = "CHART TRUST", ## label for the x-axis
+  ylab = "MAKER TRUST", ## label for the y-axis
+  label.var = title, ## variable to use for labeling data points
+  # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
+  point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
+  xfill = "#CC79A7", ## fill for marginals on the x-axis
+  yfill = "#009E73", ## fill for marginals on the y-axis
+  title = "CHART TRUST (VS) MAKER TRUST",
+  caption = ""
+)
+
+gf_point( data = df_graphs, MAKER_TRUST~CHART_TRUST, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
+
+gf_point( data = df_graphs, MAKER_ALIGN~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
+
+
+
+```
