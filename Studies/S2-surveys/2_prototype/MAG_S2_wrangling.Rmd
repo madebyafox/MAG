@@ -77,13 +77,18 @@ I've added End_State as an embedded data field, but it is not clear if it is bei
 #### RAW DATA ####################################################################
 # will always be the unaltered version of imported data
 # 1 row per subject 
-# block 1 data collar 
-df_raw <- read_csv("data/CLEAN_MAG_S2_PROLIFIC-DATACOLLAR_1.csv", col_names = TRUE)
+# drop first two rows (qualtrics_specs)
+df_raw_datacollar <- read_csv("data/CLEAN_MAG_S2_PROLIFIC-DATACOLLAR_1.csv", col_names = TRUE)
+df_raw_datacollar <- df_raw_datacollar[-c(1:2),]
+df_raw_bluecollar <- read_csv("data/CLEAN_MAG_S2_PROLIFIC-BLUECOLLAR_1.csv", col_names = TRUE)
+df_raw_bluecollar <- df_raw_bluecollar[-c(1:2),]
+
+df_raw <- rbind(df_raw_datacollar, df_raw_bluecollar)
 
 
 #### MASTER WIDE FORMAT DATA FRAME [1 row / qualtrics submission] ################
 # drop first two rows (qualtrics_specs)
-df_master <- df_raw[-c(1:2),] %>% 
+df_master <- df_raw %>% 
   select(
     -EndDate, -IPAddress, -RecordedDate,
     -RecipientLastName, -RecipientFirstName, -RecipientEmail,
@@ -92,17 +97,17 @@ df_master <- df_raw[-c(1:2),] %>%
     -P_BROWSER_Version, -P_BROWSER_Resolution, 
     -CONSENT, -ELIGIBILITY, 
     -randomize_common, -stimulus_common, #hidden q that controls common stimulus url
+    -FL_14_DO, #not actually randomization order
     -contains("First Click"), -contains("Last Click"), -contains("Click Count"),
     -T_EMAIL, -T_BROWSER_Version, -T_BROWSER_Resolution, 
     -ID_PROLIFIC, -ID_STUDY, -ID_SESSION #redundant to other cols 
-  )  %>% 
+  ) %>% 
   rename(
     duration.sec = `Duration (in seconds)`,
     EndState = End_State, 
     TerminateFlag = Q_TerminateFlag,
     Source = Status, #where the survey originated from (should not be preview or test)
     PLATFORM = Q_PLATFORM,
-    ORDER = FL_74_DO,
     ID.Qualtrics = ResponseId,
     ID.Prolific = PROLIFIC_PID,
     ID.Study = STUDY_ID,
@@ -110,9 +115,18 @@ df_master <- df_raw[-c(1:2),] %>%
     P_BROWSER_OS = `P_BROWSER_Operating System`,
     T_BROWSER_OS = `T_BROWSER_Operating System`,
     SCREEN_workFunction_TEXT = SCREEN_workFunction_22_TEXT, 
-    SCREEN_socialMedia_TEXT = SCREEN_socialMedia_18_TEXT
-  ) %>% 
+    SCREEN_socialMedia_TEXT = SCREEN_socialMedia_18_TEXT,
+    D_politicalParty_OTHER = D_politicalParty_4_TEXT,
+    D_politicsSocial = D_politicsSocial_1,
+    D_politicsFiscal = D_politicsFiscal_2
+ ) %>% 
   mutate(
+# STUDY IDS
+# 65ceb65b05030d95c598ef1b - blue collar 
+# 65c53fd727dceff9fd360b09 - data collar 
+    ID.Study = factor(ID.Study, 
+                      levels = c("65ceb65b05030d95c598ef1b","65c53fd727dceff9fd360b09"),
+                      labels = c("bluecollar","datacollar")),
     StartDate = mdy_hm(StartDate),
     duration.sec = as.numeric(duration.sec), #weird booleans should only be for the test generator
     duration.min = round(duration.sec/60,2)
@@ -145,17 +159,16 @@ df_master <- df_raw[-c(1:2),] %>%
   select ( #reodering
     ID.Qualtrics, ID.Prolific:ID.Session, 
     Source, Progress, Finished, EndState, TerminateFlag, 
-    StartDate, duration.sec, duration.min, 
-    ORDER, PLATFORM,
+    StartDate, duration.sec, duration.min, PLATFORM,
     P_BROWSER_Browser, P_BROWSER_OS, T_BROWSER_Browser, T_BROWSER_OS, 
-    D_gender:D_age, SCREEN_workMethod:SCREEN_socialMedia_TEXT, 
+    D_gender:D_politicsFiscal, SCREEN_workMethod:SCREEN_socialMedia_TEXT, 
     PURPOSE, FEEDBACK , 
     `0_Q_B0_ENCOUNTER`:`4_Q_B6_CHART-LATENCY`
   )  %>% 
   mutate ( #set factors 
     ID.Qualtrics = factor(ID.Qualtrics),
     ID.Prolific = factor(ID.Prolific),
-    ID.Study = factor(ID.Study),
+    # ID.Study = factor(ID.Study),
     ID.Session = factor(ID.Session),
     PLATFORM = factor(PLATFORM),
     Source = factor(Source),
@@ -221,7 +234,6 @@ df_questions <- df_data %>% select(
 ) %>% 
   select(-stimulus) %>% filter(!is.na(value))
   
-
 
 #### CHART LEVEL DATA FRAME (LONG) ##########################
 # 1 row per participant X graph 
