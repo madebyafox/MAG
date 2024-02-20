@@ -78,9 +78,9 @@ I've added End_State as an embedded data field, but it is not clear if it is bei
 # will always be the unaltered version of imported data
 # 1 row per subject 
 # drop first two rows (qualtrics_specs)
-df_raw_datacollar <- read_csv("data/CLEAN_MAG_S2_PROLIFIC-DATACOLLAR_1.csv", col_names = TRUE)
+df_raw_datacollar <- read_csv("data/CLEAN_MAG_S2_PROLIFIC-DATACOLLAR_B1.csv", col_names = TRUE)
 df_raw_datacollar <- df_raw_datacollar[-c(1:2),]
-df_raw_bluecollar <- read_csv("data/CLEAN_MAG_S2_PROLIFIC-BLUECOLLAR_1.csv", col_names = TRUE)
+df_raw_bluecollar <- read_csv("data/CLEAN_MAG_S2_PROLIFIC-BLUECOLLAR_B1.csv", col_names = TRUE)
 df_raw_bluecollar <- df_raw_bluecollar[-c(1:2),]
 df_raw <- rbind(df_raw_datacollar, df_raw_bluecollar)
 rm(df_raw_datacollar, df_raw_bluecollar)
@@ -187,11 +187,10 @@ df_nofinish <- df_master %>%
     !is.na(TerminateFlag) | Finished == FALSE   
   ) %>% 
   select(
-    ID.Qualtrics, ID.Study, Source, Progress, 
+    ID.Qualtrics, ID.Prolific, ID.Study, Source, Progress, 
     Finished, TerminateFlag, EndState) %>% 
   mutate(
     EndState = ifelse( (Progress < 100), "abandoned", EndState)
-    
   )
 
 
@@ -288,6 +287,7 @@ all(check_subject_graphs$n_graphs==5)
 # title = "Participants by Condition and Data Collection Modality"
 # cols = c("Control Condition","Impasse Condition","Total for Period")
 (cont <- table(df_master$ID.Study))
+(cont <- table(df_data$ID.Study))
 # cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
 
 ```
@@ -366,7 +366,7 @@ ggpairs(df_1,
 ```
 
 
-```{r}
+```{r, message=FALSE}
 
 ##STATSPLOT
 grouped_ggwithinstats(
@@ -376,18 +376,19 @@ grouped_ggwithinstats(
   grouping.var = ID.Study
 ) 
 
-ggscatterstats(
+grouped_ggscatterstats(
   data = df_graphs, ## data frame from which variables are taken
-  x = CHART_TRUST, ## predictor/independent variable
-  y = MAKER_TRUST, ## dependent variable
+  x = CHART_BEAUTY, ## predictor/independent variable
+  y = CHART_TRUST, ## dependent variable
+  grouping.var = ID.Study,
   xlab = "CHART TRUST", ## label for the x-axis
   ylab = "MAKER TRUST", ## label for the y-axis
   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
   xfill = "#CC79A7", ## fill for marginals on the x-axis
-  yfill = "#009E73", ## fill for marginals on the y-axis
-  title = "CHART TRUST (VS) MAKER TRUST",
-  caption = ""
+  yfill = "#009E73" ## fill for marginals on the y-axis
+  # title = "CHART TRUST (VS) MAKER TRUST",
+  # caption = ""
 )
 
 gf_point( data = df_graphs, MAKER_TRUST~CHART_TRUST, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
@@ -396,6 +397,66 @@ gf_point( data = df_graphs, MAKER_ALIGN~CHART_BEAUTY, color = ~STIMULUS) %>% gf_
 
 
 
-```
 
+
+### little model
+df <- df_graphs %>% filter(STIMULUS == "B0-0")
+m <- lm( CHART_TRUST ~ CHART_BEAUTY,data = df)
+summary(m)
+ggnostic(m) #GGALLY MODEL CHECKS
+check_model(m) #EASY STATS MODEL CHECKS 
+
+
+
+
+### MORE COMPLEX MODEL
+df <- df_graphs %>% filter(STIMULUS != "B0-0")
+m1 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1|ID.Qualtrics), data = df)
+m2 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1|STIMULUS), data = df)
+m3 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1 | STIMULUS) + (1 | ID.Qualtrics), data = df)
+summary(m1)
+summary(m2)
+summary(m3)
+compare_parameters(m1,m2,m3)
+compare_performance(m1,m2,m3, rank = TRUE)
+
+
+m <- lmer(CHART_TRUST ~ CHART_BEAUTY + MAKER_TRUST + (1 | STIMULUS) ,  data = df)
+mi <- lmer(CHART_TRUST ~ CHART_BEAUTY * MAKER_TRUST + (1 | STIMULUS) , data = df)
+summary(m)
+summary(mi)
+
+compare_performance(m3,m,mi, rank = TRUE)
+
+
+#todo see https://yury-zablotski.netlify.app/post/mixed-effects-models-2/ about fitting with ML vs REML for model comparison 
+```
+```{r}
+# #TODO WALK THROUGH THIS 
+# #https://yury-zablotski.netlify.app/post/mixed-models/#multiple-random-slope-model
+# 
+# #load example data
+# data("sleepstudy")
+# 
+# #fit the model
+# m_slp <- lmer(Reaction ~ Days + (Days | Subject), sleepstudy)
+# 
+# #the next line put all the estimated intercept and slope per subject into a dataframe
+# reaction_slp <- as.data.frame(t(apply(ranef(m_slp)$Subject, 1,function(x) fixef(m_slp) + x)))
+# 
+# #to get the predicted regression lines we need one further step, writing the linear equation: Intercept + Slope*Days with different coefficient for each subject
+# pred_slp <- melt(apply(reaction_slp,1,function(x) x[1] + x[2]*0:9), value.name = "Reaction")
+# 
+# #some re-formatting for the plot
+# names(pred_slp)[1:2] <- c("Days","Subject")
+# pred_slp$Days <- pred_slp$Days - 1
+# pred_slp$Subject <- as.factor(pred_slp$Subject)
+# 
+# #plot with actual data 
+# ggplot(pred_slp,aes(x=Days,y=Reaction,color=Subject))+
+#   geom_line()+
+#   geom_point(data=sleepstudy,aes(x=Days,y=Reaction))+
+#   facet_wrap(~Subject,nrow=3)
+
+```
 
