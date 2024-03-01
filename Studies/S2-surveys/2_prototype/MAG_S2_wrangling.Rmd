@@ -82,11 +82,49 @@ In Qualtrics, when a survey is:
 # 1 row per subject 
 # drop first two rows (qualtrics_specs)
 df_raw_datacollar <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-DATACOLLAR_B1.csv", col_names = TRUE)
-df_raw_datacollar <- df_raw_datacollar[-c(1:2),]
+
 df_raw_bluecollar <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-BLUECOLLAR_B1.csv", col_names = TRUE)
+df_raw_b2 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B2.csv", col_names = TRUE)
+
+df_raw_datacollar <- df_raw_datacollar[-c(1:2),]
 df_raw_bluecollar <- df_raw_bluecollar[-c(1:2),]
-df_raw <- rbind(df_raw_datacollar, df_raw_bluecollar)
-rm(df_raw_datacollar, df_raw_bluecollar)
+df_raw_b2 <- df_raw_b2[-c(1:2),]
+
+#ADD DUMMY COLS TO DATA/BLUE COLLAR PILOT DATA 
+# x <- compare_df_cols(df_raw_b2, df_raw_pilot)
+df_raw_pilot <- rbind(df_raw_datacollar, df_raw_bluecollar) %>% 
+  mutate(
+    '0_Q_B0_CHART_ACTION' = NA,
+    '1_Q_B1_CHART_ACTION' = NA,
+    '1_Q_B2_CHART_ACTION' = NA,
+    '1_Q_B3_CHART_ACTION' = NA,
+    '1_Q_B4_CHART_ACTION' = NA,
+    '1_Q_B5_CHART_ACTION' = NA,
+    '1_Q_B6_CHART_ACTION' = NA,
+    '2_Q_B1_CHART_ACTION' = NA,
+    '2_Q_B2_CHART_ACTION' = NA,
+    '2_Q_B3_CHART_ACTION' = NA,
+    '2_Q_B4_CHART_ACTION' = NA,
+    '2_Q_B5_CHART_ACTION' = NA,
+    '2_Q_B6_CHART_ACTION' = NA,
+    '3_Q_B1_CHART_ACTION' = NA,
+    '3_Q_B2_CHART_ACTION' = NA,
+    '3_Q_B3_CHART_ACTION' = NA,
+    '3_Q_B4_CHART_ACTION' = NA,
+    '3_Q_B5_CHART_ACTION' = NA,
+    '3_Q_B6_CHART_ACTION' = NA,
+    '4_Q_B1_CHART_ACTION' = NA,
+    '4_Q_B2_CHART_ACTION' = NA,
+    '4_Q_B3_CHART_ACTION' = NA,
+    '4_Q_B4_CHART_ACTION' = NA,
+    '4_Q_B5_CHART_ACTION' = NA,
+    '4_Q_B6_CHART_ACTION' = NA
+  )
+
+
+
+df_raw <- rbind(df_raw_b2, df_raw_pilot)
+rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b2, df_raw_pilot, x)
 
 #### MASTER WIDE FORMAT DATA FRAME [1 row / qualtrics submission] ################
 # drop first two rows (qualtrics_specs)
