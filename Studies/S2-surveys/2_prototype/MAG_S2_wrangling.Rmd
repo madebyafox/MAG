@@ -2130,7 +2130,7 @@ p_politics
 
 ```
 
-```
+
 
 ```{r}
 
@@ -2191,6 +2191,8 @@ g <- ggpairs(df_1,
 g
 ```
 
+# MODELLING
+
 ```{r, message=FALSE}
 
 ##STATSPLOT
@@ -2206,8 +2208,26 @@ grouped_ggscatterstats(
   x = CHART_BEAUTY, ## predictor/independent variable
   y = CHART_TRUST, ## dependent variable
   grouping.var = ID.Study,
-  xlab = "CHART TRUST", ## label for the x-axis
-  ylab = "MAKER TRUST", ## label for the y-axis
+  xlab = "CHART BEAUTY", ## label for the x-axis
+  ylab = "CHART TRUST", ## label for the y-axis
+  # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
+  point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
+  xfill = "#CC79A7", ## fill for marginals on the x-axis
+  yfill = "#009E73" ## fill for marginals on the y-axis
+  # title = "CHART TRUST (VS) MAKER TRUST",
+  # caption = ""
+)
+
+gf_point( data = df_graphs, CHART_TRUST~MAKER_TRUST, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
+
+
+grouped_ggscatterstats(
+  data = df_graphs, ## data frame from which variables are taken
+  x = MAKER_TRUST, ## predictor/independent variable
+  y = CHART_TRUST, ## dependent variable
+  grouping.var = ID.Study,
+  xlab = "MAKER TRUST", ## label for the x-axis
+  ylab = "CHART TRUST", ## label for the y-axis
   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
   xfill = "#CC79A7", ## fill for marginals on the x-axis
@@ -2218,7 +2238,48 @@ grouped_ggscatterstats(
 
 gf_point( data = df_graphs, MAKER_TRUST~CHART_TRUST, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
 
+
+
+grouped_ggscatterstats(
+  data = df_graphs, ## data frame from which variables are taken
+  x = CHART_BEAUTY, ## predictor/independent variable
+  y = MAKER_ALIGN, ## dependent variable
+  grouping.var = ID.Study,
+  xlab = "CHART BEAUTY", ## label for the x-axis
+  ylab = "MAKER ALIGN", ## label for the y-axis
+  # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
+  point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
+  xfill = "#CC79A7", ## fill for marginals on the x-axis
+  yfill = "#009E73" ## fill for marginals on the y-axis
+  # title = "CHART TRUST (VS) MAKER TRUST",
+  # caption = ""
+)
+
+
 gf_point( data = df_graphs, MAKER_ALIGN~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
+
+
+
+
+
+
+ggscatterstats(
+  data = df_graphs %>% filter(STIMULUS=="B0-0"), ## data frame from which variables are taken
+  x = CHART_BEAUTY, ## predictor/independent variable
+  y = MAKER_TRUST, ## dependent variable
+  xlab = "CHART BEAUTY", ## label for the x-axis
+  ylab = "MAKER TRUST", ## label for the y-axis
+  # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
+  point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
+  xfill = "#CC79A7", ## fill for marginals on the x-axis
+  yfill = "#009E73" ## fill for marginals on the y-axis
+  # title = "CHART TRUST (VS) MAKER TRUST",
+  # caption = ""
+)
+
+gf_point( data = df_graphs %>% filter(STIMULUS=="B0-0"), CHART_TRUST~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
+
+gf_point( data = df_graphs %>% filter(STIMULUS=="B0-0"), MAKER_TRUST~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
 
 
 ```
