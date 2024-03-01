@@ -2287,12 +2287,17 @@ gf_point( data = df_graphs %>% filter(STIMULUS=="B0-0"), MAKER_TRUST~CHART_BEAUT
 
 ```{r}
 
+
+#TODO CENTERING AND NORMALIZING
+
 ### little model
 df <- df_graphs %>% filter(STIMULUS == "B0-0")
 m <- lm( CHART_TRUST ~ CHART_BEAUTY,data = df)
 summary(m)
 ggnostic(m) #GGALLY MODEL CHECKS
 check_model(m) #EASY STATS MODEL CHECKS 
+
+report(m)
 ```
 
 
@@ -2316,7 +2321,7 @@ summary(mi)
 
 compare_performance(m3,m,mi, rank = TRUE)
 
-
+report(m)
 #todo see https://yury-zablotski.netlify.app/post/mixed-effects-models-2/ about fitting with ML vs REML for model comparison 
 ```
 
