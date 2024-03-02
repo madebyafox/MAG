@@ -84,12 +84,14 @@ df_raw_datacollar <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-DATACOLLAR_B1.cs
 df_raw_bluecollar <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-BLUECOLLAR_B1.csv", col_names = TRUE)
 df_raw_b2 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B2.csv", col_names = TRUE)
 df_raw_b6 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B6.csv", col_names = TRUE)
+df_raw_b3 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B3.csv", col_names = TRUE)
 
 # drop first two rows (qualtrics_specs)
 df_raw_datacollar <- df_raw_datacollar[-c(1:2),]
 df_raw_bluecollar <- df_raw_bluecollar[-c(1:2),]
 df_raw_b2 <- df_raw_b2[-c(1:2),]
 df_raw_b6 <- df_raw_b6[-c(1:2),]
+df_raw_b3 <- df_raw_b3[-c(1:2),]
 
 #ADD DUMMY COLS TO DATA/BLUE COLLAR PILOT DATA 
 # x <- compare_df_cols(df_raw_b2, df_raw_pilot)
@@ -124,8 +126,8 @@ df_raw_pilot <- rbind(df_raw_datacollar, df_raw_bluecollar) %>%
 
 
 
-df_raw <- rbind(df_raw_pilot,df_raw_b2, df_raw_b6)
-rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b2, df_raw_b6, df_raw_pilot, x)
+df_raw <- rbind(df_raw_pilot,df_raw_b2, df_raw_b6, df_raw_b3)
+rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b2, df_raw_b6, df_raw_b3, df_raw_pilot, x)
 
 #### MASTER WIDE FORMAT DATA FRAME [1 row / qualtrics submission] ################
 df_raw_clean <- df_raw %>% 
@@ -169,8 +171,12 @@ df_raw_clean <- df_raw %>%
     D_politicsFiscal = as.numeric(D_politicsFiscal),
     #HARHDCODED PROLIFIC SAMPLE IDS 
     ID.Study = factor(ID.Study, 
-                      levels = c("65c53fd727dceff9fd360b09", "65ceb65b05030d95c598ef1b","65d8f06b624798854f7f6872","65e125ddf213381ee6b67177"),
-                      labels = c("datacollar","bluecollar","block2","block6")),
+                      levels = c("65c53fd727dceff9fd360b09", 
+                                 "65ceb65b05030d95c598ef1b",
+                                 "65d8f06b624798854f7f6872",
+                                 "65e125ddf213381ee6b67177",
+                                 "65e3544f7e2772d49871027c"),
+                      labels = c("datacollar","bluecollar","block2","block6", "block3")),
     # StartDate = mdy_hm(StartDate),
     duration.sec = as.numeric(duration.sec), #weird booleans should only be for the test generator
     duration.min = round(duration.sec/60,2),
