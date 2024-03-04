@@ -264,9 +264,9 @@ df_data <- df_raw %>%
 ## NOTE it is common for prolific participants to fail the 
 ## screening verification, and then try again but change their 
 ## screening verification answers (ie. one prolific ID for multiple qualrics IDs)
-df_nofinish <- df_data %>% 
+df_exclude <- df_data %>% 
   filter( 
-    !is.na(TerminateFlag) | Finished == FALSE   
+    !is.na(TerminateFlag) | Finished == FALSE | EndState != "COMPLETE"  
   ) %>% 
   select(
     ID.Qualtrics, ID.Prolific, ID.Study, Source, Progress, 
@@ -280,14 +280,14 @@ df_nofinish <- df_data %>%
 #### MASTER VALID DATA [WIDE] 1 row per qualtrics entry #########################
 ## [1 row / qualtrics submission] ################
 df_data <- df_data %>% filter(
-  ID.Qualtrics %nin% df_nofinish$ID.Qualtrics
+  ID.Qualtrics %nin% df_exclude$ID.Qualtrics
   # (Finished == TRUE ) & is.na(TerminateFlag)
 )
 
 #sanity check === SHOULD BE O
 #no qualtrics surveys in good data that weren't finished
 print("Number of Qualtrics entries in df_data AND nofinish? [should be 0]")
-sum(df_data$ID.Qualtrics %in% df_nofinish$ID.Qualtrics)
+sum(df_data$ID.Qualtrics %in% df_exclude$ID.Qualtrics)
 
 #sanity check === SHOULD BE O
 #no duplicated PROLIFIC ids in good data 
@@ -443,8 +443,8 @@ all(check_subject_graphs$n_graphs==5)
 
 # title = "Participants by Condition and Data Collection Modality"
 # cols = c("Control Condition","Impasse Condition","Total for Period")
-print("Number of abandoned/screened no finish attempts")
-table(df_nofinish$ID.Study)
+print("Number of abandoned/screened/rejected attempts")
+table(df_exclude$ID.Study)
 print("Number of successful surveys")
 table(df_data$ID.Study)
 # cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
