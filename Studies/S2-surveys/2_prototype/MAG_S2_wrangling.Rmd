@@ -83,19 +83,19 @@ In Qualtrics, when a survey is:
 df_raw_datacollar <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-DATACOLLAR_B1.csv", col_names = TRUE)
 df_raw_bluecollar <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-BLUECOLLAR_B1.csv", col_names = TRUE)
 df_raw_b2 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B2.csv", col_names = TRUE)
-df_raw_b6 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B6.csv", col_names = TRUE)
 df_raw_b3 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B3.csv", col_names = TRUE)
 df_raw_b4 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B4.csv", col_names = TRUE)
 df_raw_b5 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B5.csv", col_names = TRUE)
+df_raw_b6 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B6.csv", col_names = TRUE)
 
 # drop first two rows (qualtrics_specs)
 df_raw_datacollar <- df_raw_datacollar[-c(1:2),]
 df_raw_bluecollar <- df_raw_bluecollar[-c(1:2),]
 df_raw_b2 <- df_raw_b2[-c(1:2),]
-df_raw_b6 <- df_raw_b6[-c(1:2),]
 df_raw_b3 <- df_raw_b3[-c(1:2),]
 df_raw_b4 <- df_raw_b4[-c(1:2),]
 df_raw_b5 <- df_raw_b5[-c(1:2),]
+df_raw_b6 <- df_raw_b6[-c(1:2),]
 
 #ADD DUMMY COLS TO DATA/BLUE COLLAR PILOT DATA 
 # necessary b/c pilot (block 1) did not have chart_action behavioural question
@@ -129,12 +129,11 @@ df_raw_pilot <- rbind(df_raw_datacollar, df_raw_bluecollar) %>%
     '4_Q_B6_CHART_ACTION' = NA
   )
 
-
 df_raw <- rbind(df_raw_pilot,df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6)
-rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b2, df_raw_b6, df_raw_b3, df_raw_b4, df_raw_pilot, x)
+rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6, df_raw_pilot)
 
 #### MASTER WIDE FORMAT DATA FRAME [1 row / qualtrics submission] ################
-df_raw_clean <- df_raw %>% 
+df_data <- df_raw %>% 
   select(
     -EndDate, -IPAddress, -RecordedDate,
     -RecipientLastName, -RecipientFirstName, -RecipientEmail,
@@ -265,7 +264,7 @@ df_raw_clean <- df_raw %>%
 ## NOTE it is common for prolific participants to fail the 
 ## screening verification, and then try again but change their 
 ## screening verification answers (ie. one prolific ID for multiple qualrics IDs)
-df_nofinish <- df_raw_clean %>% 
+df_nofinish <- df_data %>% 
   filter( 
     !is.na(TerminateFlag) | Finished == FALSE   
   ) %>% 
@@ -280,7 +279,7 @@ df_nofinish <- df_raw_clean %>%
 
 #### MASTER VALID DATA [WIDE] 1 row per qualtrics entry #########################
 ## [1 row / qualtrics submission] ################
-df_data <- df_raw_clean %>% filter(
+df_data <- df_data %>% filter(
   ID.Qualtrics %nin% df_nofinish$ID.Qualtrics
   # (Finished == TRUE ) & is.na(TerminateFlag)
 )
@@ -322,32 +321,34 @@ df_questions <- df_data %>%
   select(-stimulus) %>% filter(!is.na(value))
 
 
-# #### MULTI-SELECT QUESTIONS (TODO) ##########################
-# # TODO
-# # TODO 1 row per participant-graph-question
-# df_multi <- df_questions %>% 
-#   filter(
-#   QUESTION %in% c("TOOL_ID", "")
-#   
-# ) %>% 
-#   pivot_longer( #PIVOT ON stimulus
-#   cols = contains("_Q_"),
-#   names_to = c("stimulus","dummy","BLOCK","QUESTION"),
-#   values_to = c("value"),
-#   names_sep = "_"
-# ) %>% select(-dummy) %>% 
-#   unite(
-#    BLOCK:stimulus, col="STIMULUS", sep="-", remove=FALSE
-# ) %>% 
-#   mutate(
-#     BLOCK = factor(BLOCK),
-#     STIMULUS = factor(STIMULUS),
-#     QUESTION = str_replace_all(QUESTION,"-","_"),
-#     QUESTION = factor(QUESTION)
-# ) %>% 
-#   select(-stimulus) %>% filter(!is.na(value))
+#### MULTI-SELECT QUESTIONS  ##########################
 
+## DF_TOOLS 
+# 1 ROW per PARTICIPANT X STIMULUS X tool_id selection 
+# tool_id is a multiselect field 
+df_tools <- df_questions %>% 
+  # select(ID.Prolific, QUESTION, value) %>%
+  filter(QUESTION == "TOOL_ID") %>% 
+  mutate(QUESTION = fct_drop(QUESTION)) %>% 
+  separate_longer_delim(
+    cols = value,
+    delim = ","
+  ) %>% 
+  mutate(TOOL_ID = as_factor(value)) %>% 
+  select(-value,-QUESTION)
 
+## DF_ACTIONS 
+# 1 ROW per PARTICIPANT X STIMULUS X chart_action selection 
+# chart_action is a multiselect field 
+df_actions <- df_questions %>% 
+  filter(QUESTION == "CHART_ACTION") %>% 
+  mutate(QUESTION = fct_drop(QUESTION)) %>% 
+  separate_longer_delim(
+    cols = value,
+    delim = ","
+  ) %>% 
+  mutate(CHART_ACTION = as_factor(value)) %>% 
+  select(-value,-QUESTION)
 
 #### CHART LEVEL DATA FRAME (LONG) ##########################
 # 1 row per participant X graph 
@@ -359,7 +360,7 @@ df_graphs_full <- df_questions %>%
   ) %>%  
   tidyr::unnest() %>%  # handle r coerces values to lists
   mutate(
-    across(contains("_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
+    across(contains("MAKER_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
     across(contains("_CONF") | contains("_LATENCY"), as.numeric),
     across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
     across(CHART_LIKE:CHART_TRUST, as.numeric),
@@ -371,14 +372,9 @@ df_graphs_full <- df_questions %>%
     MAKER_ID = factor( MAKER_ID,levels = c("business", "political", "education","news","organization","individual"))
   )
 
-##TODO HANDLE MULTISELECT INCL CHART ACTION
-
-
-## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES
+## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES and MULTISELECT
 df_graphs <- df_graphs_full %>% 
   select( !is.character)
-
-
 
 #### CHART LEVEL DATA FRAME (LONG) FOR QDA (incl demographics) ##################
 # 1 ROW / participant X GRAPH including demographics 
@@ -412,7 +408,7 @@ df_qda <- df_data %>%
   ) %>%  
   tidyr::unnest() %>%  # handle r coerces values to lists
   mutate(
-    across(contains("_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
+    across(contains("MAKER_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
     across(contains("_CONF") | contains("_LATENCY"), as.numeric),
     across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
     across(CHART_LIKE:CHART_TRUST, as.numeric),
@@ -492,51 +488,9 @@ df_data <- df_data %>% mutate(
 n_blocks = 4
 ```
 
+# PROFILING
 
-
-SEMANTIC DIFFERENTIALS 
-MAKER_DESIGN
-MAKER_DATA
-MAKER_POLITIC
-MAKER_ARGUE
-MAKER_SELF
-MAKER_ALIGN
-MAKER_TRUST
-
-CHART_LIKE
-CHART_BEAUTY
-CHART_INTENT
-CHART_TRUST
-
-
-MULTISELCT
-TOOL_ID
-CHART_ACTION
-
-CATEGORICAL
-ENCOUNTER
-PLATFORM
-MAKER_ID
-MAKER_GENDER
-MAKER_AGE
-
-
-FREE TEXT
-MAKER_DETAIL
-MAKER_EXPLAIN
-TOOL_DETAIL
-CHART_TYPE
-
-
-CONFIDENCE
-MAKER_CONF
-GENDER_CONF
-AGE_CONF
-TOOL_CONF
-
-
-
-## PROFILE DATA
+## Descriptives
 
 ```{r}
 
@@ -553,7 +507,7 @@ df_graphs%>% summarytools::dfSummary(
 
 ```
 
-## EDA | DEMOGRAPHICS
+## Demographics
 
 ```{r}
 
@@ -676,7 +630,47 @@ ggplot( df_data, aes( x = PLATFORM, fill = ID.Study)) +
 
 
 
+# EXPLORATION
 
+SEMANTIC DIFFERENTIALS 
+MAKER_DESIGN
+MAKER_DATA
+MAKER_POLITIC
+MAKER_ARGUE
+MAKER_SELF
+MAKER_ALIGN
+MAKER_TRUST
+
+CHART_LIKE
+CHART_BEAUTY
+CHART_INTENT
+CHART_TRUST
+
+
+multiselect
+TOOL_ID
+CHART_ACTION
+
+CATEGORICAL
+ENCOUNTER
+PLATFORM
+MAKER_ID
+MAKER_GENDER
+MAKER_AGE
+
+
+FREE TEXT
+MAKER_DETAIL
+MAKER_EXPLAIN
+TOOL_DETAIL
+CHART_TYPE
+
+
+CONFIDENCE
+MAKER_CONF
+GENDER_CONF
+AGE_CONF
+TOOL_CONF
 
 
 
