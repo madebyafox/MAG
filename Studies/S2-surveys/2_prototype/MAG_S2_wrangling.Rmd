@@ -79,6 +79,36 @@ In Qualtrics, when a survey is:
 
 -   **complete**; Finished = TRUE, Progress = 100%
 
+
+```{r STIMULI, message=FALSE, warning = FALSE}
+
+############## IMPORT STIMULI FILE
+df_stimuli <- read_csv("data/input/stimuli.csv", col_names = TRUE) %>% 
+  mutate(
+    BLOCK = as.factor(BLOCK), 
+    CATEGORY = as.factor(CATEGORY),
+    ID = as.factor(ID),
+    MAKER_ID = as.factor(MAKER_ID)
+  )
+
+############## BUILD STIMULUS-QUESTIONS LABELS
+ref_stimuli <- levels(df_stimuli$ID)
+ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
+               "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
+               "CHART_LIKE", "CHART_BEAUTY", "CHART_INTENT", "CHART_TRUST")
+left <- c("professional","professional","left-leaning","confrontational",
+          "altruistic","does NOT share","untrustworthy",
+          "NOT at all","NOT at all", "inform", "untrustworthy")
+right <- c("layperson","layperson","right-leaning","diplomatic",
+           "selfish", "DOES share", "trustworthy",
+           "very much", "very much", "persuade", "trusthworthy")
+ref_labels <- as.data.frame(cbind(left,right))
+rownames(ref_labels) <- ref_sd_questions
+rm(left,right)
+
+```
+
+
 ```{r WRANGLING, message=FALSE, warning=FALSE}
 
 #### RAW DATA ####################################################################
@@ -325,6 +355,23 @@ df_questions <- df_data %>%
   select(-stimulus) %>% filter(!is.na(value))
 
 
+#### SD QUESTION LEVEL DATA FRAME (LONG) ##########################
+# ravel up one level from questions
+# 1 row per participant-question with all blocks as cols for SD qs
+df_sd_questions <- df_questions %>%
+  select(-BLOCK) %>% #drop block in order to work at stimulus level
+  filter(QUESTION %in% ref_sd_questions) %>% 
+  pivot_wider(
+    names_from = STIMULUS,
+    values_from = value 
+  ) %>%  
+  tidyr::unnest() %>%  # handle r coerces values to lists
+  mutate(
+    across(contains("-") , as.numeric),
+    QUESTION = droplevels(QUESTION)
+  )
+
+
 #### MULTI-SELECT QUESTIONS  ##########################
 
 ## DF_TOOLS 
@@ -362,6 +409,7 @@ df_actions <- df_questions %>%
   select(-value,-QUESTION)
 
 #### CHART LEVEL DATA FRAME (LONG) ##########################
+# roll partway back up from questions 
 # 1 row per participant X graph 
 # unnest https://stackoverflow.com/questions/58035452/pivot-wider-outputs-s3-vctrs-list-of-objects
 df_graphs_full <- df_questions %>% 
@@ -473,14 +521,6 @@ df_data <- df_data %>% mutate(
 )
 
 
-##############IMPORT STIMULI
-df_stimuli <- read_csv("data/input/stimuli.csv", col_names = TRUE) %>% 
-  mutate(
-    BLOCK = as.factor(BLOCK), 
-    CATEGORY = as.factor(CATEGORY),
-    ID = as.factor(ID),
-    MAKER_ID = as.factor(MAKER_ID)
-  )
 
 
 # `r nrow(df_raw)` submissions were received via Qualtrics (`r nrow(df_master %>% filter(ID.Study=="datacollar"))` data-collar, `r nrow(df_master %>% filter(ID.Study=="bluecollar"))` blue-collar). Of these submissions, `r nrow(df_nofinish)` were incomplete (`r nrow(df_nofinish %>% filter(EndState == "abandoned"))` surveys abandoned, and `r nrow(df_nofinish %>% filter(TerminateFlag == "Screened"))` failed screening questions.
@@ -849,7 +889,7 @@ single_sd <- function (df, left, right, x) {
 
 ######### USE THIS ONE
 ## SIMPLE PLOTSD FUNCTION 
-plotsd = function (data, column, boxplot) {
+plotsd = function (data, column, type, boxplot) {
     
   ggplot(df, aes(y = .data[[column]], x="")) +
     {if(boxplot) geom_boxplot(width = 0.5) } +
@@ -857,17 +897,21 @@ plotsd = function (data, column, boxplot) {
     scale_y_continuous(limits=c(-1,101)) +
     labs(x="", y="") +
     coord_flip()  +
-    guides(
-      y = guide_axis_manual(labels = labels[column,"left"]),
-      y.sec = guide_axis_manual(labels = labels[column,"right"])
-    ) + theme_minimal()  + 
+    {if(type == "S")
+      guides(
+        y = guide_axis_manual(labels = ref_labels[column,"left"]),
+        y.sec = guide_axis_manual(labels = ref_labels[column,"right"])
+      )} +  
+    {if(type == "Q")
+      guides(
+        y = guide_axis_manual(labels = ref_labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
+      )} +  
+  theme_minimal()  + 
      labs (
        caption = column
      )
-  
 }
-
-
 
 ```
 
@@ -875,33 +919,132 @@ plotsd = function (data, column, boxplot) {
 
 ```{r}
 
-####################CREATE SD PLOTS FOR EACH GRAPH#####################
+####################CREATE SD PLOTS FOR EACH STIMULUS#####################
 
-stimuli <- levels(df_graphs$STIMULUS)
-
-for (stim in stimuli){
+#set stimuli to be graphed 
+stimuli <- ref_stimuli #created in wrangling block
+for (s in stimuli){
   
   # setup dataframe 
-  title <- df_stimuli %>% filter(ID ==stim) %>% select(NAME) 
-  title <- paste(stim,"|",title)
-  df <- df_graphs %>% filter(STIMULUS==stim)
+  title <- df_stimuli %>% filter(ID == s) %>% select(NAME) 
+  title <- paste(s,"|",title)
+  df <- df_graphs %>% filter(STIMULUS== s)
 
-#subset data cols 
-d <- df %>% select( all_of(questions))
-plots <- as.list(lapply(colnames(d), plotsd, data = df, boxplot=TRUE))
+  #subset data cols 
+  c <- df %>% select( all_of(ref_sd_questions))
+  plots <- as.list(lapply(colnames(c), plotsd, data = df, type ="S", boxplot=TRUE))
 
-## PICK UP HERE, FIGURE OUT HOW TO LOOP OVER STIM
-
-x <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
-  plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
-  plot_annotation(
-    title = title,
-    subtitle =""
-  )
-x
-ggsave(plot = x, path="figs/sd_by_stimuli", filename =paste(stim,".png"), units = c("in"), width = 10, height = 14  )
-  
+  x <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
+   plot_annotation(
+     title = title,
+     subtitle =""
+   )
+  ggsave(plot = x, path="figs/sd_by_stimuli", filename =paste(s,".png"), units = c("in"), width = 10, height = 14  )
 }
+
+
+####################CREATE SD PLOTS FOR EACH QUESTION#####################
+
+#set questions to be graphed 
+questions <- ref_sd_questions  #created in wrangling block
+for (q in questions){
+  
+  # setup dataframe 
+  title <- paste(q)
+  df <- df_sd_questions %>% filter(QUESTION == q)
+
+  #subset data cols 
+  c <- df %>% select( all_of(ref_stimuli))
+  plots <- as.list(lapply(colnames(c), plotsd, data = df, type = "Q", boxplot=TRUE))
+  
+  x <- plots[[1]] / plots[[2]]  / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+        plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] /  plots[[12]] / plots[[13]] / plots[[14]] / 
+        plots[[15]] /plots[[16]] /plots[[17]] /plots[[18]] /  plots[[19]] / plots[[20]] / plots[[21]] /
+        plots[[22]] /plots[[23]] /plots[[24]] /plots[[25]] + 
+      plot_annotation(
+        title = title,
+       subtitle =""
+      )
+   ggsave(plot = x, path="figs/sd_by_question", filename =paste(q,".png"), units = c("in"), width = 10, height = 26)
+}
+
+#############################################################################
+# 
+# 
+# 
+# #### 
+# q = "MAKER_DESIGN"
+# df <- df_questions %>% filter(QUESTION == q) %>% 
+#   mutate(
+#     value = as.numeric(value),
+#     CATEGORY = str_remove(STIMULUS,"B.-"),
+#     CATEGORY = factor(CATEGORY,
+#                   levels=c("0","1","2","3","4"),
+#                   labels= c("F","A","B","C","D"))
+# )
+# 
+# 
+# g <- ggplot(df, aes(y = value, x="", color = CATEGORY)) +
+#     geom_boxplot(width = 0.5)+
+#     geom_jitter(width = 0.1, alpha=0.3) + 
+#     scale_y_continuous(limits=c(-1,101)) +
+#     labs(x="", y="") +
+#     coord_flip()  +
+#     facet_grid(df$CATEGORY ~ .) + 
+#     labs(title=df$CATEGORY) + 
+#     guides(
+#         y = guide_axis_manual(labels = ref_labels[q,"left"]),
+#         y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
+#       ) +  
+#   theme_minimal()  + 
+#   labs (title = q)
+# 
+# g
+# left <- rep(ref_labels[q,"left"], length(unique(df$CATEGORY)))
+# right <- rep(ref_labels[q,"left"], length(unique(df$CATEGORY)))
+# a <- multi_sd(df, x = value, y = QUESTION, color = CATEGORY, left=, right=right)
+# 
+# 
+# multi_sd <- function (df, x, y, color, left,right) { 
+#   
+#   g <- ggplot(df, aes(y = {{x}}, x = {{y}}, color = {{color}}))+
+#   geom_boxplot(width = 0.5) + 
+#   geom_jitter(width = 0.1, alpha=0.5) + 
+#   scale_y_continuous(limits=c(-1,101)) +
+#   facet_grid(rows=vars({{color}})) +
+#   labs(x="", y="") +
+#   coord_flip() + 
+#   guides(
+#     y = guide_axis_manual(labels = left),
+#     y.sec = guide_axis_manual(labels = right)
+#   ) + theme_minimal() 
+#   
+#   return(g)
+# }
+
+
+
+
+# ## GROUPED PLOTSD FUNCTION 
+# grouped_plotsd = function (data, x, type, q, boxplot) {
+#   ggplot(df, aes(y = .data[[x]], x="")) +
+#     {if(boxplot) geom_boxplot(width = 0.5) } +
+#     geom_jitter(width = 0.1, alpha=0.3) + 
+#     scale_y_continuous(limits=c(-1,101)) +
+#     labs(x="", y="") +
+#     coord_flip()  +
+#     {if(type == "Q")
+#       guides(
+#         y = guide_axis_manual(labels = ref_labels[q,"left"]),
+#         y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
+#       )} +  
+#   theme_minimal()  + 
+#      labs (
+#        caption = column
+#      )
+# }
+
 
 #####################################################################
 
