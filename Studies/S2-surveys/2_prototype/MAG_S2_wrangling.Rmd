@@ -353,8 +353,8 @@ df_questions <- df_data %>%
     QUESTION = factor(QUESTION),
     CATEGORY = str_remove(STIMULUS,"B.-"),
     CATEGORY = factor(CATEGORY,
-                  levels=c("0","1","2","3","4"),
-                  labels= c("F","A","B","C","D"))
+                  levels=c("0","4","3","2","1"),
+                  labels= c("F","D","C","B","A"))
 ) %>% 
   select(-stimulus) %>% filter(!is.na(value))
 
@@ -463,8 +463,8 @@ df_qda <- df_data %>%
     QUESTION = factor(QUESTION),
     CATEGORY = str_remove(STIMULUS,"B.-"),
     CATEGORY = factor(CATEGORY,
-                  levels=c("0","1","2","3","4"),
-                  labels= c("F","A","B","C","D"))
+                  levels=c("0","4","3","2","1"),
+                  labels= c("F","D","C","B","A"))
 ) %>% 
   select(-stimulus) %>% 
 # RE-RAVEL UP TO STIMULI
@@ -844,19 +844,19 @@ b <- ggplot(df, aes( x = MAKER_AGE, y = MAKER_CONF, color = ID.Study)) +
 
 
 ############## RETURNS SD STACKED AND COLORED BY BY X
-multi_sd <- function (df, left, right, x, y, color) { 
-  
-  g <- ggplot(df, aes(y = {{x}}, x = {{y}}, color = {{color}}))+
-  geom_boxplot(width = 0.5) + 
-  geom_jitter(width = 0.1, alpha=0.5) + 
+multi_sd <- function (df, left, right, x, y, color) {
+
+  g <- ggplot(df, aes(y = .data[[x]], x = {{y}}, color = {{color}}))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) +
   scale_y_continuous(limits=c(-1,101)) +
   labs(x="", y="") +
-  coord_flip() + 
+  coord_flip() +
   guides(
     y = guide_axis_manual(labels = left),
     y.sec = guide_axis_manual(labels = right)
-  ) + theme_minimal() 
-  
+  ) + theme_minimal()
+
   return(g)
 }
 
@@ -880,7 +880,7 @@ single_sd <- function (df, left, right, x) {
 
 
 
-######### USE THIS ONE
+######### LAPPLY VERSION
 ## SIMPLE PLOTSD FUNCTION 
 plot_sd = function (data, column, type, boxplot) {
     
@@ -1000,70 +1000,69 @@ rm(x, plots)
 
 ```{r}
 # REFERENCE ONLY 
-# multi_sd <- function (df, left, right, x, y, color) { 
-#   
-#   g <- ggplot(df, aes(y = {{x}}, x = {{y}}, color = {{color}}))+
-#   geom_boxplot(width = 0.5) + 
-#   geom_jitter(width = 0.1, alpha=0.5) + 
+# multi_sd <- function (df, left, right, x, y, color) {
+# 
+#   g <- ggplot(df, aes(y = .data[[x]], x = {{y}}, color = {{color}}))+
+#   geom_boxplot(width = 0.5) +
+#   geom_jitter(width = 0.1, alpha=0.5) +
 #   scale_y_continuous(limits=c(-1,101)) +
 #   labs(x="", y="") +
-#   coord_flip() + 
+#   coord_flip() +
 #   guides(
 #     y = guide_axis_manual(labels = left),
 #     y.sec = guide_axis_manual(labels = right)
-#   ) + theme_minimal() 
-#   
+#   ) + theme_minimal()
+# 
 #   return(g)
 # }
 
-# EXAMPLE USE 
-# FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B0-0")
-left <- "left"
-right <- "right"
 
-# 
-# 
-# BUILD SEMANTIC DIFFERENTIALS
-b0_m_design <- multi_sd(df, left, right, x = MAKER_DESIGN, y = ID.Study, color = ID.Study) +
-      labs(title  = "MAKER-DESIGN") +
-      easy_remove_legend()
+#WORKING 
+## eg MAKER DESIGN QUESTION BY block
+# #FILTER DATAFRAME
+# df <- df_graphs 
+# # 
+# # 
+# # #BUILD SEMANTIC DIFFERENTIALS
+# a <- multi_sd(df, "professional", "layperson", x = "MAKER_DESIGN", y = CATEGORY, color = CATEGORY) +
+#       labs(title  = "MAKER-DESIGN")
 
 
 
-####################SD PLOT GROUPED #####################
+
+####################SD PLOTS QUESTION BY CATEGORY #####################
 
 #set questions to be graphed 
-questions <- ref_sd_questions  #created in wrangling block
+questions <- ref_sd_questions#created in wrangling block
+plots_q_by_category <- list()
+i = 0
 for (q in questions){
+  i = i+1
+  left <-   ref_labels[q,]$left
+  right <-  ref_labels[q,]$right
   
   # setup dataframe 
-  title <- paste(q)
-  df <- df_sd_questions %>% filter(QUESTION == q)
-
-  #subset data cols 
-  c <- df %>% select( all_of(ref_stimuli))
-  plots <- as.list(lapply(colnames(c), plotsd, data = df, type = "Q", boxplot=TRUE))
+  title <- paste(q," BY CATEGORY")
+  df <- df_graphs 
   
-  x <- plots[[1]] / plots[[2]]  / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
-        plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] /  plots[[12]] / plots[[13]] / plots[[14]] / 
-        plots[[15]] /plots[[16]] /plots[[17]] /plots[[18]] /  plots[[19]] / plots[[20]] / plots[[21]] /
-        plots[[22]] /plots[[23]] /plots[[24]] /plots[[25]] + 
-      plot_annotation(
-        title = title,
-       subtitle =""
-      )
-   ggsave(plot = x, path="figs/sd_by_question", filename =paste(q,".png"), units = c("in"), width = 10, height = 26)
+  x <- multi_sd(df, left, right, x = q, y = CATEGORY, color = CATEGORY) + 
+      labs(title  = q) 
+ 
+  plots_q_by_category[[i]] <- x
+  ggsave(plot = x, path="figs/q_by_category", filename =paste(q,".png"))
 }
+names(plots_q_by_category) <- questions
+rm(x)
+  
 
 #############################################################################
 
 
 
+```
 
 
-
-
+```{r}
 
 
 
