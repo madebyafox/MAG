@@ -350,7 +350,11 @@ df_questions <- df_data %>%
     BLOCK = factor(BLOCK),
     STIMULUS = factor(STIMULUS),
     QUESTION = str_replace_all(QUESTION,"-","_"),
-    QUESTION = factor(QUESTION)
+    QUESTION = factor(QUESTION),
+    CATEGORY = str_remove(STIMULUS,"B.-"),
+    CATEGORY = factor(CATEGORY,
+                  levels=c("0","1","2","3","4"),
+                  labels= c("F","A","B","C","D"))
 ) %>% 
   select(-stimulus) %>% filter(!is.na(value))
 
@@ -359,7 +363,7 @@ df_questions <- df_data %>%
 # ravel up one level from questions
 # 1 row per participant-question with all blocks as cols for SD qs
 df_sd_questions <- df_questions %>%
-  select(-BLOCK) %>% #drop block in order to work at stimulus level
+  select(-BLOCK,-CATEGORY) %>% #drop block in order to work at stimulus level
   filter(QUESTION %in% ref_sd_questions) %>% 
   pivot_wider(
     names_from = STIMULUS,
@@ -456,7 +460,11 @@ df_qda <- df_data %>%
     BLOCK = factor(BLOCK),
     STIMULUS = factor(STIMULUS),
     QUESTION = str_replace_all(QUESTION,"-","_"),
-    QUESTION = factor(QUESTION)
+    QUESTION = factor(QUESTION),
+    CATEGORY = str_remove(STIMULUS,"B.-"),
+    CATEGORY = factor(CATEGORY,
+                  levels=c("0","1","2","3","4"),
+                  labels= c("F","A","B","C","D"))
 ) %>% 
   select(-stimulus) %>% 
 # RE-RAVEL UP TO STIMULI
@@ -835,21 +843,6 @@ b <- ggplot(df, aes( x = MAKER_AGE, y = MAKER_CONF, color = ID.Study)) +
 ```{r SD-GRAPHING-FUNCTIONS}
 
 
-### BUILD LABELS AND QUESTIONS MATRIX 
-questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
-               "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
-               "CHART_LIKE", "CHART_BEAUTY", "CHART_INTENT", "CHART_TRUST")
-left <- c("professional","professional","left-leaning","confrontational",
-          "altruistic","does NOT share","untrustworthy",
-          "NOT at all","NOT at all", "inform", "untrustworthy")
-right <- c("layperson","layperson","right-leaning","diplomatic",
-           "selfish", "DOES share", "trustworthy",
-           "very much", "very much", "persuade", "trusthworthy")
-labels <- as.data.frame(cbind(left,right))
-rownames(labels) <- questions
-rm(left,right)
-
-
 ############## RETURNS SD STACKED AND COLORED BY BY X
 multi_sd <- function (df, left, right, x, y, color) { 
   
@@ -889,7 +882,7 @@ single_sd <- function (df, left, right, x) {
 
 ######### USE THIS ONE
 ## SIMPLE PLOTSD FUNCTION 
-plotsd = function (data, column, type, boxplot) {
+plot_sd = function (data, column, type, boxplot) {
     
   ggplot(df, aes(y = .data[[column]], x="")) +
     {if(boxplot) geom_boxplot(width = 0.5) } +
@@ -915,7 +908,7 @@ plotsd = function (data, column, type, boxplot) {
 
 ```
 
-### test
+### ALL SD PLOTS BY STIMULUS
 
 ```{r}
 
@@ -923,7 +916,10 @@ plotsd = function (data, column, type, boxplot) {
 
 #set stimuli to be graphed 
 stimuli <- ref_stimuli #created in wrangling block
+plots_stimulus <- list()
+i = 0
 for (s in stimuli){
+  i = i+1
   
   # setup dataframe 
   title <- df_stimuli %>% filter(ID == s) %>% select(NAME) 
@@ -932,19 +928,110 @@ for (s in stimuli){
 
   #subset data cols 
   c <- df %>% select( all_of(ref_sd_questions))
-  plots <- as.list(lapply(colnames(c), plotsd, data = df, type ="S", boxplot=TRUE))
+  plots <- as.list(lapply(colnames(c), plot_sd, data = df, type ="S", boxplot=TRUE))
 
+  #aggregate q plots into one for stimulus 
   x <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
    plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
    plot_annotation(
      title = title,
      subtitle =""
    )
+  
+  plots_stimulus[[i]] <- x
   ggsave(plot = x, path="figs/sd_by_stimuli", filename =paste(s,".png"), units = c("in"), width = 10, height = 14  )
 }
 
+#GIVE NAMES TO LIST
+#NOW CAN ACCESS plots by plots_stimulus$`B1-1`
+#ALSO plots_stimulus$`B1-1`[[1]]
+names(plots_stimulus) <- stimuli
+rm(x, plots)
+
+#############################################################################
+
+```
+
+### SD PLOTS BY QUESTION
+
+```{r}
 
 ####################CREATE SD PLOTS FOR EACH QUESTION#####################
+
+#set questions to be graphed 
+questions <- ref_sd_questions  #created in wrangling block
+plots_questions <- list()
+i = 0
+for (q in questions){
+  i = i+1
+  
+  # setup dataframe 
+  title <- paste(q)
+  df <- df_sd_questions %>% filter(QUESTION == q)
+
+  #subset data cols 
+  c <- df %>% select( all_of(ref_stimuli))
+  plots <- as.list(lapply(colnames(c), plot_sd, data = df, type = "Q", boxplot=TRUE))
+  
+  #aggregate stimulus plots into block for question
+  x <- plots[[1]] / plots[[2]]  / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+        plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] /  plots[[12]] / plots[[13]] / plots[[14]] / 
+        plots[[15]] /plots[[16]] /plots[[17]] /plots[[18]] /  plots[[19]] / plots[[20]] / plots[[21]] /
+        plots[[22]] /plots[[23]] /plots[[24]] /plots[[25]] + 
+      plot_annotation(
+        title = title,
+       subtitle =""
+      )
+  plots_questions[[i]] <- x 
+  ggsave(plot = x, path="figs/sd_by_question", filename =paste(q,".png"), units = c("in"), width = 10, height = 26)
+}
+
+#GIVE NAMES TO LIST
+#NOW CAN ACCESS plots by plots_questions$MAKER_DESIGN
+#ALSO plots_questions$MAKER_DESIGN[[1]]
+names(plots_questions) <- questions
+rm(x, plots)
+
+#############################################################################
+```
+
+
+### GROUPED SD PLOTS
+
+```{r}
+# REFERENCE ONLY 
+# multi_sd <- function (df, left, right, x, y, color) { 
+#   
+#   g <- ggplot(df, aes(y = {{x}}, x = {{y}}, color = {{color}}))+
+#   geom_boxplot(width = 0.5) + 
+#   geom_jitter(width = 0.1, alpha=0.5) + 
+#   scale_y_continuous(limits=c(-1,101)) +
+#   labs(x="", y="") +
+#   coord_flip() + 
+#   guides(
+#     y = guide_axis_manual(labels = left),
+#     y.sec = guide_axis_manual(labels = right)
+#   ) + theme_minimal() 
+#   
+#   return(g)
+# }
+
+# EXAMPLE USE 
+# FILTER DATAFRAME
+df <- df_graphs %>% filter(STIMULUS == "B0-0")
+left <- "left"
+right <- "right"
+
+# 
+# 
+# BUILD SEMANTIC DIFFERENTIALS
+b0_m_design <- multi_sd(df, left, right, x = MAKER_DESIGN, y = ID.Study, color = ID.Study) +
+      labs(title  = "MAKER-DESIGN") +
+      easy_remove_legend()
+
+
+
+####################SD PLOT GROUPED #####################
 
 #set questions to be graphed 
 questions <- ref_sd_questions  #created in wrangling block
@@ -970,6 +1057,16 @@ for (q in questions){
 }
 
 #############################################################################
+
+
+
+
+
+
+
+
+
+
 # 
 # 
 # 
