@@ -945,7 +945,7 @@ for (s in stimuli){
    )
   
   plots_stimulus[[i]] <- x
-  ggsave(plot = x, path="figs/plots_stimulus", filename =paste(s,".png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = x, path="figs/plots_stimulus", filename =paste0(s,".png"), units = c("in"), width = 10, height = 14  )
 }
 
 #GIVE NAMES TO LIST
@@ -1005,7 +1005,6 @@ ggplot(df, aes(y = QUESTION, x = value, fill = QUESTION)) +
 categories <- unique(df_graphs$CATEGORY)#created in wrangling block
 plots_category <- list()
 i = 0
-
 for (c in categories){
   i = i+1
 
@@ -1026,7 +1025,7 @@ for (c in categories){
       )
 
   plots_category[[i]] <- x
-  ggsave(plot = x, path="figs/plots_category", filename =paste(q,".png"), units = c("in"), width = 10, height = 26)
+  ggsave(plot = x, path="figs/plots_category", filename =paste0(c,".png"), units = c("in"), width = 10, height = 26)
   
 }  
 
@@ -1071,7 +1070,7 @@ for (q in questions){
        subtitle =""
       )
   plots_s_question[[i]] <- x 
-  ggsave(plot = x, path="figs/plots_s_question", filename =paste(q,".png"), units = c("in"), width = 10, height = 26)
+  ggsave(plot = x, path="figs/plots_s_question", filename =paste0(q,".png"), units = c("in"), width = 10, height = 26)
 }
 
 #GIVE NAMES TO LIST
@@ -1105,7 +1104,7 @@ for (q in questions){
       labs(title  = q) 
  
   plots_c_question[[i]] <- x
-  ggsave(plot = x, path="figs/plots_c_question", filename =paste(q,".png"))
+  ggsave(plot = x, path="figs/plots_c_question", filename =paste0(q,".png"))
 }
 
 #GIVE NAMES TO LIST
