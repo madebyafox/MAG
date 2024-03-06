@@ -106,6 +106,22 @@ ref_labels <- as.data.frame(cbind(left,right))
 rownames(ref_labels) <- ref_sd_questions
 rm(left,right)
 
+
+############## STUDY ID FILE
+#most blocks were run as separate qualtrics surveys with diffferent recruitments in Prolific
+#Tumblr was run with all blocks and randomization
+df_studies <- read_csv("data/input/studies.csv", col_names = TRUE) %>%
+  mutate(
+    ID.Study = as.factor(ID.Study),
+    Assigned.Block = as.factor(Assigned.Block),
+    Distribution = as.factor(Distribution),
+    Prolific.Name = as.factor(Prolific.Name),
+    Qualtrics.URL = as.factor(Qualtrics.URL),
+    Qualtrics.Survey = as.factor(Qualtrics.Survey),
+    Sample = as.factor(Sample),
+)
+
+
 ```
 
 
@@ -201,22 +217,9 @@ df_data <- df_raw %>%
     D_politicsFiscal = D_politicsFiscal_2
  ) %>% 
   mutate(
-# STUDY IDS
-# 65ceb65b05030d95c598ef1b - blue collar 
-# 65c53fd727dceff9fd360b09 - data collar 
     D_politicsSocial = as.numeric(D_politicsSocial),
     D_politicsFiscal = as.numeric(D_politicsFiscal),
-    #HARHDCODED PROLIFIC SAMPLE IDS 
-    ID.Study = factor(ID.Study, 
-                      levels = c("65c53fd727dceff9fd360b09", #datacollar
-                                 "65ceb65b05030d95c598ef1b", #bluecollar
-                                 "65d8f06b624798854f7f6872", #block2
-                                 "65e3544f7e2772d49871027c", #block3
-                                 "65e3df9c189950bea65663f4", #block4
-                                 "65e3d5b62886fbf7104e594f", #block5
-                                 "65e125ddf213381ee6b67177"), #block6
-                      labels = c("datacollar","bluecollar","block2","block3","block4","block5","block6")),
-    # StartDate = mdy_hm(StartDate),
+    ID.Study = factor(ID.Study),
     duration.sec = as.numeric(duration.sec), #weird booleans should only be for the test generator
     duration.min = round(duration.sec/60,2),
     Progress = as.numeric(Progress), 
@@ -291,7 +294,10 @@ df_data <- df_raw %>%
     Source = factor(Source),
     Finished = as.logical(Finished),
     TerminateFlag = factor(TerminateFlag)
-  ) 
+  )
+
+## JOIN STUDY ID DATA 
+df_data <- dplyr::left_join(df_data, df_studies, by="ID.Study") 
 
 #### SEGREGATE PARTICIPANTS WHO DID NOT COMPLETE ###############################
 ## [1 row / qualtrics submission] ################
@@ -303,12 +309,11 @@ df_exclude <- df_data %>%
     !is.na(TerminateFlag) | Finished == FALSE | EndState != "COMPLETE"  
   ) %>% 
   select(
-    ID.Qualtrics, ID.Prolific, ID.Study, Source, Progress, 
+    ID.Qualtrics, ID.Prolific, ID.Study, Assigned.Block, Source, Progress, 
     Finished, TerminateFlag, EndState) %>% 
   mutate(
     EndState = ifelse( (Progress < 100), "abandoned", EndState)
   )
-
 
 
 #### MASTER VALID DATA [WIDE] 1 row per qualtrics entry #########################
@@ -334,7 +339,7 @@ sum(duplicated(df_data$ID.Prolific))
 # 1 row per participant-graph-question
 df_questions <- df_data %>% 
   select(
-  ID.Qualtrics:ID.Study, PLATFORM, 
+  ID.Qualtrics:ID.Study, Assigned.Block, PLATFORM, 
   contains("_Q_"), contains("loop")
 ) %>% 
   pivot_longer( #PIVOT ON stimulus
@@ -510,15 +515,16 @@ all(check_subject_graphs$n_graphs==5)
 # title = "Participants by Condition and Data Collection Modality"
 # cols = c("Control Condition","Impasse Condition","Total for Period")
 print("Number of abandoned/screened/rejected attempts")
-table(df_exclude$ID.Study)
+table(df_exclude$Assigned.Block)
 print("Number of successful surveys")
-table(df_data$ID.Study)
+table(df_data$Assigned.Block)
 # cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
 
 #CLEANUP
 rm(check_subject_blocks, check_subject_graphs, df_graphs_qda)
 
 
+##TODO FIX THIS AFTER REAL BLOCK 1 DATA IS COLLECTED 
 #TEMP RECODE PILOT STUDYID
 df_graphs <- df_graphs %>% mutate(
   ID.Study = recode(ID.Study, "datacollar"="block1", "bluecollar"="block1")
