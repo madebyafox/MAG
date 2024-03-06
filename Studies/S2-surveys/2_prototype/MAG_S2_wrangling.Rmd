@@ -606,7 +606,7 @@ df_actions  %>% summarytools::dfSummary(
 
 
 # SURVEY RESPONSE TIME 
-ggplot(data = df_data, aes( x = duration.min, fill = ID.Study)) + 
+ggplot(data = df_data, aes( x = duration.min, fill = Assigned.Block)) + 
   geom_density(alpha = 0.5) + 
   labs( title = "TOTAL Response Time by Sample", 
         subtitle = "Expect similiar across samples") + 
@@ -615,7 +615,7 @@ ggplot(data = df_data, aes( x = duration.min, fill = ID.Study)) +
 
 
 # MAKER PAGE RESPONSE TIME 
-ggplot(df_graphs, aes(x=STIMULUS, y=MAKER_LATENCY, color=ID.Study)) +
+ggplot(df_graphs, aes(x=STIMULUS, y=MAKER_LATENCY, color=Assigned.Block)) +
   geom_boxplot(position=position_dodge(0.9))+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
   labs( title = "MAKER Page Response Time by Sample",
@@ -625,7 +625,7 @@ ggplot(df_graphs, aes(x=STIMULUS, y=MAKER_LATENCY, color=ID.Study)) +
 
 
 # CHART PAGE RESPONSE TIME 
-ggplot(df_graphs, aes(x=STIMULUS, y=CHART_LATENCY, color=ID.Study)) +
+ggplot(df_graphs, aes(x=STIMULUS, y=CHART_LATENCY, color=Assigned.Block)) +
   geom_boxplot(position=position_dodge(0.9))+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
   labs( title = "CHART Page Response Time by Sample") + 
@@ -634,7 +634,7 @@ ggplot(df_graphs, aes(x=STIMULUS, y=CHART_LATENCY, color=ID.Study)) +
 
 
 # EDUCATION by SAMPLE
-ggplot(data = df_data, aes( x = D_education, fill = ID.Study )) + 
+ggplot(data = df_data, aes( x = D_education, fill = Assigned.Block )) + 
   geom_bar(position = position_dodge()) +
   labs( title = "EDUCATION by Sample", 
         subtitle = "Expect similiar across samples", x = "") + 
@@ -644,7 +644,7 @@ ggplot(data = df_data, aes( x = D_education, fill = ID.Study )) +
 
 
 # AGE by SAMPLE
-ggplot(data = df_data, aes( x = D_age, fill = ID.Study )) + 
+ggplot(data = df_data, aes( x = D_age, fill = Assigned.Block )) + 
   geom_bar(position = position_dodge()) +
   labs( title = "AGE by Sample", subtitle = "Expect similiar across samples", x = "") + 
   theme_minimal() + 
@@ -653,7 +653,7 @@ ggplot(data = df_data, aes( x = D_age, fill = ID.Study )) +
 
 
 # POLITICAL PARTY 
-ggplot(data = df_data, aes( x = D_politicalParty, fill = ID.Study )) + 
+ggplot(data = df_data, aes( x = D_politicalParty, fill = Assigned.Block )) + 
   geom_bar(position = position_dodge()) +
   labs( title = "POLITICAL PARTY by Sample", 
         subtitle = "Expect similiar across samples", x = "") + 
@@ -665,7 +665,7 @@ ggplot(data = df_data, aes( x = D_politicalParty, fill = ID.Study )) +
 vals <- c("block1", "block2", "block3", "block4", "block5", "block6")
 leftside <- rep("left-leaning",6)
 rightside <- rep("right-leaning",6)
-g <- ggplot(df_data, aes(x=ID.Study, y=D_politicsSocial, color=ID.Study)) +
+g <- ggplot(df_data, aes(x=Assigned.Block, y=D_politicsSocial, color=Assigned.Block)) +
   geom_boxplot(position=position_dodge(0.9), width = 0.5)+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
   labs( title = "SOCIAL VALUES by Sample",
@@ -689,7 +689,7 @@ g + guides(
 vals <- c("block1", "block2", "block3", "block4", "block5", "block6")
 leftside <- rep("left-leaning",6)
 rightside <- rep("right-leaning",6)
-g <- ggplot(df_data, aes(x=ID.Study, y=D_politicsFiscal, color=ID.Study)) +
+g <- ggplot(df_data, aes(x=Assigned.Block, y=D_politicsFiscal, color=Assigned.Block)) +
   geom_boxplot(position=position_dodge(0.9), width = 0.5)+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
   labs( title = "FISCAL VALUES by Sample", 
@@ -709,10 +709,10 @@ g + guides(
 ))  
   
 # FISCAL (VS) SOCIAL SAMPLE
-ggplot(data = df_data, aes( x = D_politicsFiscal, y= D_politicsSocial, color = ID.Study)) +
+ggplot(data = df_data, aes( x = D_politicsFiscal, y= D_politicsSocial, color = Assigned.Block)) +
   geom_point(alpha = 0.5) + 
-  geom_smooth(method="lm", se=TRUE, aes(fill= ID.Study)) + 
-  facet_wrap(~ ID.Study) + 
+  geom_smooth(method="lm", se=TRUE, aes(fill= Assigned.Block)) + 
+  facet_wrap(~ Assigned.Block) + 
   theme_minimal() + 
   easy_add_legend_title("") + 
   labs(title = "Social (vs) Fiscal Political Values by Sample", 
@@ -721,7 +721,7 @@ ggplot(data = df_data, aes( x = D_politicsFiscal, y= D_politicsSocial, color = I
   
 
 #PLATFORM CHOICE
-ggplot( df_data, aes( x = PLATFORM, fill = ID.Study)) + 
+ggplot( df_data, aes( x = PLATFORM, fill = Assigned.Block)) + 
   geom_bar(position = "dodge") + 
   easy_add_legend_title("") + 
   theme_minimal()
@@ -784,7 +784,7 @@ df <- df_graphs %>% filter(STIMULUS == "B0-0")
 
 
 # BEHAVIOUR CHOICE
-ggplot (df, aes ( x = ENCOUNTER, fill = ID.Study)) + 
+ggplot (df, aes ( x = ENCOUNTER, fill = Assigned.Block)) + 
   geom_bar(position = "dodge") + 
   labs (title = "BLOCK 0 — BEHAVIOR by Sample", x="") + 
   theme_minimal() +
@@ -794,7 +794,7 @@ ggplot (df, aes ( x = ENCOUNTER, fill = ID.Study)) +
 
 ######### MAKER ID AND CONFIDENCE ##############
 # MAKER_ID by Sample and BEHAVIOR 
-a <- ggplot (df, aes( x = MAKER_ID, fill = ID.Study)) + 
+a <- ggplot (df, aes( x = MAKER_ID, fill = Assigned.Block)) + 
   geom_bar(position = "dodge") +
   facet_grid( df$ENCOUNTER) + 
   labs (x = "") + 
@@ -802,7 +802,7 @@ a <- ggplot (df, aes( x = MAKER_ID, fill = ID.Study)) +
   easy_remove_legend() 
 
 # MAKER_CONFIDENCE by IDENTIFICATION  
-b <- ggplot(df, aes( x = MAKER_ID, y = MAKER_CONF, color = ID.Study)) + 
+b <- ggplot(df, aes( x = MAKER_ID, y = MAKER_CONF, color = Assigned.Block)) + 
   # geom_boxplot(position=position_dodge(0.9))+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
   # labs (title = "MAKER-ID-CONFIDENCE") +
@@ -821,7 +821,7 @@ b <- ggplot(df, aes( x = MAKER_ID, y = MAKER_CONF, color = ID.Study)) +
 
 ######### MAKER ID AND CONFIDENCE ##############
 # MAKER_AGE by Sample and BEHAVIOR 
-a <- ggplot (df, aes( x = MAKER_AGE, fill = ID.Study)) + 
+a <- ggplot (df, aes( x = MAKER_AGE, fill = Assigned.Block)) + 
   geom_bar(position = "dodge") +
   facet_grid( df$ENCOUNTER) + 
   labs (x = "") + 
@@ -829,7 +829,7 @@ a <- ggplot (df, aes( x = MAKER_AGE, fill = ID.Study)) +
   easy_remove_legend() 
 
 # MAKER_CONFIDENCE by IDENTIFICATION  
-b <- ggplot(df, aes( x = MAKER_AGE, y = MAKER_CONF, color = ID.Study)) + 
+b <- ggplot(df, aes( x = MAKER_AGE, y = MAKER_CONF, color = Assigned.Block)) + 
   # geom_boxplot(position=position_dodge(0.9))+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
   # labs (title = "MAKER-AGE-CONFIDENCE") +
