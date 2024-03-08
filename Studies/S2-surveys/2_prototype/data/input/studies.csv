@@ -1,15 +1,15 @@
-﻿Prolific.Name,ID.Study,Qualtrics.URL,Assigned.Block,Description,Distribution,Qualtrics.Survey,Sample
-MAG_S2_PROLIFIC_DATACOLLAR_B1,65c53fd727dceff9fd360b09,https://mit.co1.qualtrics.com/jfe/form/SV_aXfplRUixCMmgKy,block1,datacollar-20,prolific,MAG_S2_PROLIFIC-DATACOLLAR_0,data-collar
-MAG_S2_PROLIFIC_BLUECOLLAR_B1,65ceb65b05030d95c598ef1b,https://mit.co1.qualtrics.com/jfe/form/SV_9SRk8KHra3XxJP0,block1,bluecollar-20,prolific,MAG_S2_PROLIFIC-BLUECOLLAR_0,blue-collar
-MAG_S2_PROLIFIC_GENERAL_B2,65d8f06b624798854f7f6872,https://mit.co1.qualtrics.com/jfe/form/SV_7PdjaaD5qzhDVFc,block2,block2-10,prolific,MAG_S2_PROLIFIC_GENERAL_2,general-prolific
-MAG_S2_PROLIFIC_GENERAL_B3,65e3544f7e2772d49871027c,https://mit.co1.qualtrics.com/jfe/form/SV_0V5X2aPWtvRnXuK,block3,block3-20,prolific,MAG_S2_PROLIFIC_GENERAL_3,general-prolific
-MAG_S2_PROLIFIC_GENERAL_B4,65e3df9c189950bea65663f4,https://mit.co1.qualtrics.com/jfe/form/SV_6SGaQzOAF6v2EGG,block4,block4-20,prolific,MAG_S2_PROLIFIC_GENERAL_4,general-prolific
-MAG_S2_PROLIFIC_GENERAL_B5,65e3d5b62886fbf7104e594f,https://mit.co1.qualtrics.com/jfe/form/SV_3fRIcaxY5GQR1Mq,block5,block5-20,prolific,MAG_S2_PROLIFIC_GENERAL_5,general-prolific
-MAG_S2_PROLIFIC_GENERAL_B6,65e125ddf213381ee6b67177,https://mit.co1.qualtrics.com/jfe/form/SV_eKbVkECTt1f9fMO,block6,block6-20,prolific,MAG_S2_PROLIFIC_GENERAL_6,general-prolific
-MAG_S2_PROLIFIC_GENERAL_B1,65e7ec5c04b296ed0bfa8697,https://mit.co1.qualtrics.com/jfe/form/SV_emapDLVzTpB2Ami,block1,block1-full,prolific,MAG_S2_PROLIFIC_GENERAL_1,general-prolific
-MAG_S2_PROLIFIC_GENERAL_B2_run2,65e7e30680bbb8aa59dbfe8f,https://mit.co1.qualtrics.com/jfe/form/SV_7PdjaaD5qzhDVFc,block2,block2-fill,prolific,MAG_S2_PROLIFIC_GENERAL_2,general-prolific
-MAG_S2_PROLIFIC_GENERAL_B3_run2,65e7e385c70a65340e2ac279,https://mit.co1.qualtrics.com/jfe/form/SV_0V5X2aPWtvRnXuK,block3,block3-fill,prolific,MAG_S2_PROLIFIC_GENERAL_3,general-prolific
-MAG_S2_PROLIFIC_GENERAL_B4_run2,65e7e41ec1a60f4ef057cce6,https://mit.co1.qualtrics.com/jfe/form/SV_6SGaQzOAF6v2EGG,block4,block4-fill,prolific,MAG_S2_PROLIFIC_GENERAL_4,general-prolific
-MAG_S2_PROLIFIC_GENERAL_B5_run2,65e7e4843d66de772d039671,https://mit.co1.qualtrics.com/jfe/form/SV_3fRIcaxY5GQR1Mq,block5,block5-fill,prolific,MAG_S2_PROLIFIC_GENERAL_5,general-prolific
-MAG_S2_PROLIFIC_GENERAL_B6_run2,65e7e4bd2d12c8297e4e320f,https://mit.co1.qualtrics.com/jfe/form/SV_eKbVkECTt1f9fMO,block6,block6-fill,prolific,MAG_S2_PROLIFIC_GENERAL_6,general-prolific
-tumblr,tumblr,https://mit.co1.qualtrics.com/jfe/form/SV_2boFcDpNO14yuMK,RANDOM-TUMBLR,tumbr sample ,tumbr,MAG_S2_TUMBLR_ALL,shared-tumblr
+﻿Prolific.Name,ID.Study,Qualtrics.URL,Assigned.Block,Description,Distribution,Qualtrics.Survey,Sample,Scope
+MAG_S2_PROLIFIC_DATACOLLAR_B1,65c53fd727dceff9fd360b09,https://mit.co1.qualtrics.com/jfe/form/SV_aXfplRUixCMmgKy,block1,datacollar-20,prolific,MAG_S2_PROLIFIC-DATACOLLAR_0,data-collar,pilot
+MAG_S2_PROLIFIC_BLUECOLLAR_B1,65ceb65b05030d95c598ef1b,https://mit.co1.qualtrics.com/jfe/form/SV_9SRk8KHra3XxJP0,block1,bluecollar-20,prolific,MAG_S2_PROLIFIC-BLUECOLLAR_0,blue-collar,pilot
+MAG_S2_PROLIFIC_GENERAL_B2,65d8f06b624798854f7f6872,https://mit.co1.qualtrics.com/jfe/form/SV_7PdjaaD5qzhDVFc,block2,block2-10,prolific,MAG_S2_PROLIFIC_GENERAL_2,general-prolific,study2
+MAG_S2_PROLIFIC_GENERAL_B3,65e3544f7e2772d49871027c,https://mit.co1.qualtrics.com/jfe/form/SV_0V5X2aPWtvRnXuK,block3,block3-20,prolific,MAG_S2_PROLIFIC_GENERAL_3,general-prolific,study2
+MAG_S2_PROLIFIC_GENERAL_B4,65e3df9c189950bea65663f4,https://mit.co1.qualtrics.com/jfe/form/SV_6SGaQzOAF6v2EGG,block4,block4-20,prolific,MAG_S2_PROLIFIC_GENERAL_4,general-prolific,study2
+MAG_S2_PROLIFIC_GENERAL_B5,65e3d5b62886fbf7104e594f,https://mit.co1.qualtrics.com/jfe/form/SV_3fRIcaxY5GQR1Mq,block5,block5-20,prolific,MAG_S2_PROLIFIC_GENERAL_5,general-prolific,study2
+MAG_S2_PROLIFIC_GENERAL_B6,65e125ddf213381ee6b67177,https://mit.co1.qualtrics.com/jfe/form/SV_eKbVkECTt1f9fMO,block6,block6-20,prolific,MAG_S2_PROLIFIC_GENERAL_6,general-prolific,study2
+MAG_S2_PROLIFIC_GENERAL_B1,65e7ec5c04b296ed0bfa8697,https://mit.co1.qualtrics.com/jfe/form/SV_emapDLVzTpB2Ami,block1,block1-full,prolific,MAG_S2_PROLIFIC_GENERAL_1,general-prolific,study2
+MAG_S2_PROLIFIC_GENERAL_B2_run2,65e7e30680bbb8aa59dbfe8f,https://mit.co1.qualtrics.com/jfe/form/SV_7PdjaaD5qzhDVFc,block2,block2-fill,prolific,MAG_S2_PROLIFIC_GENERAL_2,general-prolific,study2
+MAG_S2_PROLIFIC_GENERAL_B3_run2,65e7e385c70a65340e2ac279,https://mit.co1.qualtrics.com/jfe/form/SV_0V5X2aPWtvRnXuK,block3,block3-fill,prolific,MAG_S2_PROLIFIC_GENERAL_3,general-prolific,study2
+MAG_S2_PROLIFIC_GENERAL_B4_run2,65e7e41ec1a60f4ef057cce6,https://mit.co1.qualtrics.com/jfe/form/SV_6SGaQzOAF6v2EGG,block4,block4-fill,prolific,MAG_S2_PROLIFIC_GENERAL_4,general-prolific,study2
+MAG_S2_PROLIFIC_GENERAL_B5_run2,65e7e4843d66de772d039671,https://mit.co1.qualtrics.com/jfe/form/SV_3fRIcaxY5GQR1Mq,block5,block5-fill,prolific,MAG_S2_PROLIFIC_GENERAL_5,general-prolific,study2
+MAG_S2_PROLIFIC_GENERAL_B6_run2,65e7e4bd2d12c8297e4e320f,https://mit.co1.qualtrics.com/jfe/form/SV_eKbVkECTt1f9fMO,block6,block6-fill,prolific,MAG_S2_PROLIFIC_GENERAL_6,general-prolific,study2
+tumblr,tumblr,https://mit.co1.qualtrics.com/jfe/form/SV_2boFcDpNO14yuMK,RANDOM-TUMBLR,tumbr sample ,tumbr,MAG_S2_TUMBLR_ALL,shared-tumblr,study2
