@@ -41,6 +41,8 @@ library(GGally) #extends ggplot for EDA
 library(ggeasy) #easy labelling
 library(ggh4x) #guides [dual axes]
 library(patchwork) #multi-plot layout
+library(ggdist) #raincloud plots and other distributionals
+library(ggridges) #ridge plots
 
 #MODELLING
 library(jtools) #Social Science regression utilities
@@ -49,12 +51,6 @@ library(see)
 library(sjPlot)
 library(lme4)
 library(lmerTest) #for CIs in glmer
-
-
-
-#POWER ANALYSIS & SIMULATION
-# library(pwr)
-# library(simr)
 
 #ARF ONLY — MANUAL RUN
 # setwd("~/Code/IXN-Characterizing_Interaction/IXN-D_Characterizing_Interaction/ANALYSIS")
@@ -67,18 +63,19 @@ n_blocks = 6
 
 # WRANGLING
 
-Initial data were collected via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1"). The 24 stimuli are organized in 6 blocks, and we started by collecting data for block 1 to test data quality and runtime of the survey instrument.
+Initial pilot data were collected via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1"). 
 
-Notes on Qualtrics Survey Status
+Subsequently we made minor alterations to the question wording and respose wording, and the remaining stimuli were organized in 6 blocks.  Each block was collected via PROLIFIC using independent Qualtrics surveys, with the exception of a sample of respondents directly recruited from Tumblr, using a single Qualtrics surveys with randomization logic to assign each Tumblr participant to one of the six stimulus blocks.  
 
-In Qualtrics, when a survey is:
+
+Participants were excluded from the sample for the following reasons 
 
 -   **abandoned**; Finished = False and Progress \< 100%
-
 -   **fails consent or pre-screening**, Finished = TRUE, Progress = 100%, Q_TerminateFlag = "Screened"
+-   **didnot-follow-instructions** free responses indicate they misinterpred the question (most commonly they describe the graph rather than their reactions/judgements/impressions of it)
+-   **illegible-english** free responses text is largely illegible
 
--   **complete**; Finished = TRUE, Progress = 100%
-
+Following wrangling, there should be 6 blocks of stimuli, each containing responses from 40 participants from prolific, and TODO responses directly from Tumblr. 
 
 ```{r STIMULI, message=FALSE, warning = FALSE}
 
@@ -119,6 +116,7 @@ df_studies <- read_csv("data/input/studies.csv", col_names = TRUE) %>%
     Qualtrics.URL = as.factor(Qualtrics.URL),
     Qualtrics.Survey = as.factor(Qualtrics.Survey),
     Sample = as.factor(Sample),
+    Scope = as.factor(Scope)
 )
 
 
@@ -130,17 +128,19 @@ df_studies <- read_csv("data/input/studies.csv", col_names = TRUE) %>%
 #### RAW DATA ####################################################################
 # will always be the unaltered version of imported data
 # 1 row per subject 
-df_raw_datacollar <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-DATACOLLAR_B1.csv", col_names = TRUE)
-df_raw_bluecollar <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-BLUECOLLAR_B1.csv", col_names = TRUE)
-df_raw_b2 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B2.csv", col_names = TRUE)
-df_raw_b3 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B3.csv", col_names = TRUE)
-df_raw_b4 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B4.csv", col_names = TRUE)
-df_raw_b5 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B5.csv", col_names = TRUE)
-df_raw_b6 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC-GENERAL_B6.csv", col_names = TRUE)
+df_raw_datacollar <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_datacollarpilot_B1.csv", col_names = TRUE)
+df_raw_bluecollar <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_bluecollarpilot_B1.csv", col_names = TRUE)
+df_raw_b1 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_GENERAL_B1.csv", col_names = TRUE)
+df_raw_b2 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_GENERAL_B2.csv", col_names = TRUE)
+df_raw_b3 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_GENERAL_B3.csv", col_names = TRUE)
+df_raw_b4 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_GENERAL_B4.csv", col_names = TRUE)
+df_raw_b5 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_GENERAL_B5.csv", col_names = TRUE)
+df_raw_b6 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_GENERAL_B6.csv", col_names = TRUE)
 
 # drop first two rows (qualtrics_specs)
 df_raw_datacollar <- df_raw_datacollar[-c(1:2),]
 df_raw_bluecollar <- df_raw_bluecollar[-c(1:2),]
+df_raw_b1 <- df_raw_b1[-c(1:2),]
 df_raw_b2 <- df_raw_b2[-c(1:2),]
 df_raw_b3 <- df_raw_b3[-c(1:2),]
 df_raw_b4 <- df_raw_b4[-c(1:2),]
@@ -179,9 +179,11 @@ df_raw_pilot <- rbind(df_raw_datacollar, df_raw_bluecollar) %>%
     '4_Q_B6_CHART_ACTION' = NA
   )
 
-df_raw <- rbind(df_raw_pilot,df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6)
-rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6, df_raw_pilot)
+df_raw <- rbind(df_raw_pilot, df_raw_b1, df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6)
+rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b1, df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6, df_raw_pilot)
 
+
+################################################################################################
 #### MASTER WIDE FORMAT DATA FRAME [1 row / qualtrics submission] ################
 df_data <- df_raw %>% 
   select(
@@ -293,7 +295,8 @@ df_data <- df_raw %>%
     PLATFORM = factor(PLATFORM),
     Source = factor(Source),
     Finished = as.logical(Finished),
-    TerminateFlag = factor(TerminateFlag)
+    TerminateFlag = factor(TerminateFlag),
+    EndState = factor(EndState)
   )
 
 ## JOIN STUDY ID DATA 
@@ -309,29 +312,114 @@ df_exclude <- df_data %>%
     !is.na(TerminateFlag) | Finished == FALSE | EndState != "COMPLETE"  
   ) %>% 
   select(
-    ID.Qualtrics, ID.Prolific, ID.Study, Assigned.Block, Source, Progress, 
-    Finished, TerminateFlag, EndState) %>% 
+    ID.Qualtrics, ID.Prolific, ID.Study, Assigned.Block, Scope, Source, Progress, 
+    Finished, TerminateFlag, EndState,StartDate, duration.min, 
+    D_gender:D_politicsFiscal, SCREEN_workMethod:FEEDBACK, Prolific.Name:Scope
+  )  %>% 
   mutate(
-    EndState = ifelse( (Progress < 100), "abandoned", EndState)
+    EndState = if_else( (Progress < 100), "abandoned", EndState),
+    EndState = if_else( (str_detect(EndState,"screen")), "screened", EndState),
+    EndState = if_else( (TerminateFlag == "Screened" & is.na(EndState)), "screened", EndState),
+    EndState = factor(EndState)
   )
-
 
 #### MASTER VALID DATA [WIDE] 1 row per qualtrics entry #########################
 ## [1 row / qualtrics submission] ################
 df_data <- df_data %>% filter(
   ID.Qualtrics %nin% df_exclude$ID.Qualtrics
   # (Finished == TRUE ) & is.na(TerminateFlag)
+) %>% mutate(
+  EndState = droplevels(EndState)
 )
 
 #sanity check === SHOULD BE O
 #no qualtrics surveys in good data that weren't finished
-print("Number of Qualtrics entries in df_data AND nofinish? [should be 0]")
+print("Number of Qualtrics entries in df_data AND nofinish/excluded? [should be 0]")
 sum(df_data$ID.Qualtrics %in% df_exclude$ID.Qualtrics)
 
 #sanity check === SHOULD BE O
 #no duplicated PROLIFIC ids in good data 
 print("Number of Prolific IDs duplicated in df_data print [should be 0]")
 sum(duplicated(df_data$ID.Prolific))
+
+#### CHART LEVEL DATA FRAME (LONG) FOR QDA (incl demographics) ##################
+#### INCLUDES PILOT DATA FROM DATACOLLAR BLUECOLLAR PROLIFIC RECRUITMENT ########
+# 1 ROW / participant X GRAPH including demographics 
+# UNRAVEL TO QUESTIONS
+df_qda <- df_data %>% 
+  # select(
+  # ID.Qualtrics:ID.Study, PLATFORM,
+  # contains("_Q_"), contains("loop")
+# ) %>% 
+  pivot_longer( #PIVOT ON stimulus
+  cols = contains("_Q_"),
+  names_to = c("stimulus","dummy","BLOCK","QUESTION"),
+  values_to = c("value"),
+  names_sep = "_"
+) %>% select(-dummy) %>% 
+  unite(
+   BLOCK:stimulus, col="STIMULUS", sep="-", remove=FALSE
+) %>% 
+  mutate(
+    BLOCK = factor(BLOCK),
+    STIMULUS = factor(STIMULUS),
+    QUESTION = str_replace_all(QUESTION,"-","_"),
+    QUESTION = factor(QUESTION),
+    CATEGORY = str_remove(STIMULUS,"B.-"),
+    CATEGORY = factor(CATEGORY,
+                  levels=c("0","4","3","2","1"),
+                  labels= c("F","D","C","B","A"))
+) %>% 
+  select(-stimulus) %>% 
+# RE-RAVEL UP TO STIMULI
+  filter(!is.na(value)) %>% 
+   pivot_wider(
+    names_from = QUESTION,
+    values_from = value 
+  ) %>%  
+  tidyr::unnest() %>%  # handle r coerces values to lists
+  mutate(
+    across(contains("MAKER_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
+    across(contains("_CONF") | contains("_LATENCY"), as.numeric),
+    across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
+    across(CHART_LIKE:CHART_TRUST, as.numeric),
+    ENCOUNTER = factor(ENCOUNTER),
+    # loop_number = as.numeric(loop_number),
+    # loop_number = ifelse(is.na(loop_number), 0, loop_number),
+    MAKER_LATENCY = round(MAKER_LATENCY/60,2), #CHANGE TO MINS
+    CHART_LATENCY = round(CHART_LATENCY/60,2) #CHANGE TO MINS
+  )
+#WRITE A CSV FILE AS THE BASIS FOR THE QUALITATIVE DATA ANALYSIS
+write.csv(df_qda, file = "data/output/df_qda.csv", na="")
+
+
+###TODO HANDLE ASSIGNING 'Assigned.Block' for Tumblr data
+
+#### REMOVE PILOT DATA FROM DF_DATA 
+## pilot data is not included in quantitative analysis, but is made available in the qda file
+df_data <- df_data %>% 
+  filter(Scope != "pilot") %>% 
+  mutate(ID.Study = droplevels(ID.Study))
+
+
+
+########## CHECK BLOCK COUNTS 
+# title = "Participants by Condition and Data Collection Modality"
+# cols = c("Control Condition","Impasse Condition","Total for Period")
+print("Number of abandoned/screened/rejected attempts ")
+table(df_exclude$Assigned.Block, df_exclude$Scope)
+print("Number of abandoned/screened/rejected attempts by type")
+table(df_exclude$EndState)
+print("Number of successful surveys")
+table(df_data$Assigned.Block)
+# cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+
+# END WRANGLE MASTER WIDE DATA FRAME 
+################################################################################################
+################################################################################################
+
+
 
   
 #### QUESTION LEVEL DATA FRAME (LONG) ##########################
@@ -433,8 +521,8 @@ df_graphs_full <- df_questions %>%
     across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
     across(CHART_LIKE:CHART_TRUST, as.numeric),
     ENCOUNTER = factor(ENCOUNTER),
-    loop_number = as.numeric(loop_number),
-    loop_number = ifelse(is.na(loop_number), 0, loop_number),
+    # loop_number = as.numeric(loop_number),
+    # loop_number = ifelse(is.na(loop_number), 0, loop_number),
     MAKER_LATENCY = round(MAKER_LATENCY/60,2), #CHANGE TO MINS
     CHART_LATENCY = round(CHART_LATENCY/60,2), #CHANGE TO MINS
     MAKER_ID = factor( MAKER_ID,levels = c("business", "political", "education","news","organization","individual"))
@@ -444,62 +532,13 @@ df_graphs_full <- df_questions %>%
 df_graphs <- df_graphs_full %>% 
   select( !is.character)
 
-#### CHART LEVEL DATA FRAME (LONG) FOR QDA (incl demographics) ##################
-# 1 ROW / participant X GRAPH including demographics 
-# UNRAVEL TO QUESTIONS
-df_qda <- df_data %>% 
-  # select(
-  # ID.Qualtrics:ID.Study, PLATFORM, 
-  # contains("_Q_"), contains("loop")
-# ) %>% 
-  pivot_longer( #PIVOT ON stimulus
-  cols = contains("_Q_"),
-  names_to = c("stimulus","dummy","BLOCK","QUESTION"),
-  values_to = c("value"),
-  names_sep = "_"
-) %>% select(-dummy) %>% 
-  unite(
-   BLOCK:stimulus, col="STIMULUS", sep="-", remove=FALSE
-) %>% 
-  mutate(
-    BLOCK = factor(BLOCK),
-    STIMULUS = factor(STIMULUS),
-    QUESTION = str_replace_all(QUESTION,"-","_"),
-    QUESTION = factor(QUESTION),
-    CATEGORY = str_remove(STIMULUS,"B.-"),
-    CATEGORY = factor(CATEGORY,
-                  levels=c("0","4","3","2","1"),
-                  labels= c("F","D","C","B","A"))
-) %>% 
-  select(-stimulus) %>% 
-# RE-RAVEL UP TO STIMULI
-  filter(!is.na(value)) %>% 
-   pivot_wider(
-    names_from = QUESTION,
-    values_from = value 
-  ) %>%  
-  tidyr::unnest() %>%  # handle r coerces values to lists
-  mutate(
-    across(contains("MAKER_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
-    across(contains("_CONF") | contains("_LATENCY"), as.numeric),
-    across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
-    across(CHART_LIKE:CHART_TRUST, as.numeric),
-    ENCOUNTER = factor(ENCOUNTER),
-    loop_number = as.numeric(loop_number),
-    loop_number = ifelse(is.na(loop_number), 0, loop_number),
-    MAKER_LATENCY = round(MAKER_LATENCY/60,2), #CHANGE TO MINS
-    CHART_LATENCY = round(CHART_LATENCY/60,2) #CHANGE TO MINS
-  )
-#WRITE A CSV FILE AS THE BASIS FOR THE QUALITATIVE DATA ANALYSIS
-write.csv(df_qda, file = "data/output/df_qda.csv", na="")
-
-
 #CHECK BLOCKS PER PARTICIPANT
 # every participant should have 2 blocks
 check_subject_blocks <- df_questions %>%
   group_by(ID.Qualtrics) %>% summarise(
     n_block = length(unique(BLOCK))
   )
+print("every participant should have two blocks, [block 0 + randomly assigned block]")
 all(check_subject_blocks$n_block==2)
   
 
@@ -509,53 +548,12 @@ check_subject_graphs <- df_questions %>%
   group_by(ID.Qualtrics) %>%summarise(
     n_graphs = length(unique(STIMULUS))
   ) #each participant should have five graphs
+print("every participant should have five stimuli [B0 + 4 stimuli in a block]]")
 all(check_subject_graphs$n_graphs==5)
 
 
-# title = "Participants by Condition and Data Collection Modality"
-# cols = c("Control Condition","Impasse Condition","Total for Period")
-print("Number of abandoned/screened/rejected attempts")
-table(df_exclude$Assigned.Block)
-print("Number of successful surveys")
-table(df_data$Assigned.Block)
-# cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
-
 #CLEANUP
 rm(check_subject_blocks, check_subject_graphs, df_graphs_qda)
-
-
-##TODO FIX THIS AFTER REAL BLOCK 1 DATA IS COLLECTED 
-#TEMP RECODE PILOT STUDYID
-df_graphs <- df_graphs %>% mutate(
-  ID.Study = recode(ID.Study, "datacollar"="block1", "bluecollar"="block1")
-)
-
-df_data <- df_data %>% mutate(
-  ID.Study = recode(ID.Study, "datacollar"="block1", "bluecollar"="block1")
-)
-
-
-
-
-# `r nrow(df_raw)` submissions were received via Qualtrics (`r nrow(df_master %>% filter(ID.Study=="datacollar"))` data-collar, `r nrow(df_master %>% filter(ID.Study=="bluecollar"))` blue-collar). Of these submissions, `r nrow(df_nofinish)` were incomplete (`r nrow(df_nofinish %>% filter(EndState == "abandoned"))` surveys abandoned, and `r nrow(df_nofinish %>% filter(TerminateFlag == "Screened"))` failed screening questions.
-# 
-# Dataframe descriptions:
-# 
-# -   `df_raw` is raw data from each qualtrics survey, combined; 1 row per Qualtrics submission ( `r nrow(df_raw)` total qualtrics attempts)
-# 
-# -   `df_raw_clean` is wrangled data from raw, with only relevant columns; 1 row per Qualtrics submission (`r nrow(df_master)` total qualtrics attempts)
-# 
-# -   `df_nofinish` is data for invalid submissions (abandonded or screened out due to not matching the pre-screening questions in prolific) (`r nrow(df_nofinish)` incomplete submissions) NOTE that these do not indicate unique participants. In some instances, the same `ID.Prolific` is associated with multiple (incomplete) attempts.
-# 
-# -   `df_data` is data for completed, valid submissions; 1 row per complete Qualtrics submission = 1 participant (`r nrow(df_data)` total valid submissions)
-# 
-# -   `df_graphs` is valid data pivoted long *without* free response questions; 1 row per participant X graph (`r nrow(df_graphs)`) participant-graph records)
-# 
-# -   `df_graphs_full` is valid data pivoted long *including* free response questions; 1 row per participant X graph (`r nrow(df_graphs_full)`) participant-graph records)
-# 
-# -   `df_subjects` is valid data (1 row per participant)
-
-
 
 ```
 
@@ -601,6 +599,54 @@ df_actions  %>% summarytools::dfSummary(
 ```
 
 ## Demographics
+
+### Survey Response Time 
+
+Participant response times ranged from `r min(df_data$duration.min)` to `r max(df_data$duration.min)` minutes, with a mean response time of `r mean(df_data$duration.min)` minutes.  
+
+```{r}
+
+#SET UP DATAFRAME 
+df <- df_data 
+
+## DENSITY HISTOGRAPH 
+ggplot(data = df_data, aes( x = duration.min, fill = Assigned.Block)) + 
+  geom_density(alpha = 0.5) +
+  facet_grid(rows = vars(Assigned.Block)) + 
+  labs( x = "Survey Response Time (mins)", 
+        title = "TOTAL Response Time by Sample", 
+        subtitle = "(expect similiar across samples)") + 
+  easy_add_legend_title("Sample") + 
+  theme_minimal()
+
+
+## RAINCLOUD
+ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+  stat_slab(aes(thickness = after_stat(pdf*n), alpha=0.5), scale = 0.7) +
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+  scale_fill_discrete(direction=-1)+
+  xlim(0,225) +
+  labs( x = "Survey Response Time (mins)", y="",
+        title = "TOTAL Response Time by Sample", 
+        subtitle = "(expect similiar across samples)") +
+  theme_minimal() + 
+  easy_remove_legend() 
+
+
+##RIDGEPLOT
+ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+  geom_density_ridges(scale=0.9) +
+  # geom_boxplot()+
+  stat_pointinterval()+
+  theme_ridges() +
+  scale_fill_discrete(direction=-1)+
+  theme(legend.position = "none") + 
+    labs( x = "Survey Response Time (mins)", y="",
+        title = "TOTAL Response Time by Sample", 
+        subtitle = "(expect similiar across samples)") 
+  
+
+```
 
 ```{r}
 
@@ -729,9 +775,9 @@ ggplot( df_data, aes( x = PLATFORM, fill = Assigned.Block)) +
 
 ```
 
+## TODO Explore Demographics of Excluded
 
-
-# EXPLORATION
+# GRAPHING
 
 SEMANTIC DIFFERENTIALS 
 MAKER_DESIGN
@@ -928,6 +974,8 @@ plot_sd = function (data, column, type, boxplot) {
 
 #set stimuli to be graphed 
 stimuli <- ref_stimuli #created in wrangling block
+# stimili <- c("B0-0","B2-1" ,"B2-2", "B2-3", "B2-4")
+
 plots_stimulus <- list()
 i = 0
 for (s in stimuli){
@@ -975,7 +1023,7 @@ library(ggridges)
 ##ALL QUESTIONS FOR STIMULUS 1
 
 s = "B0-0"
-df <- df_sd_questions %>% select(1:5, s) %>% filter(!is.na(s)) %>%  mutate(
+df <- df_sd_questions %>% select(1:6, s) %>% filter(!is.na(s)) %>%  mutate(
   value = `B0-0`
 )
 
@@ -994,7 +1042,8 @@ d <- df %>% filter(str_detect(QUESTION,"CHART_"))
 
 ggplot(df, aes(y = QUESTION, x = value, fill = QUESTION)) +
   stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) 
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+  theme_minimal()
 
 
 
@@ -3497,7 +3546,174 @@ report(m)
 ```{r}
 
 #FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B1-4")
+df <- df_graphs %>% filter(STIMULUS == "B0-0")
+
+######### MAKER ATTRIBUTES ########################
+vals = c("datacollar", "bluecollar")
+leftside <- rep ("PROFESSIONAL",1 )
+rightside <-rep ("LAYPERSON",1 ) 
+b_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ""))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) + 
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() + 
+  theme_minimal() + 
+  easy_remove_legend() + 
+  guides(
+  y = guide_axis_manual(
+  #breaks = vals, 
+  labels = leftside  
+  ),
+  y.sec = guide_axis_manual(
+  #breaks = vals, 
+  labels = rightside
+)) + 
+  labs(title  = "MAKER-DESIGN")
+
+b_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ""))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) + 
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() + 
+  theme_minimal() + 
+  easy_remove_legend() + 
+  guides(
+  y = guide_axis_manual(
+  #breaks = vals, 
+  labels = leftside  
+  ),
+  y.sec = guide_axis_manual(
+  #breaks = vals, 
+  labels = rightside
+)) + 
+  labs(title  = "MAKER-DATA")
+
+
+leftside <- rep ("LEFT-WING",1 )
+rightside <-rep ("RIGHT-WING",1 ) 
+b_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ""))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) + 
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() + 
+  theme_minimal() + 
+  easy_remove_legend() + 
+  guides(
+  y = guide_axis_manual(
+  #breaks = vals, 
+  labels = leftside  
+  ),
+  y.sec = guide_axis_manual(
+  #breaks = vals, 
+  labels = rightside
+)) + 
+  labs(title  = "MAKER-POLITICS")
+  
+
+leftside <- rep ("CONFRONTATIONAL",1 )
+rightside <-rep ("DIPLOMATIC",1 ) 
+b_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ""))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) + 
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() + 
+  theme_minimal() + 
+  easy_remove_legend() + 
+  guides(
+  y = guide_axis_manual(
+  #breaks = vals, 
+  labels = leftside  
+  ),
+  y.sec = guide_axis_manual(
+  #breaks = vals, 
+  labels = rightside
+)) + 
+  labs(title  = "MAKER-ARGUE")
+  
+leftside <- rep ("ALTRUSITC",1 )
+rightside <-rep ("SELFISH",1 ) 
+b_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ""))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) + 
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() + 
+  theme_minimal() + 
+  easy_remove_legend() + 
+  guides(
+  y = guide_axis_manual(
+  #breaks = vals, 
+  labels = leftside  
+  ),
+  y.sec = guide_axis_manual(
+  #breaks = vals, 
+  labels = rightside
+)) + 
+  labs(title  = "MAKER-SELFISH")
+
+
+leftside <- rep ("Does NOT",1 )
+rightside <-rep ("DOES",1 ) 
+b_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ""))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) + 
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() + 
+  theme_minimal() + 
+  easy_remove_legend() + 
+  guides(
+  y = guide_axis_manual(
+  #breaks = vals, 
+  labels = leftside  
+  ),
+  y.sec = guide_axis_manual(
+  #breaks = vals, 
+  labels = rightside
+)) + 
+  labs(title  = "MAKER-SHARES-MY-VALUES")
+
+leftside <- rep ("UNTRUSTWORTHY",1 )
+rightside <-rep ("TRUSTWORTHY",1 ) 
+b_m_trust <- ggplot(df, aes(y = MAKER_TRUST, x = ""))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) + 
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() + 
+  theme_minimal() + 
+  easy_remove_legend() + 
+  guides(
+  y = guide_axis_manual(
+  #breaks = vals, 
+  labels = leftside  
+  ),
+  y.sec = guide_axis_manual(
+  #breaks = vals, 
+  labels = rightside
+)) + 
+  labs(title  = "MAKER-TRUST")
+
+
+PLOT_b_maker <- (b_m_design / b_m_data / b_m_politics / b_m_argue / b_m_selfish / b_m_align / b_m_trust) + 
+  plot_annotation(
+    title = paste(unique(df$STIMULUS), "MAKER")
+  )
+
+PLOT_b_maker
+###################################################
+```
+
+### single Block grouped
+
+```{r}
+
+#FILTER DATAFRAME
+df <- df_graphs %>% filter(STIMULUS == "B0-0")
 
 ######### MAKER ATTRIBUTES ########################
 vals = c("datacollar", "bluecollar")
