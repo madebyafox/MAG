@@ -43,6 +43,12 @@ library(ggh4x) #guides [dual axes]
 library(patchwork) #multi-plot layout
 library(ggdist) #raincloud plots and other distributionals
 library(ggridges) #ridge plots
+library(viridis) #color palettes
+library(RColorBrewer) #color palettes
+
+#GEO-VIS
+library(tigris)
+options(tigris_use_cache = TRUE)
 
 #MODELLING
 library(jtools) #Social Science regression utilities
@@ -63,19 +69,18 @@ n_blocks = 6
 
 # WRANGLING
 
-Initial pilot data were collected via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1"). 
+Initial pilot data were collected via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1").
 
-Subsequently we made minor alterations to the question wording and respose wording, and the remaining stimuli were organized in 6 blocks.  Each block was collected via PROLIFIC using independent Qualtrics surveys, with the exception of a sample of respondents directly recruited from Tumblr, using a single Qualtrics surveys with randomization logic to assign each Tumblr participant to one of the six stimulus blocks.  
+Subsequently we made minor alterations to the question wording and respose wording, and the remaining stimuli were organized in 6 blocks. Each block was collected via PROLIFIC using independent Qualtrics surveys, with the exception of a sample of respondents directly recruited from Tumblr, using a single Qualtrics surveys with randomization logic to assign each Tumblr participant to one of the six stimulus blocks.
 
-
-Participants were excluded from the sample for the following reasons 
+Participants were excluded from the sample for the following reasons
 
 -   **abandoned**; Finished = False and Progress \< 100%
 -   **fails consent or pre-screening**, Finished = TRUE, Progress = 100%, Q_TerminateFlag = "Screened"
 -   **didnot-follow-instructions** free responses indicate they misinterpred the question (most commonly they describe the graph rather than their reactions/judgements/impressions of it)
 -   **illegible-english** free responses text is largely illegible
 
-Following wrangling, there should be 6 blocks of stimuli, each containing responses from 40 participants from prolific, and TODO responses directly from Tumblr. 
+Following wrangling, there should be 6 blocks of stimuli, each containing responses from 40 participants from prolific, and TODO responses directly from Tumblr.
 
 ```{r STIMULI, message=FALSE, warning = FALSE}
 
@@ -121,7 +126,6 @@ df_studies <- read_csv("data/input/studies.csv", col_names = TRUE) %>%
 
 
 ```
-
 
 ```{r WRANGLING, message=FALSE, warning=FALSE}
 
@@ -243,15 +247,15 @@ df_data <- df_raw %>%
                             "Grad/Proff"
                           )
       ),
-    D_politicalParty = factor(D_politicalParty, levels = c("NA", "Independent", "Democrat", "Republican", "Other")),
+    D_politicalParty = factor(D_politicalParty, levels = c("NA", "Other", "Independent", "Republican", "Democrat")),
     D_age = factor(D_age, 
                    levels = c("25-34 years old" ,
                               "18-24 years old" ,
                               "45-54 years old" ,
                               "35-44 years old" ,
-                              "65+ years old"   ,
-                              "55-64 years old"), 
-                   labels = c("25-34", "18-24", "45-54","35-44","65+ years","55-64"))
+                              "55-64 years old" ,
+                              "65+ years old"   ), 
+                   labels = c("25-34", "18-24", "45-54","35-44","55-64","65+ years"))
   ) %>%
   rename_at(
   #REPLACE RANDOM TRAILING _1 AND _65 FROM QUALTRICS
@@ -341,6 +345,10 @@ sum(df_data$ID.Qualtrics %in% df_exclude$ID.Qualtrics)
 #no duplicated PROLIFIC ids in good data 
 print("Number of Prolific IDs duplicated in df_data print [should be 0]")
 sum(duplicated(df_data$ID.Prolific))
+
+
+## save subject level 
+write.csv(df_data, file = "data/output/df_participants.csv", na="")
 
 #### CHART LEVEL DATA FRAME (LONG) FOR QDA (incl demographics) ##################
 #### INCLUDES PILOT DATA FROM DATACOLLAR BLUECOLLAR PROLIFIC RECRUITMENT ########
@@ -557,341 +565,8 @@ rm(check_subject_blocks, check_subject_graphs, df_graphs_qda)
 
 ```
 
-# PROFILING
+## GRAPHING FUNCTIONS
 
-## Descriptives
-
-```{r}
-
-df_graphs%>% summarytools::dfSummary(
-             varnumbers = FALSE,
-             plain.ascii  = FALSE,
-             graph.magnif = 0.75,
-             style        = "grid",
-             tmp.img.dir  = "temp",
-             missing.col = FALSE, 
-             method = "render"
-)
-
-
-df_tools %>% summarytools::dfSummary(
-             varnumbers = FALSE,
-             plain.ascii  = FALSE,
-             graph.magnif = 0.75,
-             style        = "grid",
-             tmp.img.dir  = "temp",
-             missing.col = FALSE, 
-             method = "render"
-)
-             
-             
-df_actions  %>% summarytools::dfSummary(
-             varnumbers = FALSE,
-             plain.ascii  = FALSE,
-             graph.magnif = 0.75,
-             style        = "grid",
-             tmp.img.dir  = "temp",
-             missing.col = FALSE, 
-             method = "render"             
-)
-
-
-```
-
-## Demographics
-
-### Survey Response Time 
-
-Participant response times ranged from `r min(df_data$duration.min)` to `r max(df_data$duration.min)` minutes, with a mean response time of `r mean(df_data$duration.min)` minutes.  
-
-```{r}
-
-#SET UP DATAFRAME 
-df <- df_data 
-
-## DENSITY HISTOGRAPH 
-ggplot(data = df_data, aes( x = duration.min, fill = Assigned.Block)) + 
-  geom_density(alpha = 0.5) +
-  facet_grid(rows = vars(Assigned.Block)) + 
-  labs( x = "Survey Response Time (mins)", 
-        title = "TOTAL Response Time by Sample", 
-        subtitle = "(expect similiar across samples)") + 
-  easy_add_legend_title("Sample") + 
-  theme_minimal()
-
-
-## RAINCLOUD
-ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
-  stat_slab(aes(thickness = after_stat(pdf*n), alpha=0.5), scale = 0.7) +
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
-  scale_fill_discrete(direction=-1)+
-  xlim(0,225) +
-  labs( x = "Survey Response Time (mins)", y="",
-        title = "TOTAL Response Time by Sample", 
-        subtitle = "(expect similiar across samples)") +
-  theme_minimal() + 
-  easy_remove_legend() 
-
-
-##RIDGEPLOT
-ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
-  geom_density_ridges(scale=0.9) +
-  # geom_boxplot()+
-  stat_pointinterval()+
-  theme_ridges() +
-  scale_fill_discrete(direction=-1)+
-  theme(legend.position = "none") + 
-    labs( x = "Survey Response Time (mins)", y="",
-        title = "TOTAL Response Time by Sample", 
-        subtitle = "(expect similiar across samples)") 
-  
-
-```
-
-```{r}
-
-
-# SURVEY RESPONSE TIME 
-ggplot(data = df_data, aes( x = duration.min, fill = Assigned.Block)) + 
-  geom_density(alpha = 0.5) + 
-  labs( title = "TOTAL Response Time by Sample", 
-        subtitle = "Expect similiar across samples") + 
-  easy_add_legend_title("Sample") + 
-  theme_minimal()
-
-
-# MAKER PAGE RESPONSE TIME 
-ggplot(df_graphs, aes(x=STIMULUS, y=MAKER_LATENCY, color=Assigned.Block)) +
-  geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
-  labs( title = "MAKER Page Response Time by Sample",
-        subtitle = "Expect similiar across samples") + 
-  easy_add_legend_title("Sample")+
-  theme_minimal() 
-
-
-# CHART PAGE RESPONSE TIME 
-ggplot(df_graphs, aes(x=STIMULUS, y=CHART_LATENCY, color=Assigned.Block)) +
-  geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
-  labs( title = "CHART Page Response Time by Sample") + 
-  easy_add_legend_title("Sample")+
-  theme_minimal() 
-
-
-# EDUCATION by SAMPLE
-ggplot(data = df_data, aes( x = D_education, fill = Assigned.Block )) + 
-  geom_bar(position = position_dodge()) +
-  labs( title = "EDUCATION by Sample", 
-        subtitle = "Expect similiar across samples", x = "") + 
-  theme_minimal() + 
-  # easy_remove_x_axis() + 
-  easy_add_legend_title("Sample")
-
-
-# AGE by SAMPLE
-ggplot(data = df_data, aes( x = D_age, fill = Assigned.Block )) + 
-  geom_bar(position = position_dodge()) +
-  labs( title = "AGE by Sample", subtitle = "Expect similiar across samples", x = "") + 
-  theme_minimal() + 
-  # easy_remove_x_axis() + 
-  easy_add_legend_title("")
-
-
-# POLITICAL PARTY 
-ggplot(data = df_data, aes( x = D_politicalParty, fill = Assigned.Block )) + 
-  geom_bar(position = position_dodge()) +
-  labs( title = "POLITICAL PARTY by Sample", 
-        subtitle = "Expect similiar across samples", x = "") + 
-  theme_minimal() + 
-  easy_add_legend_title("")
-  
-
-# SOCIAL POLITICAL SAMPLE
-vals <- c("block1", "block2", "block3", "block4", "block5", "block6")
-leftside <- rep("left-leaning",6)
-rightside <- rep("right-leaning",6)
-g <- ggplot(df_data, aes(x=Assigned.Block, y=D_politicsSocial, color=Assigned.Block)) +
-  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
-  labs( title = "SOCIAL VALUES by Sample",
-        subtitle = "Expect similiar across samples", 
-        y = "Social Politics", x = "") + 
-  easy_add_legend_title("Sample") +
-  theme_minimal() +
-  coord_flip()  
-g + guides(
-  y = guide_axis_manual(
-  breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  breaks = vals, 
-  labels = rightside
-))  
-  
-
-# FISCAL POLITICAL SAMPLE
-vals <- c("block1", "block2", "block3", "block4", "block5", "block6")
-leftside <- rep("left-leaning",6)
-rightside <- rep("right-leaning",6)
-g <- ggplot(df_data, aes(x=Assigned.Block, y=D_politicsFiscal, color=Assigned.Block)) +
-  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
-  labs( title = "FISCAL VALUES by Sample", 
-        subtitle = "Expect similiar across samples", 
-         y = "Fiscal Politics", x = "") + 
-  easy_add_legend_title("Sample") +
-  theme_minimal() +
-  coord_flip()  
-g + guides(
-  y = guide_axis_manual(
-  breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  breaks = vals, 
-  labels = rightside
-))  
-  
-# FISCAL (VS) SOCIAL SAMPLE
-ggplot(data = df_data, aes( x = D_politicsFiscal, y= D_politicsSocial, color = Assigned.Block)) +
-  geom_point(alpha = 0.5) + 
-  geom_smooth(method="lm", se=TRUE, aes(fill= Assigned.Block)) + 
-  facet_wrap(~ Assigned.Block) + 
-  theme_minimal() + 
-  easy_add_legend_title("") + 
-  labs(title = "Social (vs) Fiscal Political Values by Sample", 
-       x = "Fiscal Values (liberal<-->conservative)",
-       y = "Social Values (liberal<-->conservative)")
-  
-
-#PLATFORM CHOICE
-ggplot( df_data, aes( x = PLATFORM, fill = Assigned.Block)) + 
-  geom_bar(position = "dodge") + 
-  easy_add_legend_title("") + 
-  theme_minimal()
-
-
-```
-
-## TODO Explore Demographics of Excluded
-
-# GRAPHING
-
-SEMANTIC DIFFERENTIALS 
-MAKER_DESIGN
-MAKER_DATA
-MAKER_POLITIC
-MAKER_ARGUE
-MAKER_SELF
-MAKER_ALIGN
-MAKER_TRUST
-
-CHART_LIKE
-CHART_BEAUTY
-CHART_INTENT
-CHART_TRUST
-
-
-multiselect
-TOOL_ID
-CHART_ACTION
-
-CATEGORICAL
-ENCOUNTER
-PLATFORM
-MAKER_ID
-MAKER_GENDER
-MAKER_AGE
-
-
-FREE TEXT
-MAKER_DETAIL
-MAKER_EXPLAIN
-TOOL_DETAIL
-CHART_TYPE
-
-
-CONFIDENCE
-MAKER_CONF
-GENDER_CONF
-AGE_CONF
-TOOL_CONF
-
-
-
-## BLOCK 0 TODO FIX THIS 
-
-```{r, message=FALSE, warning=FALSE}
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B0-0")
-
-
-# BEHAVIOUR CHOICE
-ggplot (df, aes ( x = ENCOUNTER, fill = Assigned.Block)) + 
-  geom_bar(position = "dodge") + 
-  labs (title = "BLOCK 0 — BEHAVIOR by Sample", x="") + 
-  theme_minimal() +
-  easy_remove_legend()
-
-
-
-######### MAKER ID AND CONFIDENCE ##############
-# MAKER_ID by Sample and BEHAVIOR 
-a <- ggplot (df, aes( x = MAKER_ID, fill = Assigned.Block)) + 
-  geom_bar(position = "dodge") +
-  facet_grid( df$ENCOUNTER) + 
-  labs (x = "") + 
-  theme_minimal() +
-  easy_remove_legend() 
-
-# MAKER_CONFIDENCE by IDENTIFICATION  
-b <- ggplot(df, aes( x = MAKER_ID, y = MAKER_CONF, color = Assigned.Block)) + 
-  # geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
-  # labs (title = "MAKER-ID-CONFIDENCE") +
-  labs (x = "") + 
-  theme_minimal() + 
-  easy_remove_legend()
-
-
-(p <- (a / b )  + plot_annotation(
-  title = 'MAKER ID & CONFIDENCE',
-  subtitle = '',
-  caption = ''))
-
-###################################################
-
-
-######### MAKER ID AND CONFIDENCE ##############
-# MAKER_AGE by Sample and BEHAVIOR 
-a <- ggplot (df, aes( x = MAKER_AGE, fill = Assigned.Block)) + 
-  geom_bar(position = "dodge") +
-  facet_grid( df$ENCOUNTER) + 
-  labs (x = "") + 
-  theme_minimal() +
-  easy_remove_legend() 
-
-# MAKER_CONFIDENCE by IDENTIFICATION  
-b <- ggplot(df, aes( x = MAKER_AGE, y = MAKER_CONF, color = Assigned.Block)) + 
-  # geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
-  # labs (title = "MAKER-AGE-CONFIDENCE") +
-  labs (x = "") + 
-  theme_minimal() + 
-  easy_remove_legend()
-
-
-(p <- (a / b )  + plot_annotation(
-  title = 'MAKER AGE & CONFIDENCE',
-  subtitle = '',
-  caption = ''))
-
-###################################################
-```
-### GRAPHING FUNCTIONS
 ```{r SD-GRAPHING-FUNCTIONS}
 
 
@@ -962,8 +637,424 @@ plot_sd = function (data, column, type, boxplot) {
 
 ```
 
+# PROFILING
 
-## ALL QUESTIONS 
+## Descriptives
+
+```{r}
+
+df_graphs%>% summarytools::dfSummary(
+             varnumbers = FALSE,
+             plain.ascii  = FALSE,
+             graph.magnif = 0.75,
+             style        = "grid",
+             tmp.img.dir  = "temp",
+             missing.col = FALSE, 
+             method = "render"
+)
+
+
+df_tools %>% summarytools::dfSummary(
+             varnumbers = FALSE,
+             plain.ascii  = FALSE,
+             graph.magnif = 0.75,
+             style        = "grid",
+             tmp.img.dir  = "temp",
+             missing.col = FALSE, 
+             method = "render"
+)
+             
+             
+df_actions  %>% summarytools::dfSummary(
+             varnumbers = FALSE,
+             plain.ascii  = FALSE,
+             graph.magnif = 0.75,
+             style        = "grid",
+             tmp.img.dir  = "temp",
+             missing.col = FALSE, 
+             method = "render"             
+)
+
+
+```
+
+## Demographics
+
+
+### Total Response Time
+```{r}
+
+df <- df_data
+
+## BOXPLOT — SURVEY RESPONSE TIME 
+ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=duration.min, color=Assigned.Block))+
+  geom_boxplot(position=position_dodge(0.9))+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
+  coord_flip() + 
+  labs( y = "Survey Response Time (mins)", x="",
+        title = "TOTAL Response Time by Sample",
+        subtitle = "(expect similiar across samples)") +
+  theme_minimal() + theme(legend.position = "none") 
+
+## RIDGEPLOT — SURVEY RESPONSE TIME 
+ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+  geom_density_ridges(scale=0.8) +
+  # geom_boxplot()+
+  stat_pointinterval()+
+  theme_ridges() +
+  scale_fill_discrete(direction=-1)+
+  theme_minimal() + 
+  theme(legend.position = "none") +
+    labs( x = "Survey Response Time (mins)", y="",
+        title = "TOTAL Response Time by Sample",
+        subtitle = "(expect similiar across samples)") 
+``` 
+
+Participant response times ranged from `r min(df_data$duration.min)` to `r max(df_data$duration.min)` minutes, with a mean response time of `r mean(df_data$duration.min)` minutes.
+
+### Maker Page Response Time
+```{r}
+
+df <- df_graphs
+
+## BOXPLOT — MAKER RESPONSE TIME  
+ggplot(df, aes(x=fct_rev(Assigned.Block), y=MAKER_LATENCY, color=Assigned.Block))+
+  geom_boxplot(position=position_dodge(0.9))+
+  geom_jitter(position=position_jitterdodge(jitter.width=1.5), alpha = 0.3) +
+  coord_flip() + 
+  labs( y = "Maker Page Response Time (mins)", x="",
+        title = "Maker Page Response Time by Sample",
+        subtitle = "(expect similiar across samples)") +
+  theme_minimal() + theme(legend.position = "none") 
+
+
+
+
+## RIDGEPLOT — MAKER PAGE RESPONSE
+ggplot(df, aes(x = MAKER_LATENCY, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+  geom_density_ridges(scale=0.8) +
+  # geom_boxplot()+
+  stat_pointinterval()+
+  # theme_ridges() +
+  scale_fill_discrete(direction=-1)+
+  theme_minimal() + 
+  theme(legend.position = "none") +
+    labs( x = "Maker Page Response Time (mins)", y="",
+        title = "Maker Page Response Time by Sample",
+        subtitle = "(expect similiar across samples)") 
+
+
+```
+Maker page response times ranged from `r min(df_graphs$MAKER_LATENCY)` to `r max(df_graphs$MAKER_LATENCY)` minutes, with a mean response time of `r round(mean(df_graphs$MAKER_LATENCY),1)` minutes.
+
+### Chart Page Response Time
+```{r}
+
+df <- df_graphs
+
+## BOXPLOT — CHART RESPONSE TIME  
+ggplot(df, aes(x=fct_rev(Assigned.Block), y=CHART_LATENCY, color=Assigned.Block))+
+  geom_boxplot(position=position_dodge(0.9))+
+  geom_jitter(position=position_jitterdodge(jitter.width=1.5), alpha = 0.3) +
+  coord_flip() + 
+  labs( y = "Chart Page Response Time (mins)", x="",
+        title = "Chart Page Response Time by Sample",
+        subtitle = "(expect similiar across samples)") +
+  theme_minimal() + theme(legend.position = "none") 
+
+
+
+
+## RIDGEPLOT — Chart PAGE RESPONSE
+ggplot(df, aes(x = CHART_LATENCY, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+  geom_density_ridges(scale=0.8) +
+  # geom_boxplot()+
+  stat_pointinterval()+
+  # theme_ridges() +
+  scale_fill_discrete(direction=-1)+
+  theme_minimal() + 
+  theme(legend.position = "none") +
+    labs( x = "Chart Page Response Time (mins)", y="",
+        title = "Chart Page Response Time by Sample",
+        subtitle = "(expect similiar across samples)") 
+
+
+```
+
+Chart page response times ranged from `r min(df_graphs$CHART_LATENCY)` to `r max(df_graphs$CHART_LATENCY)` minutes, with a mean response time of `r round(mean(df_graphs$CHART_LATENCY),1)` minutes.
+
+
+### Political Values
+
+```{r}
+
+df <- df_graphs
+
+# FISCAL POLITICAL SAMPLE
+vals <- c("block1", "block2", "block3", "block4", "block5", "block6")
+leftside <- rep("left-leaning",6)
+rightside <- rep("right-leaning",6)
+g <- ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=D_politicsFiscal, color=Assigned.Block)) +
+  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
+  labs( title = "FISCAL VALUES by Sample",
+        subtitle = "",
+         y = "Fiscal Politics", x = "") +
+  easy_add_legend_title("Sample") +
+  theme_minimal() +
+  coord_flip()
+g + guides(
+  y = guide_axis_manual(
+  breaks = vals,
+  labels = leftside
+  ),
+  y.sec = guide_axis_manual(
+  breaks = vals,
+  labels = rightside
+))
+
+# SOCIAL POLITICAL SAMPLE
+vals <- c("block1", "block2", "block3", "block4", "block5", "block6")
+leftside <- rep("left-leaning",6)
+rightside <- rep("right-leaning",6)
+g <- ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=D_politicsSocial, color=Assigned.Block)) +
+  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
+  labs( title = "SOCIAL VALUES by Sample",
+        subtitle = "",
+         y = "Social Politics", x = "") +
+  easy_add_legend_title("Sample") +
+  theme_minimal() +
+  coord_flip()
+g + guides(
+  y = guide_axis_manual(
+  breaks = vals,
+  labels = leftside
+  ),
+  y.sec = guide_axis_manual(
+  breaks = vals,
+  labels = rightside
+))
+
+r_politics <- nrow(df_data %>% filter(D_politicsSocial >= 50)) / nrow(df_data)
+l_politics <- nrow(df_data %>% filter(D_politicsSocial < 50)) / nrow(df_data)
+r_fiscal <- nrow(df_data %>% filter(D_politicsFiscal >= 50)) / nrow(df_data)
+l_fiscal <- nrow(df_data %>% filter(D_politicsFiscal < 50)) / nrow(df_data)
+  
+```
+Across all six samples (n=40/sample) participants tended to report center-left leaning social values (M = `r round(mean(df_data$D_politicsSocial),2)`, SD = (`r round(sd(df_data$D_politicsSocial),2)` on a [0,100] scale);  with slightly more central fiscal values (M = `r round(mean(df_data$D_politicsFiscal),2)`, SD = (`r round(sd(df_data$D_politicsFiscal),2)`. Overall, `r l_politics*100`% of respondents identify with left-leaning social values (vs) `r r_politics*100` identifying as right-leaning; while `r round(l_fiscal*100,2)`% of respondents reported left-leaning fiscal values (vs) `r round(r_fiscal*100,2)` identify as right-leaning. 
+
+### Politcal Affiliation
+
+
+```{r}
+# POLITICAL PARTY
+ggplot(data = df_data, aes( fill = D_politicalParty, x = Assigned.Block )) +
+  geom_bar(position = "stack") +
+  labs( title = "POLITICAL PARTY by Sample",
+        subtitle = "Expect similiar across samples", x = "") +
+  theme_minimal() +
+  easy_add_legend_title("")
+
+```
+
+
+
+### Education
+```{r}
+# EDUCATION by SAMPLE
+ggplot(data = df_data, aes( x = Assigned.Block, fill = D_education )) +
+  geom_bar(position = "stack") +
+  labs( title = "EDUCATION by Sample",
+        subtitle = "Expect similiar across samples", x = "") +
+  theme_minimal() +
+  # easy_remove_x_axis() +
+  easy_add_legend_title("Sample")
+```
+
+### Age
+
+```{r}
+ 
+# AGE by SAMPLE
+ggplot(data = df_data, aes( x = Assigned.Block, fill = fct_rev(D_age) )) +
+  geom_bar(position = "stack") +
+  labs( title = "AGE by Sample", subtitle = "Expect similiar across samples", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  theme_minimal() +
+  easy_add_legend_title("")
+
+
+```
+
+
+### Platform Choice
+
+```{r}
+
+#PLATFORM CHOICE
+ggplot( df_data, aes( x = Assigned.Block, fill = PLATFORM)) +
+  geom_bar(position = "stack") +
+  labs( title = "PLATFORM CHOICE by Sample",
+        subtitle = "Expect similiar across samples", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") + 
+  easy_add_legend_title("") +
+  theme_minimal()
+
+
+```
+
+### Location 
+
+```{r}
+
+ ``
+
+# 
+# 
+# 
+# ggplot() +
+#   geom_sf(data = ca, fill = "gray90") +
+#   geom_sf(data = df_data$D_zipcode, aes(fill = AREA), linewidth = 0.1) +
+#   scale_fill_gradientn(colors = c("red", "cornsilk", "#f0d080"),
+#                        values = c(0, 0.03, 1), guide = "none") +
+#   theme_minimal()
+# 
+# 
+# # zipcodes <- zctas(year = 2010, state = "CA", progress_bar = FALSE)
+# 
+# us_states <- states(progress_bar = FALSE)
+# ca <- us_states |> filter(STUSPS == "CA")
+# 
+# ggplot() +
+#   geom_sf(data = ca) +
+#   geom_sf(aes(fill = ALAND10, color = ALAND10), data = zipcodes) +
+#   theme_void()
+# 
+# 
+# 
+# 
+# ca <- us_states |> filter(STUSPS == "CA")
+# ggplot() +
+#   geom_sf(data = ca) +
+#   geom_sf(aes(fill = ALAND10, color = ALAND10), data = df_geo) +
+#   theme_void()
+# 
+# 
+# 
+# 
+# master_zips <- zctas()
+# 
+#                
+# 
+# #get the map
+# us<-map_data('state')
+# 
+# ggplot(fm,aes(longitude,latitude)) +
+#   geom_polygon(data=us,aes(x=long,y=lat,group=group),color='gray',fill=NA,alpha=.35)+
+#   geom_point(aes(color = count),size=.15,alpha=.25) +
+#   xlim(-125,-65)+ylim(20,50)
+# 
+# 
+# 
+# #get ALL the zipcodes and their zip code tabulation areas (zctas)
+# zipcodes <- zctas()
+# 
+# #join zip code geospatial data to subject-level dataframe                                  
+# df_geo <- left_join(df_data, master_zips, join_by(D_zipcode==ZCTA5CE20))    
+# 
+# 
+# #reshape data 
+# g <- df_geo %>% group_by(D_zipcode) %>% summarise(
+#   zip = D_zipcode, 
+#   n = n()
+# )
+# 
+# ggplot(df_geo) +
+#   geom_sf(aes(fill = D_zipcode))
+# 
+# 
+# ##INSTALL CHLOROPLETHR
+# # https://ari-lamsteins-courses.thinkific.com/courses/take/mapmaking-in-r-with-choroplethr/lessons/204724-zip-code-choropleths-part-2
+# install.packages("devtools")
+# library(devtools)
+# install_github('arilamstein/choroplethrZip@v1.5.0')
+
+```
+
+
+## BLOCK 0 TODO FIX THIS
+
+```{r, message=FALSE, warning=FALSE}
+
+#FILTER DATAFRAME
+df <- df_graphs %>% filter(STIMULUS == "B0-0")
+
+
+# BEHAVIOUR CHOICE
+ggplot (df, aes ( x = ENCOUNTER, fill = Assigned.Block)) + 
+  geom_bar(position = "dodge") + 
+  labs (title = "BLOCK 0 — BEHAVIOR by Sample", x="") + 
+  theme_minimal() +
+  easy_remove_legend()
+
+
+
+######### MAKER ID AND CONFIDENCE ##############
+# MAKER_ID by Sample and BEHAVIOR 
+a <- ggplot (df, aes( x = MAKER_ID, fill = Assigned.Block)) + 
+  geom_bar(position = "dodge") +
+  facet_grid( df$ENCOUNTER) + 
+  labs (x = "") + 
+  theme_minimal() +
+  easy_remove_legend() 
+
+# MAKER_CONFIDENCE by IDENTIFICATION  
+b <- ggplot(df, aes( x = MAKER_ID, y = MAKER_CONF, color = Assigned.Block)) + 
+  # geom_boxplot(position=position_dodge(0.9))+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
+  # labs (title = "MAKER-ID-CONFIDENCE") +
+  labs (x = "") + 
+  theme_minimal() + 
+  easy_remove_legend()
+
+
+(p <- (a / b )  + plot_annotation(
+  title = 'MAKER ID & CONFIDENCE',
+  subtitle = '',
+  caption = ''))
+
+###################################################
+
+
+######### MAKER ID AND CONFIDENCE ##############
+# MAKER_AGE by Sample and BEHAVIOR 
+a <- ggplot (df, aes( x = MAKER_AGE, fill = Assigned.Block)) + 
+  geom_bar(position = "dodge") +
+  facet_grid( df$ENCOUNTER) + 
+  labs (x = "") + 
+  theme_minimal() +
+  easy_remove_legend() 
+
+# MAKER_CONFIDENCE by IDENTIFICATION  
+b <- ggplot(df, aes( x = MAKER_AGE, y = MAKER_CONF, color = Assigned.Block)) + 
+  # geom_boxplot(position=position_dodge(0.9))+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) + 
+  # labs (title = "MAKER-AGE-CONFIDENCE") +
+  labs (x = "") + 
+  theme_minimal() + 
+  easy_remove_legend()
+
+
+(p <- (a / b )  + plot_annotation(
+  title = 'MAKER AGE & CONFIDENCE',
+  subtitle = '',
+  caption = ''))
+
+###################################################
+```
+
+## ALL QUESTIONS
 
 ### ALL Q BY STIMULUS
 
@@ -1011,7 +1102,6 @@ rm(x, plots)
 #############################################################################
 
 ```
-
 
 ```{r}
 
@@ -1094,7 +1184,7 @@ rm(x, plots)
 
 ## BY QUESTION
 
-### Q for STIMULI 
+### Q for STIMULI
 
 ```{r}
 
@@ -1138,6 +1228,7 @@ rm(x, plots)
 ```
 
 ### Q for CATEGORIES
+
 ```{r}
 
 ####################SD PLOTS QUESTION BY CATEGORY #####################
@@ -1171,11 +1262,6 @@ rm(x)
 #############################################################################
 
 ```
-
-
-
-
-
 
 ```{r}
 
@@ -1292,63 +1378,10 @@ rm(x)
 
 ```
 
-
-
-
 ## LEGACY
 
+### B0 MAKER
 
-### B0 MAKER BY BLOCKS
-```{r B0-MAKER}
-
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B0-0")
-
-
-#BUILD SEMANTIC DIFFERENTIALS
-b0_m_design <- multi_sd(df, "professional", "layperson", x = MAKER_DESIGN, y = ID.Study, color = ID.Study) + 
-      labs(title  = "MAKER-DESIGN") +
-      easy_remove_legend()
-
-b0_m_data <- multi_sd(df, "professional", "layperson", x = MAKER_DATA, y = ID.Study, color = ID.Study) + 
-      labs(title  = "MAKER-DATA") + 
-      easy_remove_legend()
-
-b0_m_politics <- multi_sd(df, "left-leaning", "right-leaning", x = MAKER_POLITIC, y = ID.Study, color = ID.Study) + 
-      labs(title  = "MAKER-POLITICS") + 
-      easy_remove_legend()
-
-b0_m_argue <- multi_sd(df, "confrontational", "diplomatic", x = MAKER_ARGUE, y = ID.Study, color = ID.Study) + 
-      labs(title  = "MAKER-ARGUE") + 
-      easy_remove_legend()
-
-b0_m_selfish <- multi_sd(df, "altruistic", "selfish", x = MAKER_SELF, y = ID.Study, color = ID.Study) + 
-      labs(title  = "MAKER-SELFISH") + 
-      easy_remove_legend()
-
-b0_m_align <- multi_sd(df, "does NOT share", "does share", x = MAKER_ALIGN, y = ID.Study, color = ID.Study) + 
-      labs(title  = "MAKER-ALIGNMENT") + 
-      easy_remove_legend()
-
-b0_m_trust <- multi_sd(df, "untrustworthy", "trustworthy", x = MAKER_TRUST, y = ID.Study, color = ID.Study) + 
-      labs(title  = "MAKER-TRUST") + 
-      easy_remove_legend()
-
-
-#BUILD MASTER PLOT 
-PLOT_b0_maker <- (b0_m_design / b0_m_data / b0_m_politics / b0_m_argue / b0_m_selfish / b0_m_align / b0_m_trust) + 
-  plot_annotation(
-    title = "STIMULUS B0 — MILLENIAL PINK PLANTS",
-    subtitle =""
-  )
-
-PLOT_b0_maker
-
-
-```
-
-### B0 MAKER 
 ```{r B0-MAKER-BY-BLOCKS}
 
 
@@ -1397,10 +1430,10 @@ PLOT_b00_maker
 
 ```
 
-
 ## BLOCK 1
 
 ### B1-1 MAKER
+
 ```{r B1_1-MAKER}
 
 
@@ -1451,6 +1484,7 @@ PLOT_b11_maker
 ```
 
 ### B1-2 MAKER
+
 ```{r B1_2-MAKER}
 
 #FILTER DATAFRAME
@@ -1498,8 +1532,8 @@ PLOT_b12_maker
 
 ```
 
-
 ### B1-3 MAKER
+
 ```{r B1_3-MAKER}
 
 #FILTER DATAFRAME
@@ -1658,7 +1692,9 @@ PLOT_b1_3_maker
 ###################################################
 
 ```
+
 ### B1-4 MAKER
+
 ```{r B1_4-MAKER}
 
 #FILTER DATAFRAME
@@ -1818,9 +1854,10 @@ PLOT_b1_4_maker
 
 ```
 
-
 ## BLOCK 2
+
 ### B2-1 MAKER
+
 ```{r B2_1-MAKER}
 
 #FILTER DATAFRAME
@@ -1982,7 +2019,9 @@ PLOT_b2_1_maker
 
 
 ```
+
 ### B2-2 MAKER
+
 ```{r B2_2-MAKER}
 
 #FILTER DATAFRAME
@@ -2144,8 +2183,8 @@ PLOT_b2_2_maker
 
 ```
 
-
 ### B2-3 MAKER
+
 ```{r B2_3-MAKER}
 
 #FILTER DATAFRAME
@@ -2308,6 +2347,7 @@ PLOT_b2_3_maker
 ```
 
 ### B2-4 MAKER
+
 ```{r B2_4-MAKER}
 
 #FILTER DATAFRAME
@@ -2467,12 +2507,10 @@ PLOT_b2_4_maker
 
 ```
 
-
-
-
 ## BLOCK 6
 
 ### B6-1 MAKER
+
 ```{r B6_1-MAKER}
 
 #FILTER DATAFRAME
@@ -2635,8 +2673,8 @@ PLOT_b6_1_maker
 
 ```
 
-
 ### B6-2 MAKER
+
 ```{r B6_2-MAKER}
 
 #FILTER DATAFRAME
@@ -2799,10 +2837,8 @@ PLOT_b6_2_maker
 
 ```
 
-
-
-
 ### B6-3 MAKER
+
 ```{r B6-3-MAKER}
 
 #FILTER DATAFRAME
@@ -2965,13 +3001,8 @@ PLOT_b6_3_maker
 
 ```
 
-
-
-
-
-
-
 ### B6-4 MAKER
+
 ```{r B6-4-MAKER}
 
 #FILTER DATAFRAME
@@ -3134,17 +3165,7 @@ PLOT_b6_4_maker
 
 ```
 
-
-
-
-
-
-
-
-
 ## POLITICS
-
-
 
 ```{r}
 
@@ -3155,8 +3176,6 @@ p_politics <- b00_m_politics / b11_m_politics / b12_m_politics / b13_m_politics 
 p_politics
 
 ```
-
-
 
 ```{r}
 
@@ -3310,7 +3329,6 @@ gf_point( data = df_graphs %>% filter(STIMULUS=="B0-0"), MAKER_TRUST~CHART_BEAUT
 
 ```
 
-
 ```{r}
 
 
@@ -3325,7 +3343,6 @@ check_model(m) #EASY STATS MODEL CHECKS
 
 report(m)
 ```
-
 
 ```{r}
 ### MORE COMPLEX MODEL
@@ -3380,13 +3397,107 @@ report(m)
 
 ```
 
-
 # STASH
 
-## RAW SD GRAPHS
 
+### UNIVARIATE plots
+
+```{r SAMPLE UNIVARIATE GRAPHS}
+
+# #SET UP DATAFRAME 
+# df <- df_data 
+# 
+# ## DENSITY HISTOGRAPH 
+# ggplot(data = df_data, aes( x = duration.min, fill = Assigned.Block)) + 
+#   geom_density(alpha = 0.5) +
+#   facet_grid(rows = vars(Assigned.Block)) + 
+#   labs( x = "Survey Response Time (mins)", 
+#         title = "TOTAL Response Time by Sample", 
+#         subtitle = "(expect similiar across samples)") + 
+#   easy_add_legend_title("Sample") + 
+#   theme_minimal()
+# 
+# 
+# ## RAINCLOUD
+# ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+#   stat_slab(aes(thickness = after_stat(pdf*n), alpha=0.5), scale = 0.7) +
+#   stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+#   scale_fill_discrete(direction=-1)+
+#   xlim(0,225) +
+#   labs( x = "Survey Response Time (mins)", y="",
+#         title = "TOTAL Response Time by Sample", 
+#         subtitle = "(expect similiar across samples)") +
+#   theme_minimal() + 
+#   easy_remove_legend() 
+# 
+# 
+# ##RIDGEPLOT
+# ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+#   geom_density_ridges(scale=0.9) +
+#   # geom_boxplot()+
+#   stat_pointinterval()+
+#   theme_ridges() +
+#   scale_fill_discrete(direction=-1)+
+#   theme(legend.position = "none") + 
+#     labs( x = "Survey Response Time (mins)", y="",
+#         title = "TOTAL Response Time by Sample", 
+#         subtitle = "(expect similiar across samples)") 
+#   
+
+```
+
+### all questions by stimulus
+
+```{r B0-MAKER}
+# 
+# 
+# #FILTER DATAFRAME
+# df <- df_graphs %>% filter(STIMULUS == "B0-0")
+# 
+# #BUILD SEMANTIC DIFFERENTIALS
+# b0_m_design <- multi_sd(df, "professional", "layperson", x = "MAKER_DESIGN", y = "ID.Study", color = "ID.Study") + 
+#       labs(title  = "MAKER-DESIGN") +
+#       easy_remove_legend()
+# 
+# b0_m_data <- multi_sd(df, "professional", "layperson", x = "MAKER_DATA", y = "ID.Study", color = "ID.Study") + 
+#       labs(title  = "MAKER-DATA") + 
+#       easy_remove_legend()
+# 
+# b0_m_politics <- multi_sd(df, "left-leaning", "right-leaning", x = "MAKER_POLITIC", y = "ID.Study", color = "ID.Study") + 
+#       labs(title  = "MAKER-POLITICS") + 
+#       easy_remove_legend()
+# 
+# b0_m_argue <- multi_sd(df, "confrontational", "diplomatic", x = "MAKER_ARGUE", y = "ID.Study", color = "ID.Study") + 
+#       labs(title  = "MAKER-ARGUE") + 
+#       easy_remove_legend()
+# 
+# b0_m_selfish <- multi_sd(df, "altruistic", "selfish", x = "MAKER_SELF", y = "ID.Study", color = "ID.Study") + 
+#       labs(title  = "MAKER-SELFISH") + 
+#       easy_remove_legend()
+# 
+# b0_m_align <- multi_sd(df, "does NOT share", "does share", x = "MAKER_ALIGN", y = "ID.Study", color = "ID.Study") + 
+#       labs(title  = "MAKER-ALIGNMENT") + 
+#       easy_remove_legend()
+# 
+# b0_m_trust <- multi_sd(df, "untrustworthy", "trustworthy", x = "MAKER_TRUST", y = "ID.Study", color = "ID.Study") + 
+#       labs(title  = "MAKER-TRUST") + 
+#       easy_remove_legend()
+# 
+# 
+# #BUILD MASTER PLOT 
+# PLOT_b0_maker <- (b0_m_design / b0_m_data / b0_m_politics / b0_m_argue / b0_m_selfish / b0_m_align / b0_m_trust) + 
+#   plot_annotation(
+#     title = "STIMULUS B0 — MILLENIAL PINK PLANTS",
+#     subtitle =""
+#   )
+# 
+# PLOT_b0_maker
+# 
+
+```
 
 ### across Blocks
+
 ```{r}
 ######### MAKER ATTRIBUTES ########################
 # vals = c("datacollar", "bluecollar")
@@ -3541,7 +3652,7 @@ report(m)
 ###################################################
 ```
 
-### single Block 
+### single Block
 
 ```{r}
 
