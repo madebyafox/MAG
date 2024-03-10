@@ -45,6 +45,7 @@ library(ggdist) #raincloud plots and other distributionals
 library(ggridges) #ridge plots
 library(viridis) #color palettes
 library(RColorBrewer) #color palettes
+library(plotly) # interactive graphs
 
 #GEO-VIS
 library(tigris)
@@ -185,7 +186,8 @@ df_raw_pilot <- rbind(df_raw_datacollar, df_raw_bluecollar) %>%
 
 df_raw <- rbind(df_raw_pilot, df_raw_b1, df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6)
 rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b1, df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6, df_raw_pilot)
-
+#rename incorrectly labelled millenial 
+df_raw <- df_raw %>% mutate_all(funs(str_replace(., "millenial", "millennial")))
 
 ################################################################################################
 #### MASTER WIDE FORMAT DATA FRAME [1 row / qualtrics submission] ################
@@ -300,7 +302,11 @@ df_data <- df_raw %>%
     Source = factor(Source),
     Finished = as.logical(Finished),
     TerminateFlag = factor(TerminateFlag),
-    EndState = factor(EndState)
+    EndState = factor(EndState), 
+    D_gender = factor(D_gender), 
+    D_age = factor(D_age), 
+    D_income = factor(D_income),
+    D_employmentStatus = factor(D_employmentStatus)
   )
 
 ## JOIN STUDY ID DATA 
@@ -436,8 +442,10 @@ table(df_data$Assigned.Block)
 # 1 row per participant-graph-question
 df_questions <- df_data %>% 
   select(
-  ID.Qualtrics:ID.Study, Assigned.Block, PLATFORM, 
-  contains("_Q_"), contains("loop")
+  ID.Qualtrics:ID.Study, Assigned.Block,
+  Sample, Scope, Distribution, PLATFORM, 
+  D_gender:D_politicsFiscal, 
+  contains("_Q_"), contains("loop"), 
 ) %>% 
   pivot_longer( #PIVOT ON stimulus
   cols = contains("_Q_"),
@@ -566,7 +574,7 @@ rm(check_subject_blocks, check_subject_graphs, df_graphs_qda)
 
 ```
 
-## GRAPHING FUNCTIONS
+## Graphing Functions
 
 ```{r SD-GRAPHING-FUNCTIONS}
 
@@ -694,7 +702,7 @@ ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=duration.min, color=Assigned.Bl
   coord_flip() + 
   labs( y = "Survey Response Time (mins)", x="",
         title = "TOTAL Response Time by Sample",
-        subtitle = "(expect similiar across samples)") +
+        subtitle = "(distributions of response times are similar across samples, as expected)") +
   theme_minimal() + theme(legend.position = "none") 
 
 ## RIDGEPLOT — SURVEY RESPONSE TIME 
@@ -708,10 +716,10 @@ ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Ass
   theme(legend.position = "none") +
     labs( x = "Survey Response Time (mins)", y="",
         title = "TOTAL Response Time by Sample",
-        subtitle = "(expect similiar across samples)") 
+        subtitle = "(distributions of response times are similar across samples, as expected)") 
 ``` 
 
-Participant response times ranged from `r min(df_data$duration.min)` to `r max(df_data$duration.min)` minutes, with a mean response time of `r mean(df_data$duration.min)` minutes.
+Participant response times ranged from `r min(df_data$duration.min)` to `r max(df_data$duration.min)` minutes, with a mean response time of `r round(mean(df_data$duration.min),2)` minutes.
 
 ### Maker Page Response Time
 ```{r}
@@ -719,75 +727,75 @@ Participant response times ranged from `r min(df_data$duration.min)` to `r max(d
 df <- df_graphs
 
 ## BOXPLOT — MAKER RESPONSE TIME  
-ggplot(df, aes(x=fct_rev(Assigned.Block), y=MAKER_LATENCY, color=Assigned.Block))+
+ggplot(df, aes(x=CATEGORY, y=MAKER_LATENCY, color=CATEGORY))+
   geom_boxplot(position=position_dodge(0.9))+
   geom_jitter(position=position_jitterdodge(jitter.width=1.5), alpha = 0.3) +
+  scale_color_viridis(discrete=TRUE, option="viridis") + 
   coord_flip() + 
-  labs( y = "Maker Page Response Time (mins)", x="",
-        title = "Maker Page Response Time by Sample",
-        subtitle = "(expect similiar across samples)") +
+  labs( y = "MAKER Page Response Time (mins)", x="",
+        title = "MAKER Page Response Time by Stimulus Category",
+        subtitle = "(distributions of response times are similar across samples, as expected)") + 
   theme_minimal() + theme(legend.position = "none") 
 
 
-
-
 ## RIDGEPLOT — MAKER PAGE RESPONSE
-ggplot(df, aes(x = MAKER_LATENCY, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+ggplot(df, aes(x = MAKER_LATENCY, y = CATEGORY, fill = CATEGORY)) +
   geom_density_ridges(scale=0.8) +
   # geom_boxplot()+
   stat_pointinterval()+
   # theme_ridges() +
-  scale_fill_discrete(direction=-1)+
+  scale_fill_viridis(discrete=TRUE, option="viridis") + 
   theme_minimal() + 
   theme(legend.position = "none") +
-    labs( x = "Maker Page Response Time (mins)", y="",
-        title = "Maker Page Response Time by Sample",
-        subtitle = "(expect similiar across samples)") 
+    labs( x = "MAKER Page Response Time (mins)", y="",
+        title = "MAKER Page Response Time by Stimulus Category",
+        subtitle = "(distributions of response times are similar across samples, as expected)") 
 
 
 ```
 Maker page response times ranged from `r min(df_graphs$MAKER_LATENCY)` to `r max(df_graphs$MAKER_LATENCY)` minutes, with a mean response time of `r round(mean(df_graphs$MAKER_LATENCY),1)` minutes.
+
 
 ### Chart Page Response Time
 ```{r}
 
 df <- df_graphs
 
-## BOXPLOT — CHART RESPONSE TIME  
-ggplot(df, aes(x=fct_rev(Assigned.Block), y=CHART_LATENCY, color=Assigned.Block))+
+## BOXPLOT — MAKER RESPONSE TIME  
+ggplot(df, aes(x=CATEGORY, y=CHART_LATENCY, color=CATEGORY))+
   geom_boxplot(position=position_dodge(0.9))+
   geom_jitter(position=position_jitterdodge(jitter.width=1.5), alpha = 0.3) +
+  scale_color_viridis(discrete=TRUE, option="viridis") + 
   coord_flip() + 
-  labs( y = "Chart Page Response Time (mins)", x="",
-        title = "Chart Page Response Time by Sample",
-        subtitle = "(expect similiar across samples)") +
+  labs( y = "CHART Page Response Time (mins)", x="",
+        title = "CHART Page Response Time by Stimulus Category",
+        subtitle = "(distributions of response times are similar across samples, as expected)") +
   theme_minimal() + theme(legend.position = "none") 
 
 
-
-
-## RIDGEPLOT — Chart PAGE RESPONSE
-ggplot(df, aes(x = CHART_LATENCY, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+## RIDGEPLOT — MAKER PAGE RESPONSE
+ggplot(df, aes(x = CHART_LATENCY, y = CATEGORY, fill = CATEGORY)) +
   geom_density_ridges(scale=0.8) +
   # geom_boxplot()+
   stat_pointinterval()+
   # theme_ridges() +
-  scale_fill_discrete(direction=-1)+
+  scale_fill_viridis(discrete=TRUE, option="viridis") + 
   theme_minimal() + 
   theme(legend.position = "none") +
-    labs( x = "Chart Page Response Time (mins)", y="",
-        title = "Chart Page Response Time by Sample",
-        subtitle = "(expect similiar across samples)") 
+    labs( x = "CHART Page Response Time (mins)", y="",
+        title = "CHART Page Response Time by Stimulus Category",
+        subtitle = "(distributions of response times are similar across samples, as expected)") 
 
 
 ```
-
 Chart page response times ranged from `r min(df_graphs$CHART_LATENCY)` to `r max(df_graphs$CHART_LATENCY)` minutes, with a mean response time of `r round(mean(df_graphs$CHART_LATENCY),1)` minutes.
+
+
 
 
 ### Political Values
 
-```{r}
+```{r, warning=FALSE}
 
 df <- df_graphs
 
@@ -799,7 +807,7 @@ g <- ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=D_politicsFiscal, color=As
   geom_boxplot(position=position_dodge(0.9), width = 0.5)+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
   labs( title = "FISCAL VALUES by Sample",
-        subtitle = "",
+        subtitle = "(expect similar values across samples)",
          y = "Fiscal Politics", x = "") +
   easy_add_legend_title("Sample") +
   theme_minimal() +
@@ -822,7 +830,7 @@ g <- ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=D_politicsSocial, color=As
   geom_boxplot(position=position_dodge(0.9), width = 0.5)+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
   labs( title = "SOCIAL VALUES by Sample",
-        subtitle = "",
+        subtitle = "(expect similar values across samples)",
          y = "Social Politics", x = "") +
   easy_add_legend_title("Sample") +
   theme_minimal() +
@@ -905,84 +913,185 @@ ggplot( df_data, aes( x = Assigned.Block, fill = PLATFORM)) +
 
 ```
 
-### Location 
+
+# ATTRIBUTIONS
+
+## MAKER 
+
+### Maker ID by Category
 
 ```{r}
 
- ``
+df <- df_graphs 
 
-# 
-# 
-# 
-# ggplot() +
-#   geom_sf(data = ca, fill = "gray90") +
-#   geom_sf(data = df_data$D_zipcode, aes(fill = AREA), linewidth = 0.1) +
-#   scale_fill_gradientn(colors = c("red", "cornsilk", "#f0d080"),
-#                        values = c(0, 0.03, 1), guide = "none") +
-#   theme_minimal()
-# 
-# 
-# # zipcodes <- zctas(year = 2010, state = "CA", progress_bar = FALSE)
-# 
-# us_states <- states(progress_bar = FALSE)
-# ca <- us_states |> filter(STUSPS == "CA")
-# 
-# ggplot() +
-#   geom_sf(data = ca) +
-#   geom_sf(aes(fill = ALAND10, color = ALAND10), data = zipcodes) +
-#   theme_void()
-# 
-# 
-# 
-# 
-# ca <- us_states |> filter(STUSPS == "CA")
-# ggplot() +
-#   geom_sf(data = ca) +
-#   geom_sf(aes(fill = ALAND10, color = ALAND10), data = df_geo) +
-#   theme_void()
-# 
-# 
-# 
-# 
-# master_zips <- zctas()
-# 
-#                
-# 
-# #get the map
-# us<-map_data('state')
-# 
-# ggplot(fm,aes(longitude,latitude)) +
-#   geom_polygon(data=us,aes(x=long,y=lat,group=group),color='gray',fill=NA,alpha=.35)+
-#   geom_point(aes(color = count),size=.15,alpha=.25) +
-#   xlim(-125,-65)+ylim(20,50)
-# 
-# 
-# 
-# #get ALL the zipcodes and their zip code tabulation areas (zctas)
-# zipcodes <- zctas()
-# 
-# #join zip code geospatial data to subject-level dataframe                                  
-# df_geo <- left_join(df_data, master_zips, join_by(D_zipcode==ZCTA5CE20))    
-# 
-# 
-# #reshape data 
-# g <- df_geo %>% group_by(D_zipcode) %>% summarise(
-#   zip = D_zipcode, 
-#   n = n()
-# )
-# 
-# ggplot(df_geo) +
-#   geom_sf(aes(fill = D_zipcode))
-# 
-# 
-# ##INSTALL CHLOROPLETHR
-# # https://ari-lamsteins-courses.thinkific.com/courses/take/mapmaking-in-r-with-choroplethr/lessons/204724-zip-code-choropleths-part-2
-# install.packages("devtools")
-# library(devtools)
-# install_github('arilamstein/choroplethrZip@v1.5.0')
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = CATEGORY, fill = MAKER_ID)) +
+  geom_bar(position = "stack") +
+  labs( title = "MAKER ID by Stimulus Category",
+        subtitle = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  coord_flip()+
+  easy_add_legend_title("") +
+  theme_minimal()
+
 
 ```
 
+### Maker ID by Stimulus
+
+```{r}
+
+df <- df_graphs 
+
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = STIMULUS, fill = MAKER_ID)) +
+  geom_bar(position = "fill") +
+  facet_grid(CATEGORY ~ ., scales = "free", space = "free") + 
+  labs( title = "MAKER ID by Stimulus (grouped by CATEGORY) ",
+        subtitle = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  coord_flip()+
+  easy_add_legend_title("") +
+  theme_minimal()
+
+```
+
+
+
+
+
+### Maker Age by Stimulus
+
+```{r}
+
+df <- df_graphs 
+
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = STIMULUS, fill = MAKER_AGE)) +
+  geom_bar(position = "fill") +
+  facet_grid(CATEGORY ~ ., scales = "free", space = "free") + 
+  labs( title = "MAKER AGE by Stimulus (grouped by CATEGORY) ",
+        subtitle = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  coord_flip()+
+  # easy_add_legend_title("") +
+  theme_minimal()
+
+```
+
+
+
+
+
+
+### Maker AGE by Category
+
+```{r}
+
+df <- df_graphs 
+
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = CATEGORY, fill = MAKER_AGE)) +
+  geom_bar(position = "stack") +
+  labs( title = "MAKER AGE by Stimulus Category (grouped by Particpant Age)",
+        subtitle = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  facet_grid(rows= vars(D_age)) +
+  coord_flip()+
+  theme_minimal()
+
+```
+
+
+
+
+
+
+### Maker Gender by Stimulus
+```{r}
+
+df <- df_graphs 
+
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = STIMULUS, fill = MAKER_GENDER)) +
+  geom_bar(position = "fill") +
+  facet_grid(CATEGORY ~ ., scales = "free", space = "free") + 
+  labs( title = "MAKER GENDER by Stimulus (grouped by CATEGORY) ",
+        subtitle = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  coord_flip()+
+  # easy_add_legend_title("") +
+  theme_minimal()
+
+```
+### Maker Gender by Category
+```{r}
+
+df <- df_graphs 
+
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = CATEGORY, fill = MAKER_AGE)) +
+  geom_bar(position = "stack") +
+  labs( title = "MAKER AGE by Stimulus Category (grouped by Particpant Age)",
+        subtitle = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  facet_grid(rows= vars(D_age)) +
+  coord_flip()+
+  theme_minimal()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### IXV Maker ID & Politics
+```{r}
+
+#SETUP LISTS 
+stim <- ref_stimuli
+plots_maker_politics=list()
+
+### MAKE PLOTS 
+# LOOP THROUGH STIMULI
+i = 0
+for (s in stim){
+  i = i+1 #iterator hack
+  
+  d <- df_graphs_full %>% filter(STIMULUS == s) %>% select(ID.Prolific, STIMULUS, 
+                                                               MAKER_ID, MAKER_DETAIL, MAKER_CONF, 
+                                                               D_politicalParty, D_politicsSocial, D_politicsFiscal) 
+  p <- ggplot(d, aes(x = D_politicsSocial, y = MAKER_CONF,
+          color = MAKER_ID , 
+          text = MAKER_DETAIL))+
+      geom_point() +
+      facet_grid(MAKER_ID  ~D_politicalParty) + 
+      theme_minimal() + 
+      labs(
+        title = paste(s," | ", "MAKER Identification, by Social Politics and Confidence")
+      )  
+  plots_maker_politics[[i]] <- ggplotly(p) 
+
+}
+
+names(plots_maker_politics) <- ref_stimuli
+
+
+### PRINT PLOTS
+for (s in stim){
+  print(plots_maker_politics[[s]])
+}
+
+```
 
 ## BLOCK 0 TODO FIX THIS
 
