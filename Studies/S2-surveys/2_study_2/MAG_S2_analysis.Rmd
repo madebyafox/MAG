@@ -85,7 +85,7 @@ Participants were excluded from the sample for the following reasons
 
 Following wrangling, there should be 6 blocks of stimuli, each containing responses from 40 participants from prolific, and TODO responses directly from Tumblr.
 
-```{r STIMULI, message=FALSE, warning = FALSE}
+```{r setup-stimuli, message=FALSE, warning = FALSE}
 
 ############## IMPORT STIMULI FILE
 df_stimuli <- read_csv("data/input/stimuli.csv", col_names = TRUE) %>% 
@@ -96,7 +96,7 @@ df_stimuli <- read_csv("data/input/stimuli.csv", col_names = TRUE) %>%
     MAKER_ID = as.factor(MAKER_ID)
   )
 
-############## BUILD STIMULUS-QUESTIONS LABELS
+############## BUILD LABELS
 ref_stimuli <- levels(df_stimuli$ID)
 ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
                "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
@@ -109,6 +109,9 @@ right <- c("layperson","layperson","right-leaning","diplomatic",
            "very much", "very much", "persuade", "trusthworthy")
 ref_labels <- as.data.frame(cbind(left,right))
 rownames(ref_labels) <- ref_sd_questions
+ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
+
+
 rm(left,right)
 
 
@@ -670,7 +673,7 @@ plot_sd = function (data, column, type, boxplot) {
 
 ## Descriptives
 
-```{r}
+```{r summarytools-profile}
 
 df_graphs%>% summarytools::dfSummary(
              varnumbers = FALSE,
@@ -711,7 +714,7 @@ df_actions  %>% summarytools::dfSummary(
 
 
 ### Total Response Time
-```{r}
+```{r demo-response-time}
 
 df <- df_data
 
@@ -742,7 +745,7 @@ ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Ass
 Participant response times ranged from `r min(df_data$duration.min)` to `r max(df_data$duration.min)` minutes, with a mean response time of `r round(mean(df_data$duration.min),2)` minutes.
 
 ### Maker Page Response Time
-```{r}
+```{r demo-maker-response-time}
 
 df <- df_graphs
 
@@ -777,7 +780,7 @@ Maker page response times ranged from `r min(df_graphs$MAKER_LATENCY)` to `r max
 
 
 ### Chart Page Response Time
-```{r}
+```{r demo-chart-response-time}
 
 df <- df_graphs
 
@@ -814,7 +817,7 @@ Chart page response times ranged from `r min(df_graphs$CHART_LATENCY)` to `r max
 
 
 ### Education
-```{r}
+```{r demo-education}
 # EDUCATION by SAMPLE
 ggplot(data = df_data, aes( x = Assigned.Block, fill = D_education )) +
   geom_bar(position = "stack") +
@@ -827,7 +830,7 @@ ggplot(data = df_data, aes( x = Assigned.Block, fill = D_education )) +
 
 ### Age
 
-```{r}
+```{r demo-age}
  
 # AGE by SAMPLE
 ggplot(data = df_data, aes( x = Assigned.Block, fill = fct_rev(D_age) )) +
@@ -842,14 +845,14 @@ ggplot(data = df_data, aes( x = Assigned.Block, fill = fct_rev(D_age) )) +
 
 ### Political Values
 
-```{r, warning=FALSE}
+```{r, demo-political-values, warning=FALSE}
 
 df <- df_graphs
 
 # FISCAL POLITICAL SAMPLE
-vals <- c("block1", "block2", "block3", "block4", "block5", "block6")
-leftside <- rep("left-leaning",6)
-rightside <- rep("right-leaning",6)
+
+leftside <- rep("left-leaning", length(ref_blocks))
+rightside <- rep("right-leaning", length(ref_blocks))
 g <- ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=D_politicsFiscal, color=Assigned.Block)) +
   geom_boxplot(position=position_dodge(0.9), width = 0.5)+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
@@ -861,18 +864,18 @@ g <- ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=D_politicsFiscal, color=As
   coord_flip()
 g + guides(
   y = guide_axis_manual(
-  breaks = vals,
+  breaks = ref_blocks,
   labels = leftside
   ),
   y.sec = guide_axis_manual(
-  breaks = vals,
+  breaks = ref_blocks,
   labels = rightside
 ))
 
 # SOCIAL POLITICAL SAMPLE
-vals <- c("block1", "block2", "block3", "block4", "block5", "block6")
-leftside <- rep("left-leaning",6)
-rightside <- rep("right-leaning",6)
+
+leftside <- rep("left-leaning", length(ref_blocks))
+rightside <- rep("right-leaning", length(ref_blocks))
 g <- ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=D_politicsSocial, color=Assigned.Block)) +
   geom_boxplot(position=position_dodge(0.9), width = 0.5)+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
@@ -884,11 +887,11 @@ g <- ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=D_politicsSocial, color=As
   coord_flip()
 g + guides(
   y = guide_axis_manual(
-  breaks = vals,
+  breaks = ref_blocks,
   labels = leftside
   ),
   y.sec = guide_axis_manual(
-  breaks = vals,
+  breaks = ref_blocks,
   labels = rightside
 ))
 
@@ -896,6 +899,8 @@ r_politics <- nrow(df_data %>% filter(D_politicsSocial >= 50)) / nrow(df_data)
 l_politics <- nrow(df_data %>% filter(D_politicsSocial < 50)) / nrow(df_data)
 r_fiscal <- nrow(df_data %>% filter(D_politicsFiscal >= 50)) / nrow(df_data)
 l_fiscal <- nrow(df_data %>% filter(D_politicsFiscal < 50)) / nrow(df_data)
+ 
+rm(g)
   
 ```
 Across all six samples (n=40/sample) participants tended to report center-left leaning social values (M = `r round(mean(df_data$D_politicsSocial),2)`, SD = (`r round(sd(df_data$D_politicsSocial),2)` on a [0,100] scale);  with slightly more central fiscal values (M = `r round(mean(df_data$D_politicsFiscal),2)`, SD = (`r round(sd(df_data$D_politicsFiscal),2)`. Overall, `r l_politics*100`% of respondents identify with left-leaning social values (vs) `r r_politics*100` identifying as right-leaning; while `r round(l_fiscal*100,2)`% of respondents reported left-leaning fiscal values (vs) `r round(r_fiscal*100,2)` identify as right-leaning. 
@@ -903,7 +908,7 @@ Across all six samples (n=40/sample) participants tended to report center-left l
 ### Politcal Affiliation
 
 
-```{r}
+```{r demo-political-party}
 # POLITICAL PARTY
 ggplot(data = df_data, aes( fill = D_politicalParty, x = Assigned.Block )) +
   geom_bar(position = "stack") +
@@ -918,7 +923,7 @@ ggplot(data = df_data, aes( fill = D_politicalParty, x = Assigned.Block )) +
 
 ### Platform Choice
 
-```{r}
+```{r platform-choice}
 
 #PLATFORM CHOICE
 ggplot( df_data, aes( x = Assigned.Block, fill = PLATFORM)) +
@@ -940,7 +945,7 @@ ggplot( df_data, aes( x = Assigned.Block, fill = PLATFORM)) +
 
 ### Maker ID by Stimulus
 
-```{r}
+```{r maker-id-stimulus}
 
 df <- df_graphs 
 
@@ -959,7 +964,7 @@ ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_ID)) +
 
 ### Maker ID by Category
 
-```{r}
+```{r maker-id-category}
 
 df <- df_graphs 
 
@@ -976,43 +981,12 @@ ggplot( df, aes( x = CATEGORY, fill = MAKER_ID)) +
 
 ```
 
-### Maker ID & Confidence
-
-```{r, message=FALSE, warning=FALSE}
-
-#FILTER DATAFRAME
-df <- df_graphs 
-
-######### MAKER ID AND CONFIDENCE ##############
-# MAKER_ID by Sample and BEHAVIOR 
-a <- ggplot (df, aes( x = fct_rev(CATEGORY), fill = MAKER_ID)) + 
-  geom_bar(position = "fill") +
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
-  # facet_grid( df$ENCOUNTER) + 
-  labs (x = "") + 
-  theme_minimal() 
-
-# MAKER_CONFIDENCE by IDENTIFICATION  
-b <- ggplot(df, aes( x = fct_rev(CATEGORY), y = MAKER_CONF, color = MAKER_ID)) + 
-  geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
-  scale_color_viridis(discrete=TRUE, option="viridis") +
-  # labs (title = "MAKER-ID-CONFIDENCE") +
-  labs (x = "STIMULUS CATEGORY") + 
-  theme_minimal() 
-
-(p <- (a / b )  + plot_annotation(
-  title = 'MAKER ID & CONFIDENCE',
-  subtitle = '',
-  caption = ''))
-
-###################################################
-```
 
 
-### Maker ID & Confidence
 
-```{r, message=FALSE, warning=FALSE}
+### Maker ID & Confidence by Stimulus
+
+```{r, maker-id-confidence-stimulus, message=FALSE, warning=FALSE}
 
 #FILTER DATAFRAME
 df <- df_graphs 
@@ -1041,23 +1015,48 @@ b <- ggplot(df, aes( x = fct_rev(STIMULUS), y = MAKER_CONF, color = MAKER_ID)) +
   caption = ''))
 
 ###################################################
+rm(a,b,p)
 ```
+### Maker ID & Confidence
 
+```{r, maker-id-confidence-category, message=FALSE, warning=FALSE}
 
+#FILTER DATAFRAME
+df <- df_graphs 
 
+######### MAKER ID AND CONFIDENCE ##############
+# MAKER_ID by Sample and BEHAVIOR 
+a <- ggplot (df, aes( x = fct_rev(CATEGORY), fill = MAKER_ID)) + 
+  geom_bar(position = "fill") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  # facet_grid( df$ENCOUNTER) + 
+  labs (x = "") + 
+  theme_minimal() 
 
+# MAKER_CONFIDENCE by IDENTIFICATION  
+b <- ggplot(df, aes( x = fct_rev(CATEGORY), y = MAKER_CONF, color = MAKER_ID)) + 
+  geom_boxplot(position=position_dodge(0.9))+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
+  scale_color_viridis(discrete=TRUE, option="viridis") +
+  # labs (title = "MAKER-ID-CONFIDENCE") +
+  labs (x = "STIMULUS CATEGORY") + 
+  theme_minimal() 
 
+(p <- (a / b )  + plot_annotation(
+  title = 'MAKER ID & CONFIDENCE',
+  subtitle = '',
+  caption = ''))
 
+rm(a,b,p)
 
-
-
-
+###################################################
+```
 
 ## MAKER AGE
 
 ### Maker Age by Stimulus
 
-```{r}
+```{r maker-age-stimulus}
 
 df <- df_graphs 
 
@@ -1077,7 +1076,7 @@ ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_AGE)) +
 
 ### Maker Age by Category
 
-```{r}
+```{r maker-age-category}
 
 df <- df_graphs 
 
@@ -1093,44 +1092,9 @@ ggplot( df, aes( x = CATEGORY, fill = MAKER_AGE)) +
 
 ```
 
-### Maker Age & Confidence by Category
+### Maker Age & Confidence by Stimulus
 
-```{r, message=FALSE, warning=FALSE}
-
-#FILTER DATAFRAME
-df <- df_graphs 
-
-######### MAKER ID AND CONFIDENCE ##############
-# MAKER_AGE by Sample and BEHAVIOR 
-a <- ggplot (df, aes( x = fct_rev(CATEGORY), fill = MAKER_AGE)) + 
-  geom_bar(position = "fill") + #dodge
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
-  # facet_grid( df$ENCOUNTER) + 
-  labs (x = "") + 
-  theme_minimal() 
-
-# MAKER_CONFIDENCE by IDENTIFICATION  
-b <- ggplot(df, aes( x = fct_rev(CATEGORY), y = AGE_CONF, color = MAKER_AGE)) + 
-  geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
-  scale_color_viridis(discrete=TRUE, option="viridis") +
-  labs (x = "STIMULUS CATEGORY") + 
-  theme_minimal() 
-
-(p <- (a / b )  + plot_annotation(
-  title = 'MAKER AGE & CONFIDENCE by Category',
-  subtitle = '',
-  caption = ''))
-
-###################################################
-```
-
-
-
-
-### Maker Age & Confidence
-
-```{r, message=FALSE, warning=FALSE}
+```{r maker-age-confidence-stimulus, message=FALSE, warning=FALSE}
 
 #FILTER DATAFRAME
 df <- df_graphs 
@@ -1159,23 +1123,48 @@ b <- ggplot(df, aes( x = fct_rev(STIMULUS), y = MAKER_CONF, color = MAKER_AGE)) 
   caption = ''))
 
 ###################################################
+
+rm(a,b,p)
 ```
+### Maker Age & Confidence by Category
 
+```{r maker-age-confidence-category, message=FALSE, warning=FALSE}
 
+#FILTER DATAFRAME
+df <- df_graphs 
 
+######### MAKER ID AND CONFIDENCE ##############
+# MAKER_AGE by Sample and BEHAVIOR 
+a <- ggplot (df, aes( x = fct_rev(CATEGORY), fill = MAKER_AGE)) + 
+  geom_bar(position = "fill") + #dodge
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  # facet_grid( df$ENCOUNTER) + 
+  labs (x = "") + 
+  theme_minimal() 
 
+# MAKER_CONFIDENCE by IDENTIFICATION  
+b <- ggplot(df, aes( x = fct_rev(CATEGORY), y = AGE_CONF, color = MAKER_AGE)) + 
+  geom_boxplot(position=position_dodge(0.9))+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
+  scale_color_viridis(discrete=TRUE, option="viridis") +
+  labs (x = "STIMULUS CATEGORY") + 
+  theme_minimal() 
 
+(p <- (a / b )  + plot_annotation(
+  title = 'MAKER AGE & CONFIDENCE by Category',
+  subtitle = '',
+  caption = ''))
 
+###################################################
 
-
-
-
+rm(a,b,p)
+```
 
 
 ## MAKER GENDER
 
 ### Maker Gender by Stimulus
-```{r}
+```{r maker-gender-stimulus}
 
 df <- df_graphs 
 
@@ -1192,7 +1181,7 @@ ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) +
 
 ```
 ### Maker Gender by Category
-```{r}
+```{r maker-gender-category}
 
 df <- df_graphs 
 
@@ -1210,7 +1199,7 @@ ggplot( df, aes( x = CATEGORY, fill = MAKER_GENDER)) +
 
 ### Maker Gender & Confidence by Stimulus
 
-```{r, message=FALSE, warning=FALSE}
+```{r maker-gender-confidence-stimulus, message=FALSE, warning=FALSE}
 
 #FILTER DATAFRAME
 df <- df_graphs 
@@ -1218,7 +1207,7 @@ df <- df_graphs
 ######### MAKER ID AND CONFIDENCE ##############
 # MAKER_GENDER by STIMULUS
 a <- ggplot (df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) + 
-  geom_bar(position = "dodge") +
+  geom_bar(position = "fill") +
   scale_fill_viridis(discrete=TRUE, option="viridis") +
   # facet_grid( df$ENCOUNTER) + 
   labs (x = "") + 
@@ -1238,18 +1227,20 @@ b <- ggplot(df, aes( x = fct_rev(STIMULUS), y = GENDER_CONF, color = MAKER_GENDE
   caption = ''))
 
 ###################################################
+
+rm(a,b,p)
 ```
 
 ### Maker Gender & Confidence by Category
 
-```{r, message=FALSE, warning=FALSE}
+```{r maker-gender-confidence-category, message=FALSE, warning=FALSE}
 
 #FILTER DATAFRAME
 df <- df_graphs 
 
 ######### MAKER GENDER AND CONFIDENCE ##############
 a <- ggplot (df, aes( x = fct_rev(CATEGORY), fill = MAKER_GENDER)) + 
-  geom_bar(position = "dodge") +
+  geom_bar(position = "fill") +
   scale_fill_viridis(discrete=TRUE, option="viridis") +
   # facet_grid( df$ENCOUNTER) + 
   labs (x = "") + 
@@ -1269,54 +1260,15 @@ b <- ggplot(df, aes( x = fct_rev(CATEGORY), y = GENDER_CONF, color = MAKER_GENDE
   caption = ''))
 
 ###################################################
+
+rm(a,b,p)
 ```
-
-## ENCOUNTER CHOICE
-
-### Encounter Choice by Stimulus
-```{r}
-
-df <- df_graphs 
-
-#MAKER IDENTIFICATION
-ggplot( df, aes( x = fct_rev(STIMULUS), fill = ENCOUNTER)) +
-  geom_bar(position = "fill") +
-  facet_grid(fct_rev(CATEGORY) ~ ., scales = "free", space = "free") + 
-  labs( title = "MAKER ENCOUNTER by Stimulus (grouped by CATEGORY) ",
-        subtitle = "", x = "") +
-  scale_fill_brewer(palette = "Dark2") + 
-  # scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
-  coord_flip()+
-  # easy_add_legend_title("") +
-  theme_minimal()
-
-```
-### Encounter Choice by Category
-```{r}
-
-df <- df_graphs 
-
-#MAKER IDENTIFICATION
-ggplot( df, aes( x = CATEGORY, fill = ENCOUNTER)) +
-  geom_bar(position = "stack") +
-  labs( title = "ENCOUNTER by Stimulus Category (grouped by CATEGORY)",
-        subtitle = "", x = "") +
-  scale_fill_brewer(palette = "Dark2") + 
-  coord_flip()+
-  theme_minimal()
-
-```
-
-
-
-
-
 
 ## TOOL CHOICE
 
 ### Tool ID by Stimulus
 
-```{r}
+```{r toolid-stimulus}
 
 df <- df_tools 
 
@@ -1338,7 +1290,7 @@ ggplot(data = df, aes( fill = fct_rev(TOOL_ID), x = fct_rev(STIMULUS) )) +
 
 ### Tool ID by Category
 
-```{r}
+```{r toolid-category}
 
 df <- df_tools 
 
@@ -1358,7 +1310,7 @@ ggplot(data = df, aes( fill = fct_rev(TOOL_ID), x = CATEGORY )) +
 
 ### Tool ID & Confidence by Stimulus
 
-```{r, message=FALSE, warning=FALSE}
+```{r toolid-confidence-stimulus, message=FALSE, warning=FALSE}
 
 #FILTER DATAFRAME
 df <- df_tools 
@@ -1385,11 +1337,13 @@ b <- ggplot(df, aes( x = fct_rev(STIMULUS), y = TOOL_CONF, color = fct_rev(TOOL_
   caption = ''))
 
 ###################################################
+
+rm(a,b,p)
 ```
 
 ### Tool ID & Confidence by Category
 
-```{r, message=FALSE, warning=FALSE}
+```{r toolid-confidence-category, message=FALSE, warning=FALSE}
 
 #FILTER DATAFRAME
 df <- df_tools 
@@ -1416,7 +1370,52 @@ b <- ggplot(df, aes( x = fct_rev(CATEGORY), y = TOOL_CONF, color = fct_rev(TOOL_
   caption = ''))
 
 ###################################################
+
+rm(a,b,p)
 ```
+
+
+
+
+
+## ENCOUNTER CHOICE
+
+### Encounter Choice by Stimulus
+```{r encounter-stimulus}
+
+df <- df_graphs 
+
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = fct_rev(STIMULUS), fill = ENCOUNTER)) +
+  geom_bar(position = "fill") +
+  facet_grid(fct_rev(CATEGORY) ~ ., scales = "free", space = "free") + 
+  labs( title = "MAKER ENCOUNTER by Stimulus (grouped by CATEGORY) ",
+        subtitle = "", x = "") +
+  scale_fill_brewer(palette = "Dark2") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
+  coord_flip()+
+  # easy_add_legend_title("") +
+  theme_minimal()
+
+```
+### Encounter Choice by Category
+```{r encounter-category}
+
+df <- df_graphs 
+
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = CATEGORY, fill = ENCOUNTER)) +
+  geom_bar(position = "stack") +
+  labs( title = "ENCOUNTER by Stimulus Category (grouped by CATEGORY)",
+        subtitle = "", x = "") +
+  scale_fill_brewer(palette = "Dark2") + 
+  coord_flip()+
+  theme_minimal()
+
+```
+
+
+
 
 
 
@@ -1425,7 +1424,7 @@ b <- ggplot(df, aes( x = fct_rev(CATEGORY), y = TOOL_CONF, color = fct_rev(TOOL_
 
 ### Actions Choice by Stimulus
 
-```{r}
+```{r actions-stimulus}
 
 df <- df_actions 
 
@@ -1447,7 +1446,7 @@ ggplot(data = df, aes( fill = CHART_ACTION, x = fct_rev(STIMULUS) )) +
 
 ### Actions Choice by Category
 
-```{r}
+```{r actions-category}
 
 df <- df_actions 
 
@@ -1518,11 +1517,14 @@ for (s in stim){
 
 
 
-## ALL SEMANTIC DIFFERENTIAL QUESTIONS
+# ALL SEMANTIC DIFFERENTIAL QUESTIONS
+
+
+## ALL QUESTIONS
 
 ### ALL Q BY STIMULUS
 
-```{r}
+```{r ALL-Q-BY-STIMULUS}
 
 #################### ALL QUESTIONS AT STIMULUS #####################
 # ONE PLOT FOR EACH STIMULUS WITH ALL QUESTIONS
@@ -1554,58 +1556,59 @@ for (s in stimuli){
    )
   
   plots_stimulus[[i]] <- x
-  ggsave(plot = x, path="figs/plots_stimulus", filename =paste0(s,".png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = x, path="figs/all_q_by_stimulus", filename =paste0(s,".png"), units = c("in"), width = 10, height = 14  )
 }
 
 #GIVE NAMES TO LIST
 #NOW CAN ACCESS plots by plots_stimulus$`B1-1`
 #ALSO plots_stimulus$`B1-1`[[1]]
 names(plots_stimulus) <- stimuli
-rm(x, plots)
+rm(x, i, plots)
 
 #############################################################################
 
 ```
 
+#### WIP ALT SD GRAPHS
 ```{r}
 
-# library
-library(ggdist)
-library(ggridges)
-
-#RIDGEPLOT
-##ALL QUESTIONS FOR STIMULUS 1
-
-s = "B0-0"
-df <- df_sd_questions %>% select(1:6, s) %>% filter(!is.na(s)) %>%  mutate(
-  value = `B0-0`
-)
-
-ggplot(df, aes(x = value, y = QUESTION, fill = QUESTION)) +
-  geom_density_ridges(scale=0.9) +
-  # xlim(0,100)+
-  theme_ridges() + 
-  theme(legend.position = "none")
-
-
-
-
-library(ggdist)
-
-d <- df %>% filter(str_detect(QUESTION,"CHART_"))
-
-ggplot(df, aes(y = QUESTION, x = value, fill = QUESTION)) +
-  stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
-  theme_minimal()
-
+# # library
+# library(ggdist)
+# library(ggridges)
+# 
+# #RIDGEPLOT
+# ##ALL QUESTIONS FOR STIMULUS 1
+# 
+# s = "B0-0"
+# df <- df_sd_questions %>% select(1:6, s) %>% filter(!is.na(s)) %>%  mutate(
+#   value = `B0-0`
+# )
+# 
+# ggplot(df, aes(x = value, y = QUESTION, fill = QUESTION)) +
+#   geom_density_ridges(scale=0.9) +
+#   # xlim(0,100)+
+#   theme_ridges() + 
+#   theme(legend.position = "none")
+# 
+# 
+# 
+# 
+# library(ggdist)
+# 
+# d <- df %>% filter(str_detect(QUESTION,"CHART_"))
+# 
+# ggplot(df, aes(y = QUESTION, x = value, fill = QUESTION)) +
+#   stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
+#   stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+#   theme_minimal()
+# 
 
 
 ```
 
 ### ALL Q BY CATEGORY
 
-```{r}
+```{r ALL-Q-BY-CATEGORY}
 
 #################### ALL QUESTIONS AT CATEGORY #####################
 # ONE PLOT FOR EACH CATEGORY WITH ALL QUESTIONS
@@ -1634,7 +1637,7 @@ for (c in categories){
       )
 
   plots_category[[i]] <- x
-  ggsave(plot = x, path="figs/plots_category", filename =paste0(c,".png"), units = c("in"), width = 10, height = 26)
+  ggsave(plot = x, path="figs/all_q_by_category", filename =paste0(c,".png"), units = c("in"), width = 10, height = 26)
   
 }  
 
@@ -1642,15 +1645,15 @@ for (c in categories){
 #NOW CAN ACCESS plots by plots_category$A
 #ALSO plots_category$A[[1]]
 names(plots_category) <- categories
-rm(x, plots)
+rm(x, i, plots)
 
 ```
 
 ## BY QUESTION
 
-### Q for STIMULI
+### Q for ALL STIMULI
 
-```{r}
+```{r Q-FOR-ALL-STIMULI}
 
 ####################CREATE SD PLOTS FOR EACH QUESTION#####################
 
@@ -1679,21 +1682,21 @@ for (q in questions){
        subtitle =""
       )
   plots_s_question[[i]] <- x 
-  ggsave(plot = x, path="figs/plots_s_question", filename =paste0(q,".png"), units = c("in"), width = 10, height = 26)
+  ggsave(plot = x, path="figs/by_q_for_all_stimuli", filename =paste0(q,".png"), units = c("in"), width = 10, height = 26)
 }
 
 #GIVE NAMES TO LIST
 #NOW CAN ACCESS plots by plots_s_question$MAKER_DESIGN
 #ALSO plots_s_question$MAKER_DESIGN[[1]]
 names(plots_s_question) <- questions
-rm(x, plots)
+rm(x, i, plots)
 
 #############################################################################
 ```
 
-### Q for CATEGORIES
+### Q for ALL CATEGORIES
 
-```{r}
+```{r Q-FOR-ALL-CATEGORIES}
 
 ####################SD PLOTS QUESTION BY CATEGORY #####################
 
@@ -1718,19 +1721,21 @@ for (q in questions){
       labs(title  = q) 
  
   plots_c_question[[i]] <- x
-  ggsave(plot = x, path="figs/plots_c_question", filename =paste0(q,".png"))
+  ggsave(plot = x, path="figs/by_q_for_all_categories", filename =paste0(q,".png"))
 }
 
 #GIVE NAMES TO LIST
 #NOW CAN ACCESS plots by plots_c_question$MAKER_DESIGN
 #ALSO plots_c_question$MAKER_DESIGN[[1]]
 names(plots_c_question) <- questions
-rm(x)
+rm(x, i)
   
 #############################################################################
 
 ```
 
+
+# LEGACY
 ```{r}
 
 
@@ -1844,1858 +1849,149 @@ rm(x)
 
 ```
 
+
+
+
 ## LEGACY
 
-### B0 MAKER
 
 
 
-## BLOCK 1
 
-### B1-1 MAKER
 
 
-### B1-2 MAKER
 
 
-
-### B1-3 MAKER
-
-```{r B1_3-MAKER}
-
-#FILTER DATAFRAME
-s = "B0-0" #stimulus
-t = "Millenial Pink Plants" #stimulus title
-g = "ID.Study"
-
-df <- df_graphs %>% filter(STIMULUS == s)
-
-######### MAKER ATTRIBUTES ########################
-vals = c("datacollar", "bluecollar")
-leftside <- rep ("PROFESSIONAL",1 )
-rightside <-rep ("LAYPERSON",1 ) 
-b13_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = Scope, color = Scope))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DESIGN")
-
-b13_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DATA")
-
-
-leftside <- rep ("LEFT-WING",1 )
-rightside <-rep ("RIGHT-WING",1 ) 
-b13_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-POLITICS")
-  
-
-leftside <- rep ("CONFRONTATIONAL",1 )
-rightside <-rep ("DIPLOMATIC",1 ) 
-b13_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-ARGUE")
-  
-leftside <- rep ("ALTRUSITC",1 )
-rightside <-rep ("SELFISH",1 ) 
-b13_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SELFISH")
-
-
-leftside <- rep ("Does NOT",1 )
-rightside <-rep ("DOES",1 ) 
-b13_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SHARES-MY-VALUES")
-
-leftside <- rep ("UNTRUSTWORTHY",1 )
-rightside <-rep ("TRUSTWORTHY",1 ) 
-b13_m_trust <- ggplot(df, aes(y = MAKER_TRUST, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-TRUST")
-
-
-PLOT_maker <- (b13_m_design / b13_m_data / b13_m_politics / b13_m_argue / b13_m_selfish / b13_m_align / b13_m_trust) + 
-  plot_annotation(
-    title = t
-  )
-
-PLOT_maker
-###################################################
-
-```
-
-### B1-4 MAKER
-
-```{r B1_4-MAKER}
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B1-4")
-
-######### MAKER ATTRIBUTES ########################
-vals = c("datacollar", "bluecollar")
-leftside <- rep ("PROFESSIONAL",1 )
-rightside <-rep ("LAYPERSON",1 ) 
-b14_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DESIGN")
-
-b14_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DATA")
-
-
-leftside <- rep ("LEFT-WING",1 )
-rightside <-rep ("RIGHT-WING",1 ) 
-b14_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-POLITICS")
-  
-
-leftside <- rep ("CONFRONTATIONAL",1 )
-rightside <-rep ("DIPLOMATIC",1 ) 
-b14_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-ARGUE")
-  
-leftside <- rep ("ALTRUSITC",1 )
-rightside <-rep ("SELFISH",1 ) 
-b14_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SELFISH")
-
-
-leftside <- rep ("Does NOT",1 )
-rightside <-rep ("DOES",1 ) 
-b14_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SHARES-MY-VALUES")
-
-leftside <- rep ("UNTRUSTWORTHY",1 )
-rightside <-rep ("TRUSTWORTHY",1 ) 
-b14_m_trust <- ggplot(df, aes(y = MAKER_TRUST, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-TRUST")
-
-
-PLOT_b1_4_maker <- (b14_m_design / b14_m_data / b14_m_politics / b14_m_argue / b14_m_selfish / b14_m_align / b14_m_trust) + 
-  plot_annotation(
-    title = "STIMULUS B1-4 — TINY-PEOPLE-GUNS"
-  )
-
-PLOT_b1_4_maker
-###################################################
-
-```
-
-## BLOCK 2
-
-### B2-1 MAKER
-
-```{r B2_1-MAKER}
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B2-1")
-
-######### MAKER ATTRIBUTES ########################
-vals = c("datacollar", "bluecollar")
-leftside <- rep ("PROFESSIONAL",1 )
-rightside <-rep ("LAYPERSON",1 ) 
-b21_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DESIGN")
-
-b21_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DATA")
-
-
-leftside <- rep ("LEFT-WING",1 )
-rightside <-rep ("RIGHT-WING",1 ) 
-b21_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-POLITICS")
-  
-
-leftside <- rep ("CONFRONTATIONAL",1 )
-rightside <-rep ("DIPLOMATIC",1 ) 
-b21_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-ARGUE")
-  
-leftside <- rep ("ALTRUSITC",1 )
-rightside <-rep ("SELFISH",1 ) 
-b21_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SELFISH")
-
-
-leftside <- rep ("Does NOT",1 )
-rightside <-rep ("DOES",1 ) 
-b21_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SHARES-MY-VALUES")
-
-leftside <- rep ("UNTRUSTWORTHY",1 )
-rightside <-rep ("TRUSTWORTHY",1 ) 
-
-b21_m_trust <-ggplot(df, aes(y = MAKER_TRUST, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-TRUST")
-
-
-PLOT_b2_1_maker <- (b21_m_design / b21_m_data / b21_m_politics / b21_m_argue / b21_m_selfish / b21_m_align / b21_m_trust) + 
-  plot_annotation(
-    title = "STIMULUS B2-1 ECONOMIST AREA BLUES"
-  )
-
-PLOT_b2_1_maker
-###################################################
-
-
-
-```
-
-### B2-2 MAKER
-
-```{r B2_2-MAKER}
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B2-2")
-
-######### MAKER ATTRIBUTES ########################
-vals = c("datacollar", "bluecollar")
-leftside <- rep ("PROFESSIONAL",1 )
-rightside <-rep ("LAYPERSON",1 ) 
-b22_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DESIGN")
-
-b22_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DATA")
-
-
-leftside <- rep ("LEFT-WING",1 )
-rightside <-rep ("RIGHT-WING",1 ) 
-b22_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-POLITICS")
-  
-
-leftside <- rep ("CONFRONTATIONAL",1 )
-rightside <-rep ("DIPLOMATIC",1 ) 
-b22_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-ARGUE")
-  
-leftside <- rep ("ALTRUSITC",1 )
-rightside <-rep ("SELFISH",1 ) 
-b22_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SELFISH")
-
-
-leftside <- rep ("Does NOT",1 )
-rightside <-rep ("DOES",1 ) 
-b22_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SHARES-MY-VALUES")
-
-leftside <- rep ("UNTRUSTWORTHY",1 )
-rightside <-rep ("TRUSTWORTHY",1 ) 
-b22_m_trust <- ggplot(df, aes(y = MAKER_TRUST, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-TRUST")
-
-
-PLOT_b2_2_maker <- (b22_m_design / b22_m_data / b22_m_politics / b22_m_argue / b22_m_selfish / b22_m_align / b22_m_trust) + 
-  plot_annotation(
-    title = "STIMULUS B2-2 — CLASSIC EXCEL ERROR BARS"
-  )
-
-PLOT_b2_2_maker
-###################################################
-
-
-
-```
-
-### B2-3 MAKER
-
-```{r B2_3-MAKER}
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B2-3")
-
-######### MAKER ATTRIBUTES ########################
-vals = c("datacollar", "bluecollar")
-leftside <- rep ("PROFESSIONAL",1 )
-rightside <-rep ("LAYPERSON",1 ) 
-b23_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DESIGN")
-
-b23_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DATA")
-
-
-leftside <- rep ("LEFT-WING",1 )
-rightside <-rep ("RIGHT-WING",1 ) 
-b23_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-POLITICS")
-  
-
-leftside <- rep ("CONFRONTATIONAL",1 )
-rightside <-rep ("DIPLOMATIC",1 ) 
-b23_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-ARGUE")
-  
-leftside <- rep ("ALTRUSITC",1 )
-rightside <-rep ("SELFISH",1 ) 
-b23_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SELFISH")
-
-
-leftside <- rep ("Does NOT",1 )
-rightside <-rep ("DOES",1 ) 
-b23_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SHARES-MY-VALUES")
-
-leftside <- rep ("UNTRUSTWORTHY",1 )
-rightside <-rep ("TRUSTWORTHY",1 ) 
-b23_m_trust <- ggplot(df, aes(y = MAKER_TRUST, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-TRUST")
-
-
-PLOT_b2_3_maker <- (b23_m_design / b23_m_data / b23_m_politics / b23_m_argue / b23_m_selfish / b23_m_align / b23_m_trust) + 
-  plot_annotation(
-    title = "STIMULUS B2-3 — HOT DESERT CLIMATE MAP"
-  )
-
-PLOT_b2_3_maker
-###################################################
-
-
-
-```
-
-### B2-4 MAKER
-
-```{r B2_4-MAKER}
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B2-4")
-
-######### MAKER ATTRIBUTES ########################
-vals = c("datacollar", "bluecollar")
-leftside <- rep ("PROFESSIONAL",1 )
-rightside <-rep ("LAYPERSON",1 ) 
-b24_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DESIGN")
-
-b24_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DATA")
-
-
-leftside <- rep ("LEFT-WING",1 )
-rightside <-rep ("RIGHT-WING",1 ) 
-b24_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-POLITICS")
-  
-
-leftside <- rep ("CONFRONTATIONAL",1 )
-rightside <-rep ("DIPLOMATIC",1 ) 
-b24_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-ARGUE")
-  
-leftside <- rep ("ALTRUSITC",1 )
-rightside <-rep ("SELFISH",1 ) 
-b24_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SELFISH")
-
-
-leftside <- rep ("Does NOT",1 )
-rightside <-rep ("DOES",1 ) 
-b24_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SHARES-MY-VALUES")
-
-leftside <- rep ("UNTRUSTWORTHY",1 )
-rightside <-rep ("TRUSTWORTHY",1 ) 
-b24_m_trust <- ggplot(df, aes(y = MAKER_TRUST, x = ID.Study, color = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-TRUST")
-
-
-PLOT_b2_4_maker <- (b24_m_design / b24_m_data / b24_m_politics / b24_m_argue / b24_m_selfish / b24_m_align / b24_m_trust) + 
-  plot_annotation(
-    title = "STIMULUS B2-4 — HOLMES HOSPITAL BEDS"
-  )
-
-PLOT_b2_4_maker
-###################################################
-
-```
-
-## BLOCK 6
-
-### B6-1 MAKER
-
-```{r B6_1-MAKER}
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B6-1")
-
-######### MAKER ATTRIBUTES ########################
-# vals = c("datacollar", "bluecollar")
-leftside <- rep ("PROFESSIONAL", 1 )
-rightside <-rep ("LAYPERSON", 1 ) 
-b61_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DESIGN")
-
-b61_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DATA")
-
-
-leftside <- rep ("LEFT-WING", 1 )
-rightside <-rep ("RIGHT-WING", 1 ) 
-b61_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-POLITICS")
-  
-
-leftside <- rep ("CONFRONTATIONAL", 1 )
-rightside <-rep ("DIPLOMATIC", 1 ) 
-b61_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-ARGUE")
-  
-leftside <- rep ("ALTRUSITC", 1 )
-rightside <-rep ("SELFISH", 1 ) 
-b61_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SELFISH")
-
-
-leftside <- rep ("Does NOT", 1 )
-rightside <-rep ("DOES", 1 ) 
-b61_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SHARES-MY-VALUES")
-
-leftside <- rep ("UNTRUSTWORTHY", 1 )
-rightside <-rep ("TRUSTWORTHY", 1 ) 
-
-b61_m_trust <-ggplot(df, aes(y = MAKER_TRUST, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-TRUST")
-
-
-PLOT_b6_1_maker <- (b61_m_design / b61_m_data / b61_m_politics / b61_m_argue / b61_m_selfish / b61_m_align / b61_m_trust) + 
-  plot_annotation(
-    title = "STIMULUS B6-1 PLACID PURPLE PIES"
-  )
-
-PLOT_b6_1_maker
-###################################################
-
-
-
-```
-
-### B6-2 MAKER
-
-```{r B6_2-MAKER}
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B6-2")
-
-######### MAKER ATTRIBUTES ########################
-# vals = c("datacollar", "bluecollar")
-leftside <- rep ("PROFESSIONAL", 1 )
-rightside <-rep ("LAYPERSON", 1 ) 
-b62_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DESIGN")
-
-b62_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DATA")
-
-
-leftside <- rep ("LEFT-WING", 1 )
-rightside <-rep ("RIGHT-WING", 1 ) 
-b62_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-POLITICS")
-  
-
-leftside <- rep ("CONFRONTATIONAL", 1 )
-rightside <-rep ("DIPLOMATIC", 1 ) 
-b62_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-ARGUE")
-  
-leftside <- rep ("ALTRUSITC", 1 )
-rightside <-rep ("SELFISH", 1 ) 
-b62_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SELFISH")
-
-
-leftside <- rep ("Does NOT", 1 )
-rightside <-rep ("DOES", 1 ) 
-b62_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SHARES-MY-VALUES")
-
-leftside <- rep ("UNTRUSTWORTHY", 1 )
-rightside <-rep ("TRUSTWORTHY", 1 ) 
-
-b62_m_trust <-ggplot(df, aes(y = MAKER_TRUST, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-TRUST")
-
-
-PLOT_b6_2_maker <- (b62_m_design / b62_m_data / b62_m_politics / b62_m_argue / b62_m_selfish / b62_m_align / b62_m_trust) + 
-  plot_annotation(
-    title = "STIMULUS B6-2 ECONOMIST BLUE BARS"
-  )
-
-PLOT_b6_2_maker
-###################################################
-
-
-
-```
-
-### B6-3 MAKER
-
-```{r B6-3-MAKER}
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B6-3")
-
-######### MAKER ATTRIBUTES ########################
-# vals = c("datacollar", "bluecollar")
-leftside <- rep ("PROFESSIONAL", 1 )
-rightside <-rep ("LAYPERSON", 1 ) 
-b63_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DESIGN")
-
-b63_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DATA")
-
-
-leftside <- rep ("LEFT-WING", 1 )
-rightside <-rep ("RIGHT-WING", 1 ) 
-b63_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-POLITICS")
-  
-
-leftside <- rep ("CONFRONTATIONAL", 1 )
-rightside <-rep ("DIPLOMATIC", 1 ) 
-b63_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-ARGUE")
-  
-leftside <- rep ("ALTRUSITC", 1 )
-rightside <-rep ("SELFISH", 1 ) 
-b63_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SELFISH")
-
-
-leftside <- rep ("Does NOT", 1 )
-rightside <-rep ("DOES", 1 ) 
-b63_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SHARES-MY-VALUES")
-
-leftside <- rep ("UNTRUSTWORTHY", 1 )
-rightside <-rep ("TRUSTWORTHY", 1 ) 
-
-b63_m_trust <-ggplot(df, aes(y = MAKER_TRUST, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-TRUST")
-
-
-PLOT_b6_3_maker <- (b63_m_design / b63_m_data / b63_m_politics / b63_m_argue / b63_m_selfish / b63_m_align / b63_m_trust) + 
-  plot_annotation(
-    title = "STIMULUS B6-3 FIERY OMBRE BARS"
-  )
-
-PLOT_b6_3_maker
-###################################################
-
-
-
-```
-
-### B6-4 MAKER
-
-```{r B6-4-MAKER}
-
-#FILTER DATAFRAME
-df <- df_graphs %>% filter(STIMULUS == "B6-4")
-
-######### MAKER ATTRIBUTES ########################
-# vals = c("datacollar", "bluecollar")
-leftside <- rep ("PROFESSIONAL", 1 )
-rightside <-rep ("LAYPERSON", 1 ) 
-b64_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DESIGN")
-
-b64_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-DATA")
-
-
-leftside <- rep ("LEFT-WING", 1 )
-rightside <-rep ("RIGHT-WING", 1 ) 
-b64_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-POLITICS")
-  
-
-leftside <- rep ("CONFRONTATIONAL", 1 )
-rightside <-rep ("DIPLOMATIC", 1 ) 
-b64_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-ARGUE")
-  
-leftside <- rep ("ALTRUSITC", 1 )
-rightside <-rep ("SELFISH", 1 ) 
-b64_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SELFISH")
-
-
-leftside <- rep ("Does NOT", 1 )
-rightside <-rep ("DOES", 1 ) 
-b64_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # #breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # #breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-SHARES-MY-VALUES")
-
-leftside <- rep ("UNTRUSTWORTHY", 1 )
-rightside <-rep ("TRUSTWORTHY", 1 ) 
-
-b64_m_trust <-ggplot(df, aes(y = MAKER_TRUST, x = ID.Study))+
-  geom_jitter(width = 0.1, alpha=0.5) + 
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() + 
-  theme_minimal() + 
-  easy_remove_legend() + 
-  guides(
-  y = guide_axis_manual(
-  # breaks = vals, 
-  labels = leftside  
-  ),
-  y.sec = guide_axis_manual(
-  # breaks = vals, 
-  labels = rightside
-)) + 
-  labs(title  = "MAKER-TRUST")
-
-
-PLOT_b6_4_maker <- (b64_m_design / b64_m_data / b64_m_politics / b64_m_argue / b64_m_selfish / b64_m_align / b64_m_trust) + 
-  plot_annotation(
-    title = "STIMULUS B6-4 DIRTY STACKED CIGARETTES"
-  )
-
-PLOT_b6_4_maker
-###################################################
-
-
-
-```
-
-## POLITICS
-
-```{r}
-
-
-
-p_politics <- b00_m_politics / b11_m_politics / b12_m_politics / b13_m_politics / b14_m_politics / b21_m_politics / b22_m_politics / b23_m_politics / b24_m_politics /b61_m_politics / b62_m_politics / b63_m_politics / b64_m_politics 
-
-p_politics
-
-```
-
-```{r}
-
-# gf_histogram( ~ MAKER_TRUST, data = df_graphs) %>% 
-#   gf_facet_grid(STIMULUS ~ .) %>%  easy_labs( title = "MAKER TRUST by GRAPH")
-# 
-# gf_histogram( ~ CHART_TRUST, data = df_graphs) %>% 
-#   gf_facet_grid(STIMULUS ~ .) %>%  easy_labs( title = "CHART TRUST by GRAPH")
-# 
-# 
-# gf_histogram( ~ MAKER_CONF, data = df_graphs) %>%  easy_labs( title = "MAKER CONF by GRAPH")
-# # %>% 
-#   gf_facet_grid(STIMULUS ~ .) 
-# 
-
-```
-
-```{r, message=FALSE, warning=FALSE}
-
-# #MAKER CHARS 
-# df <- df_graphs %>% select(ID.Study:STIMULUS, ENCOUNTER, MAKER_ID:MAKER_LATENCY) %>% 
-#   mutate(
-#     STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
-#   )
-# 
-# #MAKER CHARS 
-# df <- df_graphs %>% select(ID.Study:STIMULUS, ENCOUNTER, MAKER_ID:MAKER_LATENCY) %>% 
-#   mutate(
-#     STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
-#   )
-# 
-# ## CHART 
-# df <- df_graphs %>% select(ID.Study, STIMULUS, ENCOUNTER, CHART_LIKE:loop_number) %>% 
-#   mutate(
-#     STIMULUS = factor(STIMULUS) #refactor to get rid of extra empty levels 
-#   )
-# 
-# ggpairs(df, mapping = aes(color = STIMULUS)) 
-# 
-
-
-
-
-## MAKER CHARACTERISTICS 
-df_1 <- df_graphs %>% 
-  # filter(STIMULUS == "B0-0") %>% 
-  select(ID.Study, MAKER_ID, MAKER_AGE, MAKER_GENDER, 
-         MAKER_DESIGN: MAKER_TRUST)
-         
-
-g <- ggpairs(df_1, 
-        mapping = aes(color = ID.Study, alpha = 0.05),
-        showStrips = TRUE,
-        title = "STIMULUS 0 MAKER CHARACTERISTICS BY SAMPLE") + 
-    theme_minimal()
-
-
-g
-```
 
 # MODELLING
 
 ```{r, message=FALSE}
 
 ##STATSPLOT
-grouped_ggwithinstats(
-  data  = df_graphs,
-  x     = STIMULUS,
-  y     = CHART_TRUST,
-  grouping.var = ID.Study
-) 
+# grouped_ggwithinstats(
+#   data  = df_graphs,
+#   x     = STIMULUS,
+#   y     = CHART_TRUST,
+#   grouping.var = ID.Study
+# ) 
 
-grouped_ggscatterstats(
-  data = df_graphs, ## data frame from which variables are taken
-  x = CHART_BEAUTY, ## predictor/independent variable
-  y = CHART_TRUST, ## dependent variable
-  grouping.var = ID.Study,
-  xlab = "CHART BEAUTY", ## label for the x-axis
-  ylab = "CHART TRUST", ## label for the y-axis
-  # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
-  point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
-  xfill = "#CC79A7", ## fill for marginals on the x-axis
-  yfill = "#009E73" ## fill for marginals on the y-axis
-  # title = "CHART TRUST (VS) MAKER TRUST",
-  # caption = ""
-)
-
-gf_point( data = df_graphs, CHART_TRUST~MAKER_TRUST, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
-
-
-grouped_ggscatterstats(
-  data = df_graphs, ## data frame from which variables are taken
-  x = MAKER_TRUST, ## predictor/independent variable
-  y = CHART_TRUST, ## dependent variable
-  grouping.var = ID.Study,
-  xlab = "MAKER TRUST", ## label for the x-axis
-  ylab = "CHART TRUST", ## label for the y-axis
-  # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
-  point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
-  xfill = "#CC79A7", ## fill for marginals on the x-axis
-  yfill = "#009E73" ## fill for marginals on the y-axis
-  # title = "CHART TRUST (VS) MAKER TRUST",
-  # caption = ""
-)
-
-gf_point( data = df_graphs, MAKER_TRUST~CHART_TRUST, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
-
-
-
-grouped_ggscatterstats(
-  data = df_graphs, ## data frame from which variables are taken
-  x = CHART_BEAUTY, ## predictor/independent variable
-  y = MAKER_ALIGN, ## dependent variable
-  grouping.var = ID.Study,
-  xlab = "CHART BEAUTY", ## label for the x-axis
-  ylab = "MAKER ALIGN", ## label for the y-axis
-  # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
-  point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
-  xfill = "#CC79A7", ## fill for marginals on the x-axis
-  yfill = "#009E73" ## fill for marginals on the y-axis
-  # title = "CHART TRUST (VS) MAKER TRUST",
-  # caption = ""
-)
-
-
-gf_point( data = df_graphs, MAKER_ALIGN~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
-
-
-
-
-
-
-ggscatterstats(
-  data = df_graphs %>% filter(STIMULUS=="B0-0"), ## data frame from which variables are taken
-  x = CHART_BEAUTY, ## predictor/independent variable
-  y = MAKER_TRUST, ## dependent variable
-  xlab = "CHART BEAUTY", ## label for the x-axis
-  ylab = "MAKER TRUST", ## label for the y-axis
-  # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
-  point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
-  xfill = "#CC79A7", ## fill for marginals on the x-axis
-  yfill = "#009E73" ## fill for marginals on the y-axis
-  # title = "CHART TRUST (VS) MAKER TRUST",
-  # caption = ""
-)
-
-gf_point( data = df_graphs %>% filter(STIMULUS=="B0-0"), CHART_TRUST~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
-
-gf_point( data = df_graphs %>% filter(STIMULUS=="B0-0"), MAKER_TRUST~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
+# grouped_ggscatterstats(
+#   data = df_graphs, ## data frame from which variables are taken
+#   x = CHART_BEAUTY, ## predictor/independent variable
+#   y = CHART_TRUST, ## dependent variable
+#   grouping.var = ID.Study,
+#   xlab = "CHART BEAUTY", ## label for the x-axis
+#   ylab = "CHART TRUST", ## label for the y-axis
+#   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
+#   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
+#   xfill = "#CC79A7", ## fill for marginals on the x-axis
+#   yfill = "#009E73" ## fill for marginals on the y-axis
+#   # title = "CHART TRUST (VS) MAKER TRUST",
+#   # caption = ""
+# )
+# 
+# gf_point( data = df_graphs, CHART_TRUST~MAKER_TRUST, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
+# 
+# 
+# grouped_ggscatterstats(
+#   data = df_graphs, ## data frame from which variables are taken
+#   x = MAKER_TRUST, ## predictor/independent variable
+#   y = CHART_TRUST, ## dependent variable
+#   grouping.var = ID.Study,
+#   xlab = "MAKER TRUST", ## label for the x-axis
+#   ylab = "CHART TRUST", ## label for the y-axis
+#   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
+#   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
+#   xfill = "#CC79A7", ## fill for marginals on the x-axis
+#   yfill = "#009E73" ## fill for marginals on the y-axis
+#   # title = "CHART TRUST (VS) MAKER TRUST",
+#   # caption = ""
+# )
+# 
+# gf_point( data = df_graphs, MAKER_TRUST~CHART_TRUST, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
+# 
+# 
+# 
+# grouped_ggscatterstats(
+#   data = df_graphs, ## data frame from which variables are taken
+#   x = CHART_BEAUTY, ## predictor/independent variable
+#   y = MAKER_ALIGN, ## dependent variable
+#   grouping.var = ID.Study,
+#   xlab = "CHART BEAUTY", ## label for the x-axis
+#   ylab = "MAKER ALIGN", ## label for the y-axis
+#   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
+#   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
+#   xfill = "#CC79A7", ## fill for marginals on the x-axis
+#   yfill = "#009E73" ## fill for marginals on the y-axis
+#   # title = "CHART TRUST (VS) MAKER TRUST",
+#   # caption = ""
+# )
+# 
+# 
+# gf_point( data = df_graphs, MAKER_ALIGN~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
+# 
+# 
+# 
+# 
+# 
+# 
+# ggscatterstats(
+#   data = df_graphs %>% filter(STIMULUS=="B0-0"), ## data frame from which variables are taken
+#   x = CHART_BEAUTY, ## predictor/independent variable
+#   y = MAKER_TRUST, ## dependent variable
+#   xlab = "CHART BEAUTY", ## label for the x-axis
+#   ylab = "MAKER TRUST", ## label for the y-axis
+#   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
+#   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
+#   xfill = "#CC79A7", ## fill for marginals on the x-axis
+#   yfill = "#009E73" ## fill for marginals on the y-axis
+#   # title = "CHART TRUST (VS) MAKER TRUST",
+#   # caption = ""
+# )
+# 
+# gf_point( data = df_graphs %>% filter(STIMULUS=="B0-0"), CHART_TRUST~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
+# 
+# gf_point( data = df_graphs %>% filter(STIMULUS=="B0-0"), MAKER_TRUST~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
 
 
 ```
 
 ```{r}
-
-
-#TODO CENTERING AND NORMALIZING
-
-### little model
-df <- df_graphs %>% filter(STIMULUS == "B0-0")
-m <- lm( CHART_TRUST ~ CHART_BEAUTY,data = df)
-summary(m)
-ggnostic(m) #GGALLY MODEL CHECKS
-check_model(m) #EASY STATS MODEL CHECKS 
-
-report(m)
+# 
+# 
+# #TODO CENTERING AND NORMALIZING
+# 
+# ### little model
+# df <- df_graphs %>% filter(STIMULUS == "B0-0")
+# m <- lm( CHART_TRUST ~ CHART_BEAUTY,data = df)
+# summary(m)
+# ggnostic(m) #GGALLY MODEL CHECKS
+# check_model(m) #EASY STATS MODEL CHECKS 
+# 
+# report(m)
 ```
 
 ```{r}
 ### MORE COMPLEX MODEL
-df <- df_graphs %>% filter(STIMULUS != "B0-0")
-m1 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1|ID.Qualtrics), data = df)
-m2 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1|STIMULUS), data = df)
-m3 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1 | STIMULUS) + (1 | ID.Qualtrics), data = df)
-summary(m1)
-summary(m2)
-summary(m3)
-compare_parameters(m1,m2,m3)
-compare_performance(m1,m2,m3, rank = TRUE)
-
-
-m <- lmer(CHART_TRUST ~ CHART_BEAUTY + MAKER_TRUST + (1 | STIMULUS) ,  data = df)
-mi <- lmer(CHART_TRUST ~ CHART_BEAUTY * MAKER_TRUST + (1 | STIMULUS) , data = df)
-summary(m)
-summary(mi)
-
-compare_performance(m3,m,mi, rank = TRUE)
-
-report(m)
+# df <- df_graphs %>% filter(STIMULUS != "B0-0")
+# m1 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1|ID.Qualtrics), data = df)
+# m2 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1|STIMULUS), data = df)
+# m3 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1 | STIMULUS) + (1 | ID.Qualtrics), data = df)
+# summary(m1)
+# summary(m2)
+# summary(m3)
+# compare_parameters(m1,m2,m3)
+# compare_performance(m1,m2,m3, rank = TRUE)
+# 
+# 
+# m <- lmer(CHART_TRUST ~ CHART_BEAUTY + MAKER_TRUST + (1 | STIMULUS) ,  data = df)
+# mi <- lmer(CHART_TRUST ~ CHART_BEAUTY * MAKER_TRUST + (1 | STIMULUS) , data = df)
+# summary(m)
+# summary(mi)
+# 
+# compare_performance(m3,m,mi, rank = TRUE)
+# 
+# report(m)
 #todo see https://yury-zablotski.netlify.app/post/mixed-effects-models-2/ about fitting with ML vs REML for model comparison 
 ```
 
