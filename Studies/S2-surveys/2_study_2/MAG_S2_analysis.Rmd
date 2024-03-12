@@ -68,6 +68,9 @@ library(lmerTest) #for CIs in glmer
 options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
+## IMPORTANT 
+graph_render = FALSE #set to true to generate all the SD graphs and save to folders 
+
 ```
 
 # WRANGLING
@@ -256,13 +259,13 @@ df_data <- df_raw %>%
       ),
     D_politicalParty = factor(D_politicalParty, levels = c("NA", "Other", "Independent", "Republican", "Democrat")),
     D_age = factor(D_age, 
-                   levels = c("25-34 years old" ,
-                              "18-24 years old" ,
-                              "45-54 years old" ,
+                   levels = c("18-24 years old" ,
+                              "25-34 years old" ,
                               "35-44 years old" ,
+                              "45-54 years old" ,
                               "55-64 years old" ,
                               "65+ years old"   ), 
-                   labels = c("25-34", "18-24", "45-54","35-44","55-64","65+ years"))
+                   labels = c("18-24", "25-34","35-44","45-54","55-64","65+ years"))
   ) %>%
   rename_at(
   #REPLACE RANDOM TRAILING _1 AND _65 FROM QUALTRICS
@@ -419,7 +422,10 @@ write.csv(df_qda, file = "data/output/df_qda.csv", na="")
 ## pilot data is not included in quantitative analysis, but is made available in the qda file
 df_data <- df_data %>% 
   filter(Scope != "pilot") %>% 
-  mutate(ID.Study = droplevels(ID.Study))
+  mutate(
+    ID.Study = droplevels(ID.Study), 
+    ID.Prolific = droplevels(ID.Prolific)
+  ) 
 
 
 
@@ -447,7 +453,7 @@ table(df_data$Assigned.Block)
 # 1 row per participant-graph-question
 df_questions <- df_data %>% 
   select(
-  ID.Qualtrics:ID.Study, Assigned.Block,
+  ID.Prolific, duration.min,  Assigned.Block,
   Sample, Scope, Distribution, PLATFORM, 
   D_gender:D_politicsFiscal, 
   contains("_Q_"), contains("loop"), 
@@ -510,9 +516,7 @@ df_tools <- df_questions %>%
   ) %>% 
   mutate(TOOL_ID = factor(TOOL_ID, 
                              levels = c("?", "design_basic","design_advanced", "viz_basic", "viz_advanced", "programming")),
-         ID.Qualtrics = droplevels(ID.Qualtrics),
          ID.Prolific = droplevels(ID.Prolific),
-         ID.Study = droplevels(ID.Study),
          TOOL_CONF = as.numeric(TOOL_CONF)
          ) 
 
@@ -539,9 +543,7 @@ df_actions <- df_questions %>%
                                               "share",
                                               "share w/ comment",
                                               "seek information")),
-         ID.Qualtrics = droplevels(ID.Qualtrics),
-         ID.Prolific = droplevels(ID.Prolific),
-         ID.Study = droplevels(ID.Study)) %>% 
+         ID.Prolific = droplevels(ID.Prolific)) %>% 
   select(-value,-QUESTION)
 
 #### CHART LEVEL DATA FRAME (LONG) ##########################
@@ -574,7 +576,7 @@ df_graphs <- df_graphs_full %>%
 #CHECK BLOCKS PER PARTICIPANT
 # every participant should have 2 blocks
 check_subject_blocks <- df_questions %>%
-  group_by(ID.Qualtrics) %>% summarise(
+  group_by(ID.Prolific) %>% summarise(
     n_block = length(unique(BLOCK))
   )
 print("every participant should have two blocks, [block 0 + randomly assigned block]")
@@ -584,7 +586,7 @@ all(check_subject_blocks$n_block==2)
 #CHECK STIMULI PER PARTICIPANT
 # every participant should have 5 graphs
 check_subject_graphs <- df_questions %>% 
-  group_by(ID.Qualtrics) %>%summarise(
+  group_by(ID.Prolific) %>%summarise(
     n_graphs = length(unique(STIMULUS))
   ) #each participant should have five graphs
 print("every participant should have five stimuli [B0 + 4 stimuli in a block]]")
@@ -673,39 +675,18 @@ plot_sd = function (data, column, type, boxplot) {
 
 ## Descriptives
 
-```{r summarytools-profile}
-
-df_graphs%>% summarytools::dfSummary(
-             varnumbers = FALSE,
-             plain.ascii  = FALSE,
-             graph.magnif = 0.75,
-             style        = "grid",
-             tmp.img.dir  = "temp",
-             missing.col = FALSE, 
-             method = "render"
-)
+```{r summarytools-profile, results='asis'}
 
 
-df_tools %>% summarytools::dfSummary(
-             varnumbers = FALSE,
-             plain.ascii  = FALSE,
-             graph.magnif = 0.75,
-             style        = "grid",
-             tmp.img.dir  = "temp",
-             missing.col = FALSE, 
-             method = "render"
-)
-             
-             
-df_actions  %>% summarytools::dfSummary(
-             varnumbers = FALSE,
-             plain.ascii  = FALSE,
-             graph.magnif = 0.75,
-             style        = "grid",
-             tmp.img.dir  = "temp",
-             missing.col = FALSE, 
-             method = "render"             
-)
+dfSummary(df_data %>% select(ID.Prolific, duration.min, PLATFORM, 
+                             contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
+          headings = TRUE,
+          plain.ascii  = FALSE,
+          style        = 'grid',
+          graph.magnif = 0.85,
+          varnumbers = FALSE,
+          valid.col    = FALSE,
+          tmp.img.dir  = "/tmp")
 
 
 ```
@@ -742,6 +723,8 @@ ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Ass
         subtitle = "(distributions of response times are similar across samples, as expected)") 
 ``` 
 
+
+
 Participant response times ranged from `r min(df_data$duration.min)` to `r max(df_data$duration.min)` minutes, with a mean response time of `r round(mean(df_data$duration.min),2)` minutes.
 
 ### Maker Page Response Time
@@ -776,6 +759,8 @@ ggplot(df, aes(x = MAKER_LATENCY, y = CATEGORY, fill = CATEGORY)) +
 
 
 ```
+
+
 Maker page response times ranged from `r min(df_graphs$MAKER_LATENCY)` to `r max(df_graphs$MAKER_LATENCY)` minutes, with a mean response time of `r round(mean(df_graphs$MAKER_LATENCY),1)` minutes.
 
 
@@ -811,6 +796,8 @@ ggplot(df, aes(x = CHART_LATENCY, y = CATEGORY, fill = CATEGORY)) +
 
 
 ```
+
+
 Chart page response times ranged from `r min(df_graphs$CHART_LATENCY)` to `r max(df_graphs$CHART_LATENCY)` minutes, with a mean response time of `r round(mean(df_graphs$CHART_LATENCY),1)` minutes.
 
 
@@ -903,7 +890,10 @@ l_fiscal <- nrow(df_data %>% filter(D_politicsFiscal < 50)) / nrow(df_data)
 rm(g)
   
 ```
-Across all six samples (n=40/sample) participants tended to report center-left leaning social values (M = `r round(mean(df_data$D_politicsSocial),2)`, SD = (`r round(sd(df_data$D_politicsSocial),2)` on a [0,100] scale);  with slightly more central fiscal values (M = `r round(mean(df_data$D_politicsFiscal),2)`, SD = (`r round(sd(df_data$D_politicsFiscal),2)`. Overall, `r l_politics*100`% of respondents identify with left-leaning social values (vs) `r r_politics*100` identifying as right-leaning; while `r round(l_fiscal*100,2)`% of respondents reported left-leaning fiscal values (vs) `r round(r_fiscal*100,2)` identify as right-leaning. 
+
+Across all six samples (n=40/sample) participants tended to report center-left leaning social values (M = `r round(mean(df_data$D_politicsSocial),2)`, SD = (`r round(sd(df_data$D_politicsSocial),2)`) on a [0,100] scale);  with slightly more central fiscal values (M = `r round(mean(df_data$D_politicsFiscal),2)`), SD = (`r round(sd(df_data$D_politicsFiscal),2)`). 
+
+Overall, `r l_politics*100`% of respondents identify with left-leaning social values (vs) `r r_politics*100`% identifying as right-leaning; while `r round(l_fiscal*100,2)`% of respondents reported left-leaning fiscal values (vs) `r round(r_fiscal*100,2)`% identify as right-leaning. 
 
 ### Politcal Affiliation
 
@@ -986,7 +976,8 @@ ggplot( df, aes( x = CATEGORY, fill = MAKER_ID)) +
 
 ### Maker ID & Confidence by Stimulus
 
-```{r, maker-id-confidence-stimulus, message=FALSE, warning=FALSE}
+
+```{r maker-id-confidence-stimulus, fig.width = 10}
 
 #FILTER DATAFRAME
 df <- df_graphs 
@@ -994,7 +985,8 @@ df <- df_graphs
 ######### MAKER ID AND CONFIDENCE ##############
 # MAKER_ID by Sample and BEHAVIOR 
 a <- ggplot (df, aes( x = fct_rev(STIMULUS), fill = MAKER_ID)) + 
-  geom_bar(position = "fill") +
+  # geom_bar(width = 0.5, position = position_dodge(0.5)) +
+  geom_bar(position = "fill", width = 0.8) + 
   scale_fill_viridis(discrete=TRUE, option="viridis") +
   # facet_grid( df$ENCOUNTER) + 
   labs (x = "") + 
@@ -1002,11 +994,11 @@ a <- ggplot (df, aes( x = fct_rev(STIMULUS), fill = MAKER_ID)) +
 
 # MAKER_CONFIDENCE by IDENTIFICATION  
 b <- ggplot(df, aes( x = fct_rev(STIMULUS), y = MAKER_CONF, color = MAKER_ID)) + 
-  geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
+  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.4) +
   scale_color_viridis(discrete=TRUE, option="viridis") +
   labs (title = "") +
-  labs (x = "STIMULUS") + 
+  labs (x = "") + 
   theme_minimal() 
 
 (p <- (a / b )  + plot_annotation(
@@ -1017,6 +1009,8 @@ b <- ggplot(df, aes( x = fct_rev(STIMULUS), y = MAKER_CONF, color = MAKER_ID)) +
 ###################################################
 rm(a,b,p)
 ```
+
+
 ### Maker ID & Confidence
 
 ```{r, maker-id-confidence-category, message=FALSE, warning=FALSE}
@@ -1094,7 +1088,7 @@ ggplot( df, aes( x = CATEGORY, fill = MAKER_AGE)) +
 
 ### Maker Age & Confidence by Stimulus
 
-```{r maker-age-confidence-stimulus, message=FALSE, warning=FALSE}
+```{r maker-age-confidence-stimulus, message=FALSE, warning=FALSE, fig.width=10}
 
 #FILTER DATAFRAME
 df <- df_graphs 
@@ -1102,7 +1096,7 @@ df <- df_graphs
 ######### MAKER ID AND CONFIDENCE ##############
 # MAKER_ID by Sample and BEHAVIOR 
 a <- ggplot (df, aes( x = fct_rev(STIMULUS), fill = MAKER_AGE)) + 
-  geom_bar(position = "fill") +
+  geom_bar(position = "fill", width = 0.8) +
   scale_fill_viridis(discrete=TRUE, option="viridis") +
   # facet_grid( df$ENCOUNTER) + 
   labs (x = "") + 
@@ -1110,7 +1104,7 @@ a <- ggplot (df, aes( x = fct_rev(STIMULUS), fill = MAKER_AGE)) +
 
 # MAKER_CONFIDENCE by IDENTIFICATION  
 b <- ggplot(df, aes( x = fct_rev(STIMULUS), y = MAKER_CONF, color = MAKER_AGE)) + 
-  geom_boxplot(position=position_dodge(0.9))+
+  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
   geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
   scale_color_viridis(discrete=TRUE, option="viridis") +
   labs (title = "") +
@@ -1181,6 +1175,7 @@ ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) +
 
 ```
 ### Maker Gender by Category
+
 ```{r maker-gender-category}
 
 df <- df_graphs 
@@ -1199,7 +1194,7 @@ ggplot( df, aes( x = CATEGORY, fill = MAKER_GENDER)) +
 
 ### Maker Gender & Confidence by Stimulus
 
-```{r maker-gender-confidence-stimulus, message=FALSE, warning=FALSE}
+```{r maker-gender-confidence-stimulus, message=FALSE, warning=FALSE, fig.width=10}
 
 #FILTER DATAFRAME
 df <- df_graphs 
@@ -1207,7 +1202,7 @@ df <- df_graphs
 ######### MAKER ID AND CONFIDENCE ##############
 # MAKER_GENDER by STIMULUS
 a <- ggplot (df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) + 
-  geom_bar(position = "fill") +
+  geom_bar(position = "fill", width = 0.8) +
   scale_fill_viridis(discrete=TRUE, option="viridis") +
   # facet_grid( df$ENCOUNTER) + 
   labs (x = "") + 
@@ -1215,7 +1210,7 @@ a <- ggplot (df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) +
 
 # GENDER_CONFIDENCE by STIMULUS
 b <- ggplot(df, aes( x = fct_rev(STIMULUS), y = GENDER_CONF, color = MAKER_GENDER)) + 
-  geom_boxplot(position=position_dodge(0.9))+
+  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
   geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
   scale_color_viridis(discrete=TRUE, option="viridis") +
   labs (x = "STIMULUS") + 
@@ -1310,25 +1305,27 @@ ggplot(data = df, aes( fill = fct_rev(TOOL_ID), x = CATEGORY )) +
 
 ### Tool ID & Confidence by Stimulus
 
-```{r toolid-confidence-stimulus, message=FALSE, warning=FALSE}
+```{r toolid-confidence-stimulus, message=FALSE, warning=FALSE, fig.width = 10}
 
 #FILTER DATAFRAME
 df <- df_tools 
 
 ######### TOOL ID AND CONFIDENCE ##############
 a <- ggplot (df, aes( x = fct_rev(STIMULUS), fill = fct_rev(TOOL_ID))) + 
-  geom_bar(position = "fill") +
+  geom_bar(position = "fill", width = 0.8) +
   scale_fill_paletteer_d("awtools::a_palette", direction = 1) +
   # facet_grid( df$ENCOUNTER) + 
-  labs (x = "") + 
+  labs (x = "") +
+  easy_add_legend_title("TOOL ID")+
   theme_minimal() 
 
 # TOOL_CONFIDENCE by STIMULUS
 b <- ggplot(df, aes( x = fct_rev(STIMULUS), y = TOOL_CONF, color = fct_rev(TOOL_ID))) + 
-  geom_boxplot(position=position_dodge(0.9))+
+  geom_boxplot(position=position_dodge(0.9), width = 0.6)+
   geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
   scale_color_paletteer_d("awtools::a_palette", direction = 1) +
   labs (x = "STIMULUS") + 
+  easy_add_legend_title("TOOL ID")+
   theme_minimal() 
 
 (p <- (a / b )  + plot_annotation(
@@ -1354,6 +1351,7 @@ a <- ggplot (df, aes( x = fct_rev(CATEGORY), fill = fct_rev(TOOL_ID))) +
   scale_fill_paletteer_d("awtools::a_palette", direction = 1) +
   # facet_grid( df$ENCOUNTER) + 
   labs (x = "") + 
+  easy_add_legend_title("TOOL ID")+
   theme_minimal() 
 
 # TOOL CONF 
@@ -1362,6 +1360,7 @@ b <- ggplot(df, aes( x = fct_rev(CATEGORY), y = TOOL_CONF, color = fct_rev(TOOL_
   geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
   scale_color_paletteer_d("awtools::a_palette", direction = 1) +
   labs (x = "STIMULUS CATEGORY") + 
+  easy_add_legend_title("TOOL ID")+
   theme_minimal() 
 
 (p <- (a / b )  + plot_annotation(
@@ -1398,7 +1397,10 @@ ggplot( df, aes( x = fct_rev(STIMULUS), fill = ENCOUNTER)) +
   theme_minimal()
 
 ```
+
+
 ### Encounter Choice by Category
+
 ```{r encounter-category}
 
 df <- df_graphs 
@@ -1469,16 +1471,16 @@ ggplot(data = df, aes( fill = CHART_ACTION, x = CATEGORY )) +
 
 
 
-## WIP
+# INTERACTIVE GRAPHS
 
 
 
 ### WIP IXN Maker ID & Politics
-```{r}
+```{r PLOTLY}
 
 #SETUP LISTS 
 stim <- ref_stimuli
-plots_maker_politics=list()
+plots_maker_politics <- htmltools::tagList()
 
 ### MAKE PLOTS 
 # LOOP THROUGH STIMULI
@@ -1487,33 +1489,41 @@ for (s in stim){
   i = i+1 #iterator hack
   
   d <- df_graphs_full %>% filter(STIMULUS == s) %>% select(ID.Prolific, STIMULUS, 
-                                                               MAKER_ID, MAKER_DETAIL, MAKER_CONF, 
+                                                               MAKER_ID, MAKER_DETAIL, MAKER_CONF, MAKER_POLITIC,
                                                                D_politicalParty, D_politicsSocial, D_politicsFiscal) 
-  p <- ggplot(d, aes(x = D_politicsSocial, y = MAKER_CONF,
-          color = MAKER_ID , 
-          text = MAKER_DETAIL))+
+  p <- ggplot(d, aes(x = MAKER_POLITIC, y = MAKER_CONF,
+          color = MAKER_ID ,
+          text = paste0("MAKER-DETAIL: ",MAKER_DETAIL, "<br>","ID: ", ID.Prolific)))+
       geom_point() +
-      facet_grid(MAKER_ID  ~D_politicalParty) + 
-      theme_minimal() + 
+      xlim(0,100)+
+      ylim(0,100)+
+      facet_grid(MAKER_ID  ~ D_politicalParty) +
+      theme_minimal() +
       labs(
-        title = paste(s," | ", "MAKER Identification, by Social Politics and Confidence")
-      )  
-  plots_maker_politics[[i]] <- ggplotly(p) 
+        title = paste(s," | ", "MAKER Identification, Politics and Confidence, by Participant Confidence and Political Affiliation"),
+        x = "MAKER POLITICS",
+        y = "MAKER CONFIDENCE"
+      )
 
+  
+  plots_maker_politics[[i]] <- ggplotly(p)
+  
 }
 
 names(plots_maker_politics) <- ref_stimuli
 
 
+#works in console but not render 
 ### PRINT PLOTS
-for (s in stim){
-  print(plots_maker_politics[[s]])
-}
+# for (s in stim){
+#   print(plots_maker_politics[[s]])
+# }
 
+
+# ggplotly(p) #works for single
+
+plots_maker_politics
 ```
-
-
-
 
 
 
@@ -1525,6 +1535,10 @@ for (s in stim){
 ### ALL Q BY STIMULUS
 
 ```{r ALL-Q-BY-STIMULUS}
+
+##ONLY RENDER GRAPHS IF SET TO TRUE
+if(graph_render == TRUE){
+
 
 #################### ALL QUESTIONS AT STIMULUS #####################
 # ONE PLOT FOR EACH STIMULUS WITH ALL QUESTIONS
@@ -1566,7 +1580,7 @@ names(plots_stimulus) <- stimuli
 rm(x, i, plots)
 
 #############################################################################
-
+} 
 ```
 
 #### WIP ALT SD GRAPHS
@@ -1610,6 +1624,9 @@ rm(x, i, plots)
 
 ```{r ALL-Q-BY-CATEGORY}
 
+##ONLY RENDER GRAPHS IF SET TO TRUE
+if(graph_render == TRUE){
+
 #################### ALL QUESTIONS AT CATEGORY #####################
 # ONE PLOT FOR EACH CATEGORY WITH ALL QUESTIONS
 
@@ -1647,6 +1664,8 @@ for (c in categories){
 names(plots_category) <- categories
 rm(x, i, plots)
 
+}
+
 ```
 
 ## BY QUESTION
@@ -1654,6 +1673,9 @@ rm(x, i, plots)
 ### Q for ALL STIMULI
 
 ```{r Q-FOR-ALL-STIMULI}
+
+##ONLY RENDER GRAPHS IF SET TO TRUE
+if(graph_render == TRUE){
 
 ####################CREATE SD PLOTS FOR EACH QUESTION#####################
 
@@ -1692,12 +1714,17 @@ names(plots_s_question) <- questions
 rm(x, i, plots)
 
 #############################################################################
+
+}
 ```
 
 ### Q for ALL CATEGORIES
 
 ```{r Q-FOR-ALL-CATEGORIES}
 
+##ONLY RENDER GRAPHS IF SET TO TRUE
+if(graph_render == TRUE){
+  
 ####################SD PLOTS QUESTION BY CATEGORY #####################
 
 #set grouping column 
@@ -1731,6 +1758,8 @@ names(plots_c_question) <- questions
 rm(x, i)
   
 #############################################################################
+
+}
 
 ```
 
