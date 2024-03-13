@@ -26,6 +26,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #UTILITIES
 library(Hmisc) # %nin% operator
+library(psych) #describe()
 library(tidyverse) #all the things
 library(magrittr) #special pipes like %<>%
 library(summarytools) #data quality
@@ -138,6 +139,7 @@ df_studies <- read_csv("data/input/studies.csv", col_names = TRUE) %>%
 
 ```{r WRANGLING, message=FALSE, warning=FALSE}
 
+#1. IMPORT RAW DATA FILES ########################################################
 #### RAW DATA ####################################################################
 # will always be the unaltered version of imported data
 # 1 row per subject 
@@ -197,6 +199,9 @@ rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b1, df_raw_b2, df_raw_b3, df_raw
 #rename incorrectly labelled millenial 
 df_raw <- df_raw %>% mutate_all(funs(str_replace(., "millenial", "millennial")))
 
+
+
+#2. CLEAN MASTER PARTICIPANT-LEVEL DF  #########################################################
 ################################################################################################
 #### MASTER WIDE FORMAT DATA FRAME [1 row / qualtrics submission] ################
 df_data <- df_raw %>% 
@@ -320,6 +325,7 @@ df_data <- df_raw %>%
 ## JOIN STUDY ID DATA 
 df_data <- dplyr::left_join(df_data, df_studies, by="ID.Study") 
 
+#2B CLEAN MASTER PARTICIPANT-LEVEL DF  #########################################
 #### SEGREGATE PARTICIPANTS WHO DID NOT COMPLETE ###############################
 ## [1 row / qualtrics submission] ################
 ## NOTE it is common for prolific participants to fail the 
@@ -362,14 +368,18 @@ print("Number of Prolific IDs duplicated in df_data print [should be 0]")
 sum(duplicated(df_data$ID.Prolific))
 
 
-## save subject level 
+## save participant-level data file for qda validation 
+## note that this DOES contain pilot data 
+## this does NOT contain excluded participants 
 write.csv(df_data, file = "data/output/df_participants.csv", na="")
 
+
+#3 CREATE TRIAL LEVEL DFS FOR QDA ###############################################
 #### CHART LEVEL DATA FRAME (LONG) FOR QDA (incl demographics) ##################
 #### INCLUDES PILOT DATA FROM DATACOLLAR BLUECOLLAR PROLIFIC RECRUITMENT ########
 # 1 ROW / participant X GRAPH including demographics 
 # UNRAVEL TO QUESTIONS
-df_qda <- df_data %>% 
+df_qda_input <- df_data %>% 
   # select(
   # ID.Qualtrics:ID.Study, PLATFORM,
   # contains("_Q_"), contains("loop")
@@ -413,13 +423,14 @@ df_qda <- df_data %>%
     CHART_LATENCY = round(CHART_LATENCY/60,2) #CHANGE TO MINS
   )
 #WRITE A CSV FILE AS THE BASIS FOR THE QUALITATIVE DATA ANALYSIS
-write.csv(df_qda, file = "data/output/df_qda.csv", na="")
-
+write.csv(df_qda_input, file = "data/output/df_qda_input.csv", na="")
 
 ###TODO HANDLE ASSIGNING 'Assigned.Block' for Tumblr data
 
+
+
 #### REMOVE PILOT DATA FROM DF_DATA 
-## pilot data is not included in quantitative analysis, but is made available in the qda file
+## pilot data IS not included QDA file, but not in quant analysis 
 df_data <- df_data %>% 
   filter(Scope != "pilot") %>% 
   mutate(
@@ -441,13 +452,13 @@ table(df_data$Assigned.Block)
 # cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
 
 
-# END WRANGLE MASTER WIDE DATA FRAME 
+# END WRANGLE MASTER WIDE PARTICIPANT LEVEL DATA FRAME 
 ################################################################################################
 ################################################################################################
 
 
 
-  
+#4 CREATE QUESTION LEVEL DFS ###################################################################
 #### QUESTION LEVEL DATA FRAME (LONG) ##########################
 # unravel ALL the way down to questions 
 # 1 row per participant-graph-question
@@ -497,6 +508,7 @@ df_sd_questions <- df_questions %>%
   )
 
 
+#5 SPECIAL DFS FOR MULTISELECT QS  #####################################################
 #### MULTI-SELECT QUESTIONS  ##########################
 
 ## DF_TOOLS 
@@ -546,7 +558,9 @@ df_actions <- df_questions %>%
          ID.Prolific = droplevels(ID.Prolific)) %>% 
   select(-value,-QUESTION)
 
-#### CHART LEVEL DATA FRAME (LONG) ##########################
+
+#6 DFS FOR TRIAL LEVEL ANALYSIS   ######################################################
+#### CHART LEVEL DATA FRAME (LONG) #####################################################
 # roll partway back up from questions 
 # 1 row per participant X graph 
 # unnest https://stackoverflow.com/questions/58035452/pivot-wider-outputs-s3-vctrs-list-of-objects
@@ -569,10 +583,50 @@ df_graphs_full <- df_questions %>%
     MAKER_ID = factor( MAKER_ID,levels = c("business", "political", "education","news","organization","individual"))
   )
 
+#7 DFS FOR TRIAL LEVEL ANALYSIS w/o free response ######################################################
+#### CHART LEVEL DATA FRAME (LONG) ##########################
 ## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES and MULTISELECT
 df_graphs <- df_graphs_full %>% 
   select( !is.character)
 
+
+#8 TRIAL LEVEL DATA INCLUDING QDA CODING ############################################################
+#### CHART LEVEL DATA FRAME (LONG) ##########################
+
+# import coded QDA data 
+# participant X chart level 
+df_coded <- read_csv("data/input/QDA/s2_qda_maker.csv", col_names = TRUE)
+# create unique key for join
+df_coded <- df_coded %>% filter(
+  Scope != "pilot"   #filter out pilot data
+) %>% mutate(
+  TRIAL = paste0(STIMULUS,"_",ID.Prolific)
+) %>% select(
+  #TODO ADD CODED DATA THEY ARE ADDED 
+  TRIAL, CODE_M_ID_SPECIFIC
+)
+
+# create base dataframe 
+df_graphs_coded <- df_graphs_full %>% mutate(
+  TRIAL = paste0(STIMULUS,"_",ID.Prolific)
+)
+
+##SANITY CHECK 
+print("coded df & trials df have same num rows")
+nrow(df_coded) == nrow(df_graphs_coded)
+
+df_graphs_coded <- dplyr::left_join(df_graphs_coded, df_coded, by="TRIAL") %>% 
+  select(
+  #reorder cols 
+  duration.min:D_politicsFiscal, BLOCK:MAKER_ID, MAKER_CONF:CHART_ACTION, STIMULUS, ID.Prolific,  TRIAL, MAKER_DETAIL, CODE_M_ID_SPECIFIC
+)
+
+##SANITY CHECK 
+print("coded df & trials df have same num rows")
+nrow(df_graphs) == nrow(df_graphs_coded)
+
+#####################################################################################
+################ SANITY CHECKS ######################################################
 #CHECK BLOCKS PER PARTICIPANT
 # every participant should have 2 blocks
 check_subject_blocks <- df_questions %>%
@@ -593,8 +647,14 @@ print("every participant should have five stimuli [B0 + 4 stimuli in a block]]")
 all(check_subject_graphs$n_graphs==5)
 
 
+
+
+
+
+
+
 #CLEANUP
-rm(check_subject_blocks, check_subject_graphs, df_graphs_qda)
+rm(check_subject_blocks, check_subject_graphs, df_graphs_qda, df_coded)
 
 ```
 
@@ -721,11 +781,16 @@ ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Ass
     labs( x = "Survey Response Time (mins)", y="",
         title = "TOTAL Response Time by Sample",
         subtitle = "(distributions of response times are similar across samples, as expected)") 
+
+
+
+desc.duration <- psych::describe(df_data$duration.min)
+
+## TODO TUMBLR AS WELL 
 ``` 
 
 
-
-Participant response times ranged from `r min(df_data$duration.min)` to `r max(df_data$duration.min)` minutes, with a mean response time of `r round(mean(df_data$duration.min),2)` minutes.
+Participant response times ranged from `r desc.duration$min` to `r desc.duration$max` minutes, with a mean response time of `r round(desc.duration$mean,2)` minutes, SD = `r (round(desc.duration$sd,2))`.
 
 ### Maker Page Response Time
 ```{r demo-maker-response-time}
@@ -803,6 +868,63 @@ Chart page response times ranged from `r min(df_graphs$CHART_LATENCY)` to `r max
 
 
 
+
+
+### Age
+
+```{r demo-age, message=FALSE}
+ 
+# AGE by SAMPLE
+ggplot(data = df_data, aes( x = Assigned.Block, fill = fct_rev(D_age) )) +
+  geom_bar(position = "stack") +
+  labs( title = "AGE by Sample", subtitle = "Expect similiar across samples", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  theme_minimal() +
+  easy_add_legend_title("")
+
+
+# OVERALL AGE
+ggstatsplot::ggbarstats(df_data, x= D_age, y=Scope) +
+    theme_minimal() +
+    scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+    easy_add_legend_title("Age") + 
+    labs (title = "Participant Age")
+
+## TODO TUMBLR AS WELL 
+
+```
+
+### Gender
+
+```{r demo-gender, message=FALSE}
+ 
+# GENDER by SAMPLE
+ggplot(data = df_data, aes( x = Assigned.Block, fill = fct_rev(D_gender) )) +
+  geom_bar(position = "stack") +
+  labs( title = "Gender by Sample", subtitle = "Expect similiar across samples", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  theme_minimal() 
+  # easy_add_legend_title("")
+
+
+# OVERALL AGE
+ggstatsplot::ggbarstats(df_data, x= D_gender, y=Scope) +
+    theme_minimal() +
+    scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+    easy_add_legend_title("Gender") + 
+    labs (title = "Participant Gender")
+
+
+desc.gender <- table(df_data$D_gender) %>% prop.table() 
+names(desc.gender) <- levels(df_data$D_gender)
+n_participants <- nrow(df_data)
+
+
+```
+
+
+`r n_participants` individuals from Prolific participated in Study 2, ( `r round(desc.gender[["Female"]],2)*100`% Female, `r round(desc.gender[["Male"]],2)*100`% Male, `r round(desc.gender[["Non-binary / third gender"]],2)*100`% Non-binary, `r (round((desc.gender[["Prefer not to say"]] + desc.gender[["Prefer to self-describe"]]),2)) * 100`% Other).
+
 ### Education
 ```{r demo-education}
 # EDUCATION by SAMPLE
@@ -815,20 +937,7 @@ ggplot(data = df_data, aes( x = Assigned.Block, fill = D_education )) +
   easy_add_legend_title("Sample")
 ```
 
-### Age
 
-```{r demo-age}
- 
-# AGE by SAMPLE
-ggplot(data = df_data, aes( x = Assigned.Block, fill = fct_rev(D_age) )) +
-  geom_bar(position = "stack") +
-  labs( title = "AGE by Sample", subtitle = "Expect similiar across samples", x = "") +
-  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
-  theme_minimal() +
-  easy_add_legend_title("")
-
-
-```
 
 ### Political Values
 
@@ -1468,11 +1577,7 @@ ggplot(data = df, aes( fill = CHART_ACTION, x = CATEGORY )) +
 
 
 
-
-
-
 # INTERACTIVE GRAPHS
-
 
 
 ### WIP IXN Maker ID & Politics
@@ -1523,6 +1628,106 @@ names(plots_maker_politics) <- ref_stimuli
 # ggplotly(p) #works for single
 
 plots_maker_politics
+```
+
+
+# QUALITATIVE DATA CODED 
+
+## MAKER ID DETAIL 
+
+```{r CODED-MAKER-ID-DETAIL}
+
+df <- df_graphs_coded %>% select( ID.Prolific, STIMULUS, BLOCK, CATEGORY, MAKER_ID, MAKER_DETAIL, CODE_M_ID_SPECIFIC) %>% 
+  separate_longer_delim(
+    cols = CODE_M_ID_SPECIFIC,
+    delim = ","
+  ) %>% filter(
+    CODE_M_ID_SPECIFIC %nin% c("x", "X","example")
+  ) %>% mutate(
+    CODED_MAKER = str_trim(CODE_M_ID_SPECIFIC, side="left"),
+    CODED_MAKER = str_to_upper(CODED_MAKER),
+    CODED_MAKER = factor(CODED_MAKER, levels = c("NYT",                           
+                                                  "WASHINGTON POST" ,              
+                                                  "USA TODAY" ,                    
+                                                  "THE ECONOMIST" ,                
+                                                  "WSJ",                           
+                                                  "POPULAR SCIENCE" ,              
+                                                  "TIME",                          
+                                                  "NPR",                           
+                                                  "PBS",                           
+                                                  "ASSOCIATED PRESS"  ,            
+                                                  "BBC",                           
+                                                  "CBS NEWS"  ,                    
+                                                  "ABC NEWS"  ,                    
+                                                  "NBC",                           
+                                                  "CNN",                           
+                                                  "FOX NEWS"  ,                    
+                                                  "BUZZFEED",                      
+                                                  "VOX",                           
+                                                  "VICE",                          
+                                                  "HUFFINGTON POST" ,              
+                                                  "US DOD"  ,                      
+                                                  "US BUREAU OF ECONOMIC ANALYSIS",
+                                                  "US DOE"  ,                      
+                                                  "US CDC"  ,                      
+                                                  "MINISTRY OF HEALTH"  ,          
+                                                  "EPA",                           
+                                                  "NOAA",                          
+                                                  "NATIONAL WEATHER SERVICE"  ,    
+                                                  "WHO",                           
+                                                  "UN",                            
+                                                  "THE NATURE CONSERVANCY"  ,      
+                                                  "GREENPEACE",                    
+                                                  "LEAF",                          
+                                                  "HARVARD",                       
+                                                  "COLUMBIA UNIVERSITY" ,          
+                                                  "IAA",                           
+                                                  "IBM",                           
+                                                  "MICROSOFT",                     
+                                                  "GOLDMAN SACHS" ,                
+                                                  "GMC",                           
+                                                  "TESLA",                         
+                                                  "GREEN PARTY OF AMERICA"  ,      
+                                                  "THE DEMOCRATIC PARTY"  ,        
+                                                  "THE REPUBLICAN PARTY")),
+    STIM = factor(STIMULUS, levels = c(
+      "B1-1",  "B2-1", "B3-1", "B4-1", "B5-1", "B6-1",
+      "B1-2",  "B2-2", "B3-2", "B4-2", "B5-2", "B6-2",
+      "B1-3", "B2-3", "B3-3", "B4-3", "B5-3", "B6-3",
+      "B1-4","B2-4" ,"B3-4" ,"B4-4" ,"B5-4" ,"B6-4", "B0-0"
+    ))
+  ) 
+
+
+
+ggplot(df,  aes(x = MAKER_ID, fill = CODED_MAKER )) + 
+  geom_bar(position = "stack") +
+  facet_grid( rows = vars(BLOCK), cols = vars(fct_rev(CATEGORY))) + 
+  theme_minimal() + 
+  labs(title = "Specific makers identified by stimulus")
+
+                          
+ggplot(df,  aes(x = STIMULUS, fill = CODED_MAKER )) + 
+  geom_bar(position = "stack") + 
+  theme_minimal()
+
+
+ggplot(df,  aes(x = STIMULUS, fill = CODED_MAKER )) + 
+  geom_bar(position = "stack") + 
+  facet_wrap(~CODED_MAKER) + 
+  theme_minimal() +
+  easy_remove_x_axis() +
+  easy_remove_legend()
+
+  
+ggplot(df,  aes(x = CODED_MAKER, fill = STIM, )) + 
+  geom_bar(position = "stack") + 
+  coord_flip() + 
+  theme_minimal() 
+  
+  
+      
+
 ```
 
 
