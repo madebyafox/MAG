@@ -1985,7 +1985,7 @@ for (s in stimuli){
 
   #subset data cols 
   cols <- df %>% select( all_of(ref_sd_questions))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", split = TRUE, boxplot=TRUE))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", split = FALSE, boxplot=TRUE))
 
   #aggregate q plots into one for stimulus 
   x <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
@@ -2069,7 +2069,7 @@ for (c in categories){
   
   #subset data cols
   cols <- df %>% select( all_of(ref_sd_questions))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type = "S", boxplot=TRUE))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type = "S", split = FALSE, boxplot=TRUE))
   
   #aggregate stimulus plots into block for question
   x <- plots[[1]] / plots[[2]]  / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
@@ -2118,7 +2118,7 @@ for (q in questions){
 
   #subset data cols 
   c <- df %>% select( all_of(ref_stimuli))
-  plots <- as.list(lapply(colnames(c), plot_sd, data = df, type = "Q", boxplot=TRUE))
+  plots <- as.list(lapply(colnames(c), plot_sd, data = df, type = "Q", split = FALSE, boxplot=TRUE))
   
   #aggregate stimulus plots into block for question
   x <- plots[[1]] / plots[[2]]  / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
