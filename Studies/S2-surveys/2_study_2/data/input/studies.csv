@@ -12,4 +12,5 @@ MAG_S2_PROLIFIC_GENERAL_B3_run2,65e7e385c70a65340e2ac279,https://mit.co1.qualtri
 MAG_S2_PROLIFIC_GENERAL_B4_run2,65e7e41ec1a60f4ef057cce6,https://mit.co1.qualtrics.com/jfe/form/SV_6SGaQzOAF6v2EGG,4,block4-fill,PROLIFIC,MAG_S2_PROLIFIC_GENERAL_4,general-prolific,study2
 MAG_S2_PROLIFIC_GENERAL_B5_run2,65e7e4843d66de772d039671,https://mit.co1.qualtrics.com/jfe/form/SV_3fRIcaxY5GQR1Mq,5,block5-fill,PROLIFIC,MAG_S2_PROLIFIC_GENERAL_5,general-prolific,study2
 MAG_S2_PROLIFIC_GENERAL_B6_run2,65e7e4bd2d12c8297e4e320f,https://mit.co1.qualtrics.com/jfe/form/SV_eKbVkECTt1f9fMO,6,block6-fill,PROLIFIC,MAG_S2_PROLIFIC_GENERAL_6,general-prolific,study2
-TUMBLR,TUMBLR,https://mit.co1.qualtrics.com/jfe/form/SV_2boFcDpNO14yuMK,RANDOM_BLOCK,TUMBLR-paid,TUMBLR,MAG_S2_TUMBLR_PAID,tumblr,study2
+TUMBLR,TUMBLR_PAID,https://mit.co1.qualtrics.com/jfe/form/SV_2boFcDpNO14yuMK,RANDOM_BLOCK,TUMBLR-paid,TUMBLR,MAG_S2_TUMBLR_PAID,tumblr-paid,study2
+TUMBLR,TUMBLR_FREE,https://mit.co1.qualtrics.com/jfe/form/SV_6sdCkXQfUkvGOwK,RANDOM_BLOCK,TUMBLR-free,TUMBLR,MAG_S2_TUMBLR_FREE,tumblr-free,study2
