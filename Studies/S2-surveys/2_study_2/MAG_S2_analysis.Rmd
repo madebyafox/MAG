@@ -89,6 +89,8 @@ Participants were excluded from the sample for the following reasons
 
 Following wrangling, there should be 6 blocks of stimuli, each containing responses from 40 participants from prolific, and TODO responses directly from Tumblr.
 
+
+### Import Configuration Files
 ```{r setup-stimuli, message=FALSE, warning = FALSE}
 
 ############## IMPORT STIMULI FILE
@@ -149,7 +151,8 @@ df_raw_b3 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_GENERAL_B3.csv", col_nam
 df_raw_b4 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_GENERAL_B4.csv", col_names = TRUE)
 df_raw_b5 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_GENERAL_B5.csv", col_names = TRUE)
 df_raw_b6 <- read_csv("data/input/CLEAN_MAG_S2_PROLIFIC_GENERAL_B6.csv", col_names = TRUE)
-df_raw_tumblr <- read_csv("data/input/CLEAN_MAG_S2_TUMBLR_PAID_ALL.csv", col_names = TRUE)
+df_raw_tumblr_paid <- read_csv("data/input/CLEAN_MAG_S2_TUMBLR_PAID_ALL.csv", col_names = TRUE)
+df_raw_tumblr_free <- read_csv("data/input/CLEAN_MAG_S2_TUMBLR_FREE_ALL.csv", col_names = TRUE)
 
 # drop first two rows (qualtrics_specs)
 df_raw_datacollar <- df_raw_datacollar[-c(1:2),]
@@ -160,7 +163,8 @@ df_raw_b3 <- df_raw_b3[-c(1:2),]
 df_raw_b4 <- df_raw_b4[-c(1:2),]
 df_raw_b5 <- df_raw_b5[-c(1:2),]
 df_raw_b6 <- df_raw_b6[-c(1:2),]
-df_raw_tumblr <- df_raw_tumblr[-c(1:2),]
+df_raw_tumblr_paid <- df_raw_tumblr_paid[-c(1:2),]
+df_raw_tumblr_free <- df_raw_tumblr_free[-c(1:2),]
 
 # ADD DUMMY COLS TO DATA/BLUE COLLAR PILOT DATA 
 # necessary b/c pilot (block 1) did not have chart_action behavioural question
@@ -215,10 +219,13 @@ df_raw_prolific <- df_raw_prolific %>%
     BROWSER_OS = `BROWSER_Operating System`
   ) %>% mutate_all(funs(str_replace(., "millenial", "millennial")))
 
+
+# BIND COLUMNS RAW prolific datasets 
+df_raw_tumblr <- rbind(df_raw_tumblr_paid, df_raw_tumblr_free)
+
 # RETROFIT SOME TUMBLR COLNAMES FOR MERGING WITH PROLIFIC 
 df_raw_tumblr <- df_raw_tumblr %>% 
-  select( - t_example_question1, -t_example_question2,
-          -contains("Straightlining")) %>% 
+  select( - t_example_question1, -t_example_question2) %>% 
   mutate(
     #add empty browser cols; didn't collect these in tumblr qualtrics
     BROWSER_Browser = NA,
@@ -305,7 +312,7 @@ df_raw <- df_raw %>%
 
 
 #DROP WIP DATAFRAMES 
-rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b1, df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6, df_raw_pilot, df_raw_prolific, df_raw_tumblr)
+rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b1, df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6, df_raw_pilot, df_raw_prolific, df_raw_tumblr, df_raw_tumblr_free, df_raw_tumblr_paid)
 
 ```
 
@@ -399,7 +406,7 @@ df_data <- df_raw %>%
                                                   "some college", "associates or technical degree", 
                                                   "undergradudate degree", "graduate or professional degree"), 
                                        ),
-    D_politicalParty = factor(D_politicalParty, levels = c("NA", "Other", "Independent", "Republican", "Democrat")),
+    D_politicalParty = factor(D_politicalParty, levels = c("No preference", "Other", "Independent", "Republican", "Democrat")),
     D_age = factor(D_age, 
                    levels = c("18-24 years old" ,
                               "25-34 years old" ,
@@ -517,8 +524,6 @@ sum(duplicated(df_data$PID))
 ## this does NOT contain excluded participants 
 write.csv(df_data, file = "data/output/df_participants.csv", na="")
 
-### DONE TO HERE 
-
 #3 CREATE TRIAL LEVEL DFS FOR QDA ###############################################
 #### CHART LEVEL DATA FRAME (LONG) FOR QDA (incl demographics) ##################
 #### INCLUDES PILOT DATA FROM DATACOLLAR BLUECOLLAR PROLIFIC RECRUITMENT ########
@@ -585,17 +590,36 @@ df_data <- df_data %>%
 ########## CHECK BLOCK COUNTS 
 # title = "Participants by Condition and Data Collection Modality"
 # cols = c("Control Condition","Impasse Condition","Total for Period")
-print("Number of abandoned/screened/rejected attempts ")
-table(df_exclude$Assigned.Block, df_exclude$Scope)
-print("Number of abandoned/screened/rejected attempts by type")
-table(df_exclude$EndState)
-print("Number of successful surveys")
-table(df_data$Assigned.Block)
-print("Number of successful surveys by distribution")
-table(df_data$Distribution)
-print("Number of successful surveys by distribution and block")
-table(df_data$Distribution, df_data$Assigned.Block)
-# cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+
+title = "Number of abandoned/screened/rejected attempts "
+cols = c("Block","pilot","study2","sum")
+cont <- table(df_exclude$Assigned.Block, df_exclude$Scope)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+title = "Number of abandoned/screened/rejected attempts by type"
+cols = c("Rejection Type", "Sum")
+cont <- table(df_exclude$EndState)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+title = "Number of successful surveys"
+cols = c("Assigned.Block", "Sum")
+cont <- table(df_data$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+title = "Number of successful surveys by distribution"
+cols = c("Sampling Platform", "Sum")
+cont <- table(df_data$Distribution)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+
+
+
+title = "Number of successful surveys by distribution and block"
+cols = c("Sampling Platform", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
+cont <- table(df_data$Distribution, df_data$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
 
 
 # END WRANGLE MASTER WIDE PARTICIPANT LEVEL DATA FRAME 
@@ -738,7 +762,7 @@ df_graphs_full <- df_questions %>%
 #### CHART LEVEL DATA FRAME (LONG) ##########################
 ## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES and MULTISELECT
 df_graphs <- df_graphs_full %>% 
-  select( !is.character)
+  select( !where(is.character))
 
 print("df_graphs_full is trial level dataset; df_graphs is trial level quantitative data only")
 
@@ -1097,6 +1121,10 @@ names(desc.gender.t) <- levels(df.t$D_gender)
 t_participants <- nrow(df.t)
 
 
+title = "Participant Gender — Self Describe"
+cols = c("Text","Count")
+cont <- table(df_data$D_gender_4_TEXT)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
 
 ```
 
@@ -1223,8 +1251,9 @@ Overall, `r round(l_politics*100,2)`% of respondents identify with left-leaning 
 ```{r demo-political-party}
 # POLITICAL PARTY
 ggplot(data = df_data, aes( fill = D_politicalParty, x = Assigned.Block )) +
-  geom_bar(position = "stack") +
+  geom_bar(position = "fill") +
   facet_grid(Distribution ~ .) + 
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
   labs( title = "POLITICAL PARTY by Sample",
         subtitle = "Expect similiar across samples", x = "") +
   theme_minimal() +
