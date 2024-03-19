@@ -70,7 +70,7 @@ options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-graph_render = TRUE #set to true to generate all the SD graphs and save to folders 
+graph_render = FALSE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
