@@ -654,7 +654,37 @@ df_questions <- df_data %>%
     BLOCK = factor(BLOCK),
     STIMULUS = factor(STIMULUS),
     QUESTION = str_replace_all(QUESTION,"-","_"),
-    QUESTION = factor(QUESTION),
+    QUESTION = factor(QUESTION, 
+                      levels = c(
+                        "ENCOUNTER",    
+                        "MAKER_ID",        
+                        "MAKER_DETAIL", 
+                        "MAKER_CONF",
+                        "MAKER_AGE", 
+                        "AGE_CONF",
+                        "MAKER_GENDER",
+                        "GENDER_CONF",
+                        "MAKER_DESIGN",  
+                        "MAKER_DATA",    
+                        "MAKER_POLITIC",
+                        "MAKER_ARGUE",  
+                        "MAKER_SELF",   
+                        "MAKER_ALIGN",    
+                        "MAKER_TRUST", 
+                        "MAKER_EXPLAIN",
+                        "MAKER_LATENCY", 
+                        "TOOL_ID",     
+                        "TOOL_CONF",     
+                        "TOOL_DETAIL",   
+                        "CHART_LIKE",    
+                        "CHART_BEAUTY",  
+                        "CHART_INTENT", 
+                        "CHART_TRUST",   
+                        "CHART_TYPE",    
+                        "CHART_ACTION",  
+                        "CHART_EXPLAIN", 
+                        "CHART_LATENCY", 
+                        "loop_number" )),
     STIMULUS_CATEGORY = str_remove(STIMULUS,"B.-"),
     STIMULUS_CATEGORY = factor(STIMULUS_CATEGORY,
                   levels=c("0","4","3","2","1"),
@@ -663,10 +693,10 @@ df_questions <- df_data %>%
   select(-stimulus) %>% filter(!is.na(value))
 
 
-#### SD QUESTION LEVEL DATA FRAME (LONG) ##########################
+#### SD QUESTION LEVEL DATA FRAME (wide-stim) ##########################
 # ravel up one level from questions
 # 1 row per participant-question with all blocks as cols for SD qs
-df_sd_questions <- df_questions %>%
+df_sd_questions_wide <- df_questions %>%
   select(-BLOCK,-STIMULUS_CATEGORY) %>% #drop block in order to work at stimulus level
   filter(QUESTION %in% ref_sd_questions) %>% 
   pivot_wider(
@@ -677,6 +707,16 @@ df_sd_questions <- df_questions %>%
   mutate(
     across(contains("-") , as.numeric),
     QUESTION = droplevels(QUESTION)
+  )
+
+
+
+### SD QUESTIONS LEVEL DATA FRAME (LONG) #####################
+df_sd_questions_long <- df_questions %>% 
+  filter(QUESTION %in% ref_sd_questions) %>% 
+  mutate(
+    QUESTION = droplevels(QUESTION),
+    value = as.numeric(value)
   )
 
 
@@ -1999,7 +2039,8 @@ if(graph_render == TRUE){
 stimuli <- ref_stimuli #created in wrangling block
 # stimili <- c("B0-0","B2-1" ,"B2-2", "B2-3", "B2-4")
 
-plots_stimulus <- list()
+box_stimuli <- list()
+rain_stimuli <- list()
 i = 0
 for (s in stimuli){
   i = i+1
@@ -2021,56 +2062,50 @@ for (s in stimuli){
      subtitle =""
    )
   
-  plots_stimulus[[i]] <- x
-  #ggsave(plot = x, path="figs/all_q_by_stimulus", filename =paste0(s,".png"), units = c("in"), width = 10, height = 14  )
+  box_stimuli[[i]] <- x
+  ggsave(plot = x, path="figs/all_q_by_stimulus", filename =paste0(s,"_box.png"), units = c("in"), width = 10, height = 14  )
+  
+  
+  #### RAINCLOUD PLOT
+  # setup dataframe 
+  title <- df_stimuli %>% filter(ID == s) %>% select(NAME) 
+  title <- paste(s,"|",title)
+  df <- df_sd_questions_wide %>% select(1:6, QUESTION, all_of(s)) %>% filter(!is.na(s)) %>%  mutate(value = get(s))
+
+
+  #RAINCLOUD PLOT
+  x <- ggplot(df, aes(y = fct_rev(QUESTION), x = value, fill = fct_rev(QUESTION))) +
+  stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+  guides(
+    # y = guide_axis_manual(labels = paste(levels(df$QUESTION),ref_labels$left)),
+    y = guide_axis_manual(labels = rev(ref_labels$left)),
+    y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+  ) + 
+  labs (title = title) +
+  theme_minimal() 
+   
+  
+  rain_stimuli[[i]] <- x
+  ggsave(plot = x, path="figs/all_q_by_stimulus", filename =paste0(s,"_rain.png"), units = c("in"), width = 10, height = 14  )
+  
+  
+  
 }
 
 #GIVE NAMES TO LIST
 #NOW CAN ACCESS plots by plots_stimulus$`B1-1`
 #ALSO plots_stimulus$`B1-1`[[1]]
-names(plots_stimulus) <- stimuli
+names(box_stimuli) <- stimuli
+names(rain_stimuli) <- stimuli
 rm(x, i, plots)
 
 #############################################################################
 } 
-```
-
-#### WIP ALT SD GRAPHS
-```{r}
-
-# # library
-# library(ggdist)
-# library(ggridges)
-# 
-# #RIDGEPLOT
-# ##ALL QUESTIONS FOR STIMULUS 1
-# 
-# s = "B0-0"
-# df <- df_sd_questions %>% select(1:6, s) %>% filter(!is.na(s)) %>%  mutate(
-#   value = `B0-0`
-# )
-# 
-# ggplot(df, aes(x = value, y = QUESTION, fill = QUESTION)) +
-#   geom_density_ridges(scale=0.9) +
-#   # xlim(0,100)+
-#   theme_ridges() + 
-#   theme(legend.position = "none")
-# 
-# 
-# 
-# 
-# library(ggdist)
-# 
-# d <- df %>% filter(str_detect(QUESTION,"CHART_"))
-# 
-# ggplot(df, aes(y = QUESTION, x = value, fill = QUESTION)) +
-#   stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
-#   stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
-#   theme_minimal()
-# 
-
 
 ```
+
+
 
 ### ALL Q BY CATEGORY
 
@@ -2084,7 +2119,9 @@ if(graph_render == TRUE){
 
 #set questions to be graphed 
 categories <- unique(df_graphs$STIMULUS_CATEGORY)#created in wrangling block
-plots_category <- list()
+box_category <- list()
+rain_category <- list()
+
 i = 0
 for (c in categories){
   i = i+1
@@ -2105,15 +2142,41 @@ for (c in categories){
        subtitle =""
       )
 
-  plots_category[[i]] <- x
-  ggsave(plot = x, path="figs/all_q_by_category", filename =paste0(c,".png"), units = c("in"), width = 10, height = 26)
+  box_category[[i]] <- x
+  ggsave(plot = x, path="figs/all_q_by_category", filename =paste0(c,"_box.png"), units = c("in"), width = 10, height = 26)
+  
+  
+  
+  
+  #### RAINCLOUD PLOT
+  # setup dataframe 
+  title <- paste("STIMULUS CATEGORY ", c)
+  df <- df_sd_questions_long %>% filter(STIMULUS_CATEGORY == c) %>% select(STIMULUS_CATEGORY, QUESTION, value, PID, Assigned.Block) 
+  
+  #RAINCLOUD PLOT
+  x <- ggplot(df, aes(y = fct_rev(QUESTION), x = value, fill = fct_rev(QUESTION))) +
+  stat_slab(normalize="groups", trim = TRUE, scale = 0.7) +
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+  guides(
+    y = guide_axis_manual(labels = paste(rev(levels(df$QUESTION)),rev(ref_labels$left))),
+    y = guide_axis_manual(labels = rev(ref_labels$left)),
+    y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+  ) +
+  labs (title = title) +
+  theme_minimal() 
+   
+  
+  rain_category[[i]] <- x
+  ggsave(plot = x, path="figs/all_q_by_category", filename =paste0(c,"_rain.png"), units = c("in"), width = 10, height = 26  )
+  
   
 }  
 
 #GIVE NAMES TO LIST
 #NOW CAN ACCESS plots by plots_category$A
 #ALSO plots_category$A[[1]]
-names(plots_category) <- categories
+names(box_category) <- categories
+names(rain_category) <- categories
 rm(x, i, plots)
 
 }
@@ -2133,14 +2196,15 @@ if(graph_render == TRUE){
 
 #set questions to be graphed 
 questions <- ref_sd_questions  #created in wrangling block
-plots_s_question <- list()
+box_s_question <- list()
+rain_s_question <- list()
 i = 0
 for (q in questions){
   i = i+1
   
   # setup dataframe 
   title <- paste(q)
-  df <- df_sd_questions %>% filter(QUESTION == q)
+  df <- df_sd_questions_wide %>% filter(QUESTION == q)
 
   #subset data cols 
   c <- df %>% select( all_of(ref_stimuli))
@@ -2155,15 +2219,45 @@ for (q in questions){
         title = title,
        subtitle =""
       )
-  plots_s_question[[i]] <- x 
-  ggsave(plot = x, path="figs/by_q_for_all_stimuli", filename =paste0(q,".png"), units = c("in"), width = 10, height = 26)
+  box_s_question[[i]] <- x 
+  ggsave(plot = x, path="figs/by_q_for_all_stimuli", filename =paste0(q,"_box.png"), units = c("in"), width = 10, height = 26)
+
+  
+  
+  
+  ############# RAINCLOUD
+  # setup dataframe 
+  title <- paste(q)
+  df <- df_sd_questions_long %>% filter(QUESTION ==q)
+    #select(1:6, QUESTION, all_of(s)) %>% filter(!is.na(s)) %>%  mutate(value = get(s))
+  left <- ref_labels[q,]$left
+  right <- ref_labels[q,]$right
+
+  #RAINCLOUD PLOT
+  x <- ggplot(df, aes(y = fct_rev(STIMULUS) , x = value, fill = fct_rev(STIMULUS))) +
+      stat_slab(normalize="groups", scale = 0.7) +
+      stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+  guides(
+    y = guide_axis_manual(labels = left),
+    y.sec = guide_axis_manual(labels = right)
+  ) +
+  labs (title = title) +
+  theme_minimal() 
+   
+  
+  rain_s_question[[i]] <- x
+  ggsave(plot = x, path="figs/by_q_for_all_stimuli", filename =paste0(q,"_rain.png"), units = c("in"), width = 10, height = 14  )
+  
+
+  
 }
 
 #GIVE NAMES TO LIST
 #NOW CAN ACCESS plots by plots_s_question$MAKER_DESIGN
 #ALSO plots_s_question$MAKER_DESIGN[[1]]
-names(plots_s_question) <- questions
-rm(x, i, plots)
+names(box_s_question) <- questions
+names(rain_s_question) <- questions
+rm(x, i, plots, left, right)
 
 #############################################################################
 
@@ -2184,8 +2278,8 @@ g = "STIMULUS_CATEGORY" #string name of column to group by
 
 #set questions to be graphed 
 questions <- ref_sd_questions#created in wrangling block
-plots_c_question <- list()
-
+box_c_question <- list()
+rain_c_question <- list()
 i = 0
 for (q in questions){
   i = i+1
@@ -2199,15 +2293,42 @@ for (q in questions){
   x <- multi_sd(df, left, right, x = q, y = g, color = g) + 
       labs(title  = q) 
  
-  plots_c_question[[i]] <- x
-  ggsave(plot = x, path="figs/by_q_for_all_categories", filename =paste0(q,".png"))
+  box_c_question[[i]] <- x
+  ggsave(plot = x, path="figs/by_q_for_all_categories", filename =paste0(q,"_box.png"))
+  
+  
+  
+  ############RAINCLOUDS
+  # setup dataframe 
+  title <- paste(q," BY CATEGORY")
+  df <- df_sd_questions_long %>% filter(QUESTION ==q)
+  left <-   ref_labels[q,]$left
+  right <-  ref_labels[q,]$right
+
+  #RAINCLOUD PLOT
+  x <- ggplot(df, aes(y = STIMULUS_CATEGORY , x = value, fill = STIMULUS_CATEGORY)) +
+      stat_slab(normalize="groups", scale = 0.7) +
+      stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+  guides(
+    y = guide_axis_manual(labels = left),
+    y.sec = guide_axis_manual(labels = right)
+  ) +
+  labs (title = title) +
+  theme_minimal() 
+   
+  
+  rain_c_question[[i]] <- x
+  ggsave(plot = x, path="figs/by_q_for_all_categories", filename =paste0(q,"_rain.png"), units = c("in"), width = 10, height = 14  )
+
+  
 }
 
 #GIVE NAMES TO LIST
 #NOW CAN ACCESS plots by plots_c_question$MAKER_DESIGN
 #ALSO plots_c_question$MAKER_DESIGN[[1]]
-names(plots_c_question) <- questions
-rm(x, i)
+names(box_c_question) <- questions
+names(rain_c_question) <- questions
+rm(x, i, right, left, df)
   
 #############################################################################
 
