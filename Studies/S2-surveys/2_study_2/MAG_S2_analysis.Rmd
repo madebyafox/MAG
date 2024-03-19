@@ -204,7 +204,7 @@ df_raw_prolific <- rbind(df_raw_pilot, df_raw_b1, df_raw_b2, df_raw_b3, df_raw_b
 # RETROFIT SOME COLNAMES FOR COMPATIBILITY WITH TUMBLR 
 df_raw_prolific <- df_raw_prolific %>% 
   #drop T_BROWSER cols [these are blank]
-  select(-contains("T_BROWSER")) %>% 
+  select(-contains("T_BROWSER"), -T_EMAIL) %>% 
   mutate(
     Q_RelevantIDDuplicate = NA, 
     Q_RelevantIDDuplicateScore = NA, 
@@ -235,10 +235,7 @@ df_raw_tumblr <- df_raw_tumblr %>%
     ID_PROLIFIC = "TUMBLR",
     ID_SESSION = "TUMBLR",
     ID_STUDY = "TUMBLR"
-  ) %>% 
-  rename(
-    T_EMAIL = D_email
-) %>% mutate_all(funs(str_replace(., "millenial", "millennial")))
+  ) %>% mutate_all(funs(str_replace(., "millenial", "millennial")))
 
 #dataframe column comparisons 
 # x <- janitor::compare_df_cols(df_raw_prolific, df_raw_tumblr)
@@ -250,7 +247,6 @@ df_raw <- df_raw %>%
   #reorder 
   select( RANDOM_BLOCK, 
           End_State,
-          T_EMAIL, 
           StartDate:randomize_common, 
           ID_PROLIFIC:ID_SESSION, 
           D_gender:FEEDBACK, 
@@ -524,6 +520,7 @@ sum(duplicated(df_data$PID))
 ## this does NOT contain excluded participants 
 write.csv(df_data, file = "data/output/df_participants.csv", na="")
 
+
 #3 CREATE TRIAL LEVEL DFS FOR QDA ###############################################
 #### CHART LEVEL DATA FRAME (LONG) FOR QDA (incl demographics) ##################
 #### INCLUDES PILOT DATA FROM DATACOLLAR BLUECOLLAR PROLIFIC RECRUITMENT ########
@@ -775,12 +772,12 @@ print("df_graphs_full is trial level dataset; df_graphs is trial level quantitat
 
 
 
+
+# ### TODO PICK UP HERE
 # 
-# ### TODO PICK UP HERE 
 # 
-# 
-# # import coded QDA data 
-# # participant X chart level 
+# # import coded QDA data
+# # participant X chart level
 # df_coded <- read_csv("data/input/QDA/s2_qda_maker.csv", col_names = TRUE)
 # # create unique key for join
 # df_coded <- df_coded %>% filter(
@@ -788,26 +785,26 @@ print("df_graphs_full is trial level dataset; df_graphs is trial level quantitat
 # ) %>% mutate(
 #   TRIAL = paste0(STIMULUS,"_",ID.Prolific)
 # ) %>% select(
-#   #TODO ADD CODED DATA THEY ARE ADDED 
+#   #TODO ADD CODED DATA THEY ARE ADDED
 #   TRIAL, CODE_M_ID_SPECIFIC
 # )
 # 
-# # create base dataframe 
+# # create base dataframe
 # df_graphs_coded <- df_graphs_full %>% mutate(
 #   TRIAL = paste0(STIMULUS,"_",ID.Prolific)
 # )
 # 
-# ##SANITY CHECK 
+# ##SANITY CHECK
 # print("coded df & trials df have same num rows")
 # nrow(df_coded) == nrow(df_graphs_coded)
 # 
-# df_graphs_coded <- dplyr::left_join(df_graphs_coded, df_coded, by="TRIAL") %>% 
+# df_graphs_coded <- dplyr::left_join(df_graphs_coded, df_coded, by="TRIAL") %>%
 #   select(
-#   #reorder cols 
+#   #reorder cols
 #   duration.min:D_politicsFiscal, BLOCK:MAKER_ID, MAKER_CONF:CHART_ACTION, STIMULUS, ID.Prolific,  TRIAL, MAKER_DETAIL, CODE_M_ID_SPECIFIC
 # )
 # 
-# ##SANITY CHECK 
+# ##SANITY CHECK
 # print("coded df & trials df have same num rows")
 # nrow(df_graphs) == nrow(df_graphs_coded)
 # 
@@ -821,11 +818,11 @@ print("df_graphs_full is trial level dataset; df_graphs is trial level quantitat
 #   )
 # print("every participant should have two blocks, [block 0 + randomly assigned block]")
 # all(check_subject_blocks$n_block==2)
-#   
+# 
 # 
 # #CHECK STIMULI PER PARTICIPANT
 # # every participant should have 5 graphs
-# check_subject_graphs <- df_questions %>% 
+# check_subject_graphs <- df_questions %>%
 #   group_by(ID.Prolific) %>%summarise(
 #     n_graphs = length(unique(STIMULUS))
 #   ) #each participant should have five graphs
@@ -1881,7 +1878,7 @@ plots_maker_politics
 ```
 
 
-# WIP QUALITATIVE DATA CODED 
+# WIP QDA ANALYSIS
 
 ## MAKER ID DETAIL 
 
