@@ -70,7 +70,7 @@ options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-graph_render = FALSE #set to true to generate all the SD graphs and save to folders 
+graph_render = TRUE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
@@ -225,7 +225,7 @@ df_raw_tumblr <- rbind(df_raw_tumblr_paid, df_raw_tumblr_free)
 
 # RETROFIT SOME TUMBLR COLNAMES FOR MERGING WITH PROLIFIC 
 df_raw_tumblr <- df_raw_tumblr %>% 
-  select( - t_example_question1, -t_example_question2) %>% 
+  select( - t_example_question1, -t_example_question2, -D_email) %>% 
   mutate(
     #add empty browser cols; didn't collect these in tumblr qualtrics
     BROWSER_Browser = NA,
