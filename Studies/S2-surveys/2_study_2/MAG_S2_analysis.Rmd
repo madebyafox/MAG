@@ -1282,6 +1282,35 @@ For the `r nrow(df.t)` participants recruited from Tumblr, a spectrum of Social 
 
 Overall, `r round(l_politics*100,2)`% of respondents identify with left-leaning social values (vs) `r round(r_politics*100,2)`% identifying as right-leaning; while `r round(l_fiscal*100,2)`% of respondents reported left-leaning fiscal values (vs) `r round(r_fiscal*100,2)`% identify as right-leaning. 
 
+
+### Political Values — Relationship
+
+```{r demo-plot-political-grid fig.width = 10}
+
+df <- df_graphs %>% select(PID, Assigned.Block, Distribution, D_politicsSocial, D_politicsFiscal, D_politicalParty) %>% 
+  mutate(
+    d_social = D_politicsSocial,
+    d_fiscal = D_politicsFiscal
+  )
+
+ggplot(df, aes(x = d_social, y = d_fiscal, color = D_politicalParty)) + 
+  geom_point() + 
+  geom_hline(yintercept = 50) +
+  geom_vline(xintercept = 50) + 
+  facet_grid(~D_politicalParty)+
+  labs(
+    title = "Social and Fiscal Political Values by Affiliation",
+    x = "Social Values", y = "Fiscal Values"
+  )+
+  theme_minimal() + 
+  easy_remove_legend() + 
+  easy_remove_axes()
+
+
+
+```
+
+
 ### Politcal Affiliation
 
 
@@ -1863,6 +1892,65 @@ ggplot(data = df, aes( fill = CHART_ACTION, x = STIMULUS_CATEGORY )) +
 ```
 
 
+
+# EDA
+
+##  PAIR PLOTS
+
+
+### CATEGORIES-MAKER
+```{r}
+
+df <- df_graphs %>% select(
+  STIMULUS_CATEGORY, MAKER_ID, MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE, MAKER_ALIGN, MAKER_TRUST, CHART_TRUST, CHART_BEAUTY
+)
+
+
+#maker pair plot 
+x <- ggduo(df, aes(color = STIMULUS_CATEGORY))
+ggsave(plot = x, path="figs/pairplots", filename =paste0("maker_category","_duoplot.png"), units = c("in"), width = 20, height = 20  )
+
+#maker pair plot 
+x <- ggpairs(df, aes(color = STIMULUS_CATEGORY))
+ggsave(plot = x, path="figs/pairplots", filename =paste0("maker_category","_pairplot.png"), units = c("in"), width = 20, height = 20  )
+
+```
+
+
+### CATEGORIES-CHART
+```{r}
+
+df <- df_graphs %>% select(
+  STIMULUS_CATEGORY, MAKER_ID, CHART_LIKE, CHART_BEAUTY, CHART_INTENT, CHART_TRUST, MAKER_TRUST
+)
+
+
+#maker pair plot 
+x <- ggduo(df, aes(color = STIMULUS_CATEGORY))
+ggsave(plot = x, path="figs/pairplots", filename =paste0("chart_category","_duoplot.png"), units = c("in"), width = 20, height = 20  )
+
+#maker pair plot 
+x <- ggpairs(df, aes(color = STIMULUS_CATEGORY))
+ggsave(plot = x, path="figs/pairplots", filename =paste0("chart_category","_pairplot.png"), units = c("in"), width = 20, height = 20  )
+
+```
+
+
+
+### ALL NUMERIC
+```{r}
+
+df <- df_graphs %>% select(STIMULUS_CATEGORY, where(is.numeric)) %>% 
+  select(-duration.min)
+
+
+#maker pair plot 
+x <- ggscatmat(df, color = "STIMULUS_CATEGORY")
+ggsave(plot = x, path="figs/pairplots", filename =paste0("category","_scaplot.png"), units = c("in"), width = 20, height = 20  )
+
+
+
+```
 
 # INTERACTIVE GRAPHS
 
