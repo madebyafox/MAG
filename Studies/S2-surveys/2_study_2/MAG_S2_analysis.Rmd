@@ -32,6 +32,9 @@ library(magrittr) #special pipes like %<>%
 library(summarytools) #data quality
 library(lubridate) #dealing with dates
 
+#EDA
+library(qacBase)
+
 #VIZ
 library(kableExtra) #printing tables
 library(ggformula) #regression syntax viz
@@ -70,7 +73,7 @@ options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-graph_render = TRUE #set to true to generate all the SD graphs and save to folders 
+graph_render = FALSE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
@@ -618,12 +621,24 @@ cont <- table(df_data$Distribution, df_data$Assigned.Block)
 cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
 
 
+##### CREATE PARTICIPANT LEVEL SIMPLFIFLIED DATAFRAME 
+df_particpants <- df_data %>% 
+  select(
+    PID:Assigned.Block, 
+    EndState, Sample, Scope, 
+    duration.sec, duration.min, 
+    contains("D_"), 
+    contains("SCREEN_")
+  )
+
+
 
 # END WRANGLE MASTER WIDE PARTICIPANT LEVEL DATA FRAME 
 ################################################################################################
 ################################################################################################
 
-print("df_data represents full set of valid complete participants")
+print("df_data represents full set of valid complete participants [wide]")
+print("df_participants represents full set of valid complete participants [simplified]")
 
 ```
 
@@ -974,6 +989,24 @@ dfSummary(df_data %>% select(PID, duration.min, Distribution, Assigned.Block, PL
 
 
 ```
+
+## Plotting the dataframe
+
+```{r plot-dataframe}
+
+print("Explore shapes of the prepared dataframes")
+
+qacBase::df_plot(df_graphs)
+qacBase::df_plot(df_questions)
+qacBase::df_plot(df_sd_questions_long)
+qacBase::df_plot(df_sd_questions_wide)
+
+qacBase::barcharts(df_particpants)
+
+
+
+```
+
 
 ## Demographics
 
@@ -1893,6 +1926,113 @@ ggplot(data = df, aes( fill = CHART_ACTION, x = STIMULUS_CATEGORY )) +
 
 
 
+
+
+
+## CHART BEAUTY
+
+### Chart Beauty by Stimulus and Category
+```{r}
+
+df <- df_graphs
+
+qacBase::qstats(df, CHART_BEAUTY, STIMULUS) %>% arrange(mean)
+
+qacBase::qstats(df, CHART_BEAUTY, STIMULUS_CATEGORY) %>% arrange(mean)
+
+# 
+# 
+# ggplot(df, aes(x = CHART_BEAUTY)) + 
+#   geom_histogram(bins = 20) +
+#   facet_grid(BLOCK ~ STIMULUS_CATEGORY, scales = "free", space = "free", drop=TRUE) + 
+#   theme_minimal()
+# 
+# 
+# ggplot(df, aes(x = CHART_BEAUTY)) + 
+#   geom_histogram(bins = 20) +
+#   facet_grid( ~ fct_rev(STIMULUS_CATEGORY), scales = "free", space = "free", drop=TRUE) + 
+#   theme_minimal()
+# 
+
+
+
+##ggstatsplot BY CATEGORY
+grouped_gghistostats(
+  data = df_graphs %>% filter(STIMULUS != "B0-0"),
+  x = CHART_BEAUTY, ## same outcome variable
+  grouping.var = STIMULUS, ## grouping variable males = 1, females = 2
+  type = "robust", ## robust test: one-sample percentile bootstrap
+  test.value = 50, ## test value against which sample mean is to be compared
+  centrality.line.args = list(color = "#D55E00", linetype = "dashed"),
+  # ggtheme = ggthemes::theme_stata(), ## changing default theme
+  ## turn off ggstatsplot theme layer
+  ## arguments relevant for combine_plots
+  annotation.args = list(
+    title = "DISTRIBUTION of Chart Beauty by Cateogry",
+    caption = ""
+  ),
+  plotgrid.args = list(nrow = 6)
+)
+ 
+
+#B0-0 
+gghistostats(
+  data = df_graphs %>% filter(STIMULUS == "B0-0"), ## data from which variable is to be taken
+  x = CHART_BEAUTY, ## numeric variable
+  xlab = "CHART BEAUTY", ## x-axis label
+  title = "B0-0 MILLENIAL PINK PLANTS", ## title for the plot
+  test.value = 50, ## test value
+  caption = ""
+)  
+
+
+```
+
+### Chart Trust by Stimulus and Category
+```{r}
+
+df <- df_graphs
+
+qacBase::qstats(df, CHART_TRUST, STIMULUS) %>% arrange(mean)
+
+qacBase::qstats(df, CHART_TRUST, STIMULUS_CATEGORY) %>% arrange(mean)
+
+
+##ggstatsplot BY CATEGORY
+grouped_gghistostats(
+  data = df_graphs %>% filter(STIMULUS != "B0-0"),
+  x = CHART_TRUST, ## same outcome variable
+  grouping.var = STIMULUS, ## grouping variable males = 1, females = 2
+  type = "robust", ## robust test: one-sample percentile bootstrap
+  test.value = 50, ## test value against which sample mean is to be compared
+  centrality.line.args = list(color = "#D55E00", linetype = "dashed"),
+  # ggtheme = ggthemes::theme_stata(), ## changing default theme
+  ## turn off ggstatsplot theme layer
+  ## arguments relevant for combine_plots
+  annotation.args = list(
+    title = "DISTRIBUTION of Chart TRUST by Cateogry",
+    caption = ""
+  ),
+  plotgrid.args = list(nrow = 6)
+)
+ 
+
+#B0-0 
+gghistostats(
+  data = df_graphs %>% filter(STIMULUS == "B0-0"), ## data from which variable is to be taken
+  x = CHART_TRUST, ## numeric variable
+  xlab = "CHART TRUST", ## x-axis label
+  title = "B0-0 MILLENIAL PINK PLANTS", ## title for the plot
+  test.value = 50, ## test value
+  caption = ""
+)  
+
+
+```
+
+
+# TODO TEST RELATIONSHIPS 
+
 # EDA
 
 ##  PAIR PLOTS
@@ -2423,6 +2563,11 @@ rm(x, i, right, left, df)
 }
 
 ```
+
+
+
+
+
 
 
 # LEGACY
