@@ -1285,7 +1285,7 @@ Overall, `r round(l_politics*100,2)`% of respondents identify with left-leaning 
 
 ### Political Values — Relationship
 
-```{r demo-plot-political-grid fig.width = 10}
+```{r demo-plot-political-grid,  fig.width = 10}
 
 df <- df_graphs %>% select(PID, Assigned.Block, Distribution, D_politicsSocial, D_politicsFiscal, D_politicalParty) %>% 
   mutate(
