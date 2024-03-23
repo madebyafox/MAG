@@ -107,6 +107,7 @@ df_stimuli <- read_csv("data/input/stimuli.csv", col_names = TRUE) %>%
 
 ############## BUILD LABELS
 ref_stimuli <- levels(df_stimuli$ID)
+ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
 ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
                "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
                "CHART_LIKE", "CHART_BEAUTY", "CHART_INTENT", "CHART_TRUST")
@@ -622,7 +623,7 @@ cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_clas
 
 
 ##### CREATE PARTICIPANT LEVEL SIMPLFIFLIED DATAFRAME 
-df_particpants <- df_data %>% 
+df_participants <- df_data %>% 
   select(
     PID:Assigned.Block, 
     EndState, Sample, Scope, 
@@ -630,8 +631,6 @@ df_particpants <- df_data %>%
     contains("D_"), 
     contains("SCREEN_")
   )
-
-
 
 # END WRANGLE MASTER WIDE PARTICIPANT LEVEL DATA FRAME 
 ################################################################################################
@@ -819,6 +818,99 @@ df_graphs <- df_graphs_full %>%
 print("df_graphs_full is trial level dataset; df_graphs is trial level quantitative data only")
 
 ```
+## Wrangle  Participant Confidence 
+```{r wrangle-confidence}
+
+
+## CALCULATE AV CONFIDENCE FOR EACH SEMANTIC DIFFERENTIALS 
+df_sds <- df_sd_questions_long %>% 
+  group_by(PID, QUESTION) %>% 
+  summarize(
+    mean = mean(value), 
+    sd = sd (value)
+  ) 
+
+df_sds_WIDE <- df_sds %>% 
+    pivot_wider(
+      names_from = QUESTION,
+      values_from = c(mean, sd)
+  )
+
+## CALCULATE AV CONFIDENCE ACROSS SEMANTIC DIFFERENTIALS 
+df_grandsds <- df_sd_questions_long %>% 
+  group_by(PID) %>% 
+  summarize(
+    SDIFF_mean = mean(value), 
+    SDIFF_sd = sd(value)
+  ) 
+
+
+df_grandsds_LONG <- df_grandsds %>% 
+  mutate(
+      QUESTION = "SDIFF", 
+      mean = SDIFF_mean, 
+      sd = SDIFF_sd
+) %>% select(-SDIFF_mean, -SDIFF_sd)
+  
+
+
+## CALCULATE AV CONFIDENCE FOR EACH CONFIDENCE
+df_confq <- df_questions %>% 
+  filter(QUESTION %in% ref_conf_questions)%>% 
+  group_by(PID, QUESTION) %>% 
+  summarize(
+    mean = mean(as.numeric(value)), 
+    sd = sd (as.numeric(value))
+  ) 
+
+df_confq_WIDE <- df_confq %>% 
+    pivot_wider(
+      names_from = QUESTION,
+      values_from = c(mean, sd)
+  )
+
+## CALCULATE AV CONFIDENCE ACROSS SEMANTIC DIFFERENTIALS 
+df_grandconfs <- df_questions %>% 
+  filter(QUESTION %in% ref_conf_questions)%>% 
+  group_by(PID) %>% 
+  summarize(
+    CONF_mean = mean(as.numeric(value)), 
+    CONF_sd = sd(as.numeric(value))
+  )
+
+
+df_grandconfs_LONG <- df_grandconfs %>% 
+  mutate(
+      QUESTION = "CONF", 
+      mean = CONF_mean, 
+      sd = CONF_sd
+) %>% select(-CONF_mean, -CONF_sd) 
+  
+
+
+
+## JOIN TOGETHER WIDE
+df_confidence_wide <- left_join(df_sds_WIDE, df_confq_WIDE, by="PID")
+df_confidence_wide <- left_join(df_confidence_wide, df_grandsds, by = "PID")
+df_confidence_wide <- left_join(df_confidence_wide, df_grandconfs, by = "PID")
+df_confidence_wide <- left_join(df_confidence_wide, df_participants, by = "PID")
+
+
+##JOIN TOGETHER LONG
+df_confidence_long <- rbind(df_sds, df_confq, df_grandsds_LONG, df_grandconfs_LONG) %>% 
+  mutate(
+    QUESTION = factor(QUESTION)
+  ) 
+
+df_confidence_long <- left_join(df_confidence_long, df_participants, by="PID")
+
+rm(df_sds, df_grandsds, df_confq, df_grandconfs, df_sds_WIDE, df_grandsds_LONG, df_confq_WIDE, df_grandconfs_LONG)
+
+print("df_confidence_wide is a participant level dataset with by question and question type mean and df per participant")
+print("df_confidence_long is a participant level dataset with by question and question type mean and df per participant")
+print("In both cases the means are over all 5 stimuli seen by each participant")
+
+```
 
 ### TODO Wrangle QDA 
 ```{r WRANGLE-QDA}
@@ -1001,7 +1093,7 @@ qacBase::df_plot(df_questions)
 qacBase::df_plot(df_sd_questions_long)
 qacBase::df_plot(df_sd_questions_wide)
 
-qacBase::barcharts(df_particpants)
+qacBase::barcharts(df_participants)
 
 
 
@@ -1202,7 +1294,7 @@ cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_clas
 `r p_participants` individuals from Prolific participated in Study 2, ( `r round(desc.gender.p[["Female"]],2)*100`% Female, `r round(desc.gender.p[["Male"]],2)*100`% Male, `r round(desc.gender.p[["Non-binary / third gender"]],2)*100`% Non-binary, `r (round((desc.gender.p[["Prefer not to say"]] + desc.gender.p[["Prefer to self-describe"]]),2)) * 100`% Other).
 
 
-`r t_participants` individuals from Tumblr participated in Study 2, ( `r round(desc.gender.t[["Female"]],2)*100`% Female, `r round(desc.gender.t[["Male"]],2)*100`% Male, `r round(desc.gender.t[["Non-binary / third gender"]],2)*100`% Non-binary, `r (round((desc.gender.t[["Prefer not to say"]] + desc.gender.t[["Prefer to self-describe"]]),2)) * 100`% Other).
+Note that a higher proportion of participants recruited from Tumblr represent identities other than cis-gender Female and cis-gender Male.   `r t_participants` individuals from Tumblr participated in Study 2, ( `r round(desc.gender.t[["Female"]],2)*100`% Female, `r round(desc.gender.t[["Male"]],2)*100`% Male, `r round(desc.gender.t[["Non-binary / third gender"]],2)*100`% Non-binary, `r (round((desc.gender.t[["Prefer not to say"]] + desc.gender.t[["Prefer to self-describe"]]),2)) * 100`% Other).
 
 ### Education
 ```{r demo-education, message=FALSE}
@@ -1330,9 +1422,9 @@ ggplot(df, aes(x = d_social, y = d_fiscal, color = D_politicalParty)) +
   geom_point() + 
   geom_hline(yintercept = 50) +
   geom_vline(xintercept = 50) + 
-  facet_grid(~D_politicalParty)+
+  facet_grid(Distribution~D_politicalParty)+
   labs(
-    title = "Social and Fiscal Political Values by Affiliation",
+    title = "Social and Fiscal Political Values by Political Party Affiliation",
     x = "Social Values", y = "Fiscal Values"
   )+
   theme_minimal() + 
@@ -1380,6 +1472,163 @@ ggplot( df_data, aes( x = Assigned.Block, fill = PLATFORM)) +
 ```
 
 
+### Confidence
+
+How confident are participants in their attributions? We want to explore this from several perspectives, including: participant-level differences, question-level differences, and stimulus-level differences
+
+
+```{r inspect-confidence, message=FALSE}
+
+
+## QUESTION LEVEL CONFIDENCE 
+df <- df_questions %>%
+  filter(QUESTION %in% ref_conf_questions) %>% 
+  mutate(value= as.numeric(value))
+
+
+(g <- ggplot(df, aes(x = value, fill = QUESTION)) + 
+  geom_histogram() + 
+  facet_wrap(. ~ QUESTION) +  #, scales = "free", space = "free", drop = TRUE
+  theme_minimal() + 
+  labs(title = "Distrubtion of Confidence by Question") + 
+  easy_remove_legend())
+
+
+ggsave(plot = g, path="figs/histograms", filename =paste0("confidence_","histograms.png"), units = c("in"))
+
+```
+
+
+```{r demo-scales}
+
+## QUESTION LEVEL CONFIDENCE 
+df <- df_questions %>%
+  filter(QUESTION %in% ref_sd_questions) %>% 
+  mutate(value= as.numeric(value))
+
+
+(g <- ggplot(df, aes(x = value, fill = QUESTION)) + 
+  geom_histogram() + 
+  facet_grid( STIMULUS~ QUESTION) + 
+  theme_minimal() + 
+  labs(title = "Distrubtion of SEMANTIC DIFFERENTIAL SCALES by Question") + 
+  easy_remove_legend())
+
+
+
+ggsave(plot = g, path="figs/histograms", filename =paste0("sd_scales_by_question_stimulus","histograms.png"), units = c("in"), width = 20, height = 30)
+
+```
+
+```{r demo-scales-category}
+
+## QUESTION LEVEL CONFIDENCE 
+df <- df_questions %>%
+  filter(QUESTION %in% ref_sd_questions) %>% 
+  mutate(value= as.numeric(value))
+
+
+(g <- ggplot(df, aes(x = value, fill = STIMULUS_CATEGORY)) + 
+  geom_histogram() + 
+  facet_grid( STIMULUS_CATEGORY~ QUESTION) + 
+  theme_minimal() + 
+  labs(title = "Distrubtion of SEMANTIC DIFFERENTIAL SCALES by Question") + 
+  easy_remove_legend())
+
+ggsave(plot = g, path="figs/histograms", filename =paste0("sd_scales_by_question_category","histograms.png"), units = c("in"), width = 20, height = 20)
+
+```
+```{r}
+
+## STIMULUS LEVEL CONFIDENCE 
+
+df <- df_questions %>%
+  filter(QUESTION %in% ref_conf_questions) %>% 
+  mutate(value= as.numeric(value)) 
+
+(g <- ggplot(df, aes(x = value, fill = fct_rev(STIMULUS_CATEGORY))) + 
+  geom_histogram() + 
+  facet_grid(rows = vars(BLOCK),
+             cols = vars(fct_rev(STIMULUS_CATEGORY)), scales = "free_y", space = "free", drop = TRUE) +
+  theme_minimal()+  
+  labs(title = "Distrubtion of Confidence by Stimulus"))
+
+ggsave(plot = g, path="figs/histograms", filename =paste0("confidence_matrix_","histograms.png"), units = c("in"), width = 20, height = 20)
+```
+
+
+### Individual Average Confidence
+
+```{r message=FALSE}
+
+df <- df_questions %>%
+  filter(QUESTION %in% c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")) %>% 
+  mutate(value= as.numeric(value)) %>% 
+  group_by(PID, QUESTION) %>% 
+  summarise(
+    mean_conf = mean(value),
+    sd_conf = sd(value),
+    var_conf = var(value)
+  )
+
+
+ggplot(df, aes( x = mean_conf)) +
+  geom_histogram() +
+  facet_wrap( ~ QUESTION) + 
+  labs(
+    title = "Mean Participant confidence by Question",
+    subtitle = "(averaging across all 5 stimuli per participant)"
+  ) + 
+  theme_minimal()
+  
+  
+ggplot(df, aes( x = sd_conf)) +
+  geom_histogram() +
+  facet_wrap( ~ QUESTION) + 
+  labs(
+    title = "Standard Deviation of Participant confidence by Question",
+    subtitle = "(averaging across all 5 stimuli per participant)"
+  ) +
+  theme_minimal()  
+  
+```
+```{r message=FALSE, warning=FALSE}
+## BY PARTICIPANT
+df <- df_questions %>%
+  filter(QUESTION %in% c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")) %>% 
+  mutate(value= as.numeric(value)) %>% 
+  group_by(PID) %>% 
+  summarise(
+    mean_conf = mean(value),
+    sd_conf = sd(value),
+    var_conf = var(value)
+  )
+
+ggplot(df, aes( x = mean_conf)) +
+  geom_histogram(binwidth = 2) +
+  
+  labs(
+    title = "Mean Participant Confidence ",
+    subtitle = "(averaging across 4 confidence questions and all 5 stimuli per participant)"
+  ) +
+  theme_minimal()  
+
+
+ggplot(df, aes( x = sd_conf)) +
+  geom_histogram(binwidth = 2) +
+  xlim(0,100)+
+  labs(
+    title = "Standard Deviation of Participant Confidence ",
+    subtitle = "(averaging across 4 confidence questions and all 5 stimuli per participant)"
+  ) +
+  theme_minimal()  
+
+```
+
+
+
+
+
 
 # ATTRIBUTIONS
 
@@ -1395,6 +1644,19 @@ df <- df_graphs
 ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_ID)) +
   geom_bar(position = "fill") +
   facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
+  labs( title = "MAKER ID by Stimulus (grouped by CATEGORY) ",
+        subtitle = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  coord_flip()+
+  easy_add_legend_title("") +
+  theme_minimal()
+
+
+
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_ID)) +
+  geom_bar(position = "fill") +
+  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ ., scales = "free", space = "free") + 
   labs( title = "MAKER ID by Stimulus (grouped by CATEGORY) ",
         subtitle = "", x = "") +
   scale_fill_viridis(discrete=TRUE, option="viridis") +
@@ -1421,6 +1683,15 @@ ggplot( df, aes( x = STIMULUS_CATEGORY, fill = MAKER_ID)) +
   easy_add_legend_title("") +
   theme_minimal()
 
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = STIMULUS_CATEGORY, fill = MAKER_ID)) +
+  geom_bar(position = "fill") +
+  labs( title = "MAKER ID by Stimulus Category",
+        subtitle = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  coord_flip()+
+  easy_add_legend_title("") +
+  theme_minimal()
 
 ```
 
@@ -1498,6 +1769,11 @@ rm(a,b,p)
 
 ###################################################
 ```
+
+
+
+
+
 
 ## MAKER AGE
 
@@ -2035,6 +2311,243 @@ gghistostats(
 # EDA
 
 ##  PAIR PLOTS
+
+
+### B0-0 MILLENIAL PINK PLANTS 
+
+```{r B00_MAKERID, message=FALSE}
+
+# #FILTER DATAFRAME
+# df <- df_graphs_full %>% 
+#   filter(STIMULUS== "B0-0") %>% 
+#   select(
+#     Distribution,  D_politicalParty,
+#     # D_gender, D_race, D_education, D_income, D_age, 
+#     # ENCOUNTER, 
+#     MAKER_ID,
+#     D_politicsSocial, D_politicsFiscal,
+#     MAKER_DESIGN, MAKER_DATA, MAKER_CONF, MAKER_ALIGN, MAKER_TRUST, CHART_TRUST
+#     # :MAKER_TRUST, 
+#     # TOOL_CONF,CHART_LIKE:CHART_TRUST
+# )
+# 
+# # g <- ggpairs(df, color=MAKER_ID)
+# # ggsave(plot = g, path="figs/pairplots", filename =paste0("B0-0","_pairplot.svg"), units = c("in"), width = 20, height = 20  )
+# # ggplotly(g)
+# 
+# 
+# 
+# 
+# (boo_pair <- ggpairs(df, aes(color= MAKER_ID)) + 
+#     scale_color_viridis(discrete=TRUE, option="viridis")+
+#     scale_fill_viridis(discrete=TRUE, option="viridis") + 
+#     theme_minimal()
+#   ) 
+#   
+# 
+# (boo_duo <- ggduo(df, aes(color= Distribution)) + 
+#     scale_color_viridis(discrete=TRUE, option="viridis")+
+#     scale_fill_viridis(discrete=TRUE, option="viridis") + 
+#     theme_minimal()
+#   ) 
+# 
+
+
+#ggplotly(boo_duo) #surprisingly works! but not helpful
+
+```
+
+### B0-0 MODELLING
+
+```{r}
+
+# df <- df_graphs %>% filter(STIMULUS == "B0-0") %>% 
+#   mutate(
+#     flipped_data = abs(MAKER_DATA - 100), 
+#     flipped_design = abs(MAKER_DESIGN -100),
+#     flipped_intent = abs(CHART_INTENT -100),
+#     flipped_self = abs(MAKER_SELF -100)
+#   ) %>% select(
+#     flipped_data:flipped_self, MAKER_ARGUE, MAKER_ALIGN, CHART_LIKE, CHART_BEAUTY, CHART_TRUST, MAKER_TRUST
+#   )
+# 
+# 
+# m.1 <- lm(CHART_TRUST ~ MAKER_TRUST, data = df )
+# summ(m.1)
+# 
+# m.2 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN  , data = df )
+# summ(m.2)
+# 
+# m.3 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY , data = df )
+# summ(m.3)
+# 
+# m.4 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY + flipped_intent, data = df )
+# summ(m.4)
+# 
+# m.5 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY + flipped_intent + flipped_data, data = df )
+# summ(m.5)
+# 
+# m <- lm(CHART_TRUST ~ MAKER_ALIGN, data = df)
+# summ(m)
+# 
+# 
+# compare_performance(m.1, m.2, m.3, m.4, m.5, m, rank = TRUE)
+# 
+# ## WHAT PREDICTS MAKER_TRUST?
+# 
+# 
+# ## PLOT THE DATA 
+# ggplot(df, aes(x = MAKER_ALIGN, y = MAKER_TRUST)) + 
+#   geom_point() +
+#   stat_smooth(method = "lm", 
+#               formula = y ~ x, 
+#               geom = "smooth") + 
+#   labs(title = "MAKER ALIGNMENT PREDICTS TRUST?")+
+#   theme_minimal()
+# 
+# 
+# ## PLOT THE DATA 
+# ggplot(df, aes(x = flipped_data, y = MAKER_TRUST)) + 
+#   geom_point() +
+#   stat_smooth(method = "lm", 
+#               formula = y ~ x, 
+#               geom = "smooth") + 
+#   labs(title = "MAKER DATA PREDICTS TRUST?")+
+#   theme_minimal()
+# 
+# 
+# ## BUILD MODEL
+# m.1 <- lm( MAKER_TRUST ~ MAKER_ALIGN, data = df)
+# # summary(m.1)
+# jtools::summ(m.1, confint = TRUE)
+# # check_model(m.1)
+# # report(m.1)
+# 
+# ## BUILD MODEL
+# m.2 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data, data = df)
+# # summary(m.2)
+# jtools::summ(m.2, confint = TRUE)
+# # check_model(m.2)
+# # report(m.2)
+# 
+# ## BUILD MODEL
+# m.3 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data + flipped_design , data = df)
+# # summary(m.3)
+# jtools::summ(m.3, confint = TRUE)
+# # check_model(m.3)
+# # report(m.3)
+# 
+# 
+# ## BUILD MODEL
+# m.4 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data + flipped_design + MAKER_POLITIC, data = df)
+# # summary(m.3)
+# jtools::summ(m.4, confint = TRUE)
+# # check_model(m.3)
+# # report(m.3)
+# 
+# 
+# 
+#   
+# compare_performance(m.1, m.2, m.3, m.4, m.B,  rank = TRUE)
+# 
+# 
+# # effect_plot(m.2, pred=MAKER_DATA, rug = TRUE, plot.points = TRUE) + 
+# #   xlim(0,100) + 
+# #   ylim(0,100)
+# 
+# 
+# 
+# 
+# df <- df_graphs %>% filter(STIMULUS != "B0-0") %>% 
+#   select(PID, STIMULUS, 
+#          MAKER_ID:MAKER_TRUST, CHART_LIKE:CHART_TRUST, 
+#          D_politicsFiscal, D_politicsSocial)
+# 
+# m.pid <- lmer( MAKER_TRUST ~  (1 | PID) , data = df, REML = FALSE)
+# m.stim <- lmer( MAKER_TRUST ~ (1|STIMULUS) , data = df, REML = FALSE)
+# m.r <- lmer( MAKER_TRUST ~ (1 | PID) + (1|STIMULUS), data = df, REML = FALSE)
+# 
+# compare_performance (m.pid, m.stim, m.r, rank = TRUE)
+# 
+# 
+# 
+# m.1 <- update( m.r, .~. + CHART_BEAUTY)
+# summ(m.1)
+# 
+# m.2 = update(m.1, . ~ . + CHART_LIKE)
+# summ(m.2)
+# 
+# 
+# m.3 = update(m.2, . ~ . + CHART_TRUST)
+# summ(m.3)
+# 
+# 
+# compare_performance(m.r, m.1, m.2, m.3, rank = TRUE)
+
+```
+
+
+```{r IXN-BOO}
+
+df <- df_graphs_full %>% 
+  filter(STIMULUS== "B0-0") 
+
+ p <- ggplot(df, aes(x = MAKER_POLITIC, y = MAKER_CONF,
+          color = MAKER_ID ,
+          text = paste0("MAKER-DETAIL: ",MAKER_DETAIL, "<br>","ID: ", PID, "MAKER_EXPLAIN", MAKER_EXPLAIN)))+
+      scale_color_viridis(discrete=TRUE, option="viridis")  +
+      geom_point(size=0.5) +
+      xlim(0,100)+
+      ylim(0,100)+
+      facet_grid(D_politicalParty ~ MAKER_ID) +
+      theme_minimal() +
+      labs(
+        title = "B0-0 | MAKER Identification, Politics and Confidence",
+        subtitle = "\n by Participant Confidence and Political Party",
+        x = "MAKER POLITICS",
+        y = "MAKER ID CONFIDENCE"
+      )
+
+
+ggplotly(p)
+  
+```
+
+
+### On Confidence
+
+```{r}
+
+
+# df <- df_confidence_long %>% filter(QUESTION %nin% c("CONF", "SDIFF")) ##AVERAGE CONFIDENCE
+
+df <- df_graphs_full %>% filter(STIMULUS== "B0-0")
+
+
+ggplot(df, aes(x = MAKER_CONF, y = MAKER_TRUST, color = MAKER_ID)) + 
+  geom_point() +
+  scale_color_viridis(discrete=TRUE, option="viridis")  + 
+  facet_grid(BLOCK ~ STIMULUS_CATEGORY) +
+  theme_minimal() + 
+  easy_remove_legend() 
+  
+
+
+ggplot(df, aes(x = MAKER_POLITIC, y = MAKER_TRUST, color = MAKER_ID)) + 
+  geom_point() +
+  scale_color_viridis(discrete=TRUE, option="viridis")  + 
+  facet_grid(BLOCK ~ STIMULUS_CATEGORY) +
+  theme_minimal() + 
+  easy_remove_legend() 
+
+
+
+```
+
+
+
+
+
 
 
 ### CATEGORIES-MAKER
