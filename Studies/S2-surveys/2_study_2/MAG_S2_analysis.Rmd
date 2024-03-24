@@ -73,7 +73,7 @@ options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-graph_render = FALSE #set to true to generate all the SD graphs and save to folders 
+graph_render = TRUE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
@@ -107,6 +107,7 @@ df_stimuli <- read_csv("data/input/stimuli.csv", col_names = TRUE) %>%
 
 ############## BUILD LABELS
 ref_stimuli <- levels(df_stimuli$ID)
+ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
 ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
 ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
                "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
@@ -911,6 +912,58 @@ print("df_confidence_long is a participant level dataset with by question and qu
 print("In both cases the means are over all 5 stimuli seen by each participant")
 
 ```
+
+### Vibe Check
+
+```{r vibe-search}
+
+#special search for the word "vibe" .... because... vibes 
+
+#get purpose and feedback questions and format as long
+df_purpose <- df_data %>% 
+  select(
+    PID, PURPOSE, FEEDBACK
+) %>% mutate(
+  STIMULUS = "NONE"
+) %>% pivot_longer(
+  cols = c("PURPOSE", "FEEDBACK"), 
+  names_to = "QUESTION",
+  values_to = "value"
+)
+
+#get free response questions in long format 
+df_free <- df_questions %>% 
+  select(
+    PID, STIMULUS, QUESTION, value
+  ) %>% 
+  filter(
+    QUESTION %in% ref_free_response
+  )
+
+
+#join these dataframes 
+df_vibes <- rbind(df_purpose, df_free)
+##6992
+
+#SEARCH FOR VIBES! 
+df_vibes <- df_vibes %>% 
+  filter(
+    str_detect(value, regex(
+      "vibe",
+      ignore_case=TRUE, 
+      multiline = TRUE,
+      dotall = TRUE))
+  )
+
+## ADD PARTICIPANT DATA 
+df_vibes <- left_join(df_vibes, df_participants, by="PID")
+
+## WRITE VIBE DATA 
+write.csv(df_vibes, file = "data/output/df_vibes.csv", na="")
+
+
+```
+
 
 ### TODO Wrangle QDA 
 ```{r WRANGLE-QDA}
