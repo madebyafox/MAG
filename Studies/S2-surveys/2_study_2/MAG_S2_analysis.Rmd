@@ -962,6 +962,34 @@ df_vibes <- left_join(df_vibes, df_participants, by="PID")
 write.csv(df_vibes, file = "data/output/df_vibes.csv", na="")
 
 
+
+
+
+
+
+#special search for the word "core" .... because... tumblr-core
+#join these dataframes 
+df_core <- rbind(df_purpose, df_free)
+##6992
+
+#SEARCH FOR VIBES! 
+df_core <- df_core %>% 
+  filter(
+    str_detect(value, regex(
+      "core",
+      ignore_case=TRUE, 
+      multiline = TRUE,
+      dotall = TRUE))
+  )
+
+## ADD PARTICIPANT DATA 
+df_core <- left_join(df_core, df_participants, by="PID")
+
+## WRITE VIBE DATA 
+write.csv(df_core, file = "data/output/df_core.csv", na="")
+
+rm(df_free, df_purpose)
+
 ```
 
 
@@ -1591,6 +1619,8 @@ df <- df_questions %>%
 ggsave(plot = g, path="figs/histograms", filename =paste0("sd_scales_by_question_category","histograms.png"), units = c("in"), width = 20, height = 20)
 
 ```
+
+
 ```{r}
 
 ## STIMULUS LEVEL CONFIDENCE 
@@ -2208,7 +2238,7 @@ ggplot( df, aes( x = STIMULUS_CATEGORY, fill = ENCOUNTER)) +
 
 
 
-## ACTIONS CHOICE
+## ENGAGEMENT CHOICE
 
 ### Actions Choice by Stimulus
 
@@ -2228,6 +2258,22 @@ ggplot(data = df, aes( fill = CHART_ACTION, x = fct_rev(STIMULUS) )) +
         subtitle = "", x = "") +
   easy_add_legend_title("ACTION") +
   theme_minimal() 
+
+
+
+# ACTION CHOICE BY STIMULUS
+ggplot(data = df, aes( fill = CHART_ACTION, x = fct_rev(STIMULUS) )) +
+  geom_bar(position = "fill") +
+  coord_flip() + 
+  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ ., scales = "free", space = "free") + 
+  scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+  scale_y_continuous(labels = scales::percent) + 
+
+  labs( title = "Chart Action by Stimulus (grouped by Category)",
+        subtitle = "", x = "") +
+  easy_add_legend_title("ACTION") +
+  theme_minimal() 
+
 
 
 ```
@@ -2359,77 +2405,273 @@ gghistostats(
 
 ```
 
+# B0-0 MILLENIAL PINK PLANTS
 
 
-# EDA
+## MODELLING
 
-##  PAIR PLOTS
-
-
-### B0-0 MILLENIAL PINK PLANTS 
-
-```{r B00_MAKERID, message=FALSE}
-
-# #FILTER DATAFRAME
-# df <- df_graphs_full %>% 
-#   filter(STIMULUS== "B0-0") %>% 
-#   select(
-#     Distribution,  D_politicalParty,
-#     # D_gender, D_race, D_education, D_income, D_age, 
-#     # ENCOUNTER, 
-#     MAKER_ID,
-#     D_politicsSocial, D_politicsFiscal,
-#     MAKER_DESIGN, MAKER_DATA, MAKER_CONF, MAKER_ALIGN, MAKER_TRUST, CHART_TRUST
-#     # :MAKER_TRUST, 
-#     # TOOL_CONF,CHART_LIKE:CHART_TRUST
-# )
-# 
-# # g <- ggpairs(df, color=MAKER_ID)
-# # ggsave(plot = g, path="figs/pairplots", filename =paste0("B0-0","_pairplot.svg"), units = c("in"), width = 20, height = 20  )
-# # ggplotly(g)
-# 
-# 
-# 
-# 
-# (boo_pair <- ggpairs(df, aes(color= MAKER_ID)) + 
-#     scale_color_viridis(discrete=TRUE, option="viridis")+
-#     scale_fill_viridis(discrete=TRUE, option="viridis") + 
-#     theme_minimal()
-#   ) 
-#   
-# 
-# (boo_duo <- ggduo(df, aes(color= Distribution)) + 
-#     scale_color_viridis(discrete=TRUE, option="viridis")+
-#     scale_fill_viridis(discrete=TRUE, option="viridis") + 
-#     theme_minimal()
-#   ) 
-# 
-
-
-#ggplotly(boo_duo) #surprisingly works! but not helpful
-
-```
-
-### B0-0 MODELLING
+### Modelling Trust
 
 ```{r}
 
-# df <- df_graphs %>% filter(STIMULUS == "B0-0") %>% 
-#   mutate(
-#     flipped_data = abs(MAKER_DATA - 100), 
-#     flipped_design = abs(MAKER_DESIGN -100),
-#     flipped_intent = abs(CHART_INTENT -100),
-#     flipped_self = abs(MAKER_SELF -100)
-#   ) %>% select(
-#     flipped_data:flipped_self, MAKER_ARGUE, MAKER_ALIGN, CHART_LIKE, CHART_BEAUTY, CHART_TRUST, MAKER_TRUST
-#   )
+df <- df_graphs %>% filter(STIMULUS == "B0-0") %>%
+  mutate(
+    flipped_data = abs(MAKER_DATA - 100),
+    flipped_design = abs(MAKER_DESIGN -100),
+    flipped_intent = abs(CHART_INTENT -100),
+    flipped_self = abs(MAKER_SELF -100)
+  ) %>% select(
+    flipped_data:flipped_self, MAKER_ARGUE, MAKER_ALIGN, CHART_LIKE, CHART_BEAUTY, CHART_TRUST, MAKER_TRUST
+  )
+
+
+chart_m.1 <- lm(CHART_TRUST ~ CHART_BEAUTY, data = df )
+summ(chart_m.1)
+
+chart_m.2 <- lm(CHART_TRUST ~ MAKER_ALIGN , data = df )
+summ(chart_m.2)
+
+
+anova(chart_m.1, chart_m.2)
+compare_performance(chart_m.1, chart_m.2, rank = TRUE)
+
+
+m.1 <- lm(MAKER_TRUST ~ CHART_BEAUTY, data = df )
+summ(m.1)
+
+m.2 <- lm(MAKER_TRUST ~ MAKER_ALIGN , data = df )
+summ(m.2)
+
+anova(m.1, m.2)
+compare_performance(chart_m.1, chart_m.2, m.1, m.2, rank = TRUE)
+
+
+m.3 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY , data = df )
+summ(m.3)
+
+m.4 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY + flipped_intent, data = df )
+summ(m.4)
+
+m.5 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY + flipped_intent + flipped_data, data = df )
+summ(m.5)
+
+
+m.6 <- lm(MAKER_TRUST ~ CHART_BEAUTY + MAKER_ALIGN + flipped_intent + flipped_data + flipped_design, data = df )
+summ(m.6)
+ 
+
+m.7 <- lm(CHART_TRUST ~ CHART_BEAUTY + MAKER_ALIGN + flipped_intent + flipped_data + flipped_design, data = df )
+summ(m.7)
+
+m <- lm(MAKER_TRUST ~ MAKER_ALIGN, data = df)
+summ(m)
+
+ 
+ compare_performance(m.1, m.2, m.3, m.4, m.5, m, rank = TRUE)
+# 
+# ## WHAT PREDICTS MAKER_TRUST?
 # 
 # 
-# m.1 <- lm(CHART_TRUST ~ MAKER_TRUST, data = df )
+# ## PLOT THE DATA 
+# ggplot(df, aes(x = MAKER_ALIGN, y = MAKER_TRUST)) + 
+#   geom_point() +
+#   stat_smooth(method = "lm", 
+#               formula = y ~ x, 
+#               geom = "smooth") + 
+#   labs(title = "MAKER ALIGNMENT PREDICTS TRUST?")+
+#   theme_minimal()
+# 
+# 
+# ## PLOT THE DATA 
+# ggplot(df, aes(x = flipped_data, y = MAKER_TRUST)) + 
+#   geom_point() +
+#   stat_smooth(method = "lm", 
+#               formula = y ~ x, 
+#               geom = "smooth") + 
+#   labs(title = "MAKER DATA PREDICTS TRUST?")+
+#   theme_minimal()
+# 
+# 
+# ## BUILD MODEL
+# m.1 <- lm( MAKER_TRUST ~ MAKER_ALIGN, data = df)
+# # summary(m.1)
+# jtools::summ(m.1, confint = TRUE)
+# # check_model(m.1)
+# # report(m.1)
+# 
+# ## BUILD MODEL
+# m.2 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data, data = df)
+# # summary(m.2)
+# jtools::summ(m.2, confint = TRUE)
+# # check_model(m.2)
+# # report(m.2)
+# 
+# ## BUILD MODEL
+# m.3 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data + flipped_design , data = df)
+# # summary(m.3)
+# jtools::summ(m.3, confint = TRUE)
+# # check_model(m.3)
+# # report(m.3)
+# 
+# 
+# ## BUILD MODEL
+# m.4 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data + flipped_design + MAKER_POLITIC, data = df)
+# # summary(m.3)
+# jtools::summ(m.4, confint = TRUE)
+# # check_model(m.3)
+# # report(m.3)
+# 
+# 
+# 
+#   
+# compare_performance(m.1, m.2, m.3, m.4, m.B,  rank = TRUE)
+# 
+# 
+# # effect_plot(m.2, pred=MAKER_DATA, rug = TRUE, plot.points = TRUE) + 
+# #   xlim(0,100) + 
+# #   ylim(0,100)
+# 
+# 
+# 
+# 
+# df <- df_graphs %>% filter(STIMULUS != "B0-0") %>% 
+#   select(PID, STIMULUS, 
+#          MAKER_ID:MAKER_TRUST, CHART_LIKE:CHART_TRUST, 
+#          D_politicsFiscal, D_politicsSocial)
+# 
+# m.pid <- lmer( MAKER_TRUST ~  (1 | PID) , data = df, REML = FALSE)
+# m.stim <- lmer( MAKER_TRUST ~ (1|STIMULUS) , data = df, REML = FALSE)
+# m.r <- lmer( MAKER_TRUST ~ (1 | PID) + (1|STIMULUS), data = df, REML = FALSE)
+# 
+# compare_performance (m.pid, m.stim, m.r, rank = TRUE)
+# 
+# 
+# 
+# m.1 <- update( m.r, .~. + CHART_BEAUTY)
 # summ(m.1)
 # 
-# m.2 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN  , data = df )
+# m.2 = update(m.1, . ~ . + CHART_LIKE)
 # summ(m.2)
+# 
+# 
+# m.3 = update(m.2, . ~ . + CHART_TRUST)
+# summ(m.3)
+# 
+# 
+# compare_performance(m.r, m.1, m.2, m.3, rank = TRUE)
+
+```
+### Modelling Engagement
+
+```{r B00-ENGAGEMENT}
+
+
+# df <- df_graphs %>% filter(STIMULUS == "B0-0") %>%
+#   mutate(
+#     flipped_data = abs(MAKER_DATA - 100),
+#     flipped_design = abs(MAKER_DESIGN -100),
+#     flipped_intent = abs(CHART_INTENT -100),
+#     flipped_self = abs(MAKER_SELF -100),
+#   ) %>% select(
+#     MAKER_ARGUE, MAKER_ALIGN, CHART_LIKE, CHART_BEAUTY,
+#     flipped_data:flipped_self,  CHART_TRUST, MAKER_TRUST, 
+#     Distribution, D_gender, D_education, D_politicalParty, 
+#     D_politicsSocial, D_politicsFiscal,
+#     MAKER_ID, MAKER_AGE, MAKER_GENDER, 
+#   )
+
+
+## left off here !!! 
+## MAKE DATAFRAME OF ACTIONS WITH OTHER STUFF 
+df_g <- df_graphs %>% filter(STIMULUS == "B0-0")
+df_a <- df_actions %>% filter(STIMULUS == "B0-0")
+df_x <- df_a %>% inner_join(x=df_a, y=df_g, by="PID",
+                           relationship = "many-to-one",
+                           multiple = "last",
+                           keep = FALSE)
+rm(df_a, df_g)
+
+
+df <- df_x %>% filter(STIMULUS == "B0-0") %>%
+  mutate(
+    flipped_data = abs(MAKER_DATA - 100),
+    flipped_design = abs(MAKER_DESIGN -100),
+    flipped_intent = abs(CHART_INTENT -100),
+    flipped_self = abs(MAKER_SELF -100),
+  ) %>% select(
+    MAKER_ARGUE, MAKER_ALIGN, CHART_LIKE, CHART_BEAUTY,
+    flipped_data:flipped_self,  CHART_TRUST, MAKER_TRUST,
+    Distribution, D_gender, D_education, D_politicalParty,
+    D_politicsSocial, D_politicsFiscal,
+    MAKER_ID, MAKER_AGE, MAKER_GENDER,
+  )
+
+
+
+## PLOT DISTRIBUTION OF ENGAGEMENT 
+
+(a <- ggbarstats( data = df, x = "REV_CHART_ACTION", y = "STIMULUS",
+                 legend.title = "ENGAGEMENT")  + 
+      scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+      labs( title = "Chart Engagement ", subtitle = "", x = "") )
+  
+        
+
+(b <- grouped_ggbarstats( data = df_a, x = "REV_CHART_ACTION", y = "STIMULUS", 
+                    grouping.var = Distribution, 
+                    legend.title = "ENGAGEMENT",  
+                    ggplot.component = list(scale_fill_paletteer_d("awtools::a_palette", direction = 1))))
+
+
+
+df <- df_a %>% mutate( REV_CHART_ACTION = fct_rev(CHART_ACTION))
+predictors = df_a %>% select(Distribution, PLATFORM, 
+                D_gender, D_age, D_education, D_race, D_income, 
+                D_politicalParty, D_politicsFiscal, D_politicsSocial) %>% colnames()
+
+
+
+
+
+## PLOT POTENTIAL BIVARIATE
+(g <- ggbivariate(df_a, outcome = "CHART_ACTION", explanatory = predictors) + 
+  scale_fill_paletteer_d("awtools::a_palette", direction = 1))
+
+ggsave(plot = g, path="figs/modelling", filename =paste0("b00_engagement","_bivariatet.png"), units = c("in"), width = 15, height = 20  )
+
+
+## PLOT EXPLANATIONS OF ENGAGEMENT
+
+
+
+##
+
+## Visualize Engagement with B00
+
+# 
+# 
+# 
+# 
+# chart_m.1 <- lm(CHART_TRUST ~ CHART_BEAUTY, data = df )
+# summ(chart_m.1)
+# 
+# chart_m.2 <- lm(CHART_TRUST ~ MAKER_ALIGN , data = df )
+# summ(chart_m.2)
+# 
+# 
+# anova(chart_m.1, chart_m.2)
+# compare_performance(chart_m.1, chart_m.2, rank = TRUE)
+# 
+# 
+# m.1 <- lm(MAKER_TRUST ~ CHART_BEAUTY, data = df )
+# summ(m.1)
+# 
+# m.2 <- lm(MAKER_TRUST ~ MAKER_ALIGN , data = df )
+# summ(m.2)
+# 
+# anova(m.1, m.2)
+# compare_performance(chart_m.1, chart_m.2, m.1, m.2, rank = TRUE)
+# 
 # 
 # m.3 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY , data = df )
 # summ(m.3)
@@ -2440,12 +2682,20 @@ gghistostats(
 # m.5 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY + flipped_intent + flipped_data, data = df )
 # summ(m.5)
 # 
-# m <- lm(CHART_TRUST ~ MAKER_ALIGN, data = df)
+# 
+# m.6 <- lm(MAKER_TRUST ~ CHART_BEAUTY + MAKER_ALIGN + flipped_intent + flipped_data + flipped_design, data = df )
+# summ(m.6)
+#  
+# 
+# m.7 <- lm(CHART_TRUST ~ CHART_BEAUTY + MAKER_ALIGN + flipped_intent + flipped_data + flipped_design, data = df )
+# summ(m.7)
+# 
+# m <- lm(MAKER_TRUST ~ MAKER_ALIGN, data = df)
 # summ(m)
 # 
-# 
-# compare_performance(m.1, m.2, m.3, m.4, m.5, m, rank = TRUE)
-# 
+#  
+#  compare_performance(m.1, m.2, m.3, m.4, m.5, m, rank = TRUE)
+# # 
 # ## WHAT PREDICTS MAKER_TRUST?
 # 
 # 
@@ -2654,6 +2904,56 @@ x <- ggscatmat(df, color = "STIMULUS_CATEGORY")
 ggsave(plot = x, path="figs/pairplots", filename =paste0("category","_scaplot.png"), units = c("in"), width = 20, height = 20  )
 
 
+
+```
+
+
+# EDA
+
+##  PAIR PLOTS
+
+
+### B0-0 MILLENIAL PINK PLANTS 
+
+```{r B00_MAKERID, message=FALSE}
+
+# #FILTER DATAFRAME
+# df <- df_graphs_full %>% 
+#   filter(STIMULUS== "B0-0") %>% 
+#   select(
+#     Distribution,  D_politicalParty,
+#     # D_gender, D_race, D_education, D_income, D_age, 
+#     # ENCOUNTER, 
+#     MAKER_ID,
+#     D_politicsSocial, D_politicsFiscal,
+#     MAKER_DESIGN, MAKER_DATA, MAKER_CONF, MAKER_ALIGN, MAKER_TRUST, CHART_TRUST
+#     # :MAKER_TRUST, 
+#     # TOOL_CONF,CHART_LIKE:CHART_TRUST
+# )
+# 
+# # g <- ggpairs(df, color=MAKER_ID)
+# # ggsave(plot = g, path="figs/pairplots", filename =paste0("B0-0","_pairplot.svg"), units = c("in"), width = 20, height = 20  )
+# # ggplotly(g)
+# 
+# 
+# 
+# 
+# (boo_pair <- ggpairs(df, aes(color= MAKER_ID)) + 
+#     scale_color_viridis(discrete=TRUE, option="viridis")+
+#     scale_fill_viridis(discrete=TRUE, option="viridis") + 
+#     theme_minimal()
+#   ) 
+#   
+# 
+# (boo_duo <- ggduo(df, aes(color= Distribution)) + 
+#     scale_color_viridis(discrete=TRUE, option="viridis")+
+#     scale_fill_viridis(discrete=TRUE, option="viridis") + 
+#     theme_minimal()
+#   ) 
+# 
+
+
+#ggplotly(boo_duo) #surprisingly works! but not helpful
 
 ```
 
@@ -4054,5 +4354,6 @@ wip code stash
 # rownames(m) <- stim
 # colnames(m) <- questions
 
+##END OF FILE
 
 ```
