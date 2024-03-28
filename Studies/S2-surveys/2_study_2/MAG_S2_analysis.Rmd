@@ -107,6 +107,7 @@ df_stimuli <- read_csv("data/input/stimuli.csv", col_names = TRUE) %>%
 
 ############## BUILD LABELS
 ref_stimuli <- levels(df_stimuli$ID)
+ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
 ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
 ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
 ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
@@ -374,6 +375,10 @@ df_data <- df_raw %>%
     TerminateFlag = factor(TerminateFlag),
     EndState = factor(EndState), 
     D_gender = factor(D_gender), 
+    D_gender_collapsed = fct_collapse(D_gender, 
+                                female = "Female", 
+                                male = "Male", 
+                                other = c("Non-binary / third gender", "Prefer not to say", "Prefer to self-describe")),
     D_age = factor(D_age), 
     D_income = factor(D_income, 
                       levels = c(
@@ -441,7 +446,7 @@ df_data <- df_raw %>%
     ID.Prolific : ID.Session, 
     duration.sec, duration.min,
     BROWSER_Browser : BROWSER_OS, 
-    D_gender:D_politicsFiscal,
+    D_gender_collapsed, D_gender:D_politicsFiscal,
     SCREEN_workMethod: SCREEN_socialMedia_TEXT, 
     PURPOSE, FEEDBACK, PLATFORM,
     `0_Q_B0_ENCOUNTER`: `4_Q_B6_CHART-ACTION`
@@ -653,7 +658,7 @@ df_questions <- df_data %>%
   select(
   PID, duration.min,  Assigned.Block,
   Sample, Scope, Distribution, PLATFORM, 
-  D_gender:D_politicsFiscal, 
+  D_gender_collapsed:D_politicsFiscal, 
   contains("_Q_"), contains("loop"), 
 ) %>% 
   pivot_longer( #PIVOT ON stimulus
@@ -1114,14 +1119,41 @@ single_sd <- function (df, left, right, x) {
 
 
 
-######### RETURNS SINGLE SD
+######## RETURNS SINGLE SD
 ##  APPLY STYLE
-plot_sd = function (data, column, type, split, boxplot) {
-    
+# plot_sd = function (data, column, type, split, boxplot) {
+# 
+#   ggplot(df, aes(y = .data[[column]], x="")) +
+#     {if(boxplot) geom_boxplot(width = 0.5) } +
+#     geom_jitter(width = 0.1, alpha=0.3, {if(split) aes(color=Distribution)}) +
+#     {if(split) facet_grid(Distribution ~ .)} +
+#     scale_y_continuous(limits=c(-1,101)) +
+#     labs(x="", y="") +
+#     coord_flip()  +
+#     {if(type == "S")
+#       guides(
+#         y = guide_axis_manual(labels = ref_labels[column,"left"]),
+#         y.sec = guide_axis_manual(labels = ref_labels[column,"right"])
+#       )} +
+#     {if(type == "Q")
+#       guides(
+#         y = guide_axis_manual(labels = ref_labels[q,"left"]),
+#         y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
+#       )} +
+#   theme_minimal()  +
+#      labs (
+#        caption = column
+#      )
+# }
+
+
+# # ##  APPLY STYLE
+plot_sd = function (data, column, type, facet, facet_by, boxplot) {
+
   ggplot(df, aes(y = .data[[column]], x="")) +
     {if(boxplot) geom_boxplot(width = 0.5) } +
-    geom_jitter(width = 0.1, alpha=0.3, {if(split) aes(color=Distribution)}) + 
-    {if(split) facet_grid(Distribution ~ .)} +
+    geom_jitter(width = 0.1, alpha=0.3, {if(facet) aes(color=.data[[facet_by]])}) +
+    {if(facet) facet_grid(.data[[facet_by]] ~ .)} +
     scale_y_continuous(limits=c(-1,101)) +
     labs(x="", y="") +
     coord_flip()  +
@@ -1129,16 +1161,16 @@ plot_sd = function (data, column, type, split, boxplot) {
       guides(
         y = guide_axis_manual(labels = ref_labels[column,"left"]),
         y.sec = guide_axis_manual(labels = ref_labels[column,"right"])
-      )} +  
+      )} +
     {if(type == "Q")
       guides(
         y = guide_axis_manual(labels = ref_labels[q,"left"]),
         y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
-      )} +  
-  theme_minimal()  + 
+      )} +
+  theme_minimal()  +
      labs (
        caption = column
-     )
+     ) + easy_remove_legend()
 }
 
 ```
@@ -1167,16 +1199,13 @@ dfSummary(df_data %>% select(PID, duration.min, Distribution, Assigned.Block, PL
 
 ```{r plot-dataframe}
 
-print("Explore shapes of the prepared dataframes")
-
-qacBase::df_plot(df_graphs)
-qacBase::df_plot(df_questions)
-qacBase::df_plot(df_sd_questions_long)
-qacBase::df_plot(df_sd_questions_wide)
-
-qacBase::barcharts(df_participants)
-
-
+# print("Explore shapes of the prepared dataframes")
+# 
+# qacBase::df_plot(df_graphs)
+# qacBase::df_plot(df_questions)
+# qacBase::df_plot(df_sd_questions_long)
+# qacBase::df_plot(df_sd_questions_wide)
+# qacBase::barcharts(df_participants)
 
 ```
 
@@ -1216,92 +1245,15 @@ ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Ass
 
 
 
-desc.duration <- psych::describe(df_data$duration.min)
+p.desc.duration <- psych::describe(df_data %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
+t.desc.duration <- psych::describe(df_data %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
 
-## TODO TUMBLR AS WELL 
 ``` 
 
 
-Participant response times ranged from `r desc.duration$min` to `r desc.duration$max` minutes, with a mean response time of `r round(desc.duration$mean,2)` minutes, SD = `r (round(desc.duration$sd,2))`.
+PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times ranged from `r p.desc.duration$min` to `r p.desc.duration$max` minutes, with a mean response time of `r round(p.desc.duration$mean,2)` minutes, SD = `r (round(p.desc.duration$sd,2))`.
 
-### Maker Page Response Time
-```{r demo-maker-response-time}
-
-df <- df_graphs
-
-## BOXPLOT — MAKER RESPONSE TIME  
-ggplot(df, aes(x=STIMULUS_CATEGORY, y=MAKER_LATENCY, color=STIMULUS_CATEGORY))+
-  geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(jitter.width=1.5), alpha = 0.3) +
-  facet_grid(Distribution ~ .)+
-  scale_color_viridis(discrete=TRUE, option="viridis") + 
-  coord_flip() + 
-  labs( y = "MAKER Page Response Time (mins)", x="",
-        title = "MAKER Page Response Time by Stimulus Category",
-        subtitle = "(distributions of response times are similar across samples, as expected)") + 
-  theme_minimal() + theme(legend.position = "none") 
-
-
-## RIDGEPLOT — MAKER PAGE RESPONSE
-ggplot(df, aes(x = MAKER_LATENCY, y = STIMULUS_CATEGORY, fill = STIMULUS_CATEGORY)) +
-  geom_density_ridges(scale=0.8) +
-  # geom_boxplot()+
-  stat_pointinterval()+
-  # theme_ridges() +
-  facet_grid(Distribution ~ .) + 
-  scale_fill_viridis(discrete=TRUE, option="viridis") + 
-  theme_minimal() + 
-  theme(legend.position = "none") +
-    labs( x = "MAKER Page Response Time (mins)", y="",
-        title = "MAKER Page Response Time by Stimulus Category",
-        subtitle = "(distributions of response times are similar across samples, as expected)") 
-
-
-```
-
-
-Maker page response times ranged from `r min(df_graphs$MAKER_LATENCY)` to `r max(df_graphs$MAKER_LATENCY)` minutes, with a mean response time of `r round(mean(df_graphs$MAKER_LATENCY),1)` minutes.
-
-
-### Chart Page Response Time
-```{r demo-chart-response-time}
-
-df <- df_graphs
-
-## BOXPLOT — MAKER RESPONSE TIME  
-ggplot(df, aes(x=STIMULUS_CATEGORY, y=CHART_LATENCY, color=STIMULUS_CATEGORY))+
-  geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(jitter.width=1.5), alpha = 0.3) +
-  scale_color_viridis(discrete=TRUE, option="viridis") + 
-  facet_grid(Distribution ~ .) + 
-  coord_flip() + 
-  labs( y = "CHART Page Response Time (mins)", x="",
-        title = "CHART Page Response Time by Stimulus Category",
-        subtitle = "(distributions of response times are similar across samples, as expected)") +
-  theme_minimal() + theme(legend.position = "none") 
-
-
-## RIDGEPLOT — MAKER PAGE RESPONSE
-ggplot(df, aes(x = CHART_LATENCY, y = STIMULUS_CATEGORY, fill = STIMULUS_CATEGORY)) +
-  geom_density_ridges(scale=0.8) +
-  # geom_boxplot()+
-  stat_pointinterval()+
-  # theme_ridges() +
-  scale_fill_viridis(discrete=TRUE, option="viridis") + 
-  facet_grid(Distribution ~ .) + 
-  theme_minimal() + 
-  theme(legend.position = "none") +
-    labs( x = "CHART Page Response Time (mins)", y="",
-        title = "CHART Page Response Time by Stimulus Category",
-        subtitle = "(distributions of response times are similar across samples, as expected)") 
-
-
-```
-
-
-Chart page response times ranged from `r min(df_graphs$CHART_LATENCY)` to `r max(df_graphs$CHART_LATENCY)` minutes, with a mean response time of `r round(mean(df_graphs$CHART_LATENCY),1)` minutes.
-
-
+TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes, with a mean response time of `r round(desc.duration$mean,2)` minutes, SD = `r (round(desc.duration$sd,2))`.
 
 ### Age
 
@@ -1318,7 +1270,8 @@ ggplot(data = df_data, aes( x = Assigned.Block, fill = fct_rev(D_age) )) +
 
 
 # OVERALL AGE
-ggstatsplot::ggbarstats(df_data, x= D_age, y=Distribution) +
+ggstatsplot::ggbarstats(df_data, x= D_age, y=Distribution,
+                          results.subtitle = FALSE) +
     theme_minimal() +
     scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
     easy_add_legend_title("Age") + 
@@ -1342,12 +1295,22 @@ ggplot(data = df_data, aes( x = Assigned.Block, fill = fct_rev(D_gender) )) +
   # easy_add_legend_title("")
 
 
-# OVERALL AGE
-ggstatsplot::ggbarstats(df_data, x= D_gender, y=Distribution) +
+# OVERALL GENDER
+ggstatsplot::ggbarstats(df_data, x= D_gender, y=Distribution, 
+                        results.subtitle = FALSE) +
     theme_minimal() +
     scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
     easy_add_legend_title("Gender") + 
     labs (title = "Participant Gender")
+
+
+# COLLAPSED GENDER
+ggstatsplot::ggbarstats(df_data, x= D_gender_collapsed, y=Distribution,
+                        results.subtitle = FALSE) +
+    theme_minimal() +
+    scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+    easy_add_legend_title("Gender") + 
+    labs (title = "Participant Gender (Collapsed)")
 
 
 #PROLIFIC
@@ -1557,6 +1520,7 @@ ggplot( df_data, aes( x = Assigned.Block, fill = PLATFORM)) +
 
 How confident are participants in their attributions? We want to explore this from several perspectives, including: participant-level differences, question-level differences, and stimulus-level differences
 
+#### Distribution of Confidence
 
 ```{r inspect-confidence, message=FALSE}
 
@@ -1640,7 +1604,7 @@ ggsave(plot = g, path="figs/histograms", filename =paste0("confidence_matrix_","
 ```
 
 
-### Individual Average Confidence
+#### Individual Participant Confidence
 
 ```{r message=FALSE}
 
@@ -1708,8 +1672,58 @@ ggplot(df, aes( x = sd_conf)) +
 
 ```
 
+#### Predicting Confidence 
+
+```{r predict-confidence}
+
+df <- df_graphs %>% left_join(df_confidence_wide, by="PID") %>% 
+  select(-contains(".y")) %>% 
+  rename_with(
+    stringr::str_replace, 
+      pattern = ".x", replacement = ""
+  )
 
 
+## maker confidence by age
+(m <- ggplot(df, aes( color = CONF_mean, x = D_age, y = MAKER_CONF, text = PID)) + 
+  geom_jitter(size = 0.5, width = .2, height = 0) + 
+  scale_colour_paletteer_c("ggthemes::Red-Black Diverging", direction = -1)+
+  labs (
+    title = "Confidence in MAKER_ID by Participant Age",
+    subtitle = "color by average participant confidence: red HIGH, black LOW",
+    x = "participant age"
+  ) + theme_minimal() )
+
+
+# ggplotly(m)
+
+## age maker confidence by age
+(a <- ggplot(df, aes( color = CONF_mean, x = D_age, y = AGE_CONF, text = PID)) + 
+  geom_jitter(size = 0.5, width = .2, height = 0) + 
+  scale_colour_paletteer_c("ggthemes::Red-Black Diverging", direction = -1)+
+  labs (
+    title = "Confidence in MAKER_AGE by Participant Age",
+    subtitle = "color by average participant confidence: red HIGH, black LOW",
+    x = "participant age"
+  ) + theme_minimal() )
+
+
+# ggplotly(a)
+
+## age maker confidence by age
+(a <- ggplot(df, aes( color = CONF_mean, x = D_age, y = GENDER_CONF, text = PID)) + 
+  geom_jitter(size = 0.5, width = .2, height = 0) + 
+  scale_colour_paletteer_c("ggthemes::Red-Black Diverging", direction = -1)+
+  labs (
+    title = "Confidence in MAKER_GENDER by Participant Age",
+    subtitle = "color by average participant confidence: red HIGH, black LOW",
+    x = "participant age"
+  ) + theme_minimal() )
+
+
+# ggplotly(a)
+
+```
 
 
 
@@ -2405,6 +2419,342 @@ gghistostats(
 
 ```
 
+
+# FISH
+
+
+### DEMO-GENDER > MAKER-GENDER?
+
+```{r}
+
+df <- df_graphs %>% select(PID, D_gender, MAKER_GENDER, GENDER_CONF, STIMULUS, STIMULUS_CATEGORY, BLOCK)
+
+
+## ALL STIMULI
+ggplot(df, aes(x = MAKER_GENDER, fill= D_gender)) + 
+  geom_bar(position = "stack")  + 
+  scale_fill_viridis(discrete=TRUE, option="viridis") + 
+  theme_minimal() + 
+  labs(
+    title = "MAKER GENDER by participant gender",
+    subtitle = "(across all stimuli)",
+    caption = "ARF: Attribution of maker gender does not *appear* to differ by participant \n gender identity; Each personal gender has attributions to each maker gender"
+  )
+
+
+
+## CATEGORY
+ggplot(df, aes(x = MAKER_GENDER, fill= D_gender)) + 
+  geom_bar(position = "stack")  + 
+  facet_grid(.~fct_rev(STIMULUS_CATEGORY))+
+  scale_fill_viridis(discrete=TRUE, option="viridis") + 
+  theme_minimal() + 
+  labs(
+    title = "MAKER GENDER by participant gender",
+    subtitle = "(by stimulus category)",
+    caption = "ARF: Note that across categories most attributions are male, 
+    EXCEPT F (millenial pink plants) which is largely female
+    HOWEVER relative proportion by participant gender looks consistent" 
+  )
+
+
+## STIMULUS
+ggplot(df, aes(x = MAKER_GENDER, fill= D_gender)) + 
+  geom_bar(position = "stack")  + 
+  facet_grid(BLOCK~fct_rev(STIMULUS_CATEGORY), scales = "free", space = "free")+
+  scale_fill_viridis(discrete=TRUE, option="viridis")+
+  theme_minimal() + 
+  labs(
+    title = "MAKER GENDER by participant gender",
+    subtitle = "(by stimulus)",
+    caption = "ARF: Again, relative proportions look consistent by participant gender"
+  )
+
+## B00
+df <- df %>% filter(STIMULUS=="B0-0")
+ggplot(df, aes(x = MAKER_GENDER, fill= D_gender)) + 
+  geom_bar(position = "stack")  + 
+  facet_grid(BLOCK~fct_rev(STIMULUS_CATEGORY), scales = "free", space = "free")+
+  scale_fill_viridis(discrete=TRUE, option="viridis")+
+  theme_minimal() + 
+  labs(
+    title = "MAKER GENDER by participant gender",
+   subtitle = "B0-0 MILLENIAL PINK PLANTS",
+    caption = "ARF: Most attributions are FEMALE but relative proportion of 
+    participant gender appears comparable; difficult to detect due to low number
+    of non-binary, prefer not to say, prefer to self-describe"
+  )
+
+```
+### DEMO-GENDER_Q_all_stimuli
+```{r GENDER-Q-FOR-ALL-STIMULI}
+
+##ONLY RENDER GRAPHS IF SET TO TRUE
+if(graph_render == TRUE){
+
+####################CREATE SD PLOTS FOR EACH QUESTION#####################
+
+#set questions to be graphed 
+questions <- ref_sd_questions  #created in wrangling block
+box_s_question <- list()
+rain_s_question <- list()
+i = 0
+for (q in questions){
+  i = i+1
+  
+  # setup dataframe 
+  title <- paste(q)
+  df <- df_sd_questions_wide %>% filter(QUESTION == q)
+
+  #subset data cols 
+  c <- df %>% select( all_of(ref_stimuli))
+  # plot_sd = function (data, column, type, facet, facet_by,  boxplot) {
+
+  plots <- as.list(lapply(colnames(c), plot_sd, data = df, type = "Q", facet=TRUE, facet_by= "D_gender_collapsed", boxplot=TRUE)) 
+  
+  #aggregate stimulus plots into block for question
+  x <- plots[[1]] / plots[[2]]  / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+        plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] /  plots[[12]] / plots[[13]] / plots[[14]] / 
+        plots[[15]] /plots[[16]] /plots[[17]] /plots[[18]] /  plots[[19]] / plots[[20]] / plots[[21]] /
+        plots[[22]] /plots[[23]] /plots[[24]] /plots[[25]] + 
+      plot_annotation(
+        title = title,
+       subtitle =""
+      )
+  box_s_question[[i]] <- x 
+  ggsave(plot = x, path="figs/GENDER_by_q_for_all_stimuli", filename =paste0(q,"_box.png"), units = c("in"), width = 10, height = 26)
+
+  
+  
+  
+  ############# RAINCLOUD
+  # setup dataframe 
+  title <- paste(q)
+  df <- df_sd_questions_long %>% filter(QUESTION ==q)
+    #select(1:6, QUESTION, all_of(s)) %>% filter(!is.na(s)) %>%  mutate(value = get(s))
+  left <- ref_labels[q,]$left
+  right <- ref_labels[q,]$right
+
+  #RAINCLOUD PLOT
+  x <- ggplot(df, aes(y = fct_rev(STIMULUS) , x = value, fill = fct_rev(STIMULUS))) +
+      stat_slab(normalize="groups", scale = 0.7) +
+      stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+    facet_grid(~D_gender_collapsed)+
+  guides(
+    y = guide_axis_manual(labels = left),
+    y.sec = guide_axis_manual(labels = right)
+  ) +
+  labs (title = title) +
+  theme_minimal() 
+   
+  
+  rain_s_question[[i]] <- x
+  ggsave(plot = x, path="figs/GENDER_by_q_for_all_stimuli", filename =paste0(q,"_rain.png"), units = c("in"), width = 10, height = 14  )
+  
+
+  
+}
+
+#GIVE NAMES TO LIST
+#NOW CAN ACCESS plots by plots_s_question$MAKER_DESIGN
+#ALSO plots_s_question$MAKER_DESIGN[[1]]
+names(box_s_question) <- questions
+names(rain_s_question) <- questions
+rm(x, i, plots, left, right)
+
+#############################################################################
+
+}
+```
+
+### DEMO-GENDER-MILLENIAL-PLANTS-SDS
+```{r GENDER-PLANTS ALL-Q-BY-STIMULUS}
+
+
+#################### ALL QUESTIONS AT B00 #####################
+# ONE PLOT FOR EACH STIMULUS WITH ALL QUESTIONS
+
+#set stimuli to be graphed 
+# stimuli <- ref_stimuli #created in wrangling block
+stimuli <- c("B0-0")
+
+box_stimuli <- list()
+rain_stimuli <- list()
+i = 0
+for (s in stimuli){
+  i = i+1
+  
+  # setup dataframe 
+  title <- df_stimuli %>% filter(ID == s) %>% select(NAME) 
+  title <- paste(s,"|",title)
+  df <- df_graphs %>% filter(STIMULUS== s)
+
+  #subset data cols 
+  cols <- df %>% select( all_of(ref_sd_questions))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", facet = TRUE, facet_by="D_gender_collapsed", boxplot=TRUE))
+
+  #aggregate q plots into one for stimulus 
+  x <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
+   plot_annotation(
+     title = title,
+     subtitle =""
+   )
+  
+  box_stimuli[[i]] <- x
+  ggsave(plot = x, path="figs/_millenial-pink-plants", filename =paste0(s,"_box.png"), units = c("in"), width = 10, height = 14  )
+  
+  
+  #### RAINCLOUD PLOT
+  # setup dataframe 
+  title <- df_stimuli %>% filter(ID == s) %>% select(NAME) 
+  title <- paste(s,"|",title)
+  df <- df_sd_questions_wide %>% select(1:6, D_gender_collapsed, QUESTION, all_of(s)) %>% filter(!is.na(s)) %>%  mutate(value = get(s))
+
+
+  #RAINCLOUD PLOT
+  x <- ggplot(df, aes(y = fct_rev(QUESTION), x = value, fill = fct_rev(QUESTION))) +
+  stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+  facet_grid(~ D_gender_collapsed)+
+  guides(
+    # y = guide_axis_manual(labels = paste(levels(df$QUESTION),ref_labels$left)),
+    y = guide_axis_manual(labels = rev(ref_labels$left)),
+    y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+  ) + 
+  labs (title = title) +
+  theme_minimal() 
+   
+  
+  rain_stimuli[[i]] <- x
+  ggsave(plot = x, path="figs/_millenial-pink-plants", filename =paste0(s,"_rain.png"), units = c("in"), width = 10, height = 14  )
+  
+}
+
+#GIVE NAMES TO LIST
+#NOW CAN ACCESS plots by plots_stimulus$`B1-1`
+#ALSO plots_stimulus$`B1-1`[[1]]
+names(box_stimuli) <- stimuli
+names(rain_stimuli) <- stimuli
+rm(x, i, plots)
+
+#############################################################################
+ 
+
+```
+
+
+### DEMO-GENDER-MILLENIAL-PLANTS-CATS
+```{r}
+
+
+#filter dataframe
+df <- df_graphs %>% select(PID, D_gender_collapsed, MAKER_GENDER, GENDER_CONF, MAKER_AGE, AGE_CONF, MAKER_ID, MAKER_CONF, STIMULUS, STIMULUS_CATEGORY, BLOCK) %>% filter(STIMULUS=="B0-0")
+
+
+##ID
+p <- ggplot(df, aes(x = MAKER_ID, fill= D_gender_collapsed)) + 
+  geom_bar(position = "fill")  + 
+  facet_grid(BLOCK~fct_rev(STIMULUS_CATEGORY), scales = "free", space = "free")+
+  theme_minimal() + 
+  labs(
+    title = "MAKER ID by participant gender (proportion)",
+    subtitle = "B0-0 MILLENIAL PINK PLANTS",
+    caption = ""
+  )
+
+s <- ggplot(df, aes(x = MAKER_ID, fill= D_gender_collapsed)) + 
+  geom_bar(position = "stack")  + 
+  facet_grid(BLOCK~fct_rev(STIMULUS_CATEGORY), scales = "free", space = "free")+
+  theme_minimal() + 
+  labs(
+    title = "MAKER ID by participant gender (true count)",
+    subtitle = "B0-0 MILLENIAL PINK PLANTS",
+    caption = ""
+  )
+
+(p/s)
+
+##AGE
+p <- ggplot(df, aes(x = MAKER_AGE, fill= D_gender_collapsed)) + 
+  geom_bar(position = "fill")  + 
+  facet_grid(BLOCK~fct_rev(STIMULUS_CATEGORY), scales = "free", space = "free")+
+  theme_minimal() + 
+  labs(
+    title = "MAKER AGE by participant gender (proportion)",
+    subtitle = "B0-0 MILLENIAL PINK PLANTS",
+    caption = ""
+  )
+
+s <- ggplot(df, aes(x = MAKER_AGE, fill= D_gender_collapsed)) + 
+  geom_bar(position = "stack")  + 
+  facet_grid(BLOCK~fct_rev(STIMULUS_CATEGORY), scales = "free", space = "free")+
+  theme_minimal() + 
+  labs(
+    title = "MAKER AGE by participant gender (true count)",
+    subtitle = "B0-0 MILLENIAL PINK PLANTS",
+    caption = ""
+  )
+
+(p/s)
+
+
+##GENDER
+p <- ggplot(df, aes(x = MAKER_GENDER, fill= D_gender_collapsed)) + 
+  geom_bar(position = "fill")  + 
+  facet_grid(BLOCK~fct_rev(STIMULUS_CATEGORY), scales = "free", space = "free")+
+  theme_minimal() + 
+  labs(
+    title = "MAKER GENDER by participant gender (proportion)",
+    subtitle = "B0-0 MILLENIAL PINK PLANTS",
+    caption = "ARF: Proportion of OTHER looks high!"
+  )
+
+s <- ggplot(df, aes(x = MAKER_GENDER, fill= D_gender_collapsed)) + 
+  geom_bar(position = "stack")  + 
+  facet_grid(BLOCK~fct_rev(STIMULUS_CATEGORY), scales = "free", space = "free")+
+  theme_minimal() + 
+  labs(
+    title = "MAKER GENDER by participant gender (true count)",
+    subtitle = "B0-0 MILLENIAL PINK PLANTS",
+    caption = "ARF: But count of other is very low :("
+  )
+
+(p/s)
+
+
+##MAKER CONFIDENCE BY GENDER 
+ggplot(df, aes(x=D_gender_collapsed, y = MAKER_CONF, color = D_gender_collapsed))+
+  geom_jitter(width=0.2, height = 0) + 
+  labs (title = "CONFIDENCE in MAKER_ID by Participant Gender",
+        x = "participant gender")+
+  theme_minimal() +
+  easy_remove_legend()
+
+
+##AGE CONFIDENCE BY GENDER 
+ggplot(df, aes(x=D_gender_collapsed, y = AGE_CONF, color = D_gender_collapsed))+
+  geom_jitter(width=0.2, height = 0) + 
+  labs (title = "CONFIDENCE in MAKER_AGE by Participant Gender",
+        x = "participant gender")+
+  theme_minimal() +
+  easy_remove_legend()
+
+
+##GENDER CONFIDENCE BY GENDER 
+ggplot(df, aes(x=D_gender_collapsed, y = GENDER_CONF, color = D_gender_collapsed))+
+  geom_jitter(width=0.2, height = 0) + 
+  labs (title = "CONFIDENCE in MAKER_GENDER by Participant Gender",
+        x = "participant gender")+
+  theme_minimal() +
+  easy_remove_legend()
+
+```
+
+
+
+
+
 # B0-0 MILLENIAL PINK PLANTS
 
 
@@ -2561,7 +2911,7 @@ summ(m)
 # compare_performance(m.r, m.1, m.2, m.3, rank = TRUE)
 
 ```
-### Modelling Engagement
+### TODO COME BACK HERE Modelling Engagement
 
 ```{r B00-ENGAGEMENT}
 
@@ -2583,209 +2933,209 @@ summ(m)
 
 ## left off here !!! 
 ## MAKE DATAFRAME OF ACTIONS WITH OTHER STUFF 
-df_g <- df_graphs %>% filter(STIMULUS == "B0-0")
-df_a <- df_actions %>% filter(STIMULUS == "B0-0")
-df_x <- df_a %>% inner_join(x=df_a, y=df_g, by="PID",
-                           relationship = "many-to-one",
-                           multiple = "last",
-                           keep = FALSE)
-rm(df_a, df_g)
-
-
-df <- df_x %>% filter(STIMULUS == "B0-0") %>%
-  mutate(
-    flipped_data = abs(MAKER_DATA - 100),
-    flipped_design = abs(MAKER_DESIGN -100),
-    flipped_intent = abs(CHART_INTENT -100),
-    flipped_self = abs(MAKER_SELF -100),
-  ) %>% select(
-    MAKER_ARGUE, MAKER_ALIGN, CHART_LIKE, CHART_BEAUTY,
-    flipped_data:flipped_self,  CHART_TRUST, MAKER_TRUST,
-    Distribution, D_gender, D_education, D_politicalParty,
-    D_politicsSocial, D_politicsFiscal,
-    MAKER_ID, MAKER_AGE, MAKER_GENDER,
-  )
-
+# df_g <- df_graphs %>% filter(STIMULUS == "B0-0")
+# df_a <- df_actions %>% filter(STIMULUS == "B0-0")
+# df_x <- df_a %>% inner_join(x=df_a, y=df_g, by="PID",
+#                            relationship = "many-to-one",
+#                            multiple = "last",
+#                            keep = FALSE)
+# rm(df_a, df_g)
+# 
+# 
+# df <- df_x %>% filter(STIMULUS == "B0-0") %>%
+#   mutate(
+#     flipped_data = abs(MAKER_DATA - 100),
+#     flipped_design = abs(MAKER_DESIGN -100),
+#     flipped_intent = abs(CHART_INTENT -100),
+#     flipped_self = abs(MAKER_SELF -100),
+#   ) %>% select(
+#     MAKER_ARGUE, MAKER_ALIGN, CHART_LIKE, CHART_BEAUTY,
+#     flipped_data:flipped_self,  CHART_TRUST, MAKER_TRUST,
+#     Distribution, D_gender, D_education, D_politicalParty,
+#     D_politicsSocial, D_politicsFiscal,
+#     MAKER_ID, MAKER_AGE, MAKER_GENDER,
+#   )
+# 
 
 
 ## PLOT DISTRIBUTION OF ENGAGEMENT 
-
-(a <- ggbarstats( data = df, x = "REV_CHART_ACTION", y = "STIMULUS",
-                 legend.title = "ENGAGEMENT")  + 
-      scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
-      labs( title = "Chart Engagement ", subtitle = "", x = "") )
-  
-        
-
-(b <- grouped_ggbarstats( data = df_a, x = "REV_CHART_ACTION", y = "STIMULUS", 
-                    grouping.var = Distribution, 
-                    legend.title = "ENGAGEMENT",  
-                    ggplot.component = list(scale_fill_paletteer_d("awtools::a_palette", direction = 1))))
-
-
-
-df <- df_a %>% mutate( REV_CHART_ACTION = fct_rev(CHART_ACTION))
-predictors = df_a %>% select(Distribution, PLATFORM, 
-                D_gender, D_age, D_education, D_race, D_income, 
-                D_politicalParty, D_politicsFiscal, D_politicsSocial) %>% colnames()
-
-
-
-
-
-## PLOT POTENTIAL BIVARIATE
-(g <- ggbivariate(df_a, outcome = "CHART_ACTION", explanatory = predictors) + 
-  scale_fill_paletteer_d("awtools::a_palette", direction = 1))
-
-ggsave(plot = g, path="figs/modelling", filename =paste0("b00_engagement","_bivariatet.png"), units = c("in"), width = 15, height = 20  )
-
-
-## PLOT EXPLANATIONS OF ENGAGEMENT
-
-
-
-##
-
-## Visualize Engagement with B00
-
 # 
-# 
-# 
-# 
-# chart_m.1 <- lm(CHART_TRUST ~ CHART_BEAUTY, data = df )
-# summ(chart_m.1)
-# 
-# chart_m.2 <- lm(CHART_TRUST ~ MAKER_ALIGN , data = df )
-# summ(chart_m.2)
-# 
-# 
-# anova(chart_m.1, chart_m.2)
-# compare_performance(chart_m.1, chart_m.2, rank = TRUE)
-# 
-# 
-# m.1 <- lm(MAKER_TRUST ~ CHART_BEAUTY, data = df )
-# summ(m.1)
-# 
-# m.2 <- lm(MAKER_TRUST ~ MAKER_ALIGN , data = df )
-# summ(m.2)
-# 
-# anova(m.1, m.2)
-# compare_performance(chart_m.1, chart_m.2, m.1, m.2, rank = TRUE)
-# 
-# 
-# m.3 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY , data = df )
-# summ(m.3)
-# 
-# m.4 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY + flipped_intent, data = df )
-# summ(m.4)
-# 
-# m.5 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY + flipped_intent + flipped_data, data = df )
-# summ(m.5)
-# 
-# 
-# m.6 <- lm(MAKER_TRUST ~ CHART_BEAUTY + MAKER_ALIGN + flipped_intent + flipped_data + flipped_design, data = df )
-# summ(m.6)
-#  
-# 
-# m.7 <- lm(CHART_TRUST ~ CHART_BEAUTY + MAKER_ALIGN + flipped_intent + flipped_data + flipped_design, data = df )
-# summ(m.7)
-# 
-# m <- lm(MAKER_TRUST ~ MAKER_ALIGN, data = df)
-# summ(m)
-# 
-#  
-#  compare_performance(m.1, m.2, m.3, m.4, m.5, m, rank = TRUE)
-# # 
-# ## WHAT PREDICTS MAKER_TRUST?
-# 
-# 
-# ## PLOT THE DATA 
-# ggplot(df, aes(x = MAKER_ALIGN, y = MAKER_TRUST)) + 
-#   geom_point() +
-#   stat_smooth(method = "lm", 
-#               formula = y ~ x, 
-#               geom = "smooth") + 
-#   labs(title = "MAKER ALIGNMENT PREDICTS TRUST?")+
-#   theme_minimal()
-# 
-# 
-# ## PLOT THE DATA 
-# ggplot(df, aes(x = flipped_data, y = MAKER_TRUST)) + 
-#   geom_point() +
-#   stat_smooth(method = "lm", 
-#               formula = y ~ x, 
-#               geom = "smooth") + 
-#   labs(title = "MAKER DATA PREDICTS TRUST?")+
-#   theme_minimal()
-# 
-# 
-# ## BUILD MODEL
-# m.1 <- lm( MAKER_TRUST ~ MAKER_ALIGN, data = df)
-# # summary(m.1)
-# jtools::summ(m.1, confint = TRUE)
-# # check_model(m.1)
-# # report(m.1)
-# 
-# ## BUILD MODEL
-# m.2 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data, data = df)
-# # summary(m.2)
-# jtools::summ(m.2, confint = TRUE)
-# # check_model(m.2)
-# # report(m.2)
-# 
-# ## BUILD MODEL
-# m.3 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data + flipped_design , data = df)
-# # summary(m.3)
-# jtools::summ(m.3, confint = TRUE)
-# # check_model(m.3)
-# # report(m.3)
-# 
-# 
-# ## BUILD MODEL
-# m.4 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data + flipped_design + MAKER_POLITIC, data = df)
-# # summary(m.3)
-# jtools::summ(m.4, confint = TRUE)
-# # check_model(m.3)
-# # report(m.3)
-# 
-# 
-# 
+# (a <- ggbarstats( data = df, x = "REV_CHART_ACTION", y = "STIMULUS",
+#                  legend.title = "ENGAGEMENT")  + 
+#       scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+#       labs( title = "Chart Engagement ", subtitle = "", x = "") )
 #   
-# compare_performance(m.1, m.2, m.3, m.4, m.B,  rank = TRUE)
+#         
 # 
-# 
-# # effect_plot(m.2, pred=MAKER_DATA, rug = TRUE, plot.points = TRUE) + 
-# #   xlim(0,100) + 
-# #   ylim(0,100)
-# 
-# 
-# 
-# 
-# df <- df_graphs %>% filter(STIMULUS != "B0-0") %>% 
-#   select(PID, STIMULUS, 
-#          MAKER_ID:MAKER_TRUST, CHART_LIKE:CHART_TRUST, 
-#          D_politicsFiscal, D_politicsSocial)
-# 
-# m.pid <- lmer( MAKER_TRUST ~  (1 | PID) , data = df, REML = FALSE)
-# m.stim <- lmer( MAKER_TRUST ~ (1|STIMULUS) , data = df, REML = FALSE)
-# m.r <- lmer( MAKER_TRUST ~ (1 | PID) + (1|STIMULUS), data = df, REML = FALSE)
-# 
-# compare_performance (m.pid, m.stim, m.r, rank = TRUE)
+# (b <- grouped_ggbarstats( data = df_a, x = "REV_CHART_ACTION", y = "STIMULUS", 
+#                     grouping.var = Distribution, 
+#                     legend.title = "ENGAGEMENT",  
+#                     ggplot.component = list(scale_fill_paletteer_d("awtools::a_palette", direction = 1))))
 # 
 # 
 # 
-# m.1 <- update( m.r, .~. + CHART_BEAUTY)
-# summ(m.1)
-# 
-# m.2 = update(m.1, . ~ . + CHART_LIKE)
-# summ(m.2)
-# 
-# 
-# m.3 = update(m.2, . ~ . + CHART_TRUST)
-# summ(m.3)
+# df <- df_a %>% mutate( REV_CHART_ACTION = fct_rev(CHART_ACTION))
+# predictors = df_a %>% select(Distribution, PLATFORM, 
+#                 D_gender, D_age, D_education, D_race, D_income, 
+#                 D_politicalParty, D_politicsFiscal, D_politicsSocial) %>% colnames()
 # 
 # 
-# compare_performance(m.r, m.1, m.2, m.3, rank = TRUE)
+# 
+# 
+# 
+# ## PLOT POTENTIAL BIVARIATE
+# (g <- ggbivariate(df_a, outcome = "CHART_ACTION", explanatory = predictors) + 
+#   scale_fill_paletteer_d("awtools::a_palette", direction = 1))
+# 
+# ggsave(plot = g, path="figs/modelling", filename =paste0("b00_engagement","_bivariatet.png"), units = c("in"), width = 15, height = 20  )
+# 
+# 
+# ## PLOT EXPLANATIONS OF ENGAGEMENT
+# 
+# 
+# 
+# ##
+# 
+# ## Visualize Engagement with B00
+# 
+# # 
+# # 
+# # 
+# # 
+# # chart_m.1 <- lm(CHART_TRUST ~ CHART_BEAUTY, data = df )
+# # summ(chart_m.1)
+# # 
+# # chart_m.2 <- lm(CHART_TRUST ~ MAKER_ALIGN , data = df )
+# # summ(chart_m.2)
+# # 
+# # 
+# # anova(chart_m.1, chart_m.2)
+# # compare_performance(chart_m.1, chart_m.2, rank = TRUE)
+# # 
+# # 
+# # m.1 <- lm(MAKER_TRUST ~ CHART_BEAUTY, data = df )
+# # summ(m.1)
+# # 
+# # m.2 <- lm(MAKER_TRUST ~ MAKER_ALIGN , data = df )
+# # summ(m.2)
+# # 
+# # anova(m.1, m.2)
+# # compare_performance(chart_m.1, chart_m.2, m.1, m.2, rank = TRUE)
+# # 
+# # 
+# # m.3 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY , data = df )
+# # summ(m.3)
+# # 
+# # m.4 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY + flipped_intent, data = df )
+# # summ(m.4)
+# # 
+# # m.5 <- lm(CHART_TRUST ~ MAKER_TRUST + MAKER_ALIGN + CHART_BEAUTY + flipped_intent + flipped_data, data = df )
+# # summ(m.5)
+# # 
+# # 
+# # m.6 <- lm(MAKER_TRUST ~ CHART_BEAUTY + MAKER_ALIGN + flipped_intent + flipped_data + flipped_design, data = df )
+# # summ(m.6)
+# #  
+# # 
+# # m.7 <- lm(CHART_TRUST ~ CHART_BEAUTY + MAKER_ALIGN + flipped_intent + flipped_data + flipped_design, data = df )
+# # summ(m.7)
+# # 
+# # m <- lm(MAKER_TRUST ~ MAKER_ALIGN, data = df)
+# # summ(m)
+# # 
+# #  
+# #  compare_performance(m.1, m.2, m.3, m.4, m.5, m, rank = TRUE)
+# # # 
+# # ## WHAT PREDICTS MAKER_TRUST?
+# # 
+# # 
+# # ## PLOT THE DATA 
+# # ggplot(df, aes(x = MAKER_ALIGN, y = MAKER_TRUST)) + 
+# #   geom_point() +
+# #   stat_smooth(method = "lm", 
+# #               formula = y ~ x, 
+# #               geom = "smooth") + 
+# #   labs(title = "MAKER ALIGNMENT PREDICTS TRUST?")+
+# #   theme_minimal()
+# # 
+# # 
+# # ## PLOT THE DATA 
+# # ggplot(df, aes(x = flipped_data, y = MAKER_TRUST)) + 
+# #   geom_point() +
+# #   stat_smooth(method = "lm", 
+# #               formula = y ~ x, 
+# #               geom = "smooth") + 
+# #   labs(title = "MAKER DATA PREDICTS TRUST?")+
+# #   theme_minimal()
+# # 
+# # 
+# # ## BUILD MODEL
+# # m.1 <- lm( MAKER_TRUST ~ MAKER_ALIGN, data = df)
+# # # summary(m.1)
+# # jtools::summ(m.1, confint = TRUE)
+# # # check_model(m.1)
+# # # report(m.1)
+# # 
+# # ## BUILD MODEL
+# # m.2 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data, data = df)
+# # # summary(m.2)
+# # jtools::summ(m.2, confint = TRUE)
+# # # check_model(m.2)
+# # # report(m.2)
+# # 
+# # ## BUILD MODEL
+# # m.3 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data + flipped_design , data = df)
+# # # summary(m.3)
+# # jtools::summ(m.3, confint = TRUE)
+# # # check_model(m.3)
+# # # report(m.3)
+# # 
+# # 
+# # ## BUILD MODEL
+# # m.4 <- lm( MAKER_TRUST ~ MAKER_ALIGN + flipped_data + flipped_design + MAKER_POLITIC, data = df)
+# # # summary(m.3)
+# # jtools::summ(m.4, confint = TRUE)
+# # # check_model(m.3)
+# # # report(m.3)
+# # 
+# # 
+# # 
+# #   
+# # compare_performance(m.1, m.2, m.3, m.4, m.B,  rank = TRUE)
+# # 
+# # 
+# # # effect_plot(m.2, pred=MAKER_DATA, rug = TRUE, plot.points = TRUE) + 
+# # #   xlim(0,100) + 
+# # #   ylim(0,100)
+# # 
+# # 
+# # 
+# # 
+# # df <- df_graphs %>% filter(STIMULUS != "B0-0") %>% 
+# #   select(PID, STIMULUS, 
+# #          MAKER_ID:MAKER_TRUST, CHART_LIKE:CHART_TRUST, 
+# #          D_politicsFiscal, D_politicsSocial)
+# # 
+# # m.pid <- lmer( MAKER_TRUST ~  (1 | PID) , data = df, REML = FALSE)
+# # m.stim <- lmer( MAKER_TRUST ~ (1|STIMULUS) , data = df, REML = FALSE)
+# # m.r <- lmer( MAKER_TRUST ~ (1 | PID) + (1|STIMULUS), data = df, REML = FALSE)
+# # 
+# # compare_performance (m.pid, m.stim, m.r, rank = TRUE)
+# # 
+# # 
+# # 
+# # m.1 <- update( m.r, .~. + CHART_BEAUTY)
+# # summ(m.1)
+# # 
+# # m.2 = update(m.1, . ~ . + CHART_LIKE)
+# # summ(m.2)
+# # 
+# # 
+# # m.3 = update(m.2, . ~ . + CHART_TRUST)
+# # summ(m.3)
+# # 
+# # 
+# # compare_performance(m.r, m.1, m.2, m.3, rank = TRUE)
 
 ```
 
@@ -2853,6 +3203,57 @@ ggplot(df, aes(x = MAKER_POLITIC, y = MAKER_TRUST, color = MAKER_ID)) +
 
 
 
+
+
+
+# EDA
+
+##  PAIR PLOTS
+
+### B0-0 MILLENIAL PINK PLANTS 
+
+```{r B00_MAKERID, message=FALSE}
+
+#FILTER DATAFRAME
+df <- df_graphs_full %>%
+  filter(STIMULUS== "B0-0") %>%
+  select(
+    Distribution,  D_politicalParty,
+    # D_gender, D_race, D_education, D_income, D_age,
+    # ENCOUNTER,
+    MAKER_ID,
+    D_politicsSocial, D_politicsFiscal,
+    MAKER_DESIGN, MAKER_DATA, MAKER_CONF, MAKER_ALIGN, MAKER_TRUST, CHART_TRUST
+    # :MAKER_TRUST,
+    # TOOL_CONF,CHART_LIKE:CHART_TRUST
+)
+
+# g <- ggpairs(df, color=MAKER_ID)
+# ggsave(plot = g, path="figs/pairplots", filename =paste0("B0-0","_pairplot.svg"), units = c("in"), width = 20, height = 20  )
+# ggplotly(g)
+
+
+
+
+(boo_pair <- ggpairs(df, aes(color= MAKER_ID)) +
+    scale_color_viridis(discrete=TRUE, option="viridis")+
+    scale_fill_viridis(discrete=TRUE, option="viridis") +
+    theme_minimal()
+  )
+
+
+(boo_duo <- ggduo(df, aes(color= Distribution)) +
+    scale_color_viridis(discrete=TRUE, option="viridis")+
+    scale_fill_viridis(discrete=TRUE, option="viridis") +
+    theme_minimal()
+  )
+
+
+
+#ggplotly(boo_duo) #surprisingly works! but not helpful
+
+```
+
 ### CATEGORIES-MAKER
 ```{r}
 
@@ -2908,54 +3309,6 @@ ggsave(plot = x, path="figs/pairplots", filename =paste0("category","_scaplot.pn
 ```
 
 
-# EDA
-
-##  PAIR PLOTS
-
-
-### B0-0 MILLENIAL PINK PLANTS 
-
-```{r B00_MAKERID, message=FALSE}
-
-# #FILTER DATAFRAME
-# df <- df_graphs_full %>% 
-#   filter(STIMULUS== "B0-0") %>% 
-#   select(
-#     Distribution,  D_politicalParty,
-#     # D_gender, D_race, D_education, D_income, D_age, 
-#     # ENCOUNTER, 
-#     MAKER_ID,
-#     D_politicsSocial, D_politicsFiscal,
-#     MAKER_DESIGN, MAKER_DATA, MAKER_CONF, MAKER_ALIGN, MAKER_TRUST, CHART_TRUST
-#     # :MAKER_TRUST, 
-#     # TOOL_CONF,CHART_LIKE:CHART_TRUST
-# )
-# 
-# # g <- ggpairs(df, color=MAKER_ID)
-# # ggsave(plot = g, path="figs/pairplots", filename =paste0("B0-0","_pairplot.svg"), units = c("in"), width = 20, height = 20  )
-# # ggplotly(g)
-# 
-# 
-# 
-# 
-# (boo_pair <- ggpairs(df, aes(color= MAKER_ID)) + 
-#     scale_color_viridis(discrete=TRUE, option="viridis")+
-#     scale_fill_viridis(discrete=TRUE, option="viridis") + 
-#     theme_minimal()
-#   ) 
-#   
-# 
-# (boo_duo <- ggduo(df, aes(color= Distribution)) + 
-#     scale_color_viridis(discrete=TRUE, option="viridis")+
-#     scale_fill_viridis(discrete=TRUE, option="viridis") + 
-#     theme_minimal()
-#   ) 
-# 
-
-
-#ggplotly(boo_duo) #surprisingly works! but not helpful
-
-```
 
 # INTERACTIVE GRAPHS
 
@@ -3315,7 +3668,7 @@ for (s in stimuli){
 
   #subset data cols 
   cols <- df %>% select( all_of(ref_sd_questions))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", split = FALSE, boxplot=TRUE))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", facet = FALSE, boxplot=TRUE))
 
   #aggregate q plots into one for stimulus 
   x <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
@@ -3395,7 +3748,7 @@ for (c in categories){
   
   #subset data cols
   cols <- df %>% select( all_of(ref_sd_questions))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type = "S", split = FALSE, boxplot=TRUE))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type = "S", facet = FALSE, boxplot=TRUE))
   
   #aggregate stimulus plots into block for question
   x <- plots[[1]] / plots[[2]]  / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
@@ -3471,7 +3824,7 @@ for (q in questions){
 
   #subset data cols 
   c <- df %>% select( all_of(ref_stimuli))
-  plots <- as.list(lapply(colnames(c), plot_sd, data = df, type = "Q", split = FALSE, boxplot=TRUE))
+  plots <- as.list(lapply(colnames(c), plot_sd, data = df, type = "Q", facet = FALSE, boxplot=TRUE))
   
   #aggregate stimulus plots into block for question
   x <- plots[[1]] / plots[[2]]  / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
