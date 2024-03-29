@@ -51,6 +51,7 @@ library(viridis) #color palettes
 library(RColorBrewer) #color palettes
 library(plotly) # interactive graphs
 library(paletteer) #more palettes
+library(lessR) ##easy donuts 
 
 
 #GEO-VIS
@@ -73,7 +74,7 @@ options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-graph_render = FALSE #set to true to generate all the SD graphs and save to folders 
+graph_render = TRUE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
@@ -221,7 +222,7 @@ df_raw_prolific <- df_raw_prolific %>%
     stringr::str_replace, 
       pattern = "P_BROWSER", replacement = "BROWSER",
   ) %>% 
-  rename(
+  dplyr::rename(
     BROWSER_OS = `BROWSER_Operating System`
   ) %>% mutate_all(funs(str_replace(., "millenial", "millennial")))
 
@@ -343,7 +344,7 @@ df_data <- df_raw %>%
     -D_politicalParty_DO, 
     -ID_PROLIFIC, -ID_STUDY, -ID_SESSION #redundant to other cols 
   ) %>% 
-  rename(
+  dplyr::rename(
     duration.sec = `Duration (in seconds)`,
     EndState = End_State, 
     TerminateFlag = Q_TerminateFlag,
@@ -2000,6 +2001,20 @@ ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) +
   # easy_add_legend_title("") +
   theme_minimal()
 
+
+#MAKER GENDER
+ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) +
+  geom_bar(position = "fill") +
+  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
+  labs( title = "MAKER GENDER by Stimulus (grouped by CATEGORY) ",
+        subtitle = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  coord_flip()+
+  # easy_add_legend_title("") +
+  theme_minimal()
+
+
+
 ```
 ### Maker Gender by Category
 
@@ -2849,6 +2864,8 @@ ggplot(df, aes(x=D_gender_collapsed, y = GENDER_CONF, color = D_gender_collapsed
 
 # B1-3 OMINOUS AMERICAN FLAG
 
+## bar charts 
+
 ```{r OMINOUS-FLAG}
 
 
@@ -2900,6 +2917,166 @@ ggplot(data = df, aes( fill = fct_rev(TOOL_ID), x = fct_rev(STIMULUS) )) +
   theme_minimal() 
 
 ```
+## pie charts 
+
+```{r OMINOUS-FLAG}
+
+
+df <- df_graphs %>% filter(STIMULUS == "B1-3")
+
+#MAKER IDENTIFICATION
+ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_ID)) +
+  geom_bar(position = "fill") +
+  labs( title = "MAKER ID [B1-C]) ",
+        subtitle = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  easy_add_legend_title("") +
+  theme_minimal()
+
+
+#MAKER AGE
+ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_AGE)) +
+  geom_bar(position = "fill") +
+  labs( title = "MAKER AGE [B1-C] ",
+        subtitle = "", x = "") +
+  scale_fill_paletteer_d("ggsci::light_uchicago", direction = -1)+
+  theme_minimal()
+
+
+
+#MAKER GENDER
+ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) +
+  geom_bar(position = "fill") +
+  # facet_grid(D_gender_collapsed ~ ., scales = "free", space = "free") + 
+  labs( title = "MAKER GENDER [B1-C] ",
+        subtitle = "", x = "") +
+  scale_fill_paletteer_d("ggthemes::excel_Celestial", direction = 1)+
+  theme_minimal()
+
+
+
+df <- df_tools %>% filter (STIMULUS =="B1-3")
+
+# TOOL CHOICE BY STIMULUS
+ggplot(data = df, aes( fill = fct_rev(TOOL_ID), x = fct_rev(STIMULUS) )) +
+  geom_bar(position = "fill") +
+  # coord_flip() + 
+  # facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
+  scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+  scale_y_continuous(labels = scales::percent) + 
+  labs( title = "TOOL ID by Stimulus (grouped by Category)",
+        subtitle = "", x = "") +
+  easy_add_legend_title("TOOL_ID") +
+  theme_minimal() 
+
+
+
+
+
+
+
+
+#### GG_LOT + GREPL
+library(ggrepel)
+df <- df_graphs %>% filter(STIMULUS == "B1-3") %>% select(STIMULUS, MAKER_ID) %>% 
+  group_by(MAKER_ID) %>% 
+  summarize(
+    value = n()
+  )
+df2 <- df %>% 
+  mutate(csum = rev(cumsum(rev(value))), 
+         pos = value/2 + lead(csum, 1),
+         pos = if_else(is.na(pos), value/2, pos))
+
+ggplot(df, aes(x = "" , y = value, fill = fct_inorder(MAKER_ID))) +
+  geom_col(width = 1, color = 1) +
+  coord_polar(theta = "y") +
+  scale_fill_brewer(palette = "Pastel1") +
+  geom_label_repel(data = df2,
+                   aes(y = pos, label = paste0(value, "%")),
+                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
+  guides(fill = guide_legend(title = "Group")) +
+  theme_void()
+
+
+##GGPIESTATS VERSION
+df <- df_graphs %>% filter (STIMULUS =="B1-3") %>% 
+  mutate(
+    MAKER_ID = fct_rev(MAKER_ID)
+  )
+ggpiestats(data = df, x=MAKER_ID )
+
+
+##DONUT WITH LESSR
+
+library(lessR)
+
+#MAKER_ID-DONUT
+PieChart(MAKER_ID, data = df,
+         fill = "reds",
+         main = NULL)
+
+
+#MAKER_GENDER-DONUT
+PieChart(MAKER_GENDER, data = df,
+         fill = "blues",
+         main = NULL)
+
+
+#MAKER_GENDER-DONUT
+PieChart(MAKER_AGE, data = df,
+         fill = "olives",
+         main = NULL)
+
+
+# View(paletteer::palettes_d_names)
+
+```
+## semantic differentials
+```{r sd-b13, warning=FALSE}
+
+
+
+
+
+##FILTER DATAFRAME
+s = "B1-3" #stimulus code
+df <- df_graphs %>% filter(STIMULUS == s)
+
+questions = c("MAKER_POLITIC", "MAKER_ARGUE", "MAKER_SELF", "MAKER_ALIGN", "MAKER_TRUST")
+# questions = ref_sd_questions
+labels <- ref_labels %>% filter(row.names(ref_labels) %in% questions)
+
+#### RAINCLOUD PLOT
+  # setup dataframe 
+  title <- df_stimuli %>% filter(ID == s) %>% select(NAME) 
+  title <- paste0(title, " [",s,"]")
+  df <- df_sd_questions_wide %>% select(1:6, QUESTION, all_of(s)) %>% 
+    filter(!is.na(s)) %>%  
+    mutate(value = get(s)) %>% 
+    filter(QUESTION %in% questions)
+
+
+  #RAINCLOUD PLOT
+  # x <- 
+    ggplot(df, aes(y = fct_rev(QUESTION), x = value)) +
+  stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+  # facet_grid( .~ Distribution) +
+  guides(
+    # y = guide_axis_manual(labels = paste(levels(df$QUESTION),ref_labels$left)),
+    y = guide_axis_manual(labels = rev(labels$left)),
+    y.sec = guide_axis_manual(labels = rev(labels$right))
+  ) +
+  labs (title = title) +
+  theme_minimal() 
+   
+  
+  # rain_stimuli[[i]] <- x
+  ggsave(plot = x, path="figs/_aggressive_american_flag", filename =paste0(s,"_rain.png"), units = c("in"), width = 10, height = 14  )
+
+```
+
 
 
 # B0-0 MILLENIAL PINK PLANTS
