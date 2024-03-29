@@ -73,7 +73,7 @@ options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-graph_render = TRUE #set to true to generate all the SD graphs and save to folders 
+graph_render = FALSE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
@@ -1253,7 +1253,7 @@ t.desc.duration <- psych::describe(df_data %>% filter(Distribution=="TUMBLR") %>
 
 PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times ranged from `r p.desc.duration$min` to `r p.desc.duration$max` minutes, with a mean response time of `r round(p.desc.duration$mean,2)` minutes, SD = `r (round(p.desc.duration$sd,2))`.
 
-TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes, with a mean response time of `r round(desc.duration$mean,2)` minutes, SD = `r (round(desc.duration$sd,2))`.
+TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes, with a mean response time of `r round(t.desc.duration$mean,2)` minutes, SD = `r (round(t.desc.duration$sd,2))`.
 
 ### Age
 
@@ -2424,6 +2424,7 @@ gghistostats(
 
 ### bivariate combinations 
 ```{r bivariate-demos}
+
 if(graph_render == TRUE){
 
 
@@ -2513,7 +2514,7 @@ rm(i,g)
 #####################################################END
 
 
-if(graph_render == TRUE){
+}
 
 ```
 
@@ -2903,7 +2904,7 @@ ggplot(data = df, aes( fill = fct_rev(TOOL_ID), x = fct_rev(STIMULUS) )) +
 
 # B0-0 MILLENIAL PINK PLANTS
 ### GGBIVARIATE
-```{r bivariate-demos}
+```{r bivariate-demos-b00}
 if(graph_render == TRUE){
 
 
