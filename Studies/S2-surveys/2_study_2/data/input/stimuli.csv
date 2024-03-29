@@ -1,8 +1,8 @@
 ﻿BLOCK,CATEGORY,ID,NAME,QUALTRICS_ID,MAKER_ID,LINK,ANIMATOR,SOURCE,MAKER,TRUTH_DESIGN,TRUTH_DATA
-block0,F,B0-0,Millenial Pink Plants,IM_wR6XrhfTUFeNfAK,,https://mit.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_wR6XrhfTUFeNfAK,,,,PROFESSIONAL,PROFESSIONAL
+block0,F,B0-0,Pasted Pink Plants,IM_wR6XrhfTUFeNfAK,,https://mit.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_wR6XrhfTUFeNfAK,,,,PROFESSIONAL,PROFESSIONAL
 block1,A,B1-1,Spicy Correlation Heatmap,IM_AqMKzFUakJ8jY9G,,https://mit.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_AqMKzFUakJ8jY9G,,,,LAYPERSON,LAYPERSON
-block1,B,B1-2,Newsy Dual Timeseries,IM_PNwVBnuhOgjucSp,News,https://mit.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_PNwVBnuhOgjucSp,,,,PROFESSIONAL,PROFESSIONAL
-block1,C,B1-3,Ominous American Flag,IM_lGWFErPNgjnrYuZ,,https://mit.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_lGWFErPNgjnrYuZ,,,,LAYPERSON,LAYPERSON
+block1,B,B1-2,Newsroom Dual Timeseries,IM_PNwVBnuhOgjucSp,News,https://mit.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_PNwVBnuhOgjucSp,,,,PROFESSIONAL,PROFESSIONAL
+block1,C,B1-3,Aggressive American Flag,IM_lGWFErPNgjnrYuZ,,https://mit.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_lGWFErPNgjnrYuZ,,,,LAYPERSON,LAYPERSON
 block1,D,B1-4,Tiny Little Guns,IM_sgnaSNFL5rbBYAM,News,https://mit.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_sgnaSNFL5rbBYAM,massvis,Wall Street Journal,Wall Street Journal,PROFESSIONAL,PROFESSIONAL
 block2,A,B2-1,Bluesy Economist Stacked Area,IM_6jLetmtxatXSXSg,News,https://mit.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_6jLetmtxatXSXSg,,,,PROFESSIONAL,PROFESSIONAL
 block2,B,B2-2,Significant Excel Error Bars,IM_dFN0NzvrvpyADpq,Academic,https://mit.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_dFN0NzvrvpyADpq,,,,LAYPERSON,PROFESSIONAL
