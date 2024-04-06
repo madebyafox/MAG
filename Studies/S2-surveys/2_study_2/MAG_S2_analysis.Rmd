@@ -1214,6 +1214,18 @@ dfSummary(df_data %>% select(PID, duration.min, Distribution, Assigned.Block, PL
 ## Demographics
 
 
+### Participant Sample
+
+```{r}
+
+df <- df_participants
+
+tab(df_participants, Distribution)
+
+
+```
+
+
 ### Total Response Time
 ```{r demo-response-time}
 
@@ -1332,6 +1344,9 @@ title = "Participant Gender — Self Describe"
 cols = c("Text","Count")
 cont <- table(df_data$D_gender_4_TEXT)
 cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+
+round(prop.table(table(df_participants$Distribution, df_participants$D_gender), margin=1),3)
 
 ```
 
@@ -1495,6 +1510,7 @@ ggplot(data = df_data, aes( fill = D_politicalParty, x = Assigned.Block )) +
   theme_minimal() +
   easy_add_legend_title("")
 
+ggbarstats( data = df_data, x = "D_politicalParty", y = "Progress")  
 ```
 
 
@@ -1996,22 +2012,48 @@ ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) +
   facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
   labs( title = "MAKER GENDER by Stimulus (grouped by CATEGORY) ",
         subtitle = "", x = "") +
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  # scale_fill_viridis(discrete=TRUE, option="viridis") +
+  scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
   coord_flip()+
   # easy_add_legend_title("") +
   theme_minimal()
 
 
 #MAKER GENDER
-ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) +
+ggplot( df, aes( x = fct_rev(STIMULUS), fill = fct_rev(MAKER_GENDER))) +
   geom_bar(position = "fill") +
-  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
+  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ ., scales = "free", space = "free") + 
   labs( title = "MAKER GENDER by Stimulus (grouped by CATEGORY) ",
         subtitle = "", x = "") +
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
+  # scale_fill_viridis(discrete=TRUE, option="viridis") +
+  scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
   coord_flip()+
   # easy_add_legend_title("") +
   theme_minimal()
+
+
+#MAKER GENDER
+ggplot( df, aes( x = fct_rev(STIMULUS), fill = fct_rev(MAKER_GENDER))) +
+  geom_bar(position = "fill") +
+  facet_grid(.~fct_rev(STIMULUS_CATEGORY) , scales = "free", space = "free") + 
+  labs( title = "MAKER GENDER by Stimulus (grouped by CATEGORY) ",
+        subtitle = "", x = "") +
+  # scale_fill_viridis(discrete=TRUE, option="viridis") +
+  scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+  # coord_flip()+
+  # easy_add_legend_title("") +
+  theme_minimal()
+
+
+#MAKER GENDER
+
+ggbarstats( data = df, x = "MAKER_GENDER", y = "STIMULUS",
+                 legend.title = "MAKER_GENDER")  +
+      scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+      labs( title = "MAKER_GENDER ", subtitle = "", x = "") 
+
+
+
 
 
 
@@ -2862,7 +2904,15 @@ ggplot(df, aes(x=D_gender_collapsed, y = GENDER_CONF, color = D_gender_collapsed
 
 ```
 
-# B1-3 OMINOUS AMERICAN FLAG
+# B1-3 AGGRESSIVE AMERICAN FLAG
+
+## demographics
+
+```{r b13-demographics}
+
+n = df_participants %>% filter(Assigned.Block == 1) %>% nrow()
+print(paste(n, "participants were assigned to block 1 where they saw the 'aggressive american flag stimulus"))
+```
 
 ## bar charts 
 
@@ -2917,89 +2967,120 @@ ggplot(data = df, aes( fill = fct_rev(TOOL_ID), x = fct_rev(STIMULUS) )) +
   theme_minimal() 
 
 ```
-## pie charts 
-
-```{r OMINOUS-FLAG}
-
+```{r angry-flag-age-by-sample}
 
 df <- df_graphs %>% filter(STIMULUS == "B1-3")
-
-#MAKER IDENTIFICATION
-ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_ID)) +
-  geom_bar(position = "fill") +
-  labs( title = "MAKER ID [B1-C]) ",
-        subtitle = "", x = "") +
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
-  easy_add_legend_title("") +
-  theme_minimal()
-
 
 #MAKER AGE
 ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_AGE)) +
   geom_bar(position = "fill") +
+  facet_grid(.~Distribution) + 
   labs( title = "MAKER AGE [B1-C] ",
         subtitle = "", x = "") +
   scale_fill_paletteer_d("ggsci::light_uchicago", direction = -1)+
   theme_minimal()
 
 
+```
 
-#MAKER GENDER
-ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) +
-  geom_bar(position = "fill") +
-  # facet_grid(D_gender_collapsed ~ ., scales = "free", space = "free") + 
-  labs( title = "MAKER GENDER [B1-C] ",
-        subtitle = "", x = "") +
-  scale_fill_paletteer_d("ggthemes::excel_Celestial", direction = 1)+
-  theme_minimal()
+## pie charts 
+
+```{r OMINOUS-FLAG}
 
 
+# df <- df_graphs %>% filter(STIMULUS == "B1-3")
+# 
+# #MAKER IDENTIFICATION
+# ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_ID)) +
+#   geom_bar(position = "fill") +
+#   labs( title = "MAKER ID [B1-C]) ",
+#         subtitle = "", x = "") +
+#   scale_fill_viridis(discrete=TRUE, option="viridis") +
+#   easy_add_legend_title("") +
+#   theme_minimal()
+# 
+# 
+# #MAKER AGE
+# ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_AGE)) +
+#   geom_bar(position = "fill") +
+#   labs( title = "MAKER AGE [B1-C] ",
+#         subtitle = "", x = "") +
+#   scale_fill_paletteer_d("ggsci::light_uchicago", direction = -1)+
+#   theme_minimal()
+# 
+# 
+# 
+# #MAKER GENDER
+# ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_GENDER)) +
+#   geom_bar(position = "fill") +
+#   # facet_grid(D_gender_collapsed ~ ., scales = "free", space = "free") + 
+#   labs( title = "MAKER GENDER [B1-C] ",
+#         subtitle = "", x = "") +
+#   scale_fill_paletteer_d("ggthemes::excel_Celestial", direction = 1)+
+#   theme_minimal()
+# 
+# 
+# 
+# df <- df_tools %>% filter (STIMULUS =="B1-3")
+# 
+# # TOOL CHOICE BY STIMULUS
+# ggplot(data = df, aes( fill = fct_rev(TOOL_ID), x = fct_rev(STIMULUS) )) +
+#   geom_bar(position = "fill") +
+#   # coord_flip() + 
+#   # facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
+#   scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+#   scale_y_continuous(labels = scales::percent) + 
+#   labs( title = "TOOL ID by Stimulus (grouped by Category)",
+#         subtitle = "", x = "") +
+#   easy_add_legend_title("TOOL_ID") +
+#   theme_minimal() 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# #### GG_LOT + GREPL
+# library(ggrepel)
+# df <- df_graphs %>% filter(STIMULUS == "B1-3") %>% select(STIMULUS, MAKER_ID) %>% 
+#   group_by(MAKER_ID) %>% 
+#   summarize(
+#     value = n()
+#   )
+# df2 <- df %>% 
+#   mutate(csum = rev(cumsum(rev(value))), 
+#          pos = value/2 + lead(csum, 1),
+#          pos = if_else(is.na(pos), value/2, pos))
+# 
+# ggplot(df, aes(x = "" , y = value, fill = fct_inorder(MAKER_ID))) +
+#   geom_col(width = 1, color = 1) +
+#   coord_polar(theta = "y") +
+#   scale_fill_brewer(palette = "Pastel1") +
+#   geom_label_repel(data = df2,
+#                    aes(y = pos, label = paste0(value, "%")),
+#                    size = 4.5, nudge_x = 1, show.legend = FALSE) +
+#   guides(fill = guide_legend(title = "Group")) +
+#   theme_void()
 
-df <- df_tools %>% filter (STIMULUS =="B1-3")
 
-# TOOL CHOICE BY STIMULUS
-ggplot(data = df, aes( fill = fct_rev(TOOL_ID), x = fct_rev(STIMULUS) )) +
-  geom_bar(position = "fill") +
-  # coord_flip() + 
-  # facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
-  scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
-  scale_y_continuous(labels = scales::percent) + 
-  labs( title = "TOOL ID by Stimulus (grouped by Category)",
-        subtitle = "", x = "") +
-  easy_add_legend_title("TOOL_ID") +
-  theme_minimal() 
-
-
-
-
-
-
-
-
-#### GG_LOT + GREPL
-library(ggrepel)
-df <- df_graphs %>% filter(STIMULUS == "B1-3") %>% select(STIMULUS, MAKER_ID) %>% 
-  group_by(MAKER_ID) %>% 
-  summarize(
-    value = n()
+##GGPIESTATS MAKER_GENDER
+df <- df_graphs %>% filter (STIMULUS =="B1-3") %>% 
+  mutate(
+    MAKER_GENDER = fct_rev(MAKER_GENDER)
   )
-df2 <- df %>% 
-  mutate(csum = rev(cumsum(rev(value))), 
-         pos = value/2 + lead(csum, 1),
-         pos = if_else(is.na(pos), value/2, pos))
+ggpiestats(data = df, x=MAKER_GENDER )
 
-ggplot(df, aes(x = "" , y = value, fill = fct_inorder(MAKER_ID))) +
-  geom_col(width = 1, color = 1) +
-  coord_polar(theta = "y") +
-  scale_fill_brewer(palette = "Pastel1") +
-  geom_label_repel(data = df2,
-                   aes(y = pos, label = paste0(value, "%")),
-                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
-  guides(fill = guide_legend(title = "Group")) +
-  theme_void()
+##GGPIESTATS MAKER_AGE
+df <- df_graphs %>% filter (STIMULUS =="B1-3") %>% 
+  mutate(
+    MAKER_AGE = fct_rev(MAKER_AGE)
+  )
+ggpiestats(data = df, x=MAKER_AGE )
 
 
-##GGPIESTATS VERSION
+##GGPIESTATS MAKER_ID
 df <- df_graphs %>% filter (STIMULUS =="B1-3") %>% 
   mutate(
     MAKER_ID = fct_rev(MAKER_ID)
