@@ -1176,6 +1176,25 @@ plot_sd = function (data, column, type, facet, facet_by, boxplot) {
 
 ```
 
+```{r}
+
+df_p <- df_participants
+
+
+df_t <- df_qda_input
+df_t <- df_t %>% select(
+  -PURPOSE, -FEEDBACK
+)
+
+
+write.csv(df_p, file = "data/output/clean_participants.csv", na="")
+write.csv(df_t, file = "data/output/clean_trials.csv", na="")
+
+```
+
+
+
+
 # PROFILING
 
 ## Descriptives
