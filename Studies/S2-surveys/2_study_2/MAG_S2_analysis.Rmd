@@ -78,6 +78,7 @@ graph_render = TRUE #set to true to generate all the SD graphs and save to folde
 
 ```
 
+
 # WRANGLING
 
 Initial pilot data were collected via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1").
@@ -5414,5 +5415,53 @@ wip code stash
 # colnames(m) <- questions
 
 ##END OF FILE
+
+```
+
+
+
+## TEMP JOB TALK STUFF
+
+```{r}
+data(iris)
+library(ggpubr)
+# Scatter plot colored by groups ("Species")
+sp <- ggscatter(iris, x = "Sepal.Length", y = "Sepal.Width",
+                color = "Species",
+                size = 2, alpha = 0.6)+
+  border()                                         
+# Marginal density plot of x (top panel) and y (right panel)
+xplot <- ggdensity(iris, "Sepal.Length", fill = "Species")
+yplot <- ggdensity(iris, "Sepal.Width", fill = "Species")+
+  rotate()
+# Cleaning the plots
+yplot <- yplot + clean_theme() 
+xplot <- xplot + clean_theme()
+# Arranging the plot
+ggarrange(xplot, NULL, sp, yplot, 
+          ncol = 2, nrow = 2,  align = "hv", 
+          widths = c(2, 1), heights = c(1, 2),
+          common.legend = TRUE)
+
+```
+
+```{r}
+# library
+library(ggplot2)
+library(ggExtra)
+library(palmerpenguins) 
+
+
+p <- ggplot(penguins, aes(x = bill_length_mm, y=bill_depth_mm, colour = species)) +
+  geom_point() + theme(legend.position = "bottom") 
+
+ggMarginal(p, groupColour = TRUE, groupFill = TRUE)  
+
+
+p <- ggplot(penguins, aes(x = bill_length_mm, y=bill_depth_mm, colour = species)) +
+  geom_point() + theme_minimal() + theme(legend.position = "bottom") +
+  scale_color_viridis(discrete=TRUE, option="viridis", direction=-1) 
+
+ggMarginal(p, groupColour = TRUE, groupFill = TRUE)  
 
 ```
