@@ -1,0 +1,897 @@
+---
+title: "VIBES STUDY 2 DATA WRANGLING"
+author: "ANONYMIZED"
+date: "2024-08-07"
+output:
+  html_document:
+    theme: flatly
+    code_folding: hide
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    toc_depth: 5
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+always_allow_html: yes
+font-family: DejaVu Sans
+mainfont: DejaVu Sans
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(psych) #describe()
+library(tidyverse) #all the things
+library(magrittr) #special pipes like %<>%
+library(lubridate) #dealing with dates
+library(kableExtra) #printing tables
+
+#EXPLORATORY DATA ANALYSIS
+library(summarytools) #data quality
+library(qacBase) #EDA
+
+#CONFIG
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+n_blocks = 6 #number of stimulus blocks in study design
+
+```
+
+*This notebook contains code to wrangle raw data from multiple qualtrics surveys into a single normalized dataset of (valid) participant responses.*
+
+# WRANGLING
+
+Initial (pilot) data collection occured via via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1"). These data were collected via Prolific, with different demographic restrictions (i.e. 'data collar' and 'blue collar' made use of different values in the Prolific participant background survey on the 'technology use at work' and 'job title' questions.) However, when we duplicated these questions in our own demographic surveys, we found participants' answers often did not match their values on the Prolific background survey, and thus we abandoned this stratified sampling strategy and continued data collection with no demographic restrictions. We made minor alterations to the question wording and respose option wording, and the remaining stimuli were organized in 6 blocks. (The changes to question wording and response option wording were minimal and thus we include our pilot data in the dataset for free response question analysis, but not quantitative data analysis.) Each block was collected via PROLIFIC using independent Qualtrics surveys, with the exception of a smaller sample of respondents directly recruited from Tumblr, using a single Qualtrics survey with randomization logic to assign each Tumblr participant to one of the six stimulus blocks.
+
+## IMPORT Configuration Files
+
+*Here we import files with reference information for stimuli `ref_stimuli` and qualtrics surveys `ref_surveys`.*
+
+```{r setup-references, message=FALSE, warning = FALSE}
+
+############## IMPORT STIMULI FILE
+#contains data for each stimulus used in study 2
+ref_stimuli <- read_csv("data/input/REFERENCE/stimuli.csv", col_names = TRUE) %>% 
+  mutate(
+    BLOCK = as.factor(BLOCK), 
+    STIMULUS_CATEGORY = as.factor(CATEGORY),
+    ID = as.factor(ID),
+    MAKER_ID = as.factor(MAKER_ID)) %>% 
+  select(-CATEGORY)
+saveRDS(ref_stimuli, file = "data/input/REFERENCE/ref_stimuli.rds")
+
+############## STUDY ID FILE
+#most blocks were run as separate qualtrics surveys with diffferent recruitments in Prolific
+#Tumblr was run with all blocks and randomization
+ref_surveys <- read_csv("data/input/REFERENCE/studies.csv", col_names = TRUE) %>%
+  mutate(
+    ID.Study = as.factor(ID.Study),
+    Assigned.Block = as.factor(Assigned.Block),
+    Distribution = as.factor(Distribution),
+    Prolific.Name = as.factor(Prolific.Name),
+    Qualtrics.URL = as.factor(Qualtrics.URL),
+    Qualtrics.Survey = as.factor(Qualtrics.Survey),
+    Sample = as.factor(Sample),
+    Scope = as.factor(Scope)
+)
+saveRDS(ref_surveys, file = "data/input/REFERENCE/ref_surveys.rds")
+
+```
+
+## DEFINE Labels
+
+*Here we define labels used in survey questions and response options.*
+
+```{r setup-labels}
+############## BUILD LABELS
+ref_stim_id <- levels(ref_stimuli$ID)
+ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
+ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
+ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
+ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
+               "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
+               "CHART_LIKE", "CHART_BEAUTY", "CHART_INTENT", "CHART_TRUST")
+left <- c("professional","professional","left-leaning","confrontational",
+          "altruistic","does NOT share","untrustworthy",
+          "NOT at all","NOT at all", "inform", "untrustworthy")
+right <- c("layperson","layperson","right-leaning","diplomatic",
+           "selfish", "DOES share", "trustworthy",
+           "very much", "very much", "persuade", "trusthworthy")
+ref_labels <- as.data.frame(cbind(left,right))
+rownames(ref_labels) <- ref_sd_questions
+ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
+rm(left,right)
+```
+
+## IMPORT Participant Data Files
+
+*Here we import raw qualtrics data files for each survey, and normalize column names to produce a single raw data file including all attempts at completing all the surveys: `df_raw`.*
+
+```{r WRANGLE-INPUT, message=FALSE, warning=FALSE}
+
+#1. IMPORT RAW DATA FILES ########################################################
+#### RAW DATA ####################################################################
+# will always be the unaltered version of imported data
+# 1 row per subject 
+df_raw_datacollar <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_PROLIFIC_datacollarpilot_B1.csv", col_names = TRUE)
+df_raw_bluecollar <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_PROLIFIC_bluecollarpilot_B1.csv", col_names = TRUE)
+df_raw_b1 <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_PROLIFIC_GENERAL_B1.csv", col_names = TRUE)
+df_raw_b2 <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_PROLIFIC_GENERAL_B2.csv", col_names = TRUE)
+df_raw_b3 <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_PROLIFIC_GENERAL_B3.csv", col_names = TRUE)
+df_raw_b4 <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_PROLIFIC_GENERAL_B4.csv", col_names = TRUE)
+df_raw_b5 <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_PROLIFIC_GENERAL_B5.csv", col_names = TRUE)
+df_raw_b6 <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_PROLIFIC_GENERAL_B6.csv", col_names = TRUE)
+df_raw_tumblr_paid <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_TUMBLR_PAID_ALL.csv", col_names = TRUE)
+df_raw_tumblr_free <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_TUMBLR_FREE_ALL.csv", col_names = TRUE)
+
+# drop first two rows (these are qualtrics_specs rows)
+df_raw_datacollar <- df_raw_datacollar[-c(1:2),]
+df_raw_bluecollar <- df_raw_bluecollar[-c(1:2),]
+df_raw_b1 <- df_raw_b1[-c(1:2),]
+df_raw_b2 <- df_raw_b2[-c(1:2),]
+df_raw_b3 <- df_raw_b3[-c(1:2),]
+df_raw_b4 <- df_raw_b4[-c(1:2),]
+df_raw_b5 <- df_raw_b5[-c(1:2),]
+df_raw_b6 <- df_raw_b6[-c(1:2),]
+df_raw_tumblr_paid <- df_raw_tumblr_paid[-c(1:2),]
+df_raw_tumblr_free <- df_raw_tumblr_free[-c(1:2),]
+
+# ADD DUMMY COLS TO DATA/BLUE COLLAR PILOT DATA 
+# necessary b/c pilot (block 1) did not have chart_action behavioural question
+# x <- compare_df_cols(df_raw_b2, df_raw_pilot)
+df_raw_pilot <- rbind(df_raw_datacollar, df_raw_bluecollar) %>% 
+  mutate(
+    '0_Q_B0_CHART_ACTION' = NA,
+    '1_Q_B1_CHART_ACTION' = NA,
+    '1_Q_B2_CHART_ACTION' = NA,
+    '1_Q_B3_CHART_ACTION' = NA,
+    '1_Q_B4_CHART_ACTION' = NA,
+    '1_Q_B5_CHART_ACTION' = NA,
+    '1_Q_B6_CHART_ACTION' = NA,
+    '2_Q_B1_CHART_ACTION' = NA,
+    '2_Q_B2_CHART_ACTION' = NA,
+    '2_Q_B3_CHART_ACTION' = NA,
+    '2_Q_B4_CHART_ACTION' = NA,
+    '2_Q_B5_CHART_ACTION' = NA,
+    '2_Q_B6_CHART_ACTION' = NA,
+    '3_Q_B1_CHART_ACTION' = NA,
+    '3_Q_B2_CHART_ACTION' = NA,
+    '3_Q_B3_CHART_ACTION' = NA,
+    '3_Q_B4_CHART_ACTION' = NA,
+    '3_Q_B5_CHART_ACTION' = NA,
+    '3_Q_B6_CHART_ACTION' = NA,
+    '4_Q_B1_CHART_ACTION' = NA,
+    '4_Q_B2_CHART_ACTION' = NA,
+    '4_Q_B3_CHART_ACTION' = NA,
+    '4_Q_B4_CHART_ACTION' = NA,
+    '4_Q_B5_CHART_ACTION' = NA,
+    '4_Q_B6_CHART_ACTION' = NA
+  )
+
+# BIND COLUMNS RAW prolific datasets 
+df_raw_prolific <- rbind(df_raw_pilot, df_raw_b1, df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6)
+
+# RETROFIT SOME COLNAMES FOR COMPATIBILITY WITH TUMBLR 
+df_raw_prolific <- df_raw_prolific %>% 
+  #drop T_BROWSER cols [these are blank]
+  select(-contains("T_BROWSER"), -T_EMAIL) %>% 
+  mutate(
+    Q_RelevantIDDuplicate = NA, 
+    Q_RelevantIDDuplicateScore = NA, 
+    Q_RelevantIDFraudScore = NA, 
+    Q_RelevantIDLastStartDate = NA, 
+    RANDOM_BLOCK = NA
+  ) %>% rename_with(
+    stringr::str_replace, 
+      pattern = "P_BROWSER", replacement = "BROWSER",
+  ) %>% 
+  dplyr::rename(
+    BROWSER_OS = `BROWSER_Operating System`
+  ) %>% mutate_all(funs(str_replace(., "millenial", "millennial")))
+
+
+# BIND COLUMNS RAW prolific datasets 
+df_raw_tumblr <- rbind(df_raw_tumblr_paid, df_raw_tumblr_free)
+
+# RETROFIT SOME TUMBLR COLNAMES FOR MERGING WITH PROLIFIC 
+df_raw_tumblr <- df_raw_tumblr %>% 
+  select( - t_example_question1, -t_example_question2, -D_email) %>% 
+  mutate(
+    #add empty browser cols; didn't collect these in tumblr qualtrics
+    BROWSER_Browser = NA,
+    BROWSER_OS = NA,
+    BROWSER_Resolution = NA,
+    BROWSER_Version = NA, 
+    ID_PROLIFIC = "TUMBLR",
+    ID_SESSION = "TUMBLR",
+    ID_STUDY = "TUMBLR"
+  ) %>% mutate_all(funs(str_replace(., "millenial", "millennial")))
+
+#dataframe column comparisons 
+# x <- janitor::compare_df_cols(df_raw_prolific, df_raw_tumblr)
+
+# JOINT PROLIFIC AND TUMBLR DATAFRAMES
+df_raw <- rbind(df_raw_prolific, df_raw_tumblr)
+
+df_raw <- df_raw %>% 
+  #reorder 
+  select( RANDOM_BLOCK, 
+          End_State,
+          StartDate:randomize_common, 
+          ID_PROLIFIC:ID_SESSION, 
+          D_gender:FEEDBACK, 
+          PROLIFIC_PID: FL_14_DO,
+          Q_RelevantIDDuplicate: Q_RelevantIDLastStartDate, 
+          `0_Q_B0_ENCOUNTER`: `0_Q_B0_CHART_LATENCY_Click Count`, 
+          `0_Q_B0_CHART_ACTION`, 
+          `1_Q_B1_loop-number` : `1_Q_B1_CHART_LATENCY_Click Count`,
+          `1_Q_B1_CHART_ACTION`, 
+          `2_Q_B1_loop-number` : `2_Q_B1_CHART_LATENCY_Click Count`,
+          `2_Q_B1_CHART_ACTION`, 
+          `3_Q_B1_loop-number` : `3_Q_B1_CHART_LATENCY_Click Count`,
+          `3_Q_B1_CHART_ACTION`, 
+          `4_Q_B1_loop-number` : `4_Q_B1_CHART_LATENCY_Click Count`,
+          `4_Q_B1_CHART_ACTION`, 
+          `1_Q_B2_loop-number` : `1_Q_B2_CHART_LATENCY_Click Count`,
+          `1_Q_B2_CHART_ACTION`, 
+          `2_Q_B2_loop-number` : `2_Q_B2_CHART_LATENCY_Click Count`,
+          `2_Q_B2_CHART_ACTION`, 
+          `3_Q_B2_loop-number` : `3_Q_B2_CHART_LATENCY_Click Count`,
+          `3_Q_B2_CHART_ACTION`, 
+          `4_Q_B2_loop-number` : `4_Q_B2_CHART_LATENCY_Click Count`,
+          `4_Q_B2_CHART_ACTION`, 
+          `1_Q_B3_loop-number` : `1_Q_B3_CHART_LATENCY_Click Count`,
+          `1_Q_B3_CHART_ACTION`, 
+          `2_Q_B3_loop-number` : `2_Q_B3_CHART_LATENCY_Click Count`,
+          `2_Q_B3_CHART_ACTION`, 
+          `3_Q_B3_loop-number` : `3_Q_B3_CHART_LATENCY_Click Count`,
+          `3_Q_B3_CHART_ACTION`, 
+          `4_Q_B3_loop-number` : `4_Q_B3_CHART_LATENCY_Click Count`,
+          `4_Q_B3_CHART_ACTION`, 
+          `1_Q_B4_loop-number` : `1_Q_B4_CHART_LATENCY_Click Count`,
+          `1_Q_B4_CHART_ACTION`, 
+          `2_Q_B4_loop-number` : `2_Q_B4_CHART_LATENCY_Click Count`,
+          `2_Q_B4_CHART_ACTION`, 
+          `3_Q_B4_loop-number` : `3_Q_B4_CHART_LATENCY_Click Count`,
+          `3_Q_B4_CHART_ACTION`, 
+          `4_Q_B4_loop-number` : `4_Q_B4_CHART_LATENCY_Click Count`,
+          `4_Q_B4_CHART_ACTION`, 
+          `1_Q_B5_loop-number` : `1_Q_B5_CHART_LATENCY_Click Count`,
+          `1_Q_B5_CHART_ACTION`, 
+          `2_Q_B5_loop-number` : `2_Q_B5_CHART_LATENCY_Click Count`,
+          `2_Q_B5_CHART_ACTION`, 
+          `3_Q_B5_loop-number` : `3_Q_B5_CHART_LATENCY_Click Count`,
+          `3_Q_B5_CHART_ACTION`, 
+          `4_Q_B5_loop-number` : `4_Q_B5_CHART_LATENCY_Click Count`,
+          `4_Q_B5_CHART_ACTION`, 
+          `1_Q_B6_loop-number` : `1_Q_B6_CHART_LATENCY_Click Count`,
+          `1_Q_B6_CHART_ACTION`, 
+          `2_Q_B6_loop-number` : `2_Q_B6_CHART_LATENCY_Click Count`,
+          `2_Q_B6_CHART_ACTION`, 
+          `3_Q_B6_loop-number` : `3_Q_B6_CHART_LATENCY_Click Count`,
+          `3_Q_B6_CHART_ACTION`, 
+          `4_Q_B6_loop-number` : `4_Q_B6_CHART_LATENCY_Click Count`,
+          `4_Q_B6_CHART_ACTION`
+          #df_raw 936 vars           
+  ) 
+
+
+
+#DROP WIP DATAFRAMES 
+rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b1, df_raw_b2, df_raw_b3, df_raw_b4, df_raw_b5, df_raw_b6, df_raw_pilot, df_raw_prolific, df_raw_tumblr, df_raw_tumblr_free, df_raw_tumblr_paid)
+
+```
+
+## WRANGLE PARTICIPANT and RESPONSE Data
+
+*Here we apply exclusion criteria in order to reduce the raw participant data in `df_raw` to a dataframe of valid participant data `df_subjects`. We remove unneeded columns (i.e. qualtrics configuration columns, etc) and transform columns to the the appropriate data types for further analysis.*
+
+NOTE: data from PILOT (i.e. 'blue collar' and 'data collar' runs on Prolific) are *included* in the qualitative data analysis (i.e. analysis of free response data) but *not* in quantitative data analysis (modelling as well as reporting descriptive statistics of response distributions.
+
+Participants were *excluded* from the sample for the following reasons:
+
+-   **abandoned**; Finished = False and Progress \< 100%
+-   **fails consent or pre-screening**, Finished = TRUE, Progress = 100%, Q_TerminateFlag = "Screened"
+-   **didnot-follow-instructions** free responses indicate they misinterpred the question (most commonly they describe the graph rather than their reactions/judgements/impressions of it)
+-   **illegible-english** free responses text is largely illegible
+
+**Following wrangling, there should be 240 valid participant records recruited from PROLIFIC (6 blocks of \~40) and 78 valid participants records recruited from Tumblr ( \~12-15 per block).**
+
+The following dataframes are created:
+
+-   `df_data` represents **response data** for all valid participants (not pilot) (wide format)
+
+-   `df_exclude` represents **response data** for participants who did not meet inclusion criteria (wide format)
+
+-   `df_participants` represents **demographic data** for all valid (not pilot) participants
+
+-   `df_qda_wide` includes all valid (including pilot) responses in wide format, to be used for free response data analysis (wide)
+
+-   `df_qda_long` represents response and demographic data for all valid participants + pilot participants (used to generate a spreadsheet for analysis for free response data) *at the trial (i.e. stimulus) level* (i.e. long).
+
+```{r WRANGLE-CLEANING, warning=FALSE}
+
+#1A. CLEAN MASTER PARTICIPANT-LEVEL DF  #########################################################
+################################################################################################
+#### MASTER WIDE FORMAT DATA FRAME [1 row / valid qualtrics submission] ################
+
+##RENAME AND SET CORRECT DATA TYPES
+df_data <- df_raw %>% 
+  select(
+    -EndDate, -IPAddress, -RecordedDate,
+    -RecipientLastName, -RecipientFirstName, -RecipientEmail,
+    -ExternalReference, -LocationLatitude, -LocationLongitude, 
+    -DistributionChannel, -UserLanguage, -Q_RecaptchaScore,
+    -BROWSER_Version, -BROWSER_Resolution, 
+    -CONSENT, -ELIGIBILITY, 
+    -randomize_common,
+    #hidden q that controls common stimulus url
+    -stimulus_common, 
+    #not actually randomization order
+    -FL_14_DO, 
+    -contains("First Click"), -contains("Last Click"), -contains("Click Count"),
+    -D_politicalParty_DO, 
+    -ID_PROLIFIC, -ID_STUDY, -ID_SESSION #redundant to other cols 
+  ) %>% 
+  dplyr::rename(
+    duration.sec = `Duration (in seconds)`,
+    EndState = End_State, 
+    TerminateFlag = Q_TerminateFlag,
+    Source = Status, #where the survey originated from (should not be preview or test)
+    PLATFORM = Q_PLATFORM,
+    ID.Qualtrics = ResponseId,
+    ID.Prolific = PROLIFIC_PID,
+    ID.Study = STUDY_ID,
+    ID.Session = SESSION_ID,
+    # P_BROWSER_OS = `P_BROWSER_Operating System`,
+    # T_BROWSER_OS = `T_BROWSER_Operating System`,
+    SCREEN_workFunction_TEXT = SCREEN_workFunction_22_TEXT, 
+    SCREEN_socialMedia_TEXT = SCREEN_socialMedia_18_TEXT,
+    D_politicalParty_OTHER = D_politicalParty_4_TEXT,
+    D_politicsSocial = D_politicsSocial_1,
+    D_politicsFiscal = D_politicsFiscal_2
+ ) %>% 
+  mutate(
+    #SET FACTORS 
+    D_politicsSocial = as.numeric(D_politicsSocial),
+    D_politicsFiscal = as.numeric(D_politicsFiscal),
+    ID.Study = factor(ID.Study),
+    ID.Qualtrics = factor(ID.Qualtrics),
+    ID.Prolific = factor(ID.Prolific),
+    ID.Session = factor(ID.Session),
+    PLATFORM = factor(PLATFORM),
+    Source = factor(Source),
+    Finished = as.logical(Finished),
+    TerminateFlag = factor(TerminateFlag),
+    EndState = factor(EndState), 
+    D_gender = factor(D_gender), 
+    D_gender_collapsed = fct_collapse(D_gender, 
+                                female = "Female", 
+                                male = "Male", 
+                                other = c("Non-binary / third gender", "Prefer not to say", "Prefer to self-describe")),
+    D_age = factor(D_age), 
+    D_income = factor(D_income, 
+                      levels = c(
+                        "Prefer not to say",
+                        "Less than $25,000",
+                        "$25,000-$49,999"  ,
+                        "$50,000-$74,999"  ,
+                        "$75,000-$99,999"  ,
+                        "$100,000-$149,999",
+                        "$150,000 or more" 
+                      )),
+    D_employmentStatus = factor(D_employmentStatus),
+    duration.sec = as.numeric(duration.sec), #weird booleans should only be for the test generator
+    duration.min = round(duration.sec/60,2),
+    Progress = as.numeric(Progress), 
+    D_education = forcats::fct_na_value_to_level( D_education, level="NA"),
+    D_education = forcats::fct_collapse( D_education,
+                                no_data = "NA",
+                                less_high_school = c("Some high school or less"),
+                                high_school = c("High school diploma or GED"),
+                                some_college = c("Some college, but no degree", "Some college, no degree"),
+                                associates =c( "Associates or technical degree"),
+                                undergrad = c("Bachelor’s degree","Bachelor's degree"),
+                                grad = c("Graduate or professional degree (MA, MS, MBA, PhD, JD, MD, DDS etc.)",
+                                         "Graduate or professional degree (MA, MS, MBA, PhD, JD, MD, DDS, etc)")
+    ),
+    D_education = factor(D_education, 
+                                       levels = c("no_data", "less_high_school","high_school", "some_college",
+                                         "associates", "undergrad", "grad"), 
+                                       labels = c("NA", "some high school or less","high school diploma or GED ", 
+                                                  "some college", "associates or technical degree", 
+                                                  "undergradudate degree", "graduate or professional degree"), 
+                                       ),
+    D_politicalParty = factor(D_politicalParty, levels = c("No preference", "Other", "Independent", "Republican", "Democrat")),
+    D_age = factor(D_age, 
+                   levels = c("18-24 years old" ,
+                              "25-34 years old" ,
+                              "35-44 years old" ,
+                              "45-54 years old" ,
+                              "55-64 years old" ,
+                              "65+ years old"   ), 
+                   labels = c("18-24", "25-34","35-44","45-54","55-64","65+ years"))
+  ) %>%
+  #REPLACE RANDOM TRAILING _1 AND _65 FROM QUALTRICS
+  rename_with( .cols = contains('_65'), .fn = ~str_replace(.,  pattern = '_65', replacement = '')) %>% 
+  rename_with( .cols = contains('_1'), .fn = ~str_replace(.,  pattern = '_1', replacement = '')) %>% 
+  #RM _PAGE Submit from LATENCY
+  rename_with( .cols = contains('_Page Submit'), .fn = ~str_replace(.,  pattern = '_Page Submit', replacement = '')) %>% 
+  #CHANGE DETAIL QUESTION DELIMITER FOR PIVOT PURPOSES 
+  rename_with( .cols = contains('_CHART_'), .fn = ~str_replace(.,  pattern = '_CHART_', replacement = '_CHART-')) %>% 
+  #CHANGE DETAIL QUESTION DELIMITER FOR PIVOT PURPOSES 
+  rename_with( .cols = contains('_MAKER_'), .fn = ~str_replace(.,  pattern = '_MAKER_', replacement = '_MAKER-')) %>% 
+  #CHANGE DETAIL QUESTION DELIMITER FOR PIVOT PURPOSES 
+  rename_with( .cols = contains('_AGE_'), .fn = ~str_replace(.,  pattern = '_AGE_', replacement = '_AGE-')) %>% 
+  #CHANGE DETAIL QUESTION DELIMITER FOR PIVOT PURPOSES 
+  rename_with (.cols = contains('_GENDER_'), .fn = ~str_replace(., pattern = '_GENDER_', replacement = '_GENDER-')) %>% 
+  #CHANGE DETAIL QUESTION DELIMITER FOR PIVOT PURPOSES 
+  rename_with (.cols = contains('_TOOL_'), .fn = ~str_replace(., pattern = '_TOOL_', replacement = '_TOOL-')) %>% 
+  select(
+    #reordering
+    RANDOM_BLOCK:Progress, 
+    Finished, EndState, TerminateFlag, 
+    Q_RelevantIDDuplicate:Q_RelevantIDLastStartDate,
+    ID.Qualtrics, 
+    ID.Prolific : ID.Session, 
+    duration.sec, duration.min,
+    BROWSER_Browser : BROWSER_OS, 
+    D_gender_collapsed, D_gender:D_politicsFiscal,
+    SCREEN_workMethod: SCREEN_socialMedia_TEXT, 
+    PURPOSE, FEEDBACK, PLATFORM,
+    `0_Q_B0_ENCOUNTER`: `4_Q_B6_CHART-ACTION`
+  ) 
+
+##### JOIN SURVEY-LEVEL DATA 
+df_data <- dplyr::left_join(df_data, ref_surveys, by="ID.Study") 
+
+#SET IDS AND ASSIGNED BLOCK TO HANDLE PROLIFIC AND TUMBLR 
+df_data <- df_data %>% 
+  mutate(
+    # SET ASSIGNMENT BLOCK FOR TUMBLR
+    Assigned.Block = if_else( (Distribution =="TUMBLR"), RANDOM_BLOCK, Assigned.Block),
+    Assigned.Block = factor(Assigned.Block), 
+    # PID = if_else( (Distribution =="TUMBLR"), ID.Qualtrics, ID.Prolific),
+    PID = factor(ID.Qualtrics)
+  ) %>% #DROP RANDOM_BLOC COLUMNS
+  select (-RANDOM_BLOCK) %>% 
+  select(
+    #REORDER
+    PID, 
+    Distribution, 
+    Assigned.Block,
+    ID.Qualtrics:ID.Session,
+    EndState,
+    StartDate: Q_RelevantIDLastStartDate, 
+    Prolific.Name, Qualtrics.Survey,  Qualtrics.URL, Description, Sample, Scope, 
+    duration.sec:PLATFORM,
+    `0_Q_B0_ENCOUNTER` : `4_Q_B6_CHART-ACTION`
+  )
+
+
+#1B CLEAN MASTER PARTICIPANT-LEVEL DF  #########################################
+#### SEGREGATE PARTICIPANTS WHO DID NOT COMPLETE ###############################
+## [1 row / qualtrics submission] ################
+## NOTE it is common for prolific participants to fail the 
+## screening verification, and then try again but change their 
+## screening verification answers (ie. one prolific ID for multiple qualrics IDs)
+df_exclude <- df_data %>% 
+  filter( 
+    !is.na(TerminateFlag) | Finished == FALSE | EndState != "COMPLETE"  
+  ) %>% 
+  select(
+    PID, Distribution, ID.Qualtrics, ID.Prolific, ID.Study, Assigned.Block, Scope, Source, Progress, 
+    Finished, TerminateFlag, EndState,StartDate, duration.min, 
+    D_gender:D_politicsFiscal, SCREEN_workMethod:FEEDBACK, Prolific.Name:Scope
+  )  %>% 
+  mutate(
+    EndState = if_else( (Progress < 100), "abandoned", EndState),
+    EndState = if_else( (str_detect(EndState,"screen")), "screened", EndState),
+    EndState = if_else( (TerminateFlag == "Screened" & is.na(EndState)), "screened", EndState),
+    EndState = factor(EndState)
+  )
+write.csv(df_exclude, file = "data/output/df_exclude.csv", na="")
+saveRDS(df_exclude, file = "data/output/df_exclude.rds")
+
+
+#### MASTER VALID DATA [WIDE] 1 row per qualtrics entry #########################
+## [1 row / qualtrics submission] ################
+df_data <- df_data %>% filter(
+  PID %nin% df_exclude$PID
+  # (Finished == TRUE ) & is.na(TerminateFlag)
+) %>% mutate(
+  EndState = droplevels(EndState),
+  ID.Prolific = droplevels(ID.Prolific),
+  ID.Qualtrics = droplevels(ID.Qualtrics), 
+  PID = droplevels((PID))
+)
+
+
+##SANITY CHECKS ON EXLUSIONS
+#sanity check === SHOULD BE O
+#no qualtrics surveys in good data that weren't finished
+print("Number of PID entries in df_data AND nofinish/excluded? [should be 0]")
+sum(df_data$PID %in% df_exclude$PID)
+
+#sanity check === SHOULD BE O
+#no duplicated PROLIFIC ids in good data 
+print("Number of PIDs duplicated in df_data print [should be 0]")
+sum(duplicated(df_data$PID))
+
+
+## save participant-level data file for qda validation 
+## note that this DOES contain pilot data 
+## this does NOT contain excluded participants 
+df_qda_wide <- df_data
+write.csv(df_data, file = "data/output/df_qda_wide.csv", na="")
+
+
+#2 CREATE TRIAL LEVEL DFS FOR QDA ###############################################
+#### CHART LEVEL DATA FRAME (LONG) FOR QDA (incl demographics) ##################
+#### INCLUDES PILOT DATA FROM DATACOLLAR BLUECOLLAR PROLIFIC RECRUITMENT ########
+# 1 ROW / participant X GRAPH including demographics 
+# UNRAVEL TO QUESTIONS
+df_qda_long <- df_data %>% 
+  # select(
+  # ID.Qualtrics:ID.Study, PLATFORM,
+  # contains("_Q_"), contains("loop")
+# ) %>% 
+  pivot_longer( #PIVOT ON stimulus
+  cols = contains("_Q_"),
+  names_to = c("stimulus","dummy","BLOCK","QUESTION"),
+  values_to = c("value"),
+  names_sep = "_"
+) %>% select(-dummy) %>% 
+  unite(
+   BLOCK:stimulus, col="STIMULUS", sep="-", remove=FALSE
+) %>% 
+  mutate(
+    BLOCK = factor(BLOCK),
+    STIMULUS = factor(STIMULUS),
+    QUESTION = str_replace_all(QUESTION,"-","_"),
+    QUESTION = factor(QUESTION),
+    STIMULUS_CATEGORY = str_remove(STIMULUS,"B.-"),
+    STIMULUS_CATEGORY = factor(STIMULUS_CATEGORY,
+                  levels=c("0","4","3","2","1"),
+                  labels= c("F","D","C","B","A"))
+) %>% 
+  select(-stimulus) %>% 
+# RE-RAVEL UP TO STIMULI
+  filter(!is.na(value)) %>% 
+   pivot_wider(
+    names_from = QUESTION,
+    values_from = value 
+  ) %>%  
+  tidyr::unnest() %>%  # handle r coerces values to lists
+  mutate(
+    across(contains("MAKER_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
+    across(contains("_CONF") | contains("_LATENCY"), as.numeric),
+    across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
+    across(CHART_LIKE:CHART_TRUST, as.numeric),
+    ENCOUNTER = factor(ENCOUNTER),
+    # loop_number = as.numeric(loop_number),
+    # loop_number = ifelse(is.na(loop_number), 0, loop_number),
+    MAKER_LATENCY = round(MAKER_LATENCY/60,2), #CHANGE TO MINS
+    CHART_LATENCY = round(CHART_LATENCY/60,2) #CHANGE TO MINS
+  )
+#WRITE A CSV FILE AS THE BASIS FOR THE QUALITATIVE DATA ANALYSIS
+write.csv(df_qda_long, file = "data/output/df_qda_long.csv", na="")
+
+
+#### REMOVE PILOT DATA FROM DF_DATA 
+## pilot data IS not included QDA file, but not in quant analysis 
+df_data <- df_data %>% 
+  filter(Scope != "pilot") %>% 
+  mutate(
+    ID.Study = droplevels(ID.Study), 
+    ID.Prolific = droplevels(ID.Prolific),
+    ID.Qualtrics = droplevels(ID.Qualtrics),
+    PID = droplevels(PID)
+  ) 
+
+#WRITE  A CSV FILE WITH RESPONSE DATA FOR VALID PARTICIPANTS (NOT EXCLUDED, NOT PILOT) in wide format
+write.csv(df_data, file = "data/output/df_data.csv", na="")
+saveRDS(df_data, file = "data/output/df_data.rds")
+
+
+
+##### CREATE PARTICIPANT LEVEL DEMOGRAPHIC DATAFRAME 
+df_participants <- df_data %>% 
+  select(
+    PID:Assigned.Block, 
+    EndState, Sample, Scope, 
+    duration.sec, duration.min, 
+    contains("D_"), 
+    contains("SCREEN_")
+  )
+
+#WRITE  A CSV FILE WITH DEMOGRAPHIC DATA ALL VALID PARTICIPANTS (NOT EXCLUDED, NOT PILOT) in wide format
+write.csv(df_participants, file = "data/output/df_participants.csv", na="")
+saveRDS(df_participants, file = "data/output/df_participants.rds")
+
+
+
+########## CHECK BLOCK COUNTS 
+#############################################################################
+# title = "Participants by Condition and Data Collection Modality"
+# cols = c("Control Condition","Impasse Condition","Total for Period")
+
+title = "Number of abandoned/screened/rejected attempts "
+cols = c("Block","pilot","study2","sum")
+cont <- table(df_exclude$Assigned.Block, df_exclude$Scope)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+title = "Number of abandoned/screened/rejected attempts by type"
+cols = c("Rejection Type", "Sum")
+cont <- table(df_exclude$EndState)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+title = "Number of successful surveys"
+cols = c("Assigned.Block", "Sum")
+cont <- table(df_data$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+title = "Number of successful surveys by distribution and block"
+cols = c("Sampling Platform", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
+cont <- table(df_data$Distribution, df_data$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+
+
+# END WRANGLE MASTER WIDE PARTICIPANT LEVEL DATA FRAME 
+################################################################################################
+################################################################################################
+
+print("df_data represents full set of RESPONSE DATA for valid non-pilot participants [wide]")
+print("df_participants represents full set of DEMOGRAPHIC DATA for valid non-pilot participants [demographics]")
+
+#REMOVE dataframes not needed for further wrangling
+rm(df_exclude, df_qda_long, df_qda_wide, df_raw)
+
+```
+
+## WRANGLE QUESTION and TRIAL level data
+
+*Here we pivot response data from valid (non-pilot) participants to be represented at the QUESTION (i.e. semantic differential) and TRIAL (ie. question+stimulus) levels.*
+
+The following dataframes are created:
+
+-   `df_questions` include non-pilot valid responses at the most granular level, where each row refers to a participant+stimulus+question (long format) [318p X 5s X 28q]
+
+-   `df_sd_questions_long` includes only the semantic differential-type questions (long)
+
+-   `df_sd_questions_wide` is a wide version of the `df_sd_questions` dataframe useful for some graphs (318p X 11q = 3498 rows)
+
+-   `df_tools` contains responses to the tool id and tool confidence questions, where tool_id is a multi-select Q
+
+-   `df_actions` contains responses to the action id and action confidence questions, where df_action is a multi-select Q
+
+-   `df_graphs_full` is a stimulus (ie. graph image) level dataframe where each row contains columns for a participant and all the Qs for that graph
+
+-   `df_graphs` is df_graphs_full w/o the free response and multiselect Qs
+
+```{r WRANGLE-QUESTION-LEVEL, warning=FALSE}
+
+#4 CREATE QUESTION LEVEL DFS ###################################################################
+#### QUESTION LEVEL DATA FRAME (LONG) ##########################
+# unravel ALL the way down to questions 
+# 1 row per participant-graph-question
+# 1 row X 318p X 5g X 28q --> 55,520 rows
+df_questions <- df_data %>% 
+  select(
+  PID, duration.min,  Assigned.Block,
+  Sample, Scope, Distribution, PLATFORM, 
+  D_gender_collapsed:D_politicsFiscal, 
+  contains("_Q_"), contains("loop"), 
+) %>% 
+  pivot_longer( #PIVOT ON stimulus
+  cols = contains("_Q_"),
+  names_to = c("stimulus","dummy","BLOCK","QUESTION"),
+  values_to = c("value"),
+  names_sep = "_"
+) %>% select(-dummy) %>% 
+  unite(
+   BLOCK:stimulus, col="STIMULUS", sep="-", remove=FALSE
+) %>% 
+  mutate(
+    BLOCK = factor(BLOCK),
+    STIMULUS = factor(STIMULUS),
+    QUESTION = str_replace_all(QUESTION,"-","_"),
+    QUESTION = factor(QUESTION, 
+                      levels = c(
+                        "ENCOUNTER",    
+                        "MAKER_ID",        
+                        "MAKER_DETAIL", 
+                        "MAKER_CONF",
+                        "MAKER_AGE", 
+                        "AGE_CONF",
+                        "MAKER_GENDER",
+                        "GENDER_CONF",
+                        "MAKER_DESIGN",  
+                        "MAKER_DATA",    
+                        "MAKER_POLITIC",
+                        "MAKER_ARGUE",  
+                        "MAKER_SELF",   
+                        "MAKER_ALIGN",    
+                        "MAKER_TRUST", 
+                        "MAKER_EXPLAIN",
+                        "MAKER_LATENCY", 
+                        "TOOL_ID",     
+                        "TOOL_CONF",     
+                        "TOOL_DETAIL",   
+                        "CHART_LIKE",    
+                        "CHART_BEAUTY",  
+                        "CHART_INTENT", 
+                        "CHART_TRUST",   
+                        "CHART_TYPE",    
+                        "CHART_ACTION",  
+                        "CHART_EXPLAIN", 
+                        "CHART_LATENCY", 
+                        "loop_number" )),
+    STIMULUS_CATEGORY = str_remove(STIMULUS,"B.-"),
+    STIMULUS_CATEGORY = factor(STIMULUS_CATEGORY,
+                  levels=c("0","4","3","2","1"),
+                  labels= c("F","D","C","B","A")),
+    tempblock = paste("B",as.character(Assigned.Block), sep="")
+) %>% 
+select(-stimulus) %>% filter(QUESTION !="loop_number") %>%  filter(as.character(BLOCK)==as.character(tempblock) | BLOCK=="B0")
+## WRITE DATAFRAME
+write.csv(df_questions, file = "data/output/df_questions.csv", na="")
+saveRDS(df_questions, file = "data/output/df_questions.rds")
+
+#### SD QUESTION LEVEL DATA FRAME (wide-stim) ##########################
+# ravel up one level from questions
+# 1 row per participant-SDquestion with all blocks as cols for SD qs
+# 318p X 11q = 3498 rows
+df_sd_questions_wide <- df_questions %>%
+  select(-BLOCK,-STIMULUS_CATEGORY) %>% #drop block in order to work at stimulus level
+  filter(QUESTION %in% ref_sd_questions) %>% 
+  pivot_wider(
+    names_from = STIMULUS,
+    values_from = value 
+  ) %>%  
+  tidyr::unnest() %>%  # handle r coerces values to lists
+  mutate(
+    across(contains("-") , as.numeric),
+    QUESTION = droplevels(QUESTION)
+  )
+## WRITE DATAFRAME
+write.csv(df_sd_questions_wide, file = "data/output/df_sd_questions_wide.csv", na="")
+saveRDS(df_sd_questions_wide, file = "data/output/df_sd_questions_wide.rds")
+
+
+### SD QUESTIONS LEVEL DATA FRAME (LONG) #####################
+## 1 row per participant X sd question X block
+## 318p X 11q X 5s = 17,490
+df_sd_questions_long <- df_questions %>% 
+  filter(QUESTION %in% ref_sd_questions) %>% 
+  mutate(
+    QUESTION = droplevels(QUESTION),
+    value = as.numeric(value)
+  )
+## WRITE DATAFRAME
+write.csv(df_sd_questions_long, file = "data/output/df_sd_questions_long.csv", na="")
+saveRDS(df_sd_questions_long, file = "data/output/df_sd_questions_long.rds")
+
+#5 SPECIAL DFS FOR MULTISELECT QS  #####################################################
+#### MULTI-SELECT QUESTIONS  ##########################
+
+## DF_TOOLS 
+# 1 ROW per PARTICIPANT X STIMULUS X tool_id selection 
+# tool_id is a multiselect field 
+df_tools <- df_questions %>% 
+  # select(ID.Prolific, QUESTION, value) %>%
+  filter(QUESTION  %in% c("TOOL_ID", "TOOL_CONF")) %>% 
+  mutate(QUESTION = fct_drop(QUESTION)) %>% 
+  pivot_wider(
+    names_from = QUESTION,
+    values_from = value 
+  ) %>% 
+  separate_longer_delim(
+    cols = TOOL_ID,
+    delim = ","
+  ) %>% 
+  mutate(TOOL_ID = factor(TOOL_ID, 
+                             levels = c("?", "design_basic","design_advanced", "viz_basic", "viz_advanced", "programming")),
+         PID = droplevels(PID),
+         TOOL_CONF = as.numeric(TOOL_CONF)
+         ) 
+## WRITE DATAFRAME
+write.csv(df_tools, file = "data/output/df_tools.csv", na="")
+saveRDS(df_tools, file = "data/output/df_tools.rds")
+
+## DF_ACTIONS 
+# 1 ROW per PARTICIPANT X STIMULUS X chart_action selection 
+# chart_action is a multiselect field 
+df_actions <- df_questions %>% 
+  filter(QUESTION == "CHART_ACTION") %>% 
+  mutate(QUESTION = fct_drop(QUESTION)) %>% 
+  separate_longer_delim(
+    cols = value,
+    delim = ","
+  ) %>% 
+  mutate(CHART_ACTION = factor(value, 
+                                  levels =  c("NOTHING — just keep scrolling",
+                                              "unfollow / block the source",
+                                              "post a comment",
+                                              "share / repost",
+                                              "share / repost WITH comment",
+                                              "look up more information about the topic or source"),
+                                  labels =  c("nothing",
+                                              "unfollow/block",
+                                              "comment",  
+                                              "share",
+                                              "share w/ comment",
+                                              "seek information")),
+         PID = droplevels(PID)) %>% 
+  select(-value,-QUESTION)
+## WRITE DATAFRAME
+write.csv(df_actions, file = "data/output/df_actions.csv", na="")
+saveRDS(df_actions, file = "data/output/df_actions.rds")
+
+
+#6 DFS FOR TRIAL LEVEL ANALYSIS   ######################################################
+#### CHART LEVEL DATA FRAME (LONG) #####################################################
+# roll partway back up from questions 
+# 1 row per participant X graph 
+# unnest https://stackoverflow.com/questions/58035452/pivot-wider-outputs-s3-vctrs-list-of-objects
+df_graphs_full <- df_questions %>% 
+  pivot_wider(
+    names_from = QUESTION,
+    values_from = value 
+  ) %>%  
+  tidyr::unnest() %>%  # handle r coerces values to lists
+  mutate(
+    across(contains("MAKER_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
+    across(contains("_CONF") | contains("_LATENCY"), as.numeric),
+    across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
+    across(CHART_LIKE:CHART_TRUST, as.numeric),
+    ENCOUNTER = factor(ENCOUNTER),
+    # loop_number = as.numeric(loop_number),
+    # loop_number = ifelse(is.na(loop_number), 0, loop_number),
+    MAKER_LATENCY = round(MAKER_LATENCY/60,2), #CHANGE TO MINS
+    CHART_LATENCY = round(CHART_LATENCY/60,2), #CHANGE TO MINS
+    MAKER_ID = factor( MAKER_ID,levels = c("business", "political", "education","news","organization","individual"))
+  )
+## WRITE DATAFRAME
+write.csv(df_graphs_full, file = "data/output/df_graphs_full.csv", na="")
+saveRDS(df_graphs_full, file = "data/output/df_graphs_full.rds")
+
+
+#7 DFS FOR TRIAL LEVEL ANALYSIS w/o free response ######################################################
+#### CHART LEVEL DATA FRAME (LONG) ##########################
+## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES and MULTISELECT
+df_graphs <- df_graphs_full %>% 
+  select( !where(is.character))
+## WRITE DATAFRAME
+write.csv(df_graphs, file = "data/output/df_graphs.csv", na="")
+saveRDS(df_graphs, file = "data/output/df_graphs.rds")
+
+print("df_graphs_full is trial level dataset; df_graphs is trial level quantitative data only")
+
+```
+
+# PROFILING
+
+## DESCRIPTIVES
+
+```{r summarytools-profile, results='asis'}
+
+
+dfSummary(df_data %>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM, 
+                             contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
+          headings = TRUE,
+          plain.ascii  = FALSE,
+          style        = 'grid',
+          graph.magnif = 0.85,
+          varnumbers = FALSE,
+          valid.col    = FALSE,
+          tmp.img.dir  = "/tmp")
+
+
+```
