@@ -1368,6 +1368,7 @@ cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_clas
 
 round(prop.table(table(df_participants$Distribution, df_participants$D_gender), margin=1),3)
 
+prop.table(table(df_participants$D_gender))
 ```
 
 
@@ -2074,6 +2075,20 @@ ggbarstats( data = df, x = "MAKER_GENDER", y = "STIMULUS",
 
 
 
+
+
+
+#MAKER GENDER by PARTICIPANT GENDER
+ggplot( df, aes( x = fct_rev(STIMULUS), fill = fct_rev(MAKER_GENDER))) +
+  geom_bar(position = "fill") +
+  facet_grid(D_gender~fct_rev(STIMULUS_CATEGORY) , scales = "free", space = "free") + 
+  labs( title = "MAKER GENDER by Stimulus (grouped by CATEGORY) ",
+        subtitle = "", x = "") +
+  # scale_fill_viridis(discrete=TRUE, option="viridis") +
+  scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+  # coord_flip()+
+  # easy_add_legend_title("") +
+  theme_minimal()
 
 
 
