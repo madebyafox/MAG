@@ -415,7 +415,7 @@ df_data <- df_raw %>%
                                                   "undergradudate degree"),
                                          grad = c("graduate or professional degree")
                                          ),
-    D_politicalParty = factor(D_politicalParty, levels = c("No preference", "Other", "Independent", "Republican", "Democrat")),
+    D_politicalParty = factor(D_politicalParty, levels = c("Democrat", "Other", "No preference", "Independent", "Republican")),
     D_age = factor(D_age, 
                    levels = c("18-24 years old" ,
                               "25-34 years old" ,
