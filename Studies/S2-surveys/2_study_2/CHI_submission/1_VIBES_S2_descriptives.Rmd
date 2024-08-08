@@ -121,6 +121,35 @@ rm(left,right)
 
 ```
 
+### SETUP Colour Palettes
+```{r setup-pallettes}
+
+#https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
+
+## list of color pallettes
+my_colors = list(
+  politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000")
+)
+
+
+
+## function for using palettes
+my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete")) {
+  palette = all_palettes[[name]]
+  if (missing(n)) {
+    n = length(palette)
+  }
+  type = match.arg(type)
+  out = switch(type,
+               continuous = grDevices::colorRampPalette(palette)(n),
+               discrete = palette[1:n]
+  )
+  structure(out, name = name, class = "palette")
+}
+
+```
+
+
 ## GRAPHING Functions
 
 ```{r SD-GRAPHING-FUNCTIONS}
@@ -323,7 +352,7 @@ plot_sd = function (data, column, type, facet, facet_by, boxplot) {
 # DEMOGRAPHICS
 
 
-### Participant Samples
+### Sample Size
 
 ```{r}
 
@@ -339,47 +368,7 @@ cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_clas
 ```
 
 
-### Response Time
-```{r demo-response-time}
 
-df <- df_data
-
-## BOXPLOT — SURVEY RESPONSE TIME 
-ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=duration.min, color=Assigned.Block))+
-  geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
-  facet_grid(Distribution ~.) + 
-  coord_flip() + 
-  labs( y = "Survey Response Time (mins)", x="",
-        title = "TOTAL Response Time by SAMPLE and BLOCK",
-        subtitle = "(distributions of response times are similar across both SAMPLES and stimulus BLOCKS, as expected)") +
-  theme_minimal() + theme(legend.position = "none") 
-
-## RIDGEPLOT — SURVEY RESPONSE TIME 
-ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
-  geom_density_ridges(scale=0.8) +
-  # geom_boxplot()+
-  stat_pointinterval()+
-  theme_ridges() +
-  scale_fill_discrete(direction=-1)+
-  facet_grid(Distribution ~.) + 
-  theme_minimal() + 
-  theme(legend.position = "none") +
-    labs( x = "Survey Response Time (mins)", y="",
-        title = "TOTAL Response Time by Sample",
-        caption = "(As expected, distributions of response times are similar across SAMPLES and stimulus BLOCKS)") 
-
-
-
-p.desc.duration <- psych::describe(df_data %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
-t.desc.duration <- psych::describe(df_data %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
-
-``` 
-
-
-PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times ranged from `r p.desc.duration$min` to `r p.desc.duration$max` minutes, with a mean response time of `r round(p.desc.duration$mean,2)` minutes, SD = `r (round(p.desc.duration$sd,2))`.
-
-TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes, with a mean response time of `r round(t.desc.duration$mean,2)` minutes, SD = `r (round(t.desc.duration$sd,2))`.
 
 ### Age
 
@@ -389,18 +378,32 @@ _As expected, the (smaller) sample of participants recruited from Tumblr skewed 
 
 #SET DATAFRAME
 df = df_data
- 
-# GGSTATSPLOT BAR CHART
-# OVERALL AGE by SAMPLE
-ggstatsplot::ggbarstats(df, x= D_age, y=Distribution,
-                          label = "both", 
-                          results.subtitle = FALSE,
-                          legend.title = "Age") +
-    scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) +
-    labs (
-          title = "Participant AGE", 
-          caption = "As expected, the [smaller] sample of Tumblr participants skews younger than Prolific") + 
- theme_minimal() 
+
+# AGE by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_age, fill = Distribution)) +
+  geom_bar() + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant AGE by SAMPLE", 
+    caption = "", 
+    y = "AGE",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# AGE by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_age) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant AGE by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "AGE") +
+  theme_minimal() 
 
 # VERTICAL FACET BAR CHART 
 # AGE by SAMPLE and BLOCK
@@ -409,7 +412,7 @@ ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_age) )) +
   facet_grid(Distribution ~ .) + 
   scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
   labs( 
-    title = "Participant AGE by Sample and Block", 
+    title = "Participant AGE by SAMPLE and BLOCK", 
     caption = "As expected, similar distribution within SAMPLE across BLOCKS", 
     x = "Stimulus Block",
     fill = "Age") +
@@ -417,59 +420,100 @@ ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_age) )) +
 
 ```
 
-### Gender
+### Gender (detail)
 
 ```{r demo-gender, message=FALSE}
  
 #SET DATAFRAME
 df = df_data
 
-# GGSTATSPLOT BAR CHART
-# OVERALL GENDER by SAMPLE
-ggstatsplot::ggbarstats(df, x= D_gender, y=Distribution, 
-                        results.subtitle = FALSE,
-                        legend.title = "Gender", label = "both")  +
-    scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
-    labs (title = "Participant GENDER by SAMPLE",
-          caption = "As expected, greater variance in GENDER in Tumblr sample") + 
-    theme_minimal() 
+# GENDER by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_gender, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant GENDER by SAMPLE", 
+    caption = "", 
+    y = "GENDER",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
 
+# GENDER by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_gender) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant GENDER by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "GENDER") +
+  theme_minimal() 
 
-# GGSTATSPLOT BAR CHART
-# OVERALL GENDER by SAMPLE (collapsed)
-ggstatsplot::ggbarstats(df, x= D_gender_collapsed, y=Distribution,
-                        results.subtitle = FALSE, 
-                        legend.title = "Other*",
-                         label = "both") +
-    scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
-    labs (title = "Participant GENDER by SAMPLE", 
-          caption = "*OTHER includes: nonbinary, prefer not to say or self-describe") +
-    theme_minimal() 
-
-
-# VERTICAL FACET BAR CHART
 # GENDER by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART
 ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_gender) )) +
   geom_bar(position = "stack") +
   facet_grid(Distribution ~ .) + 
   scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
-  labs( title = "Gender by Sample", 
+  labs( title = "Participant GENDER by SAMPLE and BLOCK", 
         caption = "As expected, similiar distributions within SAMPLE across BLOCKS", 
         x = "Stimulus Block", fill = "GENDER") +
   theme_minimal() 
+```
+
+### Gender (collapsed)
+```{r gender-collapsed, message = FALSE}
+
+df <- df_data
+
+# GENDER (collapsed) by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_gender_collapsed, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant GENDER by SAMPLE", 
+    caption = "", 
+    y = "GENDER (collapsed)",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# GENDER (collapsed) by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_gender_collapsed) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant GENDER by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "GENDER (collapsed)") +
+  theme_minimal() 
 
 
-# VERTICAL FACET BAR CHART
 # GENDER (collapsed) by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART
 ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_gender_collapsed) )) +
   geom_bar(position = "stack") +
   facet_grid(Distribution ~ .) + 
   scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
-  labs( title = "Gender by Sample", 
+  labs( title = "GENDER (collapsed) by SAMPLE and BLOCK", 
         caption = "As expected, similiar distributions within SAMPLE across BLOCKS", 
-        x = "Stimulus Block", fill = "GENDER") +
+        x = "Stimulus Block", fill = "GENDER (collapsed)") +
   theme_minimal() 
 
+
+``` 
+
+### Gender (described)
+
+```{r describe-gender}
 
 ### DESCRIBE GENDER FREE REPONSE TEXT
 
@@ -502,42 +546,81 @@ t_participants <- nrow(df.t)
 
 Note that a higher proportion of participants recruited from Tumblr represent identities other than cis-gender Female and cis-gender Male.   `r t_participants` individuals from Tumblr participated in Study 2, ( `r round(desc.gender.t[["Female"]],2)*100`% Female, `r round(desc.gender.t[["Male"]],2)*100`% Male, `r round(desc.gender.t[["Non-binary / third gender"]],2)*100`% Non-binary, `r (round((desc.gender.t[["Prefer not to say"]] + desc.gender.t[["Prefer to self-describe"]]),2)) * 100`% Other).
 
-### Education
+
+
+### Education (detail)
 ```{r demo-education, message=FALSE}
 
 df <- df_data
 
-# GGSTATSPLOT BAR CHART
-# OVERALL EDUCATION by SAMPLE
-ggstatsplot::ggbarstats(df, x= D_education, y=Distribution, 
-                        results.subtitle = FALSE,
-                        legend.title = "Education") +
-    scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
-    labs (title = "Participant EDUCATION by SAMPLE",
-          caption = "Similar distribution of education categories across Prolific and Tumblr samples") + 
-    theme_minimal() 
+# EDUCATION by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_education, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant EDUCATION by SAMPLE", 
+    caption = "", 
+    y = "EDUCATION",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
 
-# VERTICAL FACET BAR CHART
+# EDUCATION by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_education) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant EDUCATION by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "EDUCATION") +
+  theme_minimal() 
+
 # EDUCATION by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART
 ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_education) )) +
   geom_bar(position = "stack") +
   facet_grid(Distribution ~ .)+
   scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
-  labs( x = "Stimulus Block", fill = "Education",
+  labs( x = "Stimulus Block", fill = "EDUCATION",
         title = "Participant EDUCATION by SAMPLE and BLOCK",
         caption = "similiar distributions of education across blocks within samples") +
   theme_minimal() 
+```
+### Education (collapsed)
+```{r education-collapsed, message=FALSE}
 
-# GGSTATSPLOT BAR CHART
-# COLLAPSED EDUCATION by SAMPLE
-ggstatsplot::ggbarstats(df, x= D_education_collapsed, y=Distribution, 
-                        results.subtitle = FALSE,
-                        legend.title = "Education",
-                        label = "both") +
-    scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
-    labs (title = "Participant EDUCATION (collapsed) by SAMPLE",
-          caption = "Smaller Tumblr sampler skews slighly toward higher levels of education") + 
-    theme_minimal() 
+df <- df_data
+
+# EDUCATION (collapsed) by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_education_collapsed, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant EDUCATION (collapsed)  by SAMPLE", 
+    caption = "", 
+    y = "EDUCATION (collapsed)",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# EDUCATION (collapsed) by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_education_collapsed) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant EDUCATION (collapsed) by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "EDUCATION (collapsed)") +
+  theme_minimal() 
+
 
 
 # VERTICAL FACET BAR CHART
@@ -546,10 +629,56 @@ ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_education_collapsed)
   geom_bar(position = "stack") +
   facet_grid(Distribution ~ .)+
   scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
-  labs( x = "Stimulus Block", fill = "Education",
-        title = "Participant EDUCATION(collapsed) by SAMPLE and BLOCK",
+  labs( x = "Stimulus Block", fill = "EDUCATION",
+        title = "Participant EDUCATION (collapsed) by SAMPLE and BLOCK",
         caption = "similiar distributions of education across blocks within samples") +
   theme_minimal() 
+
+```
+
+### Politcal Affiliation
+
+
+```{r demo-political-party}
+
+df <- df_data %>% mutate(politicalParty = fct_rev(D_politicalParty))
+
+
+# EDUCATION by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = politicalParty, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  labs( 
+    title = "Political AFFILIATION by SAMPLE", 
+    caption = "", 
+    y = "EDUCATION",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# EDUCATION by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(politicalParty) )) +
+  geom_bar(position = "stack") +
+  scale_fill_manual(values = my_palettes(name="politics", type = "discrete")) +
+  labs( 
+    title = "Political AFFILIATION by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "EDUCATION") +
+  theme_minimal() 
+
+# POLITICAL Affiliation by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART 
+ggplot(data = df_data, aes( fill = D_politicalParty, x = Assigned.Block )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .) + 
+  scale_fill_manual(values = my_palettes(name="politics", type = "discrete")) +
+  labs( title = "Political AFFILIATION by SAMPLE and BLOCK",
+        caption = "Similar distribution across BLOCKS within SAMPLES", x = "Stimulus Block") +
+  theme_minimal() +
+  easy_add_legend_title("")
 
 ```
 
@@ -698,7 +827,11 @@ For the `r nrow(df.t)` participants recruited from Tumblr, a spectrum of Social 
 Overall, `r round(l_politics*100,2)`% of respondents identify with left-leaning social values (vs) `r round(r_politics*100,2)`% identifying as right-leaning; while `r round(l_fiscal*100,2)`% of respondents reported left-leaning fiscal values (vs) `r round(r_fiscal*100,2)`% identify as right-leaning. 
 
 
-### Political Values — Relationship
+
+
+# INTERESTING QS 
+
+### Political Values X  Political Affiliations
 
 ```{r demo-plot-political-grid,  fig.width = 10}
 
@@ -724,60 +857,123 @@ ggplot(df, aes(x = d_social, y = d_fiscal, color = D_politicalParty)) +
 
 ```
 
+### Platform Choice X SAMPLE and AGE
 
-### Politcal Affiliation
-
-
-```{r demo-political-party}
+```{r platform-age}
 
 df <- df_data
 
-
-# GGSTATSPLOT BAR CHART
-# POLITICAL AFFILIATION by Sample
-ggstatsplot::ggbarstats(df, x= D_politicalParty, y=Distribution, 
-                        results.subtitle = FALSE,
-                        legend.title = "") +
-    scale_fill_viridis(discrete=TRUE, option="C", direction=1) + 
-    labs (title = "Political Affiliation by SAMPLE",
-          caption = "The Tumblr sample is more left-leaning than the larger Prolific sample. Overall the sample has few right-leaning individuals.") + 
-    theme_minimal() 
-
-
-# POLITICAL Affiliation
-ggplot(data = df_data, aes( fill = D_politicalParty, x = Assigned.Block )) +
-  geom_bar(position = "fill") +
-  facet_grid(Distribution ~ .) + 
-  scale_fill_viridis(discrete=TRUE, option="C", direction=-1) + 
-  labs( title = "POLITICAL PARTY by Sample",
-        subtitle = "Expect similiar across samples", x = "") +
-  theme_minimal() +
-  easy_add_legend_title("")
-
-ggbarstats( data = df_data, x = "D_politicalParty", y = "Progress")  
-```
-
-
-
-### Platform Choice
-
-```{r platform-choice}
-
-#PLATFORM CHOICE
-ggplot( df_data, aes( x = Assigned.Block, fill = PLATFORM)) +
+#PLATFORM CHOICE by Age
+## FACETED STACKED BAR CHART 
+ggplot( df, aes( x = D_age, fill = PLATFORM)) +
   geom_bar(position = "stack") +
   facet_grid(Distribution ~ .) + 
-  labs( title = "PLATFORM CHOICE by Sample",
-        subtitle = "Expect similiar across samples", x = "") +
+  labs( title = "PLATFORM CHOICE by SAMPLE and AGE",
+        caption = "", x = "") +
   scale_fill_viridis(discrete=TRUE, option="viridis") + 
   easy_add_legend_title("") +
   theme_minimal()
 
 
+# qacBase::crosstab(df, D_age,PLATFORM, plot=TRUE) 
+
+
 ```
 
 
-### Confidence
+## Education X Income
+```{r education-income, message=FALSE}
+df <- df_data
+
+#Education by Income
+## FACETED STACKED BAR CHART 
+ggplot( df, aes( x = D_education_collapsed, fill = D_income)) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .) + 
+  labs( title = "Education (collapsed) by SAMPLE and INCOME",
+        caption = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") + 
+  easy_add_legend_title("") +
+  theme_minimal()
+```
+
+
+## TODO Maker Gender X Participant Gender
+
+
+
+# RESPONSE PROFILE
+
+## Platform Choice
+
+_At the start of the study, participants were asked to choose one of five social media platforms to serve as the situational context for the questions they would be asked. (ie. Imagine you are scrolling through your [platform] feed)_. 
+
+```{r platform-choice}
+
+df <- df_data
+
+#PLATFORM CHOICE
+## FACETED STACKED BAR CHART 
+ggplot( df, aes( x = Assigned.Block, fill = PLATFORM)) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .) + 
+  labs( title = "PLATFORM CHOICE by SAMPLE and BLOCK",
+        caption = "Most Tumblrs chose Tumblr", x = "Stimulus Block") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") + 
+  easy_add_legend_title("") +
+  theme_minimal()
+
+
+
+
+```
+
+
+
+
+## Response Time
+```{r demo-response-time}
+
+df <- df_data
+
+## BOXPLOT — SURVEY RESPONSE TIME 
+ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=duration.min, color=Assigned.Block))+
+  geom_boxplot(position=position_dodge(0.9))+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
+  facet_grid(Distribution ~.) + 
+  coord_flip() + 
+  labs( y = "Survey Response Time (mins)", x="",
+        title = "TOTAL Response Time by SAMPLE and BLOCK",
+        caption = "distributions similar across both SAMPLES and stimulus BLOCKS [1-6]") +
+  theme_minimal() + theme(legend.position = "none") 
+
+## RIDGEPLOT — SURVEY RESPONSE TIME 
+ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+  geom_density_ridges(scale=0.8) +
+  # geom_boxplot()+
+  stat_pointinterval()+
+  theme_ridges() +
+  scale_fill_discrete(direction=-1)+
+  facet_grid(Distribution ~.) + 
+  theme_minimal() + 
+  theme(legend.position = "none") +
+    labs( x = "Survey Response Time (mins)", y="",
+        title = "TOTAL Response Time by Sample",
+        caption = "distributions similar across SAMPLES and stimulus BLOCKS[1-6]") 
+
+
+
+p.desc.duration <- psych::describe(df_data %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
+t.desc.duration <- psych::describe(df_data %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
+
+``` 
+
+
+PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times ranged from `r p.desc.duration$min` to `r p.desc.duration$max` minutes, with a mean response time of `r round(p.desc.duration$mean,2)` minutes, SD = `r (round(p.desc.duration$sd,2))`.
+
+TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes, with a mean response time of `r round(t.desc.duration$mean,2)` minutes, SD = `r (round(t.desc.duration$sd,2))`.
+
+# WIP Confidence
 
 How confident are participants in their attributions? We want to explore this from several perspectives, including: participant-level differences, question-level differences, and stimulus-level differences
 
@@ -785,22 +981,34 @@ How confident are participants in their attributions? We want to explore this fr
 
 ```{r inspect-confidence, message=FALSE}
 
-
-## QUESTION LEVEL CONFIDENCE 
 df <- df_questions %>%
   filter(QUESTION %in% ref_conf_questions) %>% 
-  mutate(value= as.numeric(value))
+  mutate(value= as.numeric(value)) %>% 
+  select(QUESTION, value, STIMULUS, STIMULUS_CATEGORY, BLOCK)
 
 
+## CONFIDENCE by QUESTION
 (g <- ggplot(df, aes(x = value, fill = QUESTION)) + 
   geom_histogram() + 
   facet_wrap(. ~ QUESTION) +  #, scales = "free", space = "free", drop = TRUE
   theme_minimal() + 
-  labs(title = "Distrubtion of Confidence by Question") + 
+  labs(title = "Distrubtion of Confidence by QUESTION") + 
   easy_remove_legend())
 
+ggsave(plot = g, path="figs/histograms", filename =paste0("confidence_by_question_","histograms.png"), units = c("in"))
 
-ggsave(plot = g, path="figs/histograms", filename =paste0("confidence_","histograms.png"), units = c("in"))
+
+## CONFIDENCE by QUESTION and STIMULUS
+
+(g <- ggplot(df, aes(x = value, fill = QUESTION)) + 
+  geom_histogram() + 
+  facet_grid(STIMULUS ~ QUESTION) +  #, scales = "free", space = "free", drop = TRUE
+  theme_minimal() + 
+  labs(title = "Distrubtion of Confidence by QUESTION and STIMULUS") + 
+  easy_remove_legend())
+
+ggsave(plot = g, path="figs/histograms", filename =paste0("confidence_by_question_stimulus_","histograms.png"), units = c("in"), width = 20, height = 30)
+
 
 ```
 
@@ -810,12 +1018,13 @@ ggsave(plot = g, path="figs/histograms", filename =paste0("confidence_","histogr
 ## QUESTION LEVEL CONFIDENCE 
 df <- df_questions %>%
   filter(QUESTION %in% ref_sd_questions) %>% 
-  mutate(value= as.numeric(value))
+  mutate(value= as.numeric(value)) %>% 
+  select(QUESTION, value, STIMULUS)
 
 
 (g <- ggplot(df, aes(x = value, fill = QUESTION)) + 
   geom_histogram() + 
-  facet_grid( STIMULUS~ QUESTION) + 
+  facet_grid( STIMULUS ~ QUESTION) + 
   theme_minimal() + 
   labs(title = "Distrubtion of SEMANTIC DIFFERENTIAL SCALES by Question") + 
   easy_remove_legend())
@@ -3903,6 +4112,25 @@ rm(x, i, right, left, df)
 
 wip code stash
 
+## GGSTATSPLOT
+
+### ggbarstats
+
+```{r}
+
+# GGSTATSPLOT BAR CHART
+# ggstatsplot::ggbarstats(df, x= D_age, y=Progress,
+#                           results.subtitle = FALSE,
+#                           legend.title = "Age", 
+#                           xlab = "") +
+#     scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) +
+#     labs (
+#           title = "Participant AGE", x = "",
+#           caption = "As expected, the [smaller] sample of Tumblr participants skews younger than Prolific") + 
+#  theme_minimal() 
+
+```
+
 ### COLOR palettes
 
 ```{r}
@@ -4703,3 +4931,8 @@ p <- ggplot(penguins, aes(x = bill_length_mm, y=bill_depth_mm, colour = species)
 ggMarginal(p, groupColour = TRUE, groupFill = TRUE)  
 
 ```
+
+
+# RESOURCES
+
+- custom color palettes: https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
