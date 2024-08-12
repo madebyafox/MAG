@@ -888,7 +888,7 @@ print("df_graphs_full is trial level dataset; df_graphs is trial level quantitat
 
 # PROFILING
 
-## DESCRIPTIVES
+
 
 ```{r summarytools-profile, results='asis'}
 
