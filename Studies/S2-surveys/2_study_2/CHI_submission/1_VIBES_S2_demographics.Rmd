@@ -1,5 +1,5 @@
 ---
-title: "VIBES STUDY 2 DESCRIPTIVES"
+title: "VIBES STUDY 2 DEMOGRAPHICS"
 author: "ANONYMIZED"
 date: "2024-08-07"
 output:
