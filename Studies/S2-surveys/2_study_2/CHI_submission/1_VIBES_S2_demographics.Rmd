@@ -62,7 +62,7 @@ graph_render = TRUE #set to true to generate all the SD graphs and save to folde
 
 ```
 
-*This notebook contains code to characterize the distribution of variables in the VIBES project Study 2. It relies upon data wrangling performed in `1_VIBES_S2_wrangling.Rmd`*.
+*This notebook contains code to characterize the distribution of demographic (response) variables in the VISUALIZATION VIBES project Study #2 (survey). It relies upon data wrangling performed in `1_VIBES_S2_wrangling.Rmd`*.
 
 In VIBES Study 2, participants completed an attitutde eliciation survey, asking questions about their attitude toward (5) stimulus images (data visualizations). Each participant was randomly assigned to one of 6 stimulus blocks, each containing 1 image from each of (4) categories (ranging from most abstract to most figural). Each participant started by responding to questions for a single 'common block' stimulus (that is thus super-powered as it was seen by all participants).  Two participant recruitment pools were used: Prolific, with a smaller set of participants recruited from Tumblr (to replicate results of interview Study 1 with participants sourced from Tumblr). 
 
@@ -130,8 +130,6 @@ rm(left,right)
 my_colors = list(
   politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000")
 )
-
-
 
 ## function for using palettes
 my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete")) {
@@ -354,6 +352,8 @@ plot_sd = function (data, column, type, facet, facet_by, boxplot) {
 
 ### Sample Size
 
+Participants were sampled from two survey distribution sources: direct solicitation from co-author MM's ethnographic research participants on Tumblr, and a general sample of US-BASED, English-speaking participants on PROLIFIC. 
+
 ```{r}
 
 df <- df_participants
@@ -372,7 +372,7 @@ cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_clas
 
 ### Age
 
-_As expected, the (smaller) sample of participants recruited from Tumblr skewed toward younger ages than the broader Prolific sample. This was expected based on the known demographic characteriztion of Tumblr users.  Most importantly, across both samples, the relative distribution of age groups was comparable across stimulus blocks._
+Convenience sampling on both TUMBLR and PROLIFIC pools means we do not expect a uniform (i.e. equal) distribution of participants across age categories.  We generally expect that the Tumblr may have more younger users; but expect that the distribution of participants in each age category is uniform _within the sample source_ and _across stimulus blocks_.  
 
 ```{r demo-age, message=FALSE, warning=FALSE}
 
@@ -419,8 +419,11 @@ ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_age) )) +
   theme_minimal() 
 
 ```
+_As expected, the (smaller) sample of participants recruited from Tumblr skewed toward younger ages than the broader Prolific sample. This was expected based on the known demographic characteriztion of Tumblr users.  Most importantly, across both samples, the relative distribution of age categories is roughly uniform and thus comparable._
 
 ### Gender (detail)
+
+Convenience sampling on both TUMBLR and PROLIFIC pools means we do not expect a uniform (i.e. equal) distribution of participants across gender categories.  Based on known demographics of Tumblr we expect more of these users to identify as a category other than male or female.  Due to random assignment to stimulus blocks, we expect that the distribution of participants in each gender category is uniform _within the sample source_ and _across stimulus blocks_.  
 
 ```{r demo-gender, message=FALSE}
  
@@ -464,6 +467,7 @@ ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_gender) )) +
         x = "Stimulus Block", fill = "GENDER") +
   theme_minimal() 
 ```
+_As expected, the smaller Tumblr sample contained a greater proportion of users identifiying with categories other than Male and Female.  However the relative distribution across gender categories within each sample is roughly uniform and thus comparable._
 
 ### Gender (collapsed)
 ```{r gender-collapsed, message = FALSE}
@@ -510,8 +514,12 @@ ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_gender_collapsed) ))
 
 
 ``` 
+_The relative distribution across gender categories (collapsed) within each sample is roughly uniform and thus comparable._
+
 
 ### Gender (described)
+
+Here we explore the free-text responses given for the survey question 'Gender' at the level 'Prefer to Self Describe'. 
 
 ```{r describe-gender}
 
@@ -549,6 +557,9 @@ Note that a higher proportion of participants recruited from Tumblr represent id
 
 
 ### Education (detail)
+
+We have no particular expecations with respect to the distribution of education-levels across TUMBLR and PROLIFIC samples, but expect the distribution to be uniform across randomly-assigned stimulus blocks. 
+
 ```{r demo-education, message=FALSE}
 
 df <- df_data
@@ -590,6 +601,8 @@ ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_education) )) +
         caption = "similiar distributions of education across blocks within samples") +
   theme_minimal() 
 ```
+_The relative distribution across education categories within each sample is roughly uniform and thus comparable._
+
 ### Education (collapsed)
 ```{r education-collapsed, message=FALSE}
 
@@ -635,9 +648,11 @@ ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_education_collapsed)
   theme_minimal() 
 
 ```
+_The relative distribution across education categories (collapsed) within each sample is roughly uniform and thus comparable._
 
 ### Politcal Affiliation
 
+Convenience sampling on both TUMBLR and PROLIFIC pools means we do not expect a uniform (i.e. equal) distribution of participants across political affiliations. Based on known demographics of TUMBLR and PROLIFIC  we expect _both_ samples to contain substantially more self-identifying DEMOCRATS than REPUBLICANS, with TUMBLR containing more OTHER and INDEPENDENT more of these users to identify as a category other than male or female.  Due to random assignment to stimulus blocks, we expect that the distribution of participants in each political affiliation category is uniform _within the sample source_ and _across stimulus blocks_.  
 
 ```{r demo-political-party}
 
@@ -666,7 +681,7 @@ ggplot(data = df, aes( y = Distribution, fill = fct_rev(politicalParty) )) +
     caption = "", 
     x = "(count)",
     y = "SAMPLE",
-    fill = "EDUCATION") +
+    fill = "AFFILIATION") +
   theme_minimal() 
 
 # POLITICAL Affiliation by SAMPLE and BLOCK
@@ -676,15 +691,16 @@ ggplot(data = df_data, aes( fill = D_politicalParty, x = Assigned.Block )) +
   facet_grid(Distribution ~ .) + 
   scale_fill_manual(values = my_palettes(name="politics", type = "discrete")) +
   labs( title = "Political AFFILIATION by SAMPLE and BLOCK",
-        caption = "Similar distribution across BLOCKS within SAMPLES", x = "Stimulus Block") +
-  theme_minimal() +
-  easy_add_legend_title("")
+        caption = "Similar distribution across BLOCKS within SAMPLES", x = "Stimulus Block",
+        fill = "AFFILIATION") +
+  theme_minimal() 
 
 ```
-
-
+_As expected, across both samples the participant pool skews toward DEMOCRAT and INDEPENDENT affiliations with very few REPUBLICANS.  Importantly, the relative distribution of political affiliations within a sample across stimulus blocks is roughly uniform, and thus comparable._
 
 ### Political Values — Fiscal 
+
+In addition to political affiliation, participants were asked to rate their _fiscal political values_ from _left leaning_ to _right leaning_ along a horizontal slider where left-leaning = 0 and right_leaning = 100. 
 
 ```{r, demo-political-fiscal, warning=FALSE}
 
@@ -739,8 +755,12 @@ g + guides(
 rm(g)
 
 ```
+_Across stimulus blocks within each sample, the distribution of fiscal political values is roughly uniform and thus comparable. It should be noted that both samples are largely left-leaning, consistent with the responses for Political Affiliation._
+
+
 ### Political Values — Social 
 
+In addition to political affiliation, participants were asked to rate their _social political values_ from _left leaning_ to _right leaning_ along a horizontal slider where left-leaning = 0 and right_leaning = 100. 
 
 ```{r, demo-political-social, warning=FALSE}
 
@@ -777,7 +797,7 @@ g <- ggplot(df, aes(x=fct_rev(Assigned.Block), y=D_politicsSocial, color=Assigne
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
   facet_grid(Distribution ~ .)+
   labs( title = "SOCIAL VALUES by SAMPLE and BLOCK",
-        subtitle = "(expect similar values across samples)",
+        caption = "similar distributions across BLOCKS within SAMPLE",
          y = "Social Politics", x = "", color = "Block") +
   theme_minimal() +
   coord_flip()
@@ -795,6 +815,8 @@ g + guides(
 rm(g)
 
 ```
+_Across stimulus blocks within each sample, the distribution of social political values is roughly uniform and thus comparable. It should be noted that both samples are largely left-leaning, consistent with the responses for Political Affiliation._
+
 
 ### Political Values — Description
 ```{r describe-politics}
@@ -827,6 +849,59 @@ For the `r nrow(df.t)` participants recruited from Tumblr, a spectrum of Social 
 Overall, `r round(l_politics*100,2)`% of respondents identify with left-leaning social values (vs) `r round(r_politics*100,2)`% identifying as right-leaning; while `r round(l_fiscal*100,2)`% of respondents reported left-leaning fiscal values (vs) `r round(r_fiscal*100,2)`% identify as right-leaning. 
 
 
+## Income 
+
+We have no expectation for distribution across income categories, but expect that the relative distribution across categories is uniform within each sample. 
+
+```{r demo-income, message=FALSE}
+
+df <- df_data
+
+# INCOME (collapsed) by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_income, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant INCOME by SAMPLE", 
+    caption = "", 
+    y = "INCOME",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# INCOME by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_income) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant INCOME by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "INCOME") +
+  theme_minimal() 
+
+
+
+# VERTICAL FACET BAR CHART
+# INCOME by SAMPLE and BLOCK
+ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_income) )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .)+
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( x = "Stimulus Block", fill = "INCOME",
+        title = "Participant INCOME by SAMPLE and BLOCK",
+        caption = "similiar distributions of across blocks within samples") +
+  theme_minimal() 
+
+```
+_Across stimulus blocks within each sample, the distribution of income categories is roughly uniform and thus comparable._
+
+## Employment Status 
+## Work Detail
+## Social Media Context 
 
 
 # INTERESTING QS 
