@@ -79,7 +79,7 @@ ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
 
 ```{r import-data, message=FALSE, warning = FALSE}
 
-############## IMPORT REFERENCE FILES
+############## IMPORT DATA FILES
 df_data <- readRDS("data/output/df_data.rds")
 df_participants <- readRDS("data/output/df_participants.rds")
 df_questions <- readRDS("data/output/df_questions.rds")
