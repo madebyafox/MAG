@@ -52,6 +52,17 @@ library(RColorBrewer) #color palettes
 library(plotly) # interactive graphs
 library(paletteer) #more palettes
 library(lessR) ##very pretty donuts 
+library(ggsankey) ## ggplot2 sankey extension
+
+
+#MODELLING
+library(jtools) #Social Science regression utilities
+library(easystats) #modelling helpers
+library(see)
+library(sjPlot)
+library(lme4)
+library(lmerTest) #for CIs in glmer
+
 
 #CONFIG
 options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
@@ -64,11 +75,11 @@ graph_render = TRUE #set to true to generate all the SD graphs and save to folde
 
 *This notebook contains code to replicate analyses reported in CHI submission*.
 
-In VISUALIZATION VIBES project Study 2, participants completed an attitutde eliciation survey, asking questions about their attitude toward (5) stimulus images (data visualizations). Each participant was randomly assigned to one of 6 stimulus blocks, each containing 1 image from each of (4) categories (ranging from most abstract to most figural). Each participant started by responding to questions for a single 'common block' stimulus (that is thus super-powered as it was seen by all participants).  Two participant recruitment pools were used: Prolific, with a smaller set of participants recruited from Tumblr (to replicate results of interview Study 1 with participants sourced from Tumblr). 
+In VISUALIZATION VIBES project Study 2, participants completed an attitutde eliciation survey, asking questions about their attitude toward (5) stimulus images (data visualizations). Each participant was randomly assigned to one of 6 stimulus blocks, each containing 1 image from each of (4) categories (ranging from most abstract to most figural). Each participant started by responding to questions for a single 'common block' stimulus (that is thus super-powered as it was seen by all participants). Two participant recruitment pools were used: Prolific, with a smaller set of participants recruited from Tumblr (to replicate results of interview Study 1 with participants sourced from Tumblr).
 
 # SETUP
 
-_We start by importing data files previously wrangled in  `0_VIBES_S2_wrangling.Rmd`._
+*We start by importing data files previously wrangled in `0_VIBES_S2_wrangling.Rmd`.*
 
 ```{r import-refs, message=FALSE, warning = FALSE}
 
@@ -77,17 +88,17 @@ ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
 ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
 ```
 
-```{r import-refs, message=FALSE, warning = FALSE}
+```{r import-data, message=FALSE, warning = FALSE}
 
-############## IMPORT REFERENCE FILES
-df_data <- readRDS("data/output/df_data.rds")
+############## IMPORT DATA FILES
+# df_data <- readRDS("data/output/df_data.rds")
 df_participants <- readRDS("data/output/df_participants.rds")
-df_questions <- readRDS("data/output/df_questions.rds")
-df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds")
-df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds")
+# df_questions <- readRDS("data/output/df_questions.rds")
+# df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds")
+# df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds")
 df_tools <- readRDS("data/output/df_tools.rds")
 df_actions <- readRDS("data/output/df_actions.rds")
-df_graphs_full <- readRDS("data/output/df_graphs_full.rds")
+# df_graphs_full <- readRDS("data/output/df_graphs_full.rds")
 df_graphs <- readRDS("data/output/df_graphs.rds")
 
 ```
@@ -119,13 +130,13 @@ rm(left,right)
 
 ```{r setup-pallettes}
 
-
 ############## SETUP Colour Palettes
 #https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
 
 ## list of color pallettes
 my_colors = list(
-  politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000")
+  politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
+  blackred = c("black","red")
 )
 
 
@@ -145,7 +156,6 @@ my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete")) 
 }
 
 ```
-
 
 ## GRAPHING Functions
 
@@ -249,19 +259,21 @@ plot_sd = function (data, column, type, facet, facet_by, boxplot) {
 
 ```
 
-# ENTIRE SAMPLE
+# DESCRIBE SAMPLE
+
+## Sample Demographics
 
 ```{r sample-size}
 
 ## FOR DESCRIPTIVES PARAGRAPH
 # #PROLIFIC
-df.p <- df_data %>% filter(Distribution == "PROLIFIC")
+df.p <- df_participants %>% filter(Distribution == "PROLIFIC")
 desc.gender.p <- table(df.p$D_gender) %>% prop.table()
 names(desc.gender.p) <- levels(df.p$D_gender)
 p_participants <- nrow(df.p)
 
 # #TUMBLR
-df.t <- df_data %>% filter(Distribution == "TUMBLR")
+df.t <- df_participants %>% filter(Distribution == "TUMBLR")
 desc.gender.t <- table(df.t$D_gender) %>% prop.table()
 names(desc.gender.t) <- levels(df.t$D_gender)
 t_participants <- nrow(df.t)
@@ -269,46 +281,52 @@ t_participants <- nrow(df.t)
 
 ```
 
-
 `r p_participants` individuals from Prolific participated in Study 2, ( `r round(desc.gender.p[["Female"]],2)*100`% Female, `r round(desc.gender.p[["Male"]],2)*100`% Male, `r round(desc.gender.p[["Non-binary / third gender"]],2)*100`% Non-binary, `r (round((desc.gender.p[["Prefer not to say"]] + desc.gender.p[["Prefer to self-describe"]]),2)) * 100`% Other).
 
+Note that a higher proportion of participants recruited from Tumblr represent identities other than cis-gender Female and cis-gender Male. `r t_participants` individuals from Tumblr participated in Study 2, ( `r round(desc.gender.t[["Female"]],2)*100`% Female, `r round(desc.gender.t[["Male"]],2)*100`% Male, `r round(desc.gender.t[["Non-binary / third gender"]],2)*100`% Non-binary, `r (round((desc.gender.t[["Prefer not to say"]] + desc.gender.t[["Prefer to self-describe"]]),2)) * 100`% Other). \*A total of `r n_tumblr + n_prolific` participants were recruited from US-located English speaking users of Tumblr (n = `r n_tumblr`) and Prolific (n = `r n_prolific`).
 
-Note that a higher proportion of participants recruited from Tumblr represent identities other than cis-gender Female and cis-gender Male.   `r t_participants` individuals from Tumblr participated in Study 2, ( `r round(desc.gender.t[["Female"]],2)*100`% Female, `r round(desc.gender.t[["Male"]],2)*100`% Male, `r round(desc.gender.t[["Non-binary / third gender"]],2)*100`% Non-binary, `r (round((desc.gender.t[["Prefer not to say"]] + desc.gender.t[["Prefer to self-describe"]]),2)) * 100`% Other).
-*A total of `r n_tumblr + n_prolific` participants were recruited from US-located English speaking users of Tumblr (n = `r n_tumblr`) and Prolific (n = `r n_prolific`).  
+## Study Response Time
 
-
-## Response Time
 ```{r demo-response-time}
 
-df <- df_data
+df <- df_participants
 
 ## for descriptives paragraph
-p.desc.duration <- psych::describe(df_data %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
-t.desc.duration <- psych::describe(df_data %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
+p.desc.duration <- psych::describe(df %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
+t.desc.duration <- psych::describe(df %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
 
-``` 
-
+```
 
 PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times ranged from `r p.desc.duration$min` to `r p.desc.duration$max` minutes, with a mean response time of `r round(p.desc.duration$mean,2)` minutes, SD = `r (round(p.desc.duration$sd,2))`.
 
 TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes, with a mean response time of `r round(t.desc.duration$mean,2)` minutes, SD = `r (round(t.desc.duration$sd,2))`.
 
+```{r demo-cleanup}
+rm(df, df.p, df.t)
+```
 
 # BLOCK 2 ANALYSIS
 
-In the interest of space, we report analysis of 1 stimulus block (stimulus block == 2; pictured in the teaser image), rather than analysis of all six blocks. 
+In the interest of space, we report analysis of 1 stimulus block (stimulus block == 2; pictured in the teaser image), rather than analysis of all six blocks.
 
-## SAMPLE 
+## SAMPLE
+
 ```{r block2-sample}
 
-df_b2 <- df_data %>% filter(Assigned.Block ==2)
+#block 2 participant-level data 
+df_b2_p <- df_participants %>% filter(Assigned.Block ==2)
+
+#block 2 stimulus-level data 
+df_b2 <- df_graphs %>% 
+  filter(str_detect(STIMULUS,"B2")) %>% 
+  mutate(MAKER_ID = fct_rev(MAKER_ID)) # reorder factors)
 
 ```
 
-(N = `r nrow(df_b2)` ) survey respondents answered questions about stimulus block 2. 
+(n = `r nrow(df_b2_p)` ) survey respondents answered questions about the (4) stimuli in block 2, yielding (r = `r nrow(df_b2)`) observations.
 
+## TODO MAKER Donuts
 
-## TODO MAKER Donuts 
 ```{r b2_1_maker-chars}
 
 #### DEFINE SET 
@@ -339,101 +357,231 @@ df <- df_graphs %>% filter(STIMULUS == stimulus)
 
 ## MAKER ID
 
-*Who do you think is most likely responsible for having this image created?*
-
-
 ### Maker ID by Stimulus
+
+Participants were asked: **Who do you think is most likely responsible for having this image created?**
 
 ```{r maker-id-stimulus}
 
 #FILTER DATASET
-df <- df_graphs %>% filter(Assigned.Block == 2)
+df <- df_b2
 
-#MAKER IDENTIFICATION BY STIMULUS AND SAMPLE
+## A
+## MAKER IDENTIFICATION BY STIMULUS AND SAMPLE
 ## FACETED HORIZONTAL BAR CHART 
-ggplot( df, aes( x = (STIMULUS), fill = MAKER_ID)) +
+A <- ggplot( df, aes( x = (STIMULUS), fill = MAKER_ID)) +
   geom_bar(position = "stack") +
-  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
-  labs( title = "MAKER ID by Stimulus",
+  facet_grid( Distribution ~ ., scales = "free", space = "free") + 
+  labs( title = "MAKER ID by Stimulus and SAMPLE",
         subtitle = "", x = "") +
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
-  coord_flip()+
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
+  # coord_flip()+
   easy_add_legend_title("") +
   theme_minimal()
+##############################
 
-
-#MAKER IDENTIFICATION BY STIMULUS
-## HORIZONTAL BAR CHART 
-ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_ID)) +
-  geom_bar(position = "stack") +
-  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ ., scales = "free", space = "free") + 
-  labs( title = "MAKER ID by Stimulus",
-        subtitle = "", x = "") +
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
-  coord_flip()+
-  easy_add_legend_title("") +
-  theme_minimal()
-
-#MAKER IDENTIFICATION BY STIMULUS
+## B
+## MAKER IDENTIFICATION BY STIMULUS
 ## GGSTATSPLOT
-ggbarstats( data = df, x = "MAKER_ID", y = "STIMULUS",
-                 legend.title = "MAKER ID")  +
-    scale_fill_viridis(discrete=TRUE, option="viridis") +
-      # scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
-      labs( title = "MAKER ID BY STIMULUS ", subtitle = "", x = "") 
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate(MAKER_ID = fct_rev(MAKER_ID))
+B <- ggbarstats( data = dx, 
+            x = MAKER_ID, y = STIMULUS,
+            legend.title = "MAKER ID",
+            results.subtitle = FALSE)  +
+    scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
+    labs( title = "MAKER ID BY STIMULUS ", subtitle = "", x = "")
+##############################
 
+## S
+## MAKER ID REPEATED MEASURES
+## SANKEY DIAGRAM
+###FILTER FOR BLOCK 2 STIM AND RESHAPE FOR SANKEY
+order <- df_graphs$MAKER_ID %>% levels   #list order of factor levels
+ds <- df_graphs %>% 
+  filter(str_detect(STIMULUS, "B2")) %>% 
+  select(STIMULUS, MAKER_ID, PID, Distribution) %>% 
+#pivot wider 
+  pivot_wider(
+    names_from = STIMULUS, 
+    values_from = MAKER_ID
+  ) %>%
+#prep for geom_sankey
+  make_long(`B2-1`,`B2-2`,`B2-3`,`B2-4`) %>% 
+  mutate(
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+    node = factor(node, levels = order),
+    next_node = factor(next_node, levels = order)
+  ) 
+#SANKEY DIAGRAM
+S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node, 
+               ))+
+  geom_alluvial(width = 0.25, flow.alpha = 0.5, node.alpha = 1) +
+  geom_alluvial_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE, alpha = 1) +
+  labs(title = "MAKER ID by STIMULUS", 
+       x = "STIMULUS", y = "(count)", fill = "MAKER ID",
+       caption = "") + 
+  theme_minimal()
+ ##############################
 
+# DISPLAY GRAPHS
+B 
+S
 
+# CLEANUP
+rm(df, ds, dx, order)
 ```
 
-### Maker ID & Confidence by Stimulus
+*To explore whether variance in maker identifications is more likely a function of participant or stimulus , we visualize the `MAKER_ID` data via an alluvial diagram. Here we see that there are **no** stable identifications (ie. paths through each stimulus with the same category) indicating that no participants had a strong preference for a particular identification category. Rather, participants seem to be identifying the maker category as a function of some features of the stimuli, rather than a trait/state inference about makers of all stimuli in general.*
 
+### Maker ID Confidence (distribution)
 
-```{r maker-id-confidence-stimulus, fig.width = 10}
+Participants were asked: **Please rate your confidence in this choice.**
+
+```{r maker-id-confidence}
+
+## DESCRIBE MAKER CONFIDENCE
+df <- df_b2 %>% 
+  select(PID, STIMULUS, MAKER_ID, MAKER_CONF) 
+
+desc.maker_conf <- psych::describe(df$MAKER_CONF)
+
+## H 
+## Distribution of MAKER_CONF 
+## GGSTATS HISTOGRAM   
+H <- gghistostats(df, x = MAKER_CONF, 
+              test.value = 50,
+              binwidth = 5,
+              centrality.plotting = TRUE,
+              centrality.type = "parametric",
+              bin.args = list(color = "black", fill = "grey50", alpha = 0.2)
+             ) + 
+  labs(title = "Distribution of Maker ID Confidence (Block 2)",
+       caption = paste0("test value = 50; sd = ", round(desc.maker_conf$sd,0))) + 
+  theme_minimal()
+##############################
+
+# DISPLAY GRAPHS
+H
+
+# CLEANUP 
+rm(df)
+```
+
+*Across the `r nrow(df_b2)` observations, the `r nrow(df_b2_p)` participants assigned to block 2 offered confidence values [on their maker identifications] ranging from`r desc.maker_conf$min` to `r desc.maker_conf$max` , with a mean of `r round(desc.maker_conf$mean,1)`. According to (one-sample) student's t-tests, the mean of the distribution is significantly difference from both reference values of 0 (indicating no confidence) and 50% (indicating partial confidence) and 100% (indicating certainty).*
+
+### Maker ID Confidence (by Stimulus)
+
+```{r, maker-id-confidence-individual, fig.width = 10}
+
+#TEMP FILTER DATAFRAME
+temp  <- df_graphs %>% 
+  filter(str_detect(STIMULUS, "B2")) %>% 
+  select(PID, STIMULUS, MAKER_ID, MAKER_CONF) %>% 
+  group_by(PID) %>% 
+  summarise(
+         min = min(MAKER_CONF), 
+         max = max(MAKER_CONF),
+         range = max-min,
+         low_var = ifelse(range < 20, TRUE, FALSE)
+  )
+
+#proportion of low variance participants 
+p_lowvar <- round(nrow(temp %>% filter(low_var))/ nrow(temp)*100,0)
 
 #FILTER DATAFRAME
-df <- df_graphs %>% filter(Assigned.Block == 2)
+df <- df_graphs %>% 
+  filter(str_detect(STIMULUS, "B2")) %>% 
+  select(PID, STIMULUS, MAKER_ID, MAKER_CONF) %>% 
+  group_by(PID) %>% 
+  mutate(
+         min = min(MAKER_CONF), 
+         max = max(MAKER_CONF),
+         range = max-min,
+         low_var = ifelse(range < 20, TRUE, FALSE))
+  
 
 
-######### MAKER ID AND CONFIDENCE ##############
-# MAKER_ID by Sample and BEHAVIOR 
-a <- ggplot (df, aes( x = (STIMULUS), fill = MAKER_ID)) + 
-  # geom_bar(width = 0.5, position = position_dodge(0.5)) +
-  geom_bar(position = "stack", width = 0.8) + 
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
-  # facet_grid( df$ENCOUNTER) + 
-  labs (x = "") + 
-  theme_minimal() 
+## I
+## MAKER CONFIDENCE (REPEATED MEASURES)
+## WITHIN-SUBJECTS BOXPLOT 
+I <- ggplot(df, aes(STIMULUS,MAKER_CONF)) + 
+  geom_boxplot(width = 0.2)+ 
+  geom_line(aes(group = PID, color = low_var), linetype=2, size=0.25) +
+  scale_color_manual(values = my_palettes(name="blackred", type = "discrete")) +
+  geom_point(aes(group=PID), size= 2 ,alpha = 0.2) + 
+  labs(
+    title = "Confidence in Maker ID",
+    y = "MAKER ID CONFIDENCE (%)",
+    x = "Stimulus",
+    subtitle = paste0("Scores range from ",desc.maker_conf$min, " to ", desc.maker_conf$max, " with ", p_lowvar,"% of ",nrow(temp)," participants (red) showing little variance in confidence across stimuli"),
+    caption = "lines connect observations from the same participant 
+    red indicates participants with less than 20 points range between confidence scores
+    (i.e. participants whose confidence is stable, invariant across stimuli)") + 
+   theme_minimal() + easy_remove_legend()
+##############################
 
-# MAKER_CONFIDENCE by IDENTIFICATION  
-b <- ggplot(df, aes( x = (STIMULUS), y = MAKER_CONF, color = MAKER_ID)) + 
-  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.4) +
-  scale_color_viridis(discrete=TRUE, option="viridis") +
-  labs (title = "") +
-  labs (x = "") + 
-  theme_minimal() 
 
-# MAKER_CONFIDENCE 
-c <- ggplot(df, aes( x = (STIMULUS), y = MAKER_CONF)) + 
-  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
-  geom_jitter(width = 0.10, alpha = 0.4) +
-  labs (title = "") +
-  labs (x = "") + 
-  theme_minimal() 
+# MAKER_CONFIDENCE (VANILLA)
+# ggplot(df, aes( x = (STIMULUS), y = MAKER_CONF)) + 
+#   geom_boxplot(width = 0.5)+
+#   geom_jitter(width = 0.10, alpha = 0.4) +
+#   labs (title = "",
+#         x = "", y = "MAKER ID CONFIDENCE") + 
+#   theme_minimal() 
 
-(p <- (a / b / c )  + plot_annotation(
-  title = 'MAKER ID & CONFIDENCE by Stimulus',
-  subtitle = '',
-  caption = ''))
+# DISPLAY GRAPHS
+I
 
-###################################################
-rm(a,b,c,p)
+# CLEANUP
+rm(df)
+
+
 ```
 
+*To explore whether variance in **confidence** in maker identification, we visualize the distribution of confidence scores for each stimulus, where connecting lines indicate responses for a single participant. Participants with less than 20 point difference between their minimum and maximum confidence scores are indicated in red, ( `r`* `p_lowvar` of the `r nrow(df_b2_p)` participants.) Note that the participants with low variance in confidence scores are clustered near the high end of the confidence. The mean confidence score for each stimulus is greater than 50%, and no participants indicated consistently low confidence across all stimuli, indicating that in general, participants were able to respond thoughtfully to the maker identification question.
+
+### Maker ID & Confidence (by Stimulus)
+```{r maker-id-confidence-stimulus}
+
+df <- df_b2
+
+## MC
+## MAKER_CONFIDENCE by IDENTIFICATION  
+## POSITION DODGE BAR PLOT
+MC <- ggplot(df, aes( x = (STIMULUS), y = MAKER_CONF, color = MAKER_ID)) + 
+  geom_boxplot(position=position_dodge(0.8), width = 0.5)+
+  geom_jitter(position=position_jitterdodge(dodge.width = 0.8, jitter.width= 0.2, ), alpha = 0.4) +
+  scale_color_viridis(discrete=TRUE, option="viridis") +
+  labs (title = "", 
+        x = "", y = "MAKER ID CONFIDENCE") + 
+  theme_minimal() 
+###################################################
 
 
+# DISPLAY GRAPHS
+ (p <- ( B/MC )  + plot_annotation(
+   title = 'MAKER ID & CONFIDENCE by STIMULUS',
+   subtitle = '',
+   caption = ''))
 
+
+```
+
+```{r maker-id-cleanup}
+rm(df, A, B, S, H, I, MC, p)
+rm(desc.maker_conf)
+```
+
+*Inspecting Maker ID Confidence by Maker ID category, there does not appear to be any systematic relationship between the category of Maker a participant chooses for a stimulus, and their confidence in that choice (i.e. It is not the case that identifications of `MAKER = ORGANIZATION` , for example, are made with greater or less confidence than identifications of `MAKER = INDIVIDUAL`. Statistical tests of independence (between confidence and maker id) are ill-advised because the number of observations of each maker ID vary greatly between stimuli.*
+
+**Taken together, this analysis of correspondence between `MAKER ID` and `MAKER ID CONFIDENCE` suggests that both the inference identifying the kind of maker (and the participant's confidence in that inference) are conditioned on some features of the *stimulus* rather than more stable state/trait(s) of the participant.**
 
 
 
@@ -483,8 +631,6 @@ ggbarstats( data = df, x = "MAKER_AGE", y = "STIMULUS",
 
 
 ```
-
-
 
 ### Maker Age & Confidence by Stimulus
 
@@ -640,7 +786,6 @@ ggplot( df, aes( x = (STIMULUS), fill = fct_rev(MAKER_GENDER))) +
 
 ```
 
-
 ## TOOL CHOICE
 
 ### Tool ID by Stimulus
@@ -688,8 +833,6 @@ ggbarstats( data = df, x = "TOOL_ID", y = "STIMULUS",
 
 ```
 
-
-
 ### Tool ID & Confidence by Stimulus
 
 ```{r toolid-confidence-stimulus, message=FALSE, warning=FALSE, fig.width = 10}
@@ -733,10 +876,10 @@ c <- ggplot(df, aes( x = (STIMULUS), y = TOOL_CONF)) +
 rm(a,b,c,p)
 ```
 
-
 ## ENCOUNTER CHOICE
 
 ### Encounter Choice by Stimulus
+
 ```{r encounter-stimulus}
 
 #FILTER DATASET
@@ -774,15 +917,6 @@ ggbarstats( data = df, x = "ENCOUNTER", y = "STIMULUS",
 
 
 ```
-
-
-
-
-
-
-
-
-
 
 ## ACTION CHOICE
 
@@ -833,19 +967,34 @@ ggbarstats( data = df, x = "CHART_ACTION", y = "STIMULUS",
 
 ```
 
+## TODO PICK UP HERE
 
-
-## TODO PICK UP HERE 
 ## TODO ALSO GROUP VS. INDIVIDUAL DIFFERENCES
-ie. mixed model, but also look at stability of individual choice across stimuli 
-maybe treat individual as fixed factor and look at amount of variance explained?
 
+ie. mixed model, but also look at stability of individual choice across stimuli maybe treat individual as fixed factor and look at amount of variance explained?
 
+## TODO CONFIDENCE
 
+revisit ggwithin and grouped within, which require a continuous outcome
+
+```{r}
+# ggwithinstats(
+#   data = df %>% filter(STIMULUS %in% c("B2-1","B2-2")),
+#   x = STIMULUS,
+#   y = MAKER_ID,
+#   type = "robust", ## type of statistical test
+#   xlab = "MAKER_ID", ## label for the x-axis
+#   ylab = "MAKER_CONF", ## label for the y-axis
+#   # package = "yarrr", ## package from which color palette is to be taken
+#   # palette = "info2", ## choosing a different color palette
+#   title = "MAKER ID BY MAKER_CONF"
+# ) 
+```
 
 ## CHART BEAUTY
 
 ### Chart Beauty by Stimulus and Category
+
 ```{r}
 
 df <- df_graphs
@@ -903,6 +1052,7 @@ gghistostats(
 ```
 
 ### Chart Trust by Stimulus and Category
+
 ```{r}
 
 df <- df_graphs
@@ -944,10 +1094,10 @@ gghistostats(
 
 ```
 
-
 # FISH
 
-### bivariate combinations 
+### bivariate combinations
+
 ```{r bivariate-demos}
 
 if(graph_render == TRUE){
@@ -1043,8 +1193,7 @@ rm(i,g)
 
 ```
 
-
-### DEMO-GENDER > MAKER-GENDER?
+### DEMO-GENDER \> MAKER-GENDER?
 
 ```{r}
 
@@ -1107,7 +1256,9 @@ ggplot(df, aes(x = MAKER_GENDER, fill= D_gender)) +
   )
 
 ```
+
 ### DEMO-GENDER_Q_all_stimuli
+
 ```{r GENDER-Q-FOR-ALL-STIMULI}
 
 ##ONLY RENDER GRAPHS IF SET TO TRUE
@@ -1189,6 +1340,7 @@ rm(x, i, plots, left, right)
 ```
 
 ### DEMO-GENDER-MILLENIAL-PLANTS-SDS
+
 ```{r GENDER-PLANTS ALL-Q-BY-STIMULUS}
 
 
@@ -1264,8 +1416,8 @@ rm(x, i, plots)
 
 ```
 
-
 ### DEMO-GENDER-MILLENIAL-PLANTS-CATS
+
 ```{r}
 
 
@@ -1382,7 +1534,7 @@ n = df_participants %>% filter(Assigned.Block == 1) %>% nrow()
 print(paste(n, "participants were assigned to block 1 where they saw the 'aggressive american flag stimulus"))
 ```
 
-## bar charts 
+## bar charts
 
 ```{r OMINOUS-FLAG}
 
@@ -1435,6 +1587,7 @@ ggplot(data = df, aes( fill = fct_rev(TOOL_ID), x = fct_rev(STIMULUS) )) +
   theme_minimal() 
 
 ```
+
 ```{r angry-flag-age-by-sample}
 
 df <- df_graphs %>% filter(STIMULUS == "B1-3")
@@ -1451,7 +1604,7 @@ ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_AGE)) +
 
 ```
 
-## pie charts 
+## pie charts
 
 ```{r OMINOUS-FLAG}
 
@@ -1581,7 +1734,9 @@ PieChart(MAKER_AGE, data = df,
 # View(paletteer::palettes_d_names)
 
 ```
+
 ## semantic differentials
+
 ```{r sd-b13, warning=FALSE}
 
 
@@ -1626,10 +1781,10 @@ labels <- ref_labels %>% filter(row.names(ref_labels) %in% questions)
 
 ```
 
-
-
 # B0-0 MILLENIAL PINK PLANTS
+
 ### GGBIVARIATE
+
 ```{r bivariate-demos-b00}
 if(graph_render == TRUE){
 
@@ -1716,7 +1871,6 @@ rm(i,g)
 
 }
 ```
-
 
 ## PAIRPLOTS
 
@@ -1931,6 +2085,7 @@ summ(m)
 # compare_performance(m.r, m.1, m.2, m.3, rank = TRUE)
 
 ```
+
 ### TODO COME BACK HERE Modelling Engagement
 
 ```{r B00-ENGAGEMENT}
@@ -2159,7 +2314,6 @@ summ(m)
 
 ```
 
-
 ```{r IXN-BOO}
 
 df <- df_graphs_full %>% 
@@ -2185,7 +2339,6 @@ df <- df_graphs_full %>%
 ggplotly(p)
   
 ```
-
 
 ### On Confidence
 
@@ -2217,20 +2370,11 @@ ggplot(df, aes(x = MAKER_POLITIC, y = MAKER_TRUST, color = MAKER_ID)) +
 
 ```
 
-
-
-
-
-
-
-
-
-
 # EDA
 
-##  PAIR PLOTS
+## PAIR PLOTS
 
-### B0-0 MILLENIAL PINK PLANTS 
+### B0-0 MILLENIAL PINK PLANTS
 
 ```{r B00_MAKERID, message=FALSE}
 
@@ -2275,6 +2419,7 @@ ggplotly(boo_duo) #surprisingly works! but not helpful
 ```
 
 ### CATEGORIES-MAKER
+
 ```{r}
 
 df <- df_graphs %>% select(
@@ -2292,8 +2437,8 @@ ggsave(plot = x, path="figs/pairplots", filename =paste0("maker_category","_pair
 
 ```
 
-
 ### CATEGORIES-CHART
+
 ```{r}
 
 df <- df_graphs %>% select(
@@ -2311,9 +2456,8 @@ ggsave(plot = x, path="figs/pairplots", filename =paste0("chart_category","_pair
 
 ```
 
-
-
 ### ALL NUMERIC
+
 ```{r}
 
 df <- df_graphs %>% select(STIMULUS_CATEGORY, where(is.numeric)) %>% 
@@ -2328,12 +2472,10 @@ ggsave(plot = x, path="figs/pairplots", filename =paste0("category","_scaplot.pn
 
 ```
 
-
-
 # INTERACTIVE GRAPHS
 
-
 ### WIP IXN Maker ID & Politics
+
 ```{r PLOTLY}
 
 #SETUP LISTS 
@@ -2383,10 +2525,9 @@ names(plots_maker_politics) <- ref_stimuli ##TODO IF NOT WORK ref_stim_id
 plots_maker_politics
 ```
 
-
 # WIP QDA ANALYSIS
 
-## MAKER ID DETAIL 
+## MAKER ID DETAIL
 
 ```{r CODED-MAKER-ID-DETAIL}
 
@@ -2483,15 +2624,7 @@ plots_maker_politics
 
 ```
 
-
-
-
 # MODELLING
-
-
-
-
-
 
 ```{r, message=FALSE}
 
@@ -2652,11 +2785,9 @@ plots_maker_politics
 
 ```
 
-
-
 # GENERATE SEMANTIC DIFFERENTIAL GRAPHS
 
-NOTE: the following blocks run if the `graph_render` var is set to `TRUE` in the header block. Graphs are generated (takes a long time) and written to the figs folder. Only do this data are are added or excluded 
+NOTE: the following blocks run if the `graph_render` var is set to `TRUE` in the header block. Graphs are generated (takes a long time) and written to the figs folder. Only do this data are are added or excluded
 
 ## ALL QUESTIONS
 
@@ -2793,8 +2924,6 @@ if(graph_render == TRUE){
 
 ```
 
-
-
 ### ALL Q BY STIMULUS
 
 ```{r ALL-Q-BY-STIMULUS}
@@ -2875,8 +3004,6 @@ rm(x, i, plots)
 } 
 
 ```
-
-
 
 ### ALL Q BY CATEGORY
 
@@ -3107,10 +3234,12 @@ rm(x, i, right, left, df)
 
 ```
 
-#
-# TODO 
+# 
 
-## Wrangle Participant Confidence 
+# TODO
+
+## Wrangle Participant Confidence
+
 ```{r wrangle-confidence}
 
 # 
@@ -3204,14 +3333,40 @@ rm(x, i, right, left, df)
 
 ```
 
-
-
-
-
-
 # STASH
 
 wip code stash
+
+## Alluvial Plots
+
+```{r}
+## EXAMPLE ALLUVIAL PLOT USING GGALUVIAL  (instead of GGSANKEY)
+# https://corybrunson.github.io/ggalluvial/articles/ggalluvial.html
+
+# #FILTER FOR BLOCK 2 STIM AND RESHAPE FOR SANKEY
+# ds <- df_graphs %>% 
+#   filter(str_detect(STIMULUS, "B2")) %>% 
+#   select(STIMULUS, MAKER_ID, PID) %>% 
+#   mutate(
+#     MAKER_ID = fct_relevel(MAKER_ID, 
+#               c("business","education","individual", "news","organization", "political" ))
+#   )
+# 
+# ds %>% 
+#   ggplot(aes( x = STIMULUS,
+#               stratum = MAKER_ID,
+#               label = MAKER_ID,
+#               alluvium = PID)) +
+#       stat_alluvium(aes(fill = MAKER_ID),
+#                     width = 0,
+#                     alpha = 1,
+#                     geom = "flow")+
+#       geom_stratum(width = 0.2, aes(fill= MAKER_ID))+
+#       # geom_text(stat = "stratum", size = 5, angle = 90)+
+#       scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE,
+#                      alpha = 1) +
+#       theme_minimal()
+```
 
 ## GGSTATSPLOT
 
@@ -3245,6 +3400,7 @@ wip code stash
 ```
 
 ### DISTRIBUTION plots
+
 ```{r stash-SAMPLE-DISTRIBUTION-PLOTS}
 
 # #SET UP DATAFRAME
@@ -3290,6 +3446,7 @@ wip code stash
 ```
 
 ### all-q for stimulus
+
 ```{r stash-SAMPLE-ALLQ-BY-STIMULUS}
 
 # s = "B0-0" #stimulus code
@@ -3341,6 +3498,7 @@ wip code stash
 ```
 
 ### all-q for stimulus - grouped
+
 ```{r stash-SAMPLE-ALLQ-BY-STIMULUS-GROUPED}
 
 #  s = "B0-0" #stimulus code
@@ -3391,6 +3549,7 @@ wip code stash
 ```
 
 ### across Blocks
+
 ```{r stash-across-blocks}
 ######### MAKER ATTRIBUTES ########################
 # vals = c("datacollar", "bluecollar")
@@ -3546,6 +3705,7 @@ wip code stash
 ```
 
 ### single Block
+
 ```{r stash-single-block}
 
 # #FILTER DATAFRAME
@@ -3712,6 +3872,7 @@ wip code stash
 ```
 
 ### single Block grouped
+
 ```{r stash-single-block-grouped}
 # 
 # #FILTER DATAFRAME
@@ -3871,6 +4032,7 @@ wip code stash
 ```
 
 ### graph matrix
+
 ```{r stash-graph-matrix}
 
 
@@ -3985,56 +4147,9 @@ wip code stash
 
 ```
 
-
-
-## TEMP JOB TALK STUFF
-
-```{r}
-data(iris)
-library(ggpubr)
-# Scatter plot colored by groups ("Species")
-sp <- ggscatter(iris, x = "Sepal.Length", y = "Sepal.Width",
-                color = "Species",
-                size = 2, alpha = 0.6)+
-  border()                                         
-# Marginal density plot of x (top panel) and y (right panel)
-xplot <- ggdensity(iris, "Sepal.Length", fill = "Species")
-yplot <- ggdensity(iris, "Sepal.Width", fill = "Species")+
-  rotate()
-# Cleaning the plots
-yplot <- yplot + clean_theme() 
-xplot <- xplot + clean_theme()
-# Arranging the plot
-ggarrange(xplot, NULL, sp, yplot, 
-          ncol = 2, nrow = 2,  align = "hv", 
-          widths = c(2, 1), heights = c(1, 2),
-          common.legend = TRUE)
-
-```
-
-```{r}
-# library
-library(ggplot2)
-library(ggExtra)
-library(palmerpenguins) 
-
-
-p <- ggplot(penguins, aes(x = bill_length_mm, y=bill_depth_mm, colour = species)) +
-  geom_point() + theme(legend.position = "bottom") 
-
-ggMarginal(p, groupColour = TRUE, groupFill = TRUE)  
-
-
-p <- ggplot(penguins, aes(x = bill_length_mm, y=bill_depth_mm, colour = species)) +
-  geom_point() + theme_minimal() + theme(legend.position = "bottom") +
-  scale_color_viridis(discrete=TRUE, option="viridis", direction=-1) 
-
-ggMarginal(p, groupColour = TRUE, groupFill = TRUE)  
-
-```
-
-
 # RESOURCES
 
-- custom color palettes: https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
-- lessR donuts https://r-charts.com/part-whole/donut-chart/
+-   custom color palettes: <https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/>
+-   lessR donuts <https://r-charts.com/part-whole/donut-chart/>
+-   GGSANKEY <https://github.com/davidsjoberg/ggsankey>
+-   GGALLUVIAL <https://corybrunson.github.io/ggalluvial/articles/ggalluvial.html>
