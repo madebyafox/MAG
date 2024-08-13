@@ -270,7 +270,7 @@ TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times ranged fro
 
 # DEMOGRAPHICS
 
-## Age
+### Age
 
 Convenience sampling on both TUMBLR and PROLIFIC pools means we do not expect a uniform (i.e. equal) distribution of participants across age categories.  We generally expect that the Tumblr may have more younger users; but expect that the distribution of participants in each age category is uniform _within the sample source_ and _across stimulus blocks_.  
 
