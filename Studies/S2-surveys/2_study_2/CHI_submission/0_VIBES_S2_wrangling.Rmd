@@ -877,7 +877,12 @@ saveRDS(df_graphs_full, file = "data/output/df_graphs_full.rds")
 #### CHART LEVEL DATA FRAME (LONG) ##########################
 ## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES and MULTISELECT
 df_graphs <- df_graphs_full %>% 
-  select( !where(is.character))
+  select( !where(is.character)) %>% 
+  mutate(
+    ##re order factor levels
+   MAKER_ID = fct_rev(MAKER_ID),
+   MAKER_AGE = factor(MAKER_AGE, levels = c("boomer","gen-x","millennial","gen-z") ) 
+  )
 ## WRITE DATAFRAME
 write.csv(df_graphs, file = "data/output/df_graphs.csv", na="")
 saveRDS(df_graphs, file = "data/output/df_graphs.rds")
