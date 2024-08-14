@@ -81,13 +81,14 @@ In VISUALIZATION VIBES project Study 2, participants completed an attitutde elic
 
 *We start by importing data files previously wrangled in `0_VIBES_S2_wrangling.Rmd`.*
 
+### REFS 
 ```{r import-refs, message=FALSE, warning = FALSE}
 
 ############## IMPORT REFERENCE FILES
 ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
 ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
 ```
-
+### DATA 
 ```{r import-data, message=FALSE, warning = FALSE}
 
 ############## IMPORT DATA FILES
@@ -103,6 +104,7 @@ df_graphs <- readRDS("data/output/df_graphs.rds")
 
 ```
 
+### LABELS 
 ```{r setup-labels}
 
 ############## SETUP Graph Labels
@@ -128,6 +130,7 @@ rm(left,right)
 
 ```
 
+### COLOR 
 ```{r setup-pallettes}
 
 ############## SETUP Colour Palettes
@@ -136,13 +139,18 @@ rm(left,right)
 ## list of color pallettes
 my_colors = list(
   politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
-  blackred = c("black","red")
+  blackred = c("black","red"),
+  greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
+  olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
+  lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
+  darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
+  reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F")
 )
 
 
 
 ## function for using palettes
-my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete")) {
+my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete","continuous"), direction = c("1","-1")) {
   palette = all_palettes[[name]]
   if (missing(n)) {
     n = length(palette)
@@ -152,6 +160,9 @@ my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete")) 
                continuous = grDevices::colorRampPalette(palette)(n),
                discrete = palette[1:n]
   )
+  out = switch(direction,
+               "1" = out,
+               "-1" = palette[n:1])
   structure(out, name = name, class = "palette")
 }
 
@@ -319,7 +330,8 @@ df_b2_p <- df_participants %>% filter(Assigned.Block ==2)
 #block 2 stimulus-level data 
 df_b2 <- df_graphs %>% 
   filter(str_detect(STIMULUS,"B2")) %>% 
-  mutate(MAKER_ID = fct_rev(MAKER_ID)) # reorder factors)
+  mutate(MAKER_ID = fct_rev(MAKER_ID),
+         MAKER_AGE = fct_rev(MAKER_AGE)) # reorder factors)
 
 ```
 
@@ -341,25 +353,87 @@ df <- df_graphs %>% filter(STIMULUS == stimulus)
          main = paste0(stimulus, " MAKER ID")) + theme_minimal()
 
 
-  #MAKER_GENDER-DONUT
-  PieChart(MAKER_GENDER, data = df,
-         fill = "blues",
-         main = paste0(stimulus, " MAKER GENDER")) + theme_minimal()
-
-
+  # #MAKER_GENDER-DONUT
+  # PieChart(MAKER_GENDER, data = df,
+  #        fill = "blues",
+  #        main = paste0(stimulus, " MAKER GENDER")) + theme_minimal()
+  # 
+  # 
+  # #MAKER_AGE-DONUT
+  # PieChart(MAKER_AGE, data = df,
+  #        fill = "olives",
+  #        main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+  
   #MAKER_AGE-DONUT
-  PieChart(MAKER_AGE, data = df,
+  PieChart(MAKER_ID, data = df,
+         fill = "rusts",
+         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+  
+  #MAKER_AGE-DONUT
+  PieChart(MAKER_ID, data = df,
          fill = "olives",
          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
   
+  #MAKER_AGE-DONUT
+  PieChart(MAKER_ID, data = df,
+         fill = "greens",
+         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+  
+  #MAKER_AGE-DONUT
+  PieChart(MAKER_ID, data = df,
+         fill = "emeralds",
+         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+  
+  #MAKER_AGE-DONUT
+  PieChart(MAKER_ID, data = df,
+         fill = "turquoises",
+         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+  
+  #MAKER_AGE-DONUT
+  PieChart(MAKER_ID, data = df,
+         fill = "aquas",
+         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+  
+  #MAKER_AGE-MAKER_ID
+  PieChart(MAKER_ID, data = df,
+         fill = "purples",
+         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+  
+  #MAKER_AGE-DONUT
+  PieChart(MAKER_ID, data = df,
+         fill = "magentas",
+         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+  
+  #MAKER_AGE-DONUT
+  PieChart(MAKER_ID, data = df,
+         fill = "violets",
+         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+  
+  #MAKER_AGE-DONUT
+  PieChart(MAKER_ID, data = df,
+         fill = "grays",
+         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+# "reds"	h	0
+# "rusts"	h	30
+# "browns"	h	60
+# "olives"	h	90
+# "greens"	h	120
+# "emeralds"	h	150
+# "turquoises"	h	180
+# "aquas"	h	210
+# "blues"	h	240
+# "purples"	h	270
+# "violets"	h	300
+# "magentas"	h	330
+# "grays"
 
 ```
 
 ## MAKER ID
 
-### Maker ID by Stimulus
+Participants were asked: **Who do you think is most likely responsible for having this image created?** The response is stored as `MAKER_ID`
 
-Participants were asked: **Who do you think is most likely responsible for having this image created?**
+### Maker ID by Stimulus
 
 ```{r maker-id-stimulus}
 
@@ -374,7 +448,8 @@ A <- ggplot( df, aes( x = (STIMULUS), fill = MAKER_ID)) +
   facet_grid( Distribution ~ ., scales = "free", space = "free") + 
   labs( title = "MAKER ID by Stimulus and SAMPLE",
         subtitle = "", x = "") +
-  scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "1")) +   
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
   # coord_flip()+
   easy_add_legend_title("") +
   theme_minimal()
@@ -389,7 +464,8 @@ B <- ggbarstats( data = dx,
             x = MAKER_ID, y = STIMULUS,
             legend.title = "MAKER ID",
             results.subtitle = FALSE)  +
-    scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
+    scale_fill_manual(values = my_palettes(name="reds", direction = "1")) +   
+    # scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
     labs( title = "MAKER ID BY STIMULUS ", subtitle = "", x = "")
 ##############################
 
@@ -420,10 +496,12 @@ S <- ggplot(ds, aes(x = x,
                next_node = next_node,
                fill = node, 
                ))+
-  geom_alluvial(width = 0.25, flow.alpha = 0.5, node.alpha = 1) +
+  geom_alluvial(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
   geom_alluvial_text(aes( x = as.numeric(x),  label = after_stat(freq)),
           size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
-  scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE, alpha = 1) +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1")) +   
+  # scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE, alpha = 1) +
+  
   labs(title = "MAKER ID by STIMULUS", 
        x = "STIMULUS", y = "(count)", fill = "MAKER ID",
        caption = "") + 
@@ -436,13 +514,14 @@ S
 
 # CLEANUP
 rm(df, ds, dx, order)
+
 ```
 
 *To explore whether variance in maker identifications is more likely a function of participant or stimulus , we visualize the `MAKER_ID` data via an alluvial diagram. Here we see that there are **no** stable identifications (ie. paths through each stimulus with the same category) indicating that no participants had a strong preference for a particular identification category. Rather, participants seem to be identifying the maker category as a function of some features of the stimuli, rather than a trait/state inference about makers of all stimuli in general.*
 
 ### Maker ID Confidence (distribution)
 
-Participants were asked: **Please rate your confidence in this choice.**
+Participants were asked: **Please rate your confidence in this choice.** The response is stored as `MAKER_CONF` .
 
 ```{r maker-id-confidence}
 
@@ -512,9 +591,12 @@ df <- df_graphs %>%
 ## MAKER CONFIDENCE (REPEATED MEASURES)
 ## WITHIN-SUBJECTS BOXPLOT 
 I <- ggplot(df, aes(STIMULUS,MAKER_CONF)) + 
-  geom_boxplot(width = 0.2)+ 
+  geom_boxplot(width = 0.3)+ 
+  stat_summary(fun.y="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  stat_summary(fun.y="mean", colour="blue", geom="text", fontface = "bold", show_legend = TRUE, 
+               vjust=+0.5, hjust = 1.5, aes( label=round(..y.., digits=0)))+
   geom_line(aes(group = PID, color = low_var), linetype=2, size=0.25) +
-  scale_color_manual(values = my_palettes(name="blackred", type = "discrete")) +
+  scale_color_manual(values = my_palettes(name="blackred", type = "discrete", direction="1")) +
   geom_point(aes(group=PID), size= 2 ,alpha = 0.2) + 
   labs(
     title = "Confidence in Maker ID",
@@ -540,14 +622,15 @@ I <- ggplot(df, aes(STIMULUS,MAKER_CONF)) +
 I
 
 # CLEANUP
-rm(df)
+rm(df, temp)
 
 
 ```
 
-*To explore whether variance in **confidence** in maker identification, we visualize the distribution of confidence scores for each stimulus, where connecting lines indicate responses for a single participant. Participants with less than 20 point difference between their minimum and maximum confidence scores are indicated in red, ( `r`* `p_lowvar` of the `r nrow(df_b2_p)` participants.) Note that the participants with low variance in confidence scores are clustered near the high end of the confidence. The mean confidence score for each stimulus is greater than 50%, and no participants indicated consistently low confidence across all stimuli, indicating that in general, participants were able to respond thoughtfully to the maker identification question.
+_To explore whether variance in confidence in maker identification differs as a function of stimulus, or as a property of an individual subject, we visualize the distribution of confidence scores for each stimulus, where connecting lines indicate responses for a single participant. Participants with less than 20 point difference between their minimum and maximum confidence scores are indicated in red, ( `r`* `p_lowvar` of the `r nrow(df_b2_p)` participants.) Note that the participants with low variance in confidence scores are clustered near the high end of the confidence scale, with the exception of two subjects near 50%. The mean confidence score for each stimulus (blue) is greater than 50%, and no participants indicated consistently low confidence across all stimuli, indicating that in general, participants were able to respond thoughtfully to the maker identification question._
 
 ### Maker ID & Confidence (by Stimulus)
+
 ```{r maker-id-confidence-stimulus}
 
 df <- df_b2
@@ -558,9 +641,10 @@ df <- df_b2
 MC <- ggplot(df, aes( x = (STIMULUS), y = MAKER_CONF, color = MAKER_ID)) + 
   geom_boxplot(position=position_dodge(0.8), width = 0.5)+
   geom_jitter(position=position_jitterdodge(dodge.width = 0.8, jitter.width= 0.2, ), alpha = 0.4) +
-  scale_color_viridis(discrete=TRUE, option="viridis") +
+  scale_color_manual(values = my_palettes(name="reds", direction = "1")) +   
+  # scale_color_viridis(discrete=TRUE, option="viridis") +
   labs (title = "", 
-        x = "", y = "MAKER ID CONFIDENCE") + 
+        x = "", y = "Maker ID Confidence") + 
   theme_minimal() 
 ###################################################
 
@@ -583,97 +667,244 @@ rm(desc.maker_conf)
 
 **Taken together, this analysis of correspondence between `MAKER ID` and `MAKER ID CONFIDENCE` suggests that both the inference identifying the kind of maker (and the participant's confidence in that inference) are conditioned on some features of the *stimulus* rather than more stable state/trait(s) of the participant.**
 
-
-
-
-
 ## MAKER AGE
 
-### Maker Age by Stimulus
+Participants were asked: Take a moment to **imagine the person(s) responsible for creating the image**. **What generation are they most likely from? `MAKER_AGE`**
+
+### Maker AGE by Stimulus
 
 ```{r maker-age-stimulus}
 
 #FILTER DATASET
-df <- df_graphs %>% filter(Assigned.Block == 2)
+df <- df_b2
 
-#MAKER AGE BY STIMULUS AND SAMPLE
+## A
+## MAKER AGE BY STIMULUS AND SAMPLE
 ## FACETED HORIZONTAL BAR CHART 
-ggplot( df, aes( x = (STIMULUS), fill = MAKER_AGE)) +
+A <- ggplot( df, aes( x = (STIMULUS), fill = MAKER_AGE)) +
   geom_bar(position = "stack") +
-  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
-  labs( title = "MAKER AGE by Stimulus",
+  facet_grid( Distribution ~ ., scales = "free", space = "free") + 
+  labs( title = "MAKER AGE by Stimulus and SAMPLE",
         subtitle = "", x = "") +
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
-  coord_flip()+
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "1")) +   
+    #scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
+  # coord_flip()+
   easy_add_legend_title("") +
   theme_minimal()
+##############################
 
 
-#MAKER AGE BY STIMULUS
-## HORIZONTAL BAR CHART 
-ggplot( df, aes( x = fct_rev(STIMULUS), fill = MAKER_AGE)) +
-  geom_bar(position = "stack") +
-  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ ., scales = "free", space = "free") + 
-  labs( title = "MAKER AGE by Stimulus",
-        subtitle = "", x = "") +
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
-  coord_flip()+
-  easy_add_legend_title("") +
-  theme_minimal()
-
-#MAKER AGE BY STIMULUS
+## B
+## MAKER AGE BY STIMULUS
 ## GGSTATSPLOT
-ggbarstats( data = df, x = "MAKER_AGE", y = "STIMULUS",
-                 legend.title = "MAKER AGE")  +
-    scale_fill_viridis(discrete=TRUE, option="viridis") +
-      # scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
-      labs( title = "MAKER AGE BY STIMULUS ", subtitle = "", x = "") 
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate(MAKER_AGE = fct_rev(MAKER_AGE))
+B <- ggbarstats( data = dx, 
+            x = MAKER_AGE, y = STIMULUS,
+            legend.title = "MAKER AGE",
+            results.subtitle = FALSE)  +
+    scale_fill_manual(values = my_palettes(name="lightblues", direction = "1")) +   
+    # scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
+    labs( title = "MAKER AGE BY STIMULUS ", subtitle = "", x = "")
+##############################
 
+## S
+## MAKER AGE REPEATED MEASURES
+## SANKEY DIAGRAM
+###FILTER FOR BLOCK 2 STIM AND RESHAPE FOR SANKEY
+order <- df_graphs$MAKER_AGE %>% levels   #list order of factor levels
+ds <- df_graphs %>% 
+  filter(str_detect(STIMULUS, "B2")) %>% 
+  select(STIMULUS, MAKER_AGE, PID, Distribution) %>% 
+#pivot wider 
+  pivot_wider(
+    names_from = STIMULUS, 
+    values_from = MAKER_AGE
+  ) %>%
+#prep for geom_sankey
+  make_long(`B2-1`,`B2-2`,`B2-3`,`B2-4`) %>% 
+  mutate(
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+    node = factor(node, levels = order),
+    next_node = factor(next_node, levels = order)
+  ) 
+#SANKEY DIAGRAM
+S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node, 
+               ))+
+  geom_alluvial(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color="white") +
+  geom_alluvial_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1")) +   
+  # scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE, alpha = 1) +
+  
+  labs(title = "MAKER AGE by STIMULUS", 
+       x = "STIMULUS", y = "(count)", fill = "MAKER AGE",
+       caption = "") + 
+  theme_minimal()
+ ##############################
+
+# DISPLAY GRAPHS
+B 
+S
+
+# CLEANUP
+rm(df, ds, dx, order)
 
 ```
+### Maker AGE Confidence (distribution)
 
-### Maker Age & Confidence by Stimulus
+Participants were asked: **Please rate your confidence in this choice.** The response is stored as `AGE_CONF` .
 
-```{r maker-age-confidence-stimulus, message=FALSE, warning=FALSE, fig.width=10}
+```{r maker-age-confidence}
+
+## DESCRIBE MAKER AGE CONFIDENCE
+df <- df_b2 %>% 
+  select(PID, STIMULUS, MAKER_AGE, AGE_CONF) 
+
+desc.age_conf <- psych::describe(df$AGE_CONF)
+
+## H 
+## Distribution of AGE_CONF 
+## GGSTATS HISTOGRAM   
+H <- gghistostats(df, x = AGE_CONF, 
+              test.value = 50,
+              binwidth = 5,
+              centrality.plotting = TRUE,
+              centrality.type = "parametric",
+              bin.args = list(color = "black", fill = "grey50", alpha = 0.2)
+             ) + 
+  labs(title = "Distribution of Maker AGE Confidence (Block 2)",
+       caption = paste0("test value = 50; sd = ", round(desc.age_conf$sd,0))) + 
+  theme_minimal()
+##############################
+
+# DISPLAY GRAPHS
+H
+
+# CLEANUP 
+rm(df)
+```
+
+*Across the `r nrow(df_b2)` observations, the `r nrow(df_b2_p)` participants assigned to block 2 offered confidence values [on their maker age attribution] ranging from`r desc.age_conf$min` to `r desc.age_conf$max` , with a mean of `r round(desc.age_conf$mean,1)`. According to (one-sample) student's t-tests, the mean of the distribution is significantly difference from both reference values of 0 (indicating no confidence) and 50% (indicating partial confidence) and 100% (indicating certainty).*
+
+### Maker AGE Confidence (by Stimulus)
+
+```{r, maker-age-confidence-individual, fig.width = 10}
+
+#TEMP FILTER DATAFRAME
+temp  <- df_graphs %>% 
+  filter(str_detect(STIMULUS, "B2")) %>% 
+  select(PID, STIMULUS, MAKER_AGE, AGE_CONF) %>% 
+  group_by(PID) %>% 
+  summarise(
+         min = min(AGE_CONF), 
+         max = max(AGE_CONF),
+         range = max-min,
+         low_var = ifelse(range < 20, TRUE, FALSE)
+  )
+
+#proportion of low variance participants 
+p_lowvar <- round(nrow(temp %>% filter(low_var))/ nrow(temp)*100,0)
 
 #FILTER DATAFRAME
-df <- df_graphs %>% filter(Assigned.Block == 2)
+df <- df_graphs %>% 
+  filter(str_detect(STIMULUS, "B2")) %>% 
+  select(PID, STIMULUS, MAKER_AGE, AGE_CONF) %>% 
+  group_by(PID) %>% 
+  mutate(
+         min = min(AGE_CONF), 
+         max = max(AGE_CONF),
+         range = max-min,
+         low_var = ifelse(range < 20, TRUE, FALSE))
+  
 
-######### MAKER ID AND CONFIDENCE ##############
-# MAKER_AGE by Sample and BEHAVIOR 
-a <- ggplot (df, aes( x = (STIMULUS), fill = MAKER_AGE)) + 
-  geom_bar(position = "fill", width = 0.8) +
-  scale_fill_viridis(discrete=TRUE, option="viridis") +
-  # facet_grid( df$ENCOUNTER) + 
-  labs (x = "") + 
+
+## I
+## MAKER CONFIDENCE (REPEATED MEASURES)
+## WITHIN-SUBJECTS BOXPLOT 
+I <- ggplot(df, aes(x = STIMULUS, y = AGE_CONF)) + 
+  geom_boxplot(width = 0.2) + 
+  stat_summary(fun.y="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  stat_summary(fun.y="mean", colour="blue", geom="text", fontface = "bold", show_legend = TRUE, 
+               vjust=+0.5, hjust = 1.5, aes( label=round(..y.., digits=0)))+
+  geom_line(aes(group = PID, color = low_var), linetype=2, size=0.25) +
+  scale_color_manual(values = my_palettes(name="blackred", type = "discrete", direction="1")) +
+  geom_point(aes(group=PID), size= 2 ,alpha = 0.2) +
+  labs(
+    title = "Confidence in Maker AGE",
+    y = "MAKER AGE CONFIDENCE (%)",
+    x = "Stimulus",
+    subtitle = paste0("Scores range from ",desc.age_conf$min, " to ", desc.age_conf$max, " with ", p_lowvar,"% of ",nrow(temp)," participants (red) showing little variance in confidence across stimuli"),
+    caption = "lines connect observations from the same participant 
+    red indicates participants with less than 20 points range between confidence scores
+    (i.e. participants whose confidence is stable, invariant across stimuli)") + 
+   theme_minimal() + easy_remove_legend()
+##############################
+
+
+
+# MAKER_AGE CONFIDENCE (VANILLA)
+# ggplot(df, aes( x = (STIMULUS), y = AGE_CONF)) + 
+#   geom_boxplot(width = 0.5)+
+#   geom_jitter(width = 0.10, alpha = 0.4) +
+#   labs (title = "",
+#         x = "", y = "MAKER AGE CONFIDENCE") + 
+#   theme_minimal() 
+
+# DISPLAY GRAPHS
+I
+
+# CLEANUP
+rm(df, temp)
+
+
+```
+
+To explore whether variance in confidence in maker age differs as a function of stimulus, or as a property of an individual subject, we visualize the distribution of confidence scores for each stimulus, where connecting lines indicate responses for a single participant. Participants with less than 20 point difference between their minimum and maximum confidence scores are indicated in red, ( `r`* `p_lowvar` of the `r nrow(df_b2_p)` participants.) Note that the participants with low variance in confidence scores are clustered near the high end of the confidence scale, with the exception of (2) participants who have low variance scores clustered around 50% and (2) participants clustered around 25%. The mean confidence score for each stimulus (blue) is greater than 50%, and no participants indicated consistently low confidence across all stimuli, indicating that in general, participants were able to respond thoughtfully to the maker age question.
+
+
+### Maker AGE & Confidence (by Stimulus)
+
+```{r maker-age-confidence-stimulus}
+
+df <- df_b2
+
+## MC
+## MAKER AGE CONFIDENCE by IDENTIFICATION  
+## POSITION DODGE BAR PLOT
+MC <- ggplot(df, aes( x = (STIMULUS), y = AGE_CONF, color = MAKER_AGE)) + 
+  geom_boxplot(position=position_dodge(0.8), width = 0.5)+
+  geom_jitter(position=position_jitterdodge(dodge.width = 0.8, jitter.width= 0.2, ), alpha = 0.4) +
+  scale_color_manual(values = my_palettes(name="lightblues", direction = "1")) +   
+  # scale_color_viridis(discrete=TRUE, option="viridis") +
+  labs (title = "", 
+        x = "", y = "Maker Age Confidence") + 
   theme_minimal() 
-
-# MAKER_AGE & CONFIDENCE
-b <- ggplot(df, aes( x = (STIMULUS), y = AGE_CONF, color = MAKER_AGE)) + 
-  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
-  scale_color_viridis(discrete=TRUE, option="viridis") +
-  labs (title = "") +
-  labs (x = "") + 
-  theme_minimal() 
-
-# AGE_CONFIDENCE 
-c <- ggplot(df, aes( x = (STIMULUS), y = AGE_CONF)) + 
-  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
-  geom_jitter(width = 0.10, alpha = 0.4) +
-  labs (title = "") +
-  labs (x = "") + 
-  theme_minimal() 
-
-(p <- (a / b / c )  + plot_annotation(
-  title = 'MAKER AGE & CONFIDENCE by Stimulus',
-  subtitle = '',
-  caption = ''))
-
 ###################################################
 
-rm(a,b,c,p)
+
+# DISPLAY GRAPHS
+ (p <- ( B/MC )  + plot_annotation(
+   title = 'MAKER AGE & CONFIDENCE by STIMULUS',
+   subtitle = '',
+   caption = ''))
+
+
 ```
+
+*Inspecting Maker AGE Confidence by Maker AGE category, there does not appear to be any systematic relationship between the category of Maker AGE a participant chooses for a stimulus, and their confidence in that choice (i.e. It is not the case that identifications of `MAKER(AGE) = MILLENIAL` , for example, are made with greater or less confidence than identifications of `MAKER(AGE) = BOOMER`. Statistical tests of independence (between confidence and maker age) are ill-advised because the number of observations of each maker age vary greatly between stimuli.*
+
+**Taken together, this analysis of correspondence between `MAKER AGE` and `MAKER AGE CONFIDENCE` suggests that both the inference identifying the age generation of maker (and the participant's confidence in that inference) are conditioned on some features of the *stimulus* rather than more stable state/trait(s) of the participant.**
+
+```{r maker-age-cleanup}
+rm(df, A, B, S, H, I, MC, p)
+rm(desc.age_conf)
+```
+
 
 ## MAKER GENDER
 
@@ -2624,618 +2855,6 @@ plots_maker_politics
 
 ```
 
-# MODELLING
-
-```{r, message=FALSE}
-
-##STATSPLOT
-# grouped_ggwithinstats(
-#   data  = df_graphs,
-#   x     = STIMULUS,
-#   y     = CHART_TRUST,
-#   grouping.var = ID.Study
-# ) 
-
-# grouped_ggscatterstats(
-#   data = df_graphs, ## data frame from which variables are taken
-#   x = CHART_BEAUTY, ## predictor/independent variable
-#   y = CHART_TRUST, ## dependent variable
-#   grouping.var = ID.Study,
-#   xlab = "CHART BEAUTY", ## label for the x-axis
-#   ylab = "CHART TRUST", ## label for the y-axis
-#   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
-#   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
-#   xfill = "#CC79A7", ## fill for marginals on the x-axis
-#   yfill = "#009E73" ## fill for marginals on the y-axis
-#   # title = "CHART TRUST (VS) MAKER TRUST",
-#   # caption = ""
-# )
-# 
-# gf_point( data = df_graphs, CHART_TRUST~MAKER_TRUST, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
-# 
-# 
-# grouped_ggscatterstats(
-#   data = df_graphs, ## data frame from which variables are taken
-#   x = MAKER_TRUST, ## predictor/independent variable
-#   y = CHART_TRUST, ## dependent variable
-#   grouping.var = ID.Study,
-#   xlab = "MAKER TRUST", ## label for the x-axis
-#   ylab = "CHART TRUST", ## label for the y-axis
-#   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
-#   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
-#   xfill = "#CC79A7", ## fill for marginals on the x-axis
-#   yfill = "#009E73" ## fill for marginals on the y-axis
-#   # title = "CHART TRUST (VS) MAKER TRUST",
-#   # caption = ""
-# )
-# 
-# gf_point( data = df_graphs, MAKER_TRUST~CHART_TRUST, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
-# 
-# 
-# 
-# grouped_ggscatterstats(
-#   data = df_graphs, ## data frame from which variables are taken
-#   x = CHART_BEAUTY, ## predictor/independent variable
-#   y = MAKER_ALIGN, ## dependent variable
-#   grouping.var = ID.Study,
-#   xlab = "CHART BEAUTY", ## label for the x-axis
-#   ylab = "MAKER ALIGN", ## label for the y-axis
-#   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
-#   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
-#   xfill = "#CC79A7", ## fill for marginals on the x-axis
-#   yfill = "#009E73" ## fill for marginals on the y-axis
-#   # title = "CHART TRUST (VS) MAKER TRUST",
-#   # caption = ""
-# )
-# 
-# 
-# gf_point( data = df_graphs, MAKER_ALIGN~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
-# 
-# 
-# 
-# 
-# 
-# 
-# ggscatterstats(
-#   data = df_graphs %>% filter(STIMULUS=="B0-0"), ## data frame from which variables are taken
-#   x = CHART_BEAUTY, ## predictor/independent variable
-#   y = MAKER_TRUST, ## dependent variable
-#   xlab = "CHART BEAUTY", ## label for the x-axis
-#   ylab = "MAKER TRUST", ## label for the y-axis
-#   # label.expression = rating < 5 & budget > 100, ## expression for deciding which points to label
-#   point.label.args = list(alpha = 0.7, size = 4, color = "grey50"),
-#   xfill = "#CC79A7", ## fill for marginals on the x-axis
-#   yfill = "#009E73" ## fill for marginals on the y-axis
-#   # title = "CHART TRUST (VS) MAKER TRUST",
-#   # caption = ""
-# )
-# 
-# gf_point( data = df_graphs %>% filter(STIMULUS=="B0-0"), CHART_TRUST~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
-# 
-# gf_point( data = df_graphs %>% filter(STIMULUS=="B0-0"), MAKER_TRUST~CHART_BEAUTY, color = ~STIMULUS) %>% gf_facet_wrap(~STIMULUS)
-
-
-```
-
-```{r}
-# 
-# 
-# #TODO CENTERING AND NORMALIZING
-# 
-# ### little model
-# df <- df_graphs %>% filter(STIMULUS == "B0-0")
-# m <- lm( CHART_TRUST ~ CHART_BEAUTY,data = df)
-# summary(m)
-# ggnostic(m) #GGALLY MODEL CHECKS
-# check_model(m) #EASY STATS MODEL CHECKS 
-# 
-# report(m)
-```
-
-```{r}
-### MORE COMPLEX MODEL
-# df <- df_graphs %>% filter(STIMULUS != "B0-0")
-# m1 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1|ID.Qualtrics), data = df)
-# m2 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1|STIMULUS), data = df)
-# m3 <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1 | STIMULUS) + (1 | ID.Qualtrics), data = df)
-# summary(m1)
-# summary(m2)
-# summary(m3)
-# compare_parameters(m1,m2,m3)
-# compare_performance(m1,m2,m3, rank = TRUE)
-# 
-# 
-# m <- lmer(CHART_TRUST ~ CHART_BEAUTY + MAKER_TRUST + (1 | STIMULUS) ,  data = df)
-# mi <- lmer(CHART_TRUST ~ CHART_BEAUTY * MAKER_TRUST + (1 | STIMULUS) , data = df)
-# summary(m)
-# summary(mi)
-# 
-# compare_performance(m3,m,mi, rank = TRUE)
-# 
-# report(m)
-#todo see https://yury-zablotski.netlify.app/post/mixed-effects-models-2/ about fitting with ML vs REML for model comparison 
-```
-
-```{r}
-# #TODO WALK THROUGH THIS 
-# #https://yury-zablotski.netlify.app/post/mixed-models/#multiple-random-slope-model
-# 
-# #load example data
-# data("sleepstudy")
-# 
-# #fit the model
-# m_slp <- lmer(Reaction ~ Days + (Days | Subject), sleepstudy)
-# 
-# #the next line put all the estimated intercept and slope per subject into a dataframe
-# reaction_slp <- as.data.frame(t(apply(ranef(m_slp)$Subject, 1,function(x) fixef(m_slp) + x)))
-# 
-# #to get the predicted regression lines we need one further step, writing the linear equation: Intercept + Slope*Days with different coefficient for each subject
-# pred_slp <- melt(apply(reaction_slp,1,function(x) x[1] + x[2]*0:9), value.name = "Reaction")
-# 
-# #some re-formatting for the plot
-# names(pred_slp)[1:2] <- c("Days","Subject")
-# pred_slp$Days <- pred_slp$Days - 1
-# pred_slp$Subject <- as.factor(pred_slp$Subject)
-# 
-# #plot with actual data 
-# ggplot(pred_slp,aes(x=Days,y=Reaction,color=Subject))+
-#   geom_line()+
-#   geom_point(data=sleepstudy,aes(x=Days,y=Reaction))+
-#   facet_wrap(~Subject,nrow=3)
-
-```
-
-# GENERATE SEMANTIC DIFFERENTIAL GRAPHS
-
-NOTE: the following blocks run if the `graph_render` var is set to `TRUE` in the header block. Graphs are generated (takes a long time) and written to the figs folder. Only do this data are are added or excluded
-
-## ALL QUESTIONS
-
-### MASTER — ALL STIMULI
-
-```{r ALL-Q-COLLAPSED}
-
-##ONLY RENDER GRAPHS IF SET TO TRUE
-if(graph_render == TRUE){
-
-
-  
-  plot_sd = function (data, column, type, facet, facet_by, boxplot) {
-
-  ggplot(df, aes(y = .data[[column]], x="")) +
-    {if(boxplot) geom_boxplot(width = 0.5) } +
-    geom_jitter(width = 0.1, alpha=0.3, {if(facet) aes(color=.data[[facet_by]])}) +
-    {if(facet) facet_grid(.data[[facet_by]] ~ .)} +
-    scale_y_continuous(limits=c(-1,101)) +
-    labs(x="", y="") +
-    coord_flip()  +
-    {if(type == "S")
-      guides(
-        y = guide_axis_manual(labels = ref_labels[column,"left"]),
-        y.sec = guide_axis_manual(labels = ref_labels[column,"right"])
-      )} +
-    {if(type == "Q")
-      guides(
-        y = guide_axis_manual(labels = ref_labels[q,"left"]),
-        y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
-      )} +
-  theme_minimal()  +
-     labs (
-       caption = column
-     ) + easy_remove_legend()
-  }
-  
-#################### ALL QUESTIONS across ALL STIMULUS #####################
-
-  df <- df_graphs 
-
-  #subset data cols 
-  cols <- df %>% select( all_of(ref_sd_questions))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", facet = FALSE, boxplot=TRUE))
-  
-  #aggregate q plots into one for stimulus 
-  plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
-   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
-   plot_annotation(
-     title = "ALL STIMULI",
-     subtitle =""
-   )
-  
-  ggsave(plot = plot_master_questions, path="figs/_master", filename =paste0("combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
-  
-  
-  #### RAINCLOUD PLOT#############################################################################
-  # setup dataframe 
-  df <- df_sd_questions_long %>% select(1:8, QUESTION, value) 
-
-  #RAINCLOUD PLOT
-  x <- ggplot(df, aes(y = fct_rev(QUESTION), x = value, fill = fct_rev(QUESTION))) +
-  stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
-  guides(
-    # y = guide_axis_manual(labels = paste(levels(df$QUESTION),ref_labels$left)),
-    y = guide_axis_manual(labels = rev(ref_labels$left)),
-    y.sec = guide_axis_manual(labels = rev(ref_labels$right))
-  ) + 
-  labs (title = "ALL STIMULI") +
-  theme_minimal() 
-   
-  
-  ggsave(plot = x, path="figs/_master", filename =paste0("combined_stimuli","_rain.png"), units = c("in"), width = 10, height = 14  )
-
-
-  
-  
-  #### DENSITY RIDGES#############################################################################
-  # setup dataframe 
-  
-  magic_colors = list(
-  amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
-  my_favourite_colours = c("#702963", "#637029",    "#296370")
-)
-  
-  
-  magic_palettes = function(name, n, all_palettes = magic_colors, type = c("discrete", "continuous")) {
-  palette = all_palettes[[name]]
-  if (missing(n)) {
-    n = length(palette)
-  }
-  type = match.arg(type)
-  out = switch(type,
-               continuous = grDevices::colorRampPalette(palette)(n),
-               discrete = palette[1:n]
-  )
-  structure(out, name = name, class = "palette")
-}
-  
-
-  
-  df <- df_sd_questions_long %>% select(1:8, QUESTION, value) 
-  
-  
- (x <-  ggplot(df, aes(x = value, y = fct_rev(QUESTION), fill = fct_rev(QUESTION))) +
-    geom_density_ridges(scale = 1.5,quantile_lines = TRUE, alpha = 0.75) + 
-    # scale_fill_paletteer_d("colorBlindness::SteppedSequential5Steps")+ #don't hate this
-    # scale_fill_paletteer_d("dichromat::SteppedSequential_5", direction = 1)+  #don't hate this
-    # scale_fill_paletteer_d("ggthemes::Hue_Circle", direction = 1)+  #LOVE THIS
-    # scale_fill_paletteer_d("ggthemes::Classic_Cyclic", direction = 1)+  #LOVE THIS
-    ggplot2::scale_fill_manual(values = magic_palettes("amy_gradient"))+
-    theme_minimal() +
-    guides(
-    # y = guide_axis_manual(labels = paste(levels(df$QUESTION),ref_labels$left)),
-    # y = guide_axis_manual(labels = paste(rev(levels(df$QUESTION)))),
-    y = guide_axis_manual(labels = rev(ref_labels$left)),
-    y.sec = guide_axis_manual(labels = rev(ref_labels$right))
-  ) + labs(
-    title = "ALL STIMULI — SD questions"
-  ))
-  
-  ggsave(plot = x, path="figs/_master", filename =paste0("combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
-
-  
-  
-}
-  
-
-
-
-
-
-
-```
-
-### ALL Q BY STIMULUS
-
-```{r ALL-Q-BY-STIMULUS}
-
-##ONLY RENDER GRAPHS IF SET TO TRUE
-if(graph_render == TRUE){
-
-
-#################### ALL QUESTIONS AT STIMULUS #####################
-# ONE PLOT FOR EACH STIMULUS WITH ALL QUESTIONS
-
-#set stimuli to be graphed 
-stimuli <- ref_stimuli #created in wrangling block ##TODO IF NOT WORK ref_stim_id
-# stimili <- c("B0-0","B2-1" ,"B2-2", "B2-3", "B2-4")
-
-box_stimuli <- list()
-rain_stimuli <- list()
-i = 0
-for (s in stimuli){
-  i = i+1
-  
-  # setup dataframe 
-  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
-  title <- paste(s,"|",title)
-  df <- df_graphs %>% filter(STIMULUS== s)
-
-  #subset data cols 
-  cols <- df %>% select( all_of(ref_sd_questions))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", facet = FALSE, boxplot=TRUE))
-
-  #aggregate q plots into one for stimulus 
-  x <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
-   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
-   plot_annotation(
-     title = title,
-     subtitle =""
-   )
-  
-  box_stimuli[[i]] <- x
-  ggsave(plot = x, path="figs/all_q_by_stimulus", filename =paste0(s,"_box.png"), units = c("in"), width = 10, height = 14  )
-  
-  
-  #### RAINCLOUD PLOT
-  # setup dataframe 
-  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME) ##TODO IF NOT WORK ref_stim_id
-  title <- paste(s,"|",title)
-  df <- df_sd_questions_wide %>% select(1:6, QUESTION, all_of(s)) %>% filter(!is.na(s)) %>%  mutate(value = get(s))
-
-
-  #RAINCLOUD PLOT
-  x <- ggplot(df, aes(y = fct_rev(QUESTION), x = value, fill = fct_rev(QUESTION))) +
-  stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
-  guides(
-    # y = guide_axis_manual(labels = paste(levels(df$QUESTION),ref_labels$left)),
-    y = guide_axis_manual(labels = rev(ref_labels$left)),
-    y.sec = guide_axis_manual(labels = rev(ref_labels$right))
-  ) + 
-  labs (title = title) +
-  theme_minimal() 
-   
-  
-  rain_stimuli[[i]] <- x
-  ggsave(plot = x, path="figs/all_q_by_stimulus", filename =paste0(s,"_rain.png"), units = c("in"), width = 10, height = 14  )
-  
-  
-  
-}
-
-#GIVE NAMES TO LIST
-#NOW CAN ACCESS plots by plots_stimulus$`B1-1`
-#ALSO plots_stimulus$`B1-1`[[1]]
-names(box_stimuli) <- stimuli
-names(rain_stimuli) <- stimuli
-rm(x, i, plots)
-
-#############################################################################
-} 
-
-```
-
-### ALL Q BY CATEGORY
-
-```{r ALL-Q-BY-CATEGORY}
-
-##ONLY RENDER GRAPHS IF SET TO TRUE
-if(graph_render == TRUE){
-
-#################### ALL QUESTIONS AT CATEGORY #####################
-# ONE PLOT FOR EACH CATEGORY WITH ALL QUESTIONS
-
-#set questions to be graphed 
-categories <- unique(df_graphs$STIMULUS_CATEGORY)#created in wrangling block
-box_category <- list()
-rain_category <- list()
-
-i = 0
-for (c in categories){
-  i = i+1
-
-  # setup dataframe
-  title <- paste("STIMULUS CATEGORY ", c)
-  df <- df_graphs %>% filter(STIMULUS_CATEGORY == c)
-  
-  #subset data cols
-  cols <- df %>% select( all_of(ref_sd_questions))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type = "S", facet = FALSE, boxplot=TRUE))
-  
-  #aggregate stimulus plots into block for question
-  x <- plots[[1]] / plots[[2]]  / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
-        plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] +
-      plot_annotation(
-        title = title,
-       subtitle =""
-      )
-
-  box_category[[i]] <- x
-  ggsave(plot = x, path="figs/all_q_by_category", filename =paste0(c,"_box.png"), units = c("in"), width = 10, height = 26)
-  
-  
-  
-  
-  #### RAINCLOUD PLOT
-  # setup dataframe 
-  title <- paste("STIMULUS CATEGORY ", c)
-  df <- df_sd_questions_long %>% filter(STIMULUS_CATEGORY == c) %>% select(STIMULUS_CATEGORY, QUESTION, value, PID, Assigned.Block) 
-  
-  #RAINCLOUD PLOT
-  x <- ggplot(df, aes(y = fct_rev(QUESTION), x = value, fill = fct_rev(QUESTION))) +
-  stat_slab(normalize="groups", trim = TRUE, scale = 0.7) +
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
-  guides(
-    y = guide_axis_manual(labels = paste(rev(levels(df$QUESTION)),rev(ref_labels$left))),
-    y = guide_axis_manual(labels = rev(ref_labels$left)),
-    y.sec = guide_axis_manual(labels = rev(ref_labels$right))
-  ) +
-  labs (title = title) +
-  theme_minimal() 
-   
-  
-  rain_category[[i]] <- x
-  ggsave(plot = x, path="figs/all_q_by_category", filename =paste0(c,"_rain.png"), units = c("in"), width = 10, height = 26  )
-  
-  
-}  
-
-#GIVE NAMES TO LIST
-#NOW CAN ACCESS plots by plots_category$A
-#ALSO plots_category$A[[1]]
-names(box_category) <- categories
-names(rain_category) <- categories
-rm(x, i, plots)
-
-}
-
-```
-
-## BY QUESTION
-
-### Q for ALL STIMULI
-
-```{r Q-FOR-ALL-STIMULI}
-
-##ONLY RENDER GRAPHS IF SET TO TRUE
-if(graph_render == TRUE){
-
-####################CREATE SD PLOTS FOR EACH QUESTION#####################
-
-#set questions to be graphed 
-questions <- ref_sd_questions  #created in wrangling block
-box_s_question <- list()
-rain_s_question <- list()
-i = 0
-for (q in questions){
-  i = i+1
-  
-  # setup dataframe 
-  title <- paste(q)
-  df <- df_sd_questions_wide %>% filter(QUESTION == q)
-
-  #subset data cols 
-  c <- df %>% select( all_of(ref_stimuli))##TODO IF NOT WORK ref_stim_id
-  plots <- as.list(lapply(colnames(c), plot_sd, data = df, type = "Q", facet = FALSE, boxplot=TRUE))
-  
-  #aggregate stimulus plots into block for question
-  x <- plots[[1]] / plots[[2]]  / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
-        plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] /  plots[[12]] / plots[[13]] / plots[[14]] / 
-        plots[[15]] /plots[[16]] /plots[[17]] /plots[[18]] /  plots[[19]] / plots[[20]] / plots[[21]] /
-        plots[[22]] /plots[[23]] /plots[[24]] /plots[[25]] + 
-      plot_annotation(
-        title = title,
-       subtitle =""
-      )
-  box_s_question[[i]] <- x 
-  ggsave(plot = x, path="figs/by_q_for_all_stimuli", filename =paste0(q,"_box.png"), units = c("in"), width = 10, height = 26)
-
-  
-  
-  
-  ############# RAINCLOUD
-  # setup dataframe 
-  title <- paste(q)
-  df <- df_sd_questions_long %>% filter(QUESTION ==q)
-    #select(1:6, QUESTION, all_of(s)) %>% filter(!is.na(s)) %>%  mutate(value = get(s))
-  left <- ref_labels[q,]$left
-  right <- ref_labels[q,]$right
-
-  #RAINCLOUD PLOT
-  x <- ggplot(df, aes(y = fct_rev(STIMULUS) , x = value, fill = fct_rev(STIMULUS))) +
-      stat_slab(normalize="groups", scale = 0.7) +
-      stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
-  guides(
-    y = guide_axis_manual(labels = left),
-    y.sec = guide_axis_manual(labels = right)
-  ) +
-  labs (title = title) +
-  theme_minimal() 
-   
-  
-  rain_s_question[[i]] <- x
-  ggsave(plot = x, path="figs/by_q_for_all_stimuli", filename =paste0(q,"_rain.png"), units = c("in"), width = 10, height = 14  )
-  
-
-  
-}
-
-#GIVE NAMES TO LIST
-#NOW CAN ACCESS plots by plots_s_question$MAKER_DESIGN
-#ALSO plots_s_question$MAKER_DESIGN[[1]]
-names(box_s_question) <- questions
-names(rain_s_question) <- questions
-rm(x, i, plots, left, right)
-
-#############################################################################
-
-}
-```
-
-### Q for ALL CATEGORIES
-
-```{r Q-FOR-ALL-CATEGORIES}
-
-##ONLY RENDER GRAPHS IF SET TO TRUE
-if(graph_render == TRUE){
-  
-####################SD PLOTS QUESTION BY CATEGORY #####################
-
-#set grouping column 
-g = "STIMULUS_CATEGORY" #string name of column to group by 
-
-#set questions to be graphed 
-questions <- ref_sd_questions#created in wrangling block
-box_c_question <- list()
-rain_c_question <- list()
-i = 0
-for (q in questions){
-  i = i+1
-  left <-   ref_labels[q,]$left
-  right <-  ref_labels[q,]$right
-  
-  # setup dataframe 
-  title <- paste(q," BY CATEGORY")
-  df <- df_graphs 
-  
-  x <- multi_sd(df, left, right, x = q, y = g, color = g) + 
-      labs(title  = q) 
- 
-  box_c_question[[i]] <- x
-  ggsave(plot = x, path="figs/by_q_for_all_categories", filename =paste0(q,"_box.png"))
-  
-  
-  
-  ############RAINCLOUDS
-  # setup dataframe 
-  title <- paste(q," BY CATEGORY")
-  df <- df_sd_questions_long %>% filter(QUESTION ==q)
-  left <-   ref_labels[q,]$left
-  right <-  ref_labels[q,]$right
-
-  #RAINCLOUD PLOT
-  x <- ggplot(df, aes(y = STIMULUS_CATEGORY , x = value, fill = STIMULUS_CATEGORY)) +
-      stat_slab(normalize="groups", scale = 0.7) +
-      stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
-  guides(
-    y = guide_axis_manual(labels = left),
-    y.sec = guide_axis_manual(labels = right)
-  ) +
-  labs (title = title) +
-  theme_minimal() 
-   
-  
-  rain_c_question[[i]] <- x
-  ggsave(plot = x, path="figs/by_q_for_all_categories", filename =paste0(q,"_rain.png"), units = c("in"), width = 10, height = 14  )
-
-  
-}
-
-#GIVE NAMES TO LIST
-#NOW CAN ACCESS plots by plots_c_question$MAKER_DESIGN
-#ALSO plots_c_question$MAKER_DESIGN[[1]]
-names(box_c_question) <- questions
-names(rain_c_question) <- questions
-rm(x, i, right, left, df)
-  
-#############################################################################
-
-}
-
-```
-
-# 
-
 # TODO
 
 ## Wrangle Participant Confidence
@@ -3366,785 +2985,6 @@ wip code stash
 #       scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE,
 #                      alpha = 1) +
 #       theme_minimal()
-```
-
-## GGSTATSPLOT
-
-### ggbarstats
-
-```{r}
-
-# GGSTATSPLOT BAR CHART
-# ggstatsplot::ggbarstats(df, x= D_age, y=Progress,
-#                           results.subtitle = FALSE,
-#                           legend.title = "Age", 
-#                           xlab = "") +
-#     scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) +
-#     labs (
-#           title = "Participant AGE", x = "",
-#           caption = "As expected, the [smaller] sample of Tumblr participants skews younger than Prolific") + 
-#  theme_minimal() 
-
-```
-
-### COLOR palettes
-
-```{r}
-
-#DISPLAY COLOR PALETTE
-#display.brewer.pal(n = 8, name = 'Dark2')
-
-#DISPLAY COLOR PALETTE
-# paletteer_d("Redmonder::dPBIPuGn")
-
-```
-
-### DISTRIBUTION plots
-
-```{r stash-SAMPLE-DISTRIBUTION-PLOTS}
-
-# #SET UP DATAFRAME
-# df <- df_data
-# 
-# ## DENSITY HISTOGRAPH
-# ggplot(data = df_data, aes( x = duration.min, fill = Assigned.Block)) +
-#   geom_density(alpha = 0.5) +
-#   facet_grid(rows = vars(Assigned.Block)) +
-#   labs( x = "Survey Response Time (mins)",
-#         title = "TOTAL Response Time by Sample",
-#         subtitle = "(expect similiar across samples)") +
-#   easy_add_legend_title("Sample") +
-#   theme_minimal()
-# 
-# 
-# ## RAINCLOUD
-# ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
-#   stat_slab(aes(thickness = after_stat(pdf*n), alpha=0.5), scale = 0.7) +
-#   stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
-#   scale_fill_discrete(direction=-1)+
-#   xlim(0,225) +
-#   labs( x = "Survey Response Time (mins)", y="",
-#         title = "TOTAL Response Time by Sample",
-#         subtitle = "(expect similiar across samples)") +
-#   theme_minimal() +
-#   easy_remove_legend()
-# 
-# 
-# ##RIDGEPLOT
-# ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
-#   geom_density_ridges(scale=0.9) +
-#   # geom_boxplot()+
-#   stat_pointinterval()+
-#   theme_ridges() +
-#   scale_fill_discrete(direction=-1)+
-#   theme(legend.position = "none") +
-#     labs( x = "Survey Response Time (mins)", y="",
-#         title = "TOTAL Response Time by Sample",
-#         subtitle = "(expect similiar across samples)")
-
-
-```
-
-### all-q for stimulus
-
-```{r stash-SAMPLE-ALLQ-BY-STIMULUS}
-
-# s = "B0-0" #stimulus code
-# t = "STIMULUS B0 — MILLENIAL PINK PLANTS" #STIMULUS TITLE
-# 
-# #FILTER DATAFRAME
-# df <- df_graphs %>% filter(STIMULUS == s)
-# 
-# 
-# #BUILD SEMANTIC DIFFERENTIALS
-# m_design <- single_sd(df, "professional", "layperson", x = MAKER_DESIGN) +
-#       labs(title  = "MAKER-DESIGN") +
-#       easy_remove_legend()
-# 
-# m_data <- single_sd(df, "professional", "layperson", x = MAKER_DATA) +
-#       labs(title  = "MAKER-DATA") +
-#       easy_remove_legend()
-# 
-# m_politics <- single_sd(df, "left-leaning", "right-leaning", x = MAKER_POLITIC) +
-#       labs(title  = "MAKER-POLITICS") +
-#       easy_remove_legend()
-# 
-# m_argue <- single_sd(df, "confrontational", "diplomatic", x = MAKER_ARGUE) +
-#       labs(title  = "MAKER-ARGUE") +
-#       easy_remove_legend()
-# 
-# m_selfish <- single_sd(df, "altruistic", "selfish", x = MAKER_SELF) +
-#       labs(title  = "MAKER-SELFISH") +
-#       easy_remove_legend()
-# 
-# m_align <- single_sd(df, "does NOT share", "does share", x = MAKER_ALIGN) +
-#       labs(title  = "MAKER-ALIGNMENT") +
-#       easy_remove_legend()
-# 
-# m_trust <- single_sd(df, "untrustworthy", "trustworthy", x = MAKER_TRUST) +
-#       labs(title  = "MAKER-TRUST") +
-#       easy_remove_legend()
-# 
-# 
-# #BUILD MASTER PLOT
-# PLOT_maker <- (m_design / m_data / m_politics / m_argue / m_selfish / m_align / m_trust) +
-#   plot_annotation(
-#     title = t,
-#     subtitle =""
-#   )
-# 
-# PLOT_maker
-
-```
-
-### all-q for stimulus - grouped
-
-```{r stash-SAMPLE-ALLQ-BY-STIMULUS-GROUPED}
-
-#  s = "B0-0" #stimulus code
-#  t = "STIMULUS B0 — MILLENIAL PINK PLANTS" #STIMULUS TITLE
-#  g = "Assigned.Block"
-#  ##can also use y and color to split by additional variable 
-#  
-#  #FILTER DATAFRAME
-#  df <- df_graphs %>% filter(STIMULUS == s)
-# 
-#  #BUILD SEMANTIC DIFFERENTIALS
-#  m_design <- multi_sd(df, "professional", "layperson", x = "MAKER_DESIGN", y = g, color = g) +
-#        labs(title  = "MAKER-DESIGN") +
-#        easy_remove_legend()
-# 
-#  m_data <- multi_sd(df, "professional", "layperson", x = "MAKER_DATA", y = g, color = g) +
-#        labs(title  = "MAKER-DATA") +
-#        easy_remove_legend()
-# 
-#  m_politics <- multi_sd(df, "left-leaning", "right-leaning", x = "MAKER_POLITIC", y = g, color = g) +
-#        labs(title  = "MAKER-POLITICS") +
-#        easy_remove_legend()
-# 
-#  m_argue <- multi_sd(df, "confrontational", "diplomatic", x = "MAKER_ARGUE", y = g, color = g) +
-#        labs(title  = "MAKER-ARGUE") +
-#        easy_remove_legend()
-# 
-#  m_selfish <- multi_sd(df, "altruistic", "selfish", x = "MAKER_SELF", y = g, color = g) +
-#        labs(title  = "MAKER-SELFISH") +
-#        easy_remove_legend()
-# 
-#  m_align <- multi_sd(df, "does NOT share", "does share", x = "MAKER_ALIGN", y = g, color = g) +
-#        labs(title  = "MAKER-ALIGNMENT") +
-#        easy_remove_legend()
-# 
-#  m_trust <- multi_sd(df, "untrustworthy", "trustworthy", x = "MAKER_TRUST", y = g, color = g) +
-#        labs(title  = "MAKER-TRUST") 
-# 
-# 
-#  #BUILD MASTER PLOT
-#  PLOT_maker <- (m_design / m_data / m_politics / m_argue / m_selfish / m_align / m_trust) +
-#    plot_annotation(
-#      title = t,
-#      subtitle =""
-#    )
-# 
-#  PLOT_maker
-```
-
-### across Blocks
-
-```{r stash-across-blocks}
-######### MAKER ATTRIBUTES ########################
-# vals = c("datacollar", "bluecollar")
-# leftside <- rep ("PROFESSIONAL",n_blocks )
-# rightside <-rep ("LAYPERSON",n_blocks ) 
-# b00_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-DESIGN")
-
-# b00_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-DATA")
-
-
-# leftside <- rep ("LEFT-WING",n_blocks )
-# rightside <-rep ("RIGHT-WING",n_blocks ) 
-# b00_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-POLITICS")
-  
-
-# leftside <- rep ("CONFRONTATIONAL",n_blocks )
-# rightside <-rep ("DIPLOMATIC",n_blocks ) 
-# b00_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-ARGUE")
-  
-# leftside <- rep ("ALTRUSITC",n_blocks )
-# rightside <-rep ("SELFISH",n_blocks ) 
-# b00_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-SELFISH")
-
-# 
-# leftside <- rep ("Does NOT",n_blocks )
-# rightside <-rep ("DOES",n_blocks ) 
-# b00_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-SHARES-MY-VALUES")
-
-# leftside <- rep ("UNTRUSTWORTHY",n_blocks )
-# rightside <-rep ("TRUSTWORTHY",n_blocks ) 
-# b00_m_trust <- ggplot(df, aes(y = MAKER_TRUST, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   # easy_remove_legend() +
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-TRUST")
-# 
-# PLOT_b0_maker <- (b00_m_design / b00_m_data / b00_m_politics / b00_m_argue / b00_m_selfish / b00_m_align / b00_m_trust) + 
-#   plot_annotation(
-#     title = "STIMULUS B0 — MILLENIAL PINK PLANTS",
-#     subtitle =""
-#   )
-# 
-# PLOT_b0_maker
-###################################################
-```
-
-### single Block
-
-```{r stash-single-block}
-
-# #FILTER DATAFRAME
-# df <- df_graphs %>% filter(STIMULUS == "B0-0")
-# 
-# ######### MAKER ATTRIBUTES ########################
-# vals = c("datacollar", "bluecollar")
-# leftside <- rep ("PROFESSIONAL",1 )
-# rightside <-rep ("LAYPERSON",1 ) 
-# b_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ""))+
-#   geom_boxplot(width = 0.5) +
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-DESIGN")
-# 
-# b_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ""))+
-#   geom_boxplot(width = 0.5) +
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-DATA")
-# 
-# 
-# leftside <- rep ("LEFT-WING",1 )
-# rightside <-rep ("RIGHT-WING",1 ) 
-# b_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ""))+
-#   geom_boxplot(width = 0.5) +
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-POLITICS")
-#   
-# 
-# leftside <- rep ("CONFRONTATIONAL",1 )
-# rightside <-rep ("DIPLOMATIC",1 ) 
-# b_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ""))+
-#   geom_boxplot(width = 0.5) +
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-ARGUE")
-#   
-# leftside <- rep ("ALTRUSITC",1 )
-# rightside <-rep ("SELFISH",1 ) 
-# b_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ""))+
-#   geom_boxplot(width = 0.5) +
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-SELFISH")
-# 
-# 
-# leftside <- rep ("Does NOT",1 )
-# rightside <-rep ("DOES",1 ) 
-# b_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ""))+
-#   geom_boxplot(width = 0.5) +
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-SHARES-MY-VALUES")
-# 
-# leftside <- rep ("UNTRUSTWORTHY",1 )
-# rightside <-rep ("TRUSTWORTHY",1 ) 
-# b_m_trust <- ggplot(df, aes(y = MAKER_TRUST, x = ""))+
-#   geom_boxplot(width = 0.5) +
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-TRUST")
-# 
-# 
-# PLOT_b_maker <- (b_m_design / b_m_data / b_m_politics / b_m_argue / b_m_selfish / b_m_align / b_m_trust) + 
-#   plot_annotation(
-#     title = paste(unique(df$STIMULUS), "MAKER")
-#   )
-# 
-# PLOT_b_maker
-###################################################
-```
-
-### single Block grouped
-
-```{r stash-single-block-grouped}
-# 
-# #FILTER DATAFRAME
-# df <- df_graphs %>% filter(STIMULUS == "B0-0")
-# 
-# ######### MAKER ATTRIBUTES ########################
-# vals = c("datacollar", "bluecollar")
-# leftside <- rep ("PROFESSIONAL",1 )
-# rightside <-rep ("LAYPERSON",1 ) 
-# b_m_design <- ggplot(df, aes(y = MAKER_DESIGN, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-DESIGN")
-# 
-# b_m_data <- ggplot(df, aes(y = MAKER_DATA, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-DATA")
-# 
-# 
-# leftside <- rep ("LEFT-WING",1 )
-# rightside <-rep ("RIGHT-WING",1 ) 
-# b_m_politics <- ggplot(df, aes(y = MAKER_POLITIC, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-POLITICS")
-#   
-# 
-# leftside <- rep ("CONFRONTATIONAL",1 )
-# rightside <-rep ("DIPLOMATIC",1 ) 
-# b_m_argue <- ggplot(df, aes(y = MAKER_ARGUE, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-ARGUE")
-#   
-# leftside <- rep ("ALTRUSITC",1 )
-# rightside <-rep ("SELFISH",1 ) 
-# b_m_selfish <- ggplot(df, aes(y = MAKER_SELF, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-SELFISH")
-# 
-# 
-# leftside <- rep ("Does NOT",1 )
-# rightside <-rep ("DOES",1 ) 
-# b_m_align <- ggplot(df, aes(y = MAKER_ALIGN, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-SHARES-MY-VALUES")
-# 
-# leftside <- rep ("UNTRUSTWORTHY",1 )
-# rightside <-rep ("TRUSTWORTHY",1 ) 
-# b_m_trust <- ggplot(df, aes(y = MAKER_TRUST, x = ID.Study, color = ID.Study))+
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   theme_minimal() + 
-#   easy_remove_legend() + 
-#   guides(
-#   y = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = leftside  
-#   ),
-#   y.sec = guide_axis_manual(
-#   #breaks = vals, 
-#   labels = rightside
-# )) + 
-#   labs(title  = "MAKER-TRUST")
-# 
-# 
-# PLOT_b_maker <- (b_m_design / b_m_data / b_m_politics / b_m_argue / b_m_selfish / b_m_align / b_m_trust) + 
-#   plot_annotation(
-#     title = paste(unique(df$STIMULUS), "MAKER")
-#   )
-# 
-# PLOT_b_maker
-# ###################################################
-```
-
-### graph matrix
-
-```{r stash-graph-matrix}
-
-
-
-
-# #### 
-# q = "MAKER_DESIGN"
-# df <- df_questions %>% filter(QUESTION == q) %>% 
-#   mutate(
-#     value = as.numeric(value),
-#     STIMULUS_CATEGORY = str_remove(STIMULUS,"B.-"),
-#     STIMULUS_CATEGORY = factor(STIMULUS_CATEGORY,
-#                   levels=c("0","1","2","3","4"),
-#                   labels= c("F","A","B","C","D"))
-# )
-# 
-# 
-# g <- ggplot(df, aes(y = value, x="", color = STIMULUS_CATEGORY)) +
-#     geom_boxplot(width = 0.5)+
-#     geom_jitter(width = 0.1, alpha=0.3) + 
-#     scale_y_continuous(limits=c(-1,101)) +
-#     labs(x="", y="") +
-#     coord_flip()  +
-#     facet_grid(df$STIMULUS_CATEGORY ~ .) + 
-#     labs(title=df$STIMULUS_CATEGORY) + 
-#     guides(
-#         y = guide_axis_manual(labels = ref_labels[q,"left"]),
-#         y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
-#       ) +  
-#   theme_minimal()  + 
-#   labs (title = q)
-# 
-# g
-# left <- rep(ref_labels[q,"left"], length(unique(df$STIMULUS_CATEGORY)))
-# right <- rep(ref_labels[q,"left"], length(unique(df$STIMULUS_CATEGORY)))
-# a <- multi_sd(df, x = value, y = QUESTION, color = STIMULUS_CATEGORY, left=, right=right)
-# 
-# 
-# multi_sd <- function (df, x, y, color, left,right) { 
-#   
-#   g <- ggplot(df, aes(y = {{x}}, x = {{y}}, color = {{color}}))+
-#   geom_boxplot(width = 0.5) + 
-#   geom_jitter(width = 0.1, alpha=0.5) + 
-#   scale_y_continuous(limits=c(-1,101)) +
-#   facet_grid(rows=vars({{color}})) +
-#   labs(x="", y="") +
-#   coord_flip() + 
-#   guides(
-#     y = guide_axis_manual(labels = left),
-#     y.sec = guide_axis_manual(labels = right)
-#   ) + theme_minimal() 
-#   
-#   return(g)
-# }
-
-
-
-
-# ## GROUPED PLOTSD FUNCTION 
-# grouped_plotsd = function (data, x, type, q, boxplot) {
-#   ggplot(df, aes(y = .data[[x]], x="")) +
-#     {if(boxplot) geom_boxplot(width = 0.5) } +
-#     geom_jitter(width = 0.1, alpha=0.3) + 
-#     scale_y_continuous(limits=c(-1,101)) +
-#     labs(x="", y="") +
-#     coord_flip()  +
-#     {if(type == "Q")
-#       guides(
-#         y = guide_axis_manual(labels = ref_labels[q,"left"]),
-#         y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
-#       )} +  
-#   theme_minimal()  + 
-#      labs (
-#        caption = column
-#      )
-# }
-
-
-#####################################################################
-
-# # stim <- "B1-1"
-# 
-# # setup dataframe 
-# title <- ref_stimuli %>% filter(ID ==stim) %>% select(NAME) ##TODO IF NOT WORK ref_stim_id
-# title <- paste(stim,"|",title)
-# df <- df_graphs %>% filter(STIMULUS==stim)
-# 
-# #subset data cols 
-# d <- df %>% select( all_of(questions))
-# plots <- as.list(lapply(colnames(d), plotsd, data = df, boxplot=TRUE))
-# 
-# ## PICK UP HERE, FIGURE OUT HOW TO LOOP OVER STIM
-# 
-# x <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
-#   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
-#   plot_annotation(
-#     title = title,
-#     subtitle =""
-#   )
-# x
-# ggsave(plot = x, filename =paste(stim,".png"), units = c("in"), width = 10, height = 14  )
-
-
-
-
-#CREATE MATRIX 
-# m <- matrix(nrow = length(stim), ncol = length(questions)) 
-# rownames(m) <- stim
-# colnames(m) <- questions
-
-##END OF FILE
-
 ```
 
 # RESOURCES
