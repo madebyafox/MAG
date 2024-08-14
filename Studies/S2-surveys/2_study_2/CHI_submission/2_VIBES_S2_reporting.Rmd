@@ -330,9 +330,9 @@ df_b2_p <- df_participants %>% filter(Assigned.Block ==2)
 
 #block 2 stimulus-level data 
 df_b2 <- df_graphs %>% 
-  filter(str_detect(STIMULUS,"B2")) %>% 
-  mutate(MAKER_ID = fct_rev(MAKER_ID),
-         MAKER_AGE = fct_rev(MAKER_AGE)) # reorder factors)
+  filter(str_detect(STIMULUS,"B2"))
+# %>%
+#   mutate(MAKER_ID = fct_rev(MAKER_ID))
 
 ```
 
@@ -368,7 +368,7 @@ A <- ggplot( df, aes( x = (STIMULUS), fill = MAKER_ID)) +
 ## MAKER IDENTIFICATION BY STIMULUS
 ## GGSTATSPLOT
 #hack for consistent ordering of ggstats bar plot
-dx <- df %>% mutate(MAKER_ID = fct_rev(MAKER_ID))
+dx <- df %>% mutate( MAKER_ID = fct_rev(MAKER_ID) )
 B <- ggbarstats( data = dx, 
             x = MAKER_ID, y = STIMULUS,
             legend.title = "MAKER ID",
@@ -382,8 +382,8 @@ B <- ggbarstats( data = dx,
 ## MAKER ID REPEATED MEASURES
 ## SANKEY DIAGRAM
 ###FILTER FOR BLOCK 2 STIM AND RESHAPE FOR SANKEY
-order <- df_graphs$MAKER_ID %>% levels   #list order of factor levels
-ds <- df_graphs %>% 
+order <- dx$MAKER_ID %>% levels   #list order of factor levels
+ds <- df_b2 %>% 
   filter(str_detect(STIMULUS, "B2")) %>% 
   select(STIMULUS, MAKER_ID, PID, Distribution) %>% 
 #pivot wider 
@@ -621,8 +621,8 @@ B <- ggbarstats( data = dx,
 ## MAKER AGE REPEATED MEASURES
 ## SANKEY DIAGRAM
 ###FILTER FOR BLOCK 2 STIM AND RESHAPE FOR SANKEY
-order <- df_graphs$MAKER_AGE %>% levels   #list order of factor levels
-ds <- df_graphs %>% 
+order <- dx$MAKER_AGE %>% levels   #list order of factor levels
+ds <- df_b2 %>% 
   filter(str_detect(STIMULUS, "B2")) %>% 
   select(STIMULUS, MAKER_AGE, PID, Distribution) %>% 
 #pivot wider 
@@ -865,7 +865,7 @@ B <- ggbarstats( data = dx,
 ## MAKER GENDER REPEATED MEASURES
 ## SANKEY DIAGRAM
 ###FILTER FOR BLOCK 2 STIM AND RESHAPE FOR SANKEY
-order <- df_graphs$MAKER_GENDER %>% levels   #list order of factor levels
+order <- df_b2$MAKER_GENDER %>% levels   #list order of factor levels
 ds <- df_graphs %>% 
   filter(str_detect(STIMULUS, "B2")) %>% 
   select(STIMULUS, MAKER_GENDER, PID, Distribution) %>% 
