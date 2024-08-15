@@ -1701,13 +1701,16 @@ for (s in stimuli){
 ## FULL STIMULUS SET
 ### What predicts TRUST?
 design competence? data competence? chart intent? maker id?
+
 ### What predicts BEAUTY?
 ### What predicts ACTION?
 ### Does MAKER ID predict MAKER POLITICS?
 ### Does MAKER ID predict CHART INTENT?
 ### Does MAKER AGE <predict> TOOL ID
 ### Does MAKER GENDER <predict> anything?
+
 - highlight maker_gender = female points in raincloud SD plots
+
 ### DOES TOOL ID predict DATA (VS) DESIGN competence
 ### DOES CHART(TYPE) <predict> MAKER(DATA COMPETENCE)
 ### DOES MAKER ID=individual imply TOOL(ID)=[simple]
@@ -1716,7 +1719,7 @@ design competence? data competence? chart intent? maker id?
 #### PREDICT more abstract corresponds with low design competence (opposite for figural)
 
 
-# ARGUMENTS
+# TODO ARGUMENTS
 ## TODO look for examples of inconsistent relationships between TRUST and BEAUTY
 ## TODO look for examples of inconsistent relationships between TRUST and DATA COMPETENCE
 ## TODO look for patterns of reversal between CHART LIKE and CHART BEAUTY
