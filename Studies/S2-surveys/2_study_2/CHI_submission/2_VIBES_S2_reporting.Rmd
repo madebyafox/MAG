@@ -93,9 +93,9 @@ ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
 ############## IMPORT DATA FILES
 # df_data <- readRDS("data/output/df_data.rds") #1 row per participant — WIDE
 df_participants <- readRDS("data/output/df_participants.rds") #1 row per participant — demographic
-# df_questions <- readRDS("data/output/df_questions.rds") #1 row per question — LONG
-# df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds") — only sd questions WIDE
-# df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds") - only sd questions LONG
+df_questions <- readRDS("data/output/df_questions.rds") #1 row per question — LONG
+df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds") # only sd questions WIDE
+df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds") # only sd questions LONG
 df_tools <- readRDS("data/output/df_tools.rds") #multiselect format for tools Question
 df_actions <- readRDS("data/output/df_actions.rds") # multiselect format for action Question
 # df_graphs_full <- readRDS("data/output/df_graphs_full.rds") #includes free response data
@@ -142,7 +142,8 @@ my_colors = list(
   olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
   lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
   darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
-  reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F")
+  reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
+  traffic = c("#CE98A2","#81A06D","yellow")
 )
 
 
@@ -321,7 +322,7 @@ rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.
 In the interest of space, for the manuscript we report analysis of one stimulus block (stimulus block == 2; pictured in the teaser image), rather than analysis of each of the six blocks. Each block contains for images, one of each "abstraction category" ranging from [1] *most abstract* (at left) to [4] *most figural* (at right). Within each block we selected visualizations such that there was diversity in: (1) chart type (2) source (i.e. where the graphic actually came from), and (3) what we as authors perceived to be aesthetic "vibe", (i.e) a diversity of what we subjectively judged to be sophisticated and unsophisticated, aesthetically pleasing, not pleasing, etc. The goal in structuring stimulus blocks was to offer each participant a set of visualizations that varied in multiple ways.
 
 |                                         |                                                      |                                                   |                                                    |
-|------------------|------------------|------------------|-----------------|
+|------------------|------------------|------------------|------------------|
 | **B2-1**                                | **B2-2**                                             | **B2-3**                                          | **B2-4**                                           |
 | **"Bluesy Economist Stacked Area"**     | **"Significant Excel Error Bars"**                   | **"Slick Desert Heat Map"**                       | **"Holmesian Hospital Beds"**                      |
 | ![](stimuli/stimuli/1-SYMBOLIC/A_2.png) | ![](stimuli/stimuli/2-ENHANCED/B_2.png){width="117"} | ![](stimuli/stimuli/3-MIXED/C_2.png){width="141"} | ![](stimuli/stimuli/4-ICONIC/D_2.png){width="103"} |
@@ -351,7 +352,8 @@ df_b2 <- df_graphs %>%
 
 Participants were asked:
 
-**Who do you think is most likely responsible for having this image created?**\
+**Who do you think is most likely responsible for having this image created?\
+***options: [business or corporation / journalist or news outlet / educational or academic institution / government or political organization / other organization / an individual] (select one)*\
 The response is stored as `MAKER_ID`
 
 #### Maker ID by Stimulus
@@ -605,8 +607,8 @@ rm(desc.maker_conf, p_lowvar)
 ### MAKER AGE
 
 Participants were asked:\
-Take a moment to **imagine the person(s) responsible for creating the image**. \
-**What generation are they most likely from?\
+Take a moment to **imagine the person(s) responsible for creating the image**. **What generation are they most likely from?\
+***options: [boomers (60+ years old) / Generation X (44-59 years old) / Millennials (28-43 years old) / Generation Z (12 - 27 years old] (select one)***\
 **The response was saved as `MAKER_AGE`
 
 #### Maker AGE by Stimulus
@@ -860,8 +862,8 @@ rm(desc.age_conf, p_lowvar)
 ### MAKER GENDER
 
 Participants were asked:\
-Take a moment to **imagine the person(s) responsible for creating the image**. \
-**What gender do they most likely identify with?\
+Take a moment to **imagine the person(s) responsible for creating the image**. **What gender do they most likely identify with?\
+***options: [female / male / other ] (select one)***\
 **Responses were stored as `MAKER_GENDER.`
 
 #### Maker GENDER by Stimulus
@@ -949,6 +951,7 @@ S
 rm(df, ds, dx, order)
 
 ```
+
 *To explore whether variance in `MAKER_GENDER` inferences are more likely a function of participant or stimulus , we visualize the `MAKER_GENDER` data via an alluvial diagram. Here we see that (unlike `MAKER_ID`) there are a number of stable identifications (ie. paths through each stimulus with the same category) indicating that some participants consistently attributed all stimuli to a particular gender category. It is difficult to determine whether this pattern of results indicates individuals are making stable assumptions about the gender of makers independetly of stimuli (i.e. a state/trait of the participant) or alternatively, if participants are responding to the features of the stimulus and the consistency of responses across stimuli is an artifact of the limited number of gender categories. To further explore inferences about maker gender we will attend to stimuli that show large variance in distribution across gender category levels (e.g. B2-1 (vs) B2-3), especially stimuli that have a larger proportion of 'FEMALE' identifications.*
 
 #### Maker GENDER by PARTICIPANT GENDER
@@ -970,8 +973,8 @@ ggplot( df, aes( x = (STIMULUS), fill = fct_rev(MAKER_GENDER))) +
 
 
 ```
-_Note that the same pattern of attribution (stimuli B2-1,2 and 4 primarily male, with B2-3 a higher proportion of females), is consistent across the participant's own gender identities.  It is NOT the case that female participants attribute most stimuli to women, while male participants attribute most stimuli to men.  Rather, these results indicate that participants (regardless of their own gender identity) are identifying a maker's gender based on some features of the stimulus in combination with state/trait-based assumptions about maker gender identities in general.  More data are needed to address this question more thoroughly._
 
+*Note that the same pattern of attribution (stimuli B2-1,2 and 4 primarily male, with B2-3 a higher proportion of females), is consistent across the participant's own gender identities. It is NOT the case that female participants attribute most stimuli to women, while male participants attribute most stimuli to men. Rather, these results indicate that participants (regardless of their own gender identity) are identifying a maker's gender based on some features of the stimulus in combination with state/trait-based assumptions about maker gender identities in general. More data are needed to address this question more thoroughly.*
 
 #### Maker GENDER Confidence (distribution)
 
@@ -1082,7 +1085,7 @@ rm(df, temp)
 
 ```
 
-_To explore whether variance in confidence in maker GENDER differs as a function of stimulus, or as a property of an individual subject, we visualize the distribution of confidence scores for each stimulus, where connecting lines indicate responses for a single participant. Participants with less than 20 point difference between their minimum and maximum confidence scores are indicated in red, ( `r`\* `p_lowvar` of the `r nrow(df_b2_p)` participants.) Note that the participants with low variance in confidence scores are not clustered near the high end of the confidence scale as with confidence in maker ID and maker AGE ... rather, low variance is maker GENDER confidence seems to be evenly distributed across the confidence scale. The mean confidence score for each stimulus (blue) are near 50%._
+*To explore whether variance in confidence in maker GENDER differs as a function of stimulus, or as a property of an individual subject, we visualize the distribution of confidence scores for each stimulus, where connecting lines indicate responses for a single participant. Participants with less than 20 point difference between their minimum and maximum confidence scores are indicated in red, ( `r`\* `p_lowvar` of the `r nrow(df_b2_p)` participants.) Note that the participants with low variance in confidence scores are not clustered near the high end of the confidence scale as with confidence in maker ID and maker AGE ... rather, low variance is maker GENDER confidence seems to be evenly distributed across the confidence scale. The mean confidence score for each stimulus (blue) are near 50%.*
 
 **Unlike `MAKER ID` and `MAKER AGE`, confidence in `MAKER GENDER` is generally more idiosyncratic, and potentially reflective of an individual participant's state/trait inference about maker GENDER in general, rather than responding to particular features of each stimuli. To verify, we will look for stimuli that have strong patterns of difference in relative proportion of each level of the `MAKER GENDER` variable.**
 
@@ -1134,14 +1137,12 @@ rm(df, A, B, C, S, H, I, MC, p)
 rm(desc.gender_conf, p_lowvar)
 ```
 
-
-
 ## TOOL QUESTIONS
 
 ### TOOL CHOICE
 
-Participants were asked: 
-**What tools do you think were most likely used to create this image?**  
+Participants were asked: **What tools do you think were most likely used to create this image?\
+***options: [basic graphic design software (e.g. Canva, or similar) / advanced graphic design software (e.g. Adobe Illustrator, Figma, or similar) / data visualization software (e.g. Tableau, PowerBI, or similar)/ general purpose software (e.g. MS Word/Excel, Google Sheets, or similar) / programming language (e.g. R, python, javascript, or similar) ] (select all that apply)*\
 The response was saved as variable `TOOL_ID` (multi-select)
 
 #### Tool ID by Stimulus
@@ -1191,7 +1192,6 @@ B
 
 ```
 
-
 #### Tool ID Confidence (distribution)
 
 Participants were asked: **Please rate your confidence in this choice.** The response is stored as `TOOL_CONF` .
@@ -1229,6 +1229,7 @@ H
 # CLEANUP 
 rm(df)
 ```
+
 *Across the `r nrow(df_b2)` observations, the `r nrow(df_b2_p)` participants assigned to block 2 offered confidence values [on their tool ID identification] ranging from`r desc.tool_conf$min` to `r desc.tool_conf$max` , with a mean of `r round(desc.tool_conf$mean,1)`. According to (one-sample) student's t-tests, the mean of the distribution is significantly different from both reference values of 0 (indicating no confidence) and 50% (indicating partial confidence) and 100% (indicating certainty). Relative to `MAKER_ID`, `MAKER_AGE` AND `MAKER_GENDER`, participants were more confident in their identification of the tools used to create a particular image.*
 
 #### Tool ID Confidence (by Stimulus)
@@ -1304,7 +1305,7 @@ rm(df, temp)
 
 ```
 
-_To explore whether variance in confidence in `TOOL_ID` differs as a function of stimulus, or as a property of an individual subject, we visualize the distribution of confidence scores for each stimulus, where connecting lines indicate responses for a single participant. Participants with less than 20 point difference between their minimum and maximum confidence scores are indicated in red, ( `r`\* `p_lowvar` of the `r nrow(df_b2_p)` participants.) Note that the participants with low variance in confidence scores are clustered near the high end of the confidence scale (like the pattern of confidence in `MAKER_ID`). Across all stimuli, `TOOL_ID` confidence scores are higher than confidence for the maker identifications. The mean confidence score for each stimulus (blue) are all greater than 50%._
+*To explore whether variance in confidence in `TOOL_ID` differs as a function of stimulus, or as a property of an individual subject, we visualize the distribution of confidence scores for each stimulus, where connecting lines indicate responses for a single participant. Participants with less than 20 point difference between their minimum and maximum confidence scores are indicated in red, ( `r`\* `p_lowvar` of the `r nrow(df_b2_p)` participants.) Note that the participants with low variance in confidence scores are clustered near the high end of the confidence scale (like the pattern of confidence in `MAKER_ID`). Across all stimuli, `TOOL_ID` confidence scores are higher than confidence for the maker identifications. The mean confidence score for each stimulus (blue) are all greater than 50%.*
 
 **While there are some insubstantial number of participants who have low variance in tool id confidence, the range of confidence scores is smaller than those for other identifications. This makes it difficult to determine if participants have true high confidence in their choices based on each stimulus, or have some stable confidence across all stimuli.**
 
@@ -1351,9 +1352,7 @@ C <- ggplot(df, aes( x = (TOOL_ID), y = TOOL_CONF, color = fct_rev(TOOL_ID))) +
 
 ```
 
-*Inspecting `TOOL_ID` Confidence by `TOOL_ID` category, there does not appear to be any systematic relationship between the category of TOOL_ID  a participant chooses for a stimulus, and their confidence in that choice (i.e. It is not the case that identifications of `TOOL(ID) = DESIGN_ADVANCED` , for example, are made with greater or less confidence than identifications of `TOOL(ID) = VIZ_BASIC`. There are relatively few instances where participants chose the '?' or "unknown" option. *
-
-
+*Inspecting `TOOL_ID` Confidence by `TOOL_ID` category, there does not appear to be any systematic relationship between the category of TOOL_ID a participant chooses for a stimulus, and their confidence in that choice (i.e. It is not the case that identifications of `TOOL(ID) = DESIGN_ADVANCED` , for example, are made with greater or less confidence than identifications of `TOOL(ID) = VIZ_BASIC`. There are relatively few instances where participants chose the '?' or "unknown" option.*
 
 ```{r tool-id-cleanup}
 rm(df, A, B, C, S, H, I, MC, p)
@@ -1364,308 +1363,417 @@ rm(desc.tool_conf, p_lowvar)
 
 ### ENCOUNTER CHOICE
 
-#### Encounter Choice by Stimulus
+Participants were asked:
 
-```{r encounter-stimulus}
+**As you're scrolling through your [social media] feed, you see this image. What would you do?\
+**options: [keep scrolling / pause, and look at image] (select one)**\
+**The answer was stored as `ENCOUNTER`.
+
+#### Encounter choice by Stimulus
+
+```{r encounter-choice-stimulus}
 
 #FILTER DATASET
-df <- df_graphs %>% filter(Assigned.Block == 2)
+df <- df_b2 
 
-# ENCOUNTER CHOICE BY STIMULUS AND SAMPLE
-ggplot( df, aes( x = (STIMULUS), fill = ENCOUNTER)) +
+## A
+## ENCOUNTER  BY STIMULUS AND SAMPLE
+## FACETED HORIZONTAL BAR CHART 
+A <- ggplot( df, aes( x = (STIMULUS), fill = fct_rev(ENCOUNTER))) +
   geom_bar(position = "stack") +
-  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
-  labs( title = "MAKER ENCOUNTER by Stimulus",
+  facet_grid( Distribution ~ ., scales = "free", space = "free") + 
+  labs( title = "ENCOUNTER by Stimulus and SAMPLE",
         subtitle = "", x = "") +
-  scale_fill_brewer(palette = "Dark2") + 
-  coord_flip()+
-  # easy_add_legend_title("") +
+  scale_fill_manual(values = my_palettes(name="traffic", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
+  # coord_flip()+
   theme_minimal()
+##############################
 
-#ENCOUNTER CHOICE
-## HORIZONTAL BAR CHART 
-ggplot( df, aes( x = fct_rev(STIMULUS), fill = (ENCOUNTER))) +
-  geom_bar(position = "stack") +
-  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ ., scales = "free", space = "free") + 
-  labs( title = "ENCOUNTER CHOICE by Stimulus",
-        subtitle = "", x = "") +
-  scale_fill_brewer(palette = "Dark2") + 
-  coord_flip()+
-  easy_add_legend_title("") +
-  theme_minimal()
 
-#ENCOUNTER CHOICE 
+
+## B
+## ENCOUNTER  BY STIMULUS
 ## GGSTATSPLOT
-ggbarstats( data = df, x = "ENCOUNTER", y = "STIMULUS",
-                 legend.title = "ENCOUNTER")  +
-  scale_fill_brewer(palette = "Dark2") + 
-      labs( title = "ENCOUNTER BY STIMULUS ", subtitle = "", x = "") 
+#hack for consistent ordering of ggstats bar plot
+B <-
+  ggbarstats( data = df, 
+            x = ENCOUNTER, y = STIMULUS,
+            legend.title = "ENCOUNTER",
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="traffic", direction = "1"))+
+    # scale_fill_viridis(discrete=TRUE, option="viridis", direction = -1) +
+    labs( title = "ENCOUNTER BY STIMULUS ", subtitle = "", x = "")
 
+
+##############################
+
+## S
+## MAKER ID REPEATED MEASURES
+## SANKEY DIAGRAM
+###FILTER FOR BLOCK 2 STIM AND RESHAPE FOR SANKEY
+order <- df %>% select(ENCOUNTER) #%>% mutate(ENCOUNTER = fct_rev(ENCOUNTER)) 
+order <- order$ENCOUNTER %>% levels   #list order of factor levels
+ds <- df_b2 %>% 
+  filter(str_detect(STIMULUS, "B2")) %>% 
+  select(STIMULUS, ENCOUNTER, PID, Distribution) %>% 
+#pivot wider 
+  pivot_wider(
+    names_from = STIMULUS, 
+    values_from = ENCOUNTER
+  ) %>%
+#prep for geom_sankey
+  make_long(`B2-1`,`B2-2`,`B2-3`,`B2-4`) %>% 
+  mutate(
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+    node = factor(node, levels = order),
+    next_node = factor(next_node, levels = order)
+  ) 
+
+
+#SANKEY DIAGRAM
+S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = fct_rev(node), 
+               ))+
+  geom_alluvial(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  geom_alluvial_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="traffic", direction = "1"), guide = guide_legend(reverse = FALSE)) +   
+  # scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE, alpha = 1) +
+  labs(title = "ENCOUNTER by STIMULUS", 
+       x = "STIMULUS", y = "(count)", fill = "ENCOUNTER",
+       caption = "") + 
+  theme_minimal()
+ ##############################
+
+# DISPLAY GRAPHS
+A
+B 
+S
+
+# CLEANUP
+rm(df, ds, order, A,B,S)
 
 ```
 
+*To explore whether variance in maker identifications is more likely a function of participant or stimulus , we visualize the `MAKER_ID` data via an alluvial diagram. Here we see that there are **no** stable identifications (ie. paths through each stimulus with the same category) indicating that no participants had a strong preference for a particular identification category. Rather, participants seem to be identifying the maker category as a function of some features of the stimuli, rather than a trait/state inference about makers of all stimuli in general.*
+
 ### ACTION CHOICE
+
+The final question participants were asked to answer after responding to all previous questions was:
+
+**Now that you have encountered this image while scrolling through your social media feed, which of the following are you most likely to do?** (select all that apply)**\
+***options: [post a comment / share-repost / share-repost WITH comment / look up more information about the topic or source / unfollow or block the source / NOTHING ] (select all)***\
+**The answer was stored as `CHART_ACTION`.
 
 #### Actions Choice by Stimulus
 
-```{r actions-stimulus}
+```{r action-choice-stimulus}
 
 #FILTER DATASET
 df <- df_actions %>% filter( str_detect(STIMULUS, "B2"))
 
-# ACTION CHOICE BY STIMULUS AND SAMPLE
-ggplot(data = df, aes( fill = CHART_ACTION, x = fct_rev(STIMULUS) )) +
-  geom_bar(position = "stack") +
-  coord_flip() + 
-  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ Distribution, scales = "free", space = "free") + 
-  scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
-  # scale_y_continuous(labels = scales::percent) + 
-
-  labs( title = "Chart Action by Stimulus",
-        subtitle = "", x = "") +
-  easy_add_legend_title("ACTION") +
-  theme_minimal() 
 
 
-
+## A
 # ACTION CHOICE BY STIMULUS
-ggplot(data = df, aes( fill = CHART_ACTION, x = fct_rev(STIMULUS) )) +
+## FACETED BAR CHART 
+A <- ggplot(data = df, aes( fill = CHART_ACTION, x = fct_rev(STIMULUS) )) +
   geom_bar(position = "stack") +
-  coord_flip() + 
-  facet_grid(fct_rev(STIMULUS_CATEGORY) ~ ., scales = "free", space = "free") + 
+  # coord_flip() + 
+  facet_grid(Distribution ~ ., scales = "free", space = "free") + 
   scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
   # scale_y_continuous(labels = scales::percent) + 
-
   labs( title = "Chart Action by Stimulus",
         subtitle = "", x = "") +
   easy_add_legend_title("ACTION") +
   theme_minimal() 
+##############################
 
-#ACTION CHOICE CHOICE BY STIMULUS
+
+## B
+## TOOL ID  BY STIMULUS
 ## GGSTATSPLOT
-ggbarstats( data = df, x = "CHART_ACTION", y = "STIMULUS",
-                 legend.title = "CHART ACTION")  +
-  scale_fill_paletteer_d("awtools::a_palette", direction = 1) +
-      labs( title = "CHART ACTION BY STIMULUS ", subtitle = "", x = "") 
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION = fct_rev(CHART_ACTION) )
+ B <-ggbarstats( data = dx, 
+            x = CHART_ACTION, y = STIMULUS,
+            legend.title = "CHART ACTION",
+            results.subtitle = FALSE) + 
+    scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    labs( title = "CHART ACTION BY STIMULUS ", subtitle = "", x = "",
+          caption = "note: different n across stimuli indicate answers were multiple-select")
+##############################
 
+A
+B
 
-
+##note: can't do sankey on tool_id because it is a multi-select field, so we can't track flow for one person through each node [stimulus]
 
 ```
 
-#### TODO PICK UP HERE
 
-#### TODO ALSO GROUP VS. INDIVIDUAL DIFFERENCES
 
-ie. mixed model, but also look at stability of individual choice across stimuli maybe treat individual as fixed factor and look at amount of variance explained?
 
-#### TODO CONFIDENCE
+## SEMANTIC DIFFERENTIAL QUESTIONS
 
-revisit ggwithin and grouped within, which require a continuous outcome
+### ALL Q BY STIMULUS
 
-```{r}
-# ggwithinstats(
-#   data = df %>% filter(STIMULUS %in% c("B2-1","B2-2")),
-#   x = STIMULUS,
-#   y = MAKER_ID,
-#   type = "robust", ## type of statistical test
-#   xlab = "MAKER_ID", ## label for the x-axis
-#   ylab = "MAKER_CONF", ## label for the y-axis
-#   # package = "yarrr", ## package from which color palette is to be taken
-#   # palette = "info2", ## choosing a different color palette
-#   title = "MAKER ID BY MAKER_CONF"
-# ) 
+```{r ALL-Q-BY-STIMULUS}
+
+##ONLY RENDER GRAPHS IF SET TO TRUE
+if(graph_render == TRUE){
+
+
+#################### ALL QUESTIONS AT STIMULUS #####################
+# ONE PLOT FOR EACH STIMULUS WITH ALL QUESTIONS
+
+#set stimuli to be graphed 
+# stimuli <- ref_stimuli #created in wrangling block ##TODO IF NOT WORK ref_stim_id
+# stimuli <- c("B0-0","B2-1" ,"B2-2", "B2-3", "B2-4")
+#DEFINE BLOCK 2 STIMULI
+stimuli <- c("B2-1" ,"B2-2", "B2-3", "B2-4")
+
+
+box_stimuli <- list()
+rain_stimuli <- list()
+i = 0
+
+for (s in stimuli){
+  i = i+1
+  
+  # setup dataframe 
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  df <- df_graphs %>% filter(STIMULUS== s)
+
+  
+  #### BOXPLOT PLOT
+  #subset data cols 
+  cols <- df %>% select( all_of(ref_sd_questions))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", facet = FALSE, boxplot=TRUE))
+
+  #aggregate q plots into one for stimulus 
+  x <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
+   plot_annotation(
+     title = title,
+     subtitle =""
+   )
+  
+  box_stimuli[[i]] <- x
+  ggsave(plot = x, path="figs/all_q_by_stimulus", filename =paste0(s,"_box.png"), units = c("in"), width = 10, height = 14  )
+  #### END BOXPLOT PLOT  
+  
+  # #### RAINCLOUD PLOT
+  # setup dataframe
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME) ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  
+  # df <- df_sd_questions_wide %>% select(1:6, QUESTION, all_of(s)) %>% filter(!is.na(s)) %>%  mutate(value = get(s))
+  df <- df_sd_questions_wide %>% select(1:6, QUESTION, all_of(s)) %>% filter(!is.na(s)) %>%  mutate(value = get(s)) %>% filter(!is.na(value))
+
+  
+  #RAINCLOUD PLOT
+  x <- ggplot(df, aes(y = fct_rev(QUESTION), x = value)) +
+                      # fill = fct_rev(QUESTION))) + #remove color fill on raincloud questions
+  stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+  guides(
+    # y = guide_axis_manual(labels = levels(df$QUESTION), ref_labels$left)),
+    y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
+    y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+  ) +
+  cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 10, vjust=-2) + 
+  labs (title = title, y = "") +
+  theme_minimal()  
+  
+
+  rain_stimuli[[i]] <- x
+  ggsave(plot = x, path="figs/all_q_by_stimulus", filename =paste0(s,"_rain.png"), units = c("in"), width = 10, height = 14  )
+  # #### END RAINCLOUD PLOT  
+  
+  
+}
+
+#GIVE NAMES TO LIST
+#ACCESS plots by rain_stimuli$`B1-1`
+#ACCESS plots by rain_stimuli$[[1]]
+names(box_stimuli) <- stimuli ## box stimuli aren't working
+names(rain_stimuli) <- stimuli
+rm(x, i, plots)
+
+
+#############################################################################
+} 
+
 ```
 
-## TODO CHART QUESTIONS
 
-### CHART BEAUTY
+```{r display-semantic-differentials}
 
-#### Chart Beauty by Stimulus and Category
+rain_stimuli
 
-```{r}
-
-df <- df_graphs
-
-qacBase::qstats(df, CHART_BEAUTY, STIMULUS) %>% arrange(mean)
-
-qacBase::qstats(df, CHART_BEAUTY, STIMULUS_CATEGORY) %>% arrange(mean)
-
-# 
-# 
-# ggplot(df, aes(x = CHART_BEAUTY)) + 
-#   geom_histogram(bins = 20) +
-#   facet_grid(BLOCK ~ STIMULUS_CATEGORY, scales = "free", space = "free", drop=TRUE) + 
-#   theme_minimal()
-# 
-# 
-# ggplot(df, aes(x = CHART_BEAUTY)) + 
-#   geom_histogram(bins = 20) +
-#   facet_grid( ~ fct_rev(STIMULUS_CATEGORY), scales = "free", space = "free", drop=TRUE) + 
-#   theme_minimal()
-# 
+```
 
 
 
-##ggstatsplot BY CATEGORY
-grouped_gghistostats(
-  data = df_graphs %>% filter(STIMULUS != "B0-0"),
-  x = CHART_BEAUTY, ## same outcome variable
-  grouping.var = STIMULUS, ## grouping variable males = 1, females = 2
-  type = "robust", ## robust test: one-sample percentile bootstrap
-  test.value = 50, ## test value against which sample mean is to be compared
-  centrality.line.args = list(color = "#D55E00", linetype = "dashed"),
-  # ggtheme = ggthemes::theme_stata(), ## changing default theme
-  ## turn off ggstatsplot theme layer
-  ## arguments relevant for combine_plots
-  annotation.args = list(
-    title = "DISTRIBUTION of Chart Beauty by Cateogry",
-    caption = ""
-  ),
-  plotgrid.args = list(nrow = 6)
-)
+
+
+### DONTUS BY STIMULUS 
+
+```{r donuts-by-stimulis}
+
+
+
+
+#################### ALL QUESTIONS AT STIMULUS #####################
+# ONE PLOT FOR EACH STIMULUS WITH ALL QUESTIONS
+
+#set stimuli to be graphed 
+# stimuli <- ref_stimuli #created in wrangling block ##TODO IF NOT WORK ref_stim_id
+# stimuli <- c("B0-0","B2-1" ,"B2-2", "B2-3", "B2-4")
+#DEFINE BLOCK 2 STIMULI
+stimuli <- c("B2-1" ,"B2-2", "B2-3", "B2-4")
+cols = ref_cat_questions
+palettes = c("reds","blues","greens")
+donut_stimuli <- list()
+i = 0
+
+
+for (s in stimuli){
+  i = i+1
+  a = 0
+  
+  
+  for (c in cols){
+  a = a+1
+  
+  # setup title 
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  
+  df <- df_questions %>% filter(STIMULUS ==s) %>% filter(QUESTION==c)
+  
+  print(paste0(title, " | ", c))
+  
+  ##ONLY SAVE IF RENDER GRAPHS IF SET TO TRUE
+  if(graph_render == TRUE){
+  # CREATE A CHART TO SACE  
+  PieChart(value, data = df, pdf_file = paste0("figs/donuts_by_stimulus/",s," ",c),
+         fill = palettes[a], quiet=TRUE,
+         main = paste0(s, " ",c)) + theme_minimal()
+  }
+  
+  # CREATE A CHART TO DISPLAY 
+  ## because lessR is DUMB and can't do both at the same time
+  PieChart(value, data = df, 
+         fill = palettes[a], quiet=FALSE,
+         main = paste0(s, " ",c)) + theme_minimal()
  
-
-#B0-0 
-gghistostats(
-  data = df_graphs %>% filter(STIMULUS == "B0-0"), ## data from which variable is to be taken
-  x = CHART_BEAUTY, ## numeric variable
-  xlab = "CHART BEAUTY", ## x-axis label
-  title = "B0-0 MILLENIAL PINK PLANTS", ## title for the plot
-  test.value = 50, ## test value
-  caption = ""
-)  
+  }
+}
+  
+#############################################################################
 
 
 ```
 
-### CHART TRUST
-
-#### Chart Trust by Stimulus and Category
-
-```{r}
-
-df <- df_graphs
-
-qacBase::qstats(df, CHART_TRUST, STIMULUS) %>% arrange(mean)
-
-qacBase::qstats(df, CHART_TRUST, STIMULUS_CATEGORY) %>% arrange(mean)
 
 
-##ggstatsplot BY CATEGORY
-grouped_gghistostats(
-  data = df_graphs %>% filter(STIMULUS != "B0-0"),
-  x = CHART_TRUST, ## same outcome variable
-  grouping.var = STIMULUS, ## grouping variable males = 1, females = 2
-  type = "robust", ## robust test: one-sample percentile bootstrap
-  test.value = 50, ## test value against which sample mean is to be compared
-  centrality.line.args = list(color = "#D55E00", linetype = "dashed"),
-  # ggtheme = ggthemes::theme_stata(), ## changing default theme
-  ## turn off ggstatsplot theme layer
-  ## arguments relevant for combine_plots
-  annotation.args = list(
-    title = "DISTRIBUTION of Chart TRUST by Cateogry",
-    caption = ""
-  ),
-  plotgrid.args = list(nrow = 6)
-)
- 
-
-#B0-0 
-gghistostats(
-  data = df_graphs %>% filter(STIMULUS == "B0-0"), ## data from which variable is to be taken
-  x = CHART_TRUST, ## numeric variable
-  xlab = "CHART TRUST", ## x-axis label
-  title = "B0-0 MILLENIAL PINK PLANTS", ## title for the plot
-  test.value = 50, ## test value
-  caption = ""
-)  
 
 
-```
 
-## SEMANTIC DIFFERENTIALS
+
+
+
+
+
+
 
 # STASH
 
 wip code stash
 
-## MAKER Donuts
+## lessR donuts
 
-```{r b2_1_maker-chars}
-
-#### DEFINE SET 
-stimulus  = "B2-1"
-df <- df_graphs %>% filter(STIMULUS == stimulus)
-
-#### GENERATE GRAPHS
-
-  #MAKER_ID-DONUT
-  PieChart(MAKER_ID, data = df,
-         fill = "reds",
-         main = paste0(stimulus, " MAKER ID")) + theme_minimal()
-
-
-  # #MAKER_GENDER-DONUT
-  # PieChart(MAKER_GENDER, data = df,
-  #        fill = "blues",
-  #        main = paste0(stimulus, " MAKER GENDER")) + theme_minimal()
-  # 
-  # 
-  # #MAKER_AGE-DONUT
-  # PieChart(MAKER_AGE, data = df,
-  #        fill = "olives",
-  #        main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
-  
-  #MAKER_AGE-DONUT
-  PieChart(MAKER_ID, data = df,
-         fill = "rusts",
-         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
-  
-  #MAKER_AGE-DONUT
-  PieChart(MAKER_ID, data = df,
-         fill = "olives",
-         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
-  
-  #MAKER_AGE-DONUT
-  PieChart(MAKER_ID, data = df,
-         fill = "greens",
-         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
-  
-  #MAKER_AGE-DONUT
-  PieChart(MAKER_ID, data = df,
-         fill = "emeralds",
-         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
-  
-  #MAKER_AGE-DONUT
-  PieChart(MAKER_ID, data = df,
-         fill = "turquoises",
-         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
-  
-  #MAKER_AGE-DONUT
-  PieChart(MAKER_ID, data = df,
-         fill = "aquas",
-         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
-  
-  #MAKER_AGE-MAKER_ID
-  PieChart(MAKER_ID, data = df,
-         fill = "purples",
-         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
-  
-  #MAKER_AGE-DONUT
-  PieChart(MAKER_ID, data = df,
-         fill = "magentas",
-         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
-  
-  #MAKER_AGE-DONUT
-  PieChart(MAKER_ID, data = df,
-         fill = "violets",
-         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
-  
-  #MAKER_AGE-DONUT
-  PieChart(MAKER_ID, data = df,
-         fill = "grays",
-         main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+```{r b2_donuts}
+##good for seeing the color schemes 
+# #### DEFINE SET 
+# stimulus  = "B2-1"
+# df <- df_graphs %>% filter(STIMULUS == stimulus)
+# 
+# #### GENERATE GRAPHS
+# 
+#   #MAKER_ID-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "reds",
+#          main = paste0(stimulus, " MAKER ID")) + theme_minimal()
+# 
+# 
+# #MAKER_GENDER-DONUT
+# PieChart(MAKER_GENDER, data = df,
+#        fill = "blues",
+#        main = paste0(stimulus, " MAKER GENDER")) + theme_minimal()
+# 
+# 
+# #MAKER_AGE-DONUT
+# PieChart(MAKER_AGE, data = df,
+#        fill = "olives",
+#        main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+# 
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "rusts",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "olives",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "greens",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "emeralds",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "turquoises",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "aquas",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-MAKER_ID
+#   PieChart(MAKER_ID, data = df,
+#          fill = "purples",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "magentas",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "violets",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "grays",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
 # "reds"	h	0
 # "rusts"	h	30
 # "browns"	h	60
@@ -1680,6 +1788,24 @@ df <- df_graphs %>% filter(STIMULUS == stimulus)
 # "magentas"	h	330
 # "grays"
 
+```
+
+## ggplot donuts 
+
+```{r}
+#   df <- df_graphs %>% filter(STIMULUS== s)
+# #### CATEGORICAL DONUT PLOTS
+#   #subset data cols 
+#   cols <- df %>% select( all_of(ref_cat_questions))
+#   
+#   ggplot( df, aes( x = STIMULUS, fill = MAKER_ID)) +
+#   geom_bar( position = "stack", width=1) +
+#   coord_radial(theta = "y", start = 0, inner.radius = 0.5, expand=FALSE) +
+#   scale_fill_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
+#   labs( title = paste0(s, " MAKER ID")) +
+#   theme_minimal()
+#   
+#   
 ```
 
 ## Alluvial Plots
