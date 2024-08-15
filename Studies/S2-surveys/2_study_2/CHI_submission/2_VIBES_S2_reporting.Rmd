@@ -1459,7 +1459,6 @@ rm(df, ds, order, A,B,S)
 
 ```
 
-*To explore whether variance in maker identifications is more likely a function of participant or stimulus , we visualize the `MAKER_ID` data via an alluvial diagram. Here we see that there are **no** stable identifications (ie. paths through each stimulus with the same category) indicating that no participants had a strong preference for a particular identification category. Rather, participants seem to be identifying the maker category as a function of some features of the stimuli, rather than a trait/state inference about makers of all stimuli in general.*
 
 ### ACTION CHOICE
 
@@ -1691,8 +1690,36 @@ for (s in stimuli){
 
 
 
+# TODO B0 SUPERPOWER ANALYSIS
+## TODO MAKER
+## TODO TOOL
+## TODO BEHAVIOR
+## TODO SEMANTIC DIFFERENTIALS
+## TODO DATA MODELLING 
+
+# TODO LIMITED MODELLING
+## FULL STIMULUS SET
+### What predicts TRUST?
+design competence? data competence? chart intent? maker id?
+### What predicts BEAUTY?
+### What predicts ACTION?
+### Does MAKER ID predict MAKER POLITICS?
+### Does MAKER ID predict CHART INTENT?
+### Does MAKER AGE <predict> TOOL ID
+### Does MAKER GENDER <predict> anything?
+- highlight maker_gender = female points in raincloud SD plots
+### DOES TOOL ID predict DATA (VS) DESIGN competence
+### DOES CHART(TYPE) <predict> MAKER(DATA COMPETENCE)
+### DOES MAKER ID=individual imply TOOL(ID)=[simple]
+
+### Worth doing any stimulus abstraction category level analysis?
+#### PREDICT more abstract corresponds with low design competence (opposite for figural)
 
 
+# ARGUMENTS
+## TODO look for examples of inconsistent relationships between TRUST and BEAUTY
+## TODO look for examples of inconsistent relationships between TRUST and DATA COMPETENCE
+## TODO look for patterns of reversal between CHART LIKE and CHART BEAUTY
 
 # STASH
 
