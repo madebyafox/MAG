@@ -73,9 +73,19 @@ graph_render = TRUE #set to true to generate all the SD graphs and save to folde
 
 ```
 
-*This notebook contains code to replicate analyses reported in CHI submission*.
+*This notebook contains code to replicate analyses reported in CHI submission ID:5584* .
 
-In VISUALIZATION VIBES project Study 2, participants completed an attitutde eliciation survey, asking questions about their attitude toward (5) stimulus images (data visualizations). Each participant was randomly assigned to one of 6 stimulus blocks, each containing 1 image from each of (4) categories (ranging from most abstract to most figural). Each participant started by responding to questions for a single 'common block' stimulus (that is thus super-powered as it was seen by all participants). Two participant recruitment pools were used: Prolific, with a smaller set of participants recruited from Tumblr (to replicate results of interview Study 1 with participants sourced from Tumblr).
+In VISUALIZATION VIBES project Study 2, participants completed an *attitutde eliciation* survey, asking questions about their attitude toward (5) stimulus images (data visualizations). Each participant was randomly assigned to one of 6 stimulus blocks, each containing 1 image from each of (4) pseudo-categories (ranging from most abstract to most figural). Each participant started by responding to questions for a single 'common' stimulus (that is thus super-powered as it was seen by all participants). Two participant recruitment pools were used: Prolific, with a smaller set of participants recruited from Tumblr (to replicate and compare survey results to Study 1 interviews with participants sourced from Tumblr).
+
+This notebook contains code to replicate quantitative analysis of data from Study 2 reported in the CHI submission. Note that due to limited space, we were unable to report results for *all* stimulus blocks, and all possible analyses. A separate set of R notebooks are included in the supplementary materials that document analysis of the other blocks not reported here.
+
+This notebook includes (3) primary analyses:
+
+1.  **Analysis of Stimulus Block 2:** Here we offer a complete description of data collected from participants who were assigned to Stimulus Block #2 (the block shown in the paper teaser image). This analysis includes: (descriptive statistics) characterizing the distribution of responses for each question for each stimulus, analysis of confidence scores along with response consistency across participants. *note that this block is representative of the patterns of variance between individuals and between stimuli that are seen in the other 5 stimulus blocks [see supplemental materials].*
+
+2.  **Analysis of Stimulus B0-0 "Millennial Pink Plants":** He we offer an analysis that includes data from *all* participants, because before being assigned to one of the six stimulus blocks, each participant completed the set of questions to the single 'common' image ID B0-0 which our research team refers to as "Millennial Pink Plants" (based on how Study 1 interviewees characterized the image).
+
+3.  TODO DESCRIPTION OF FULL STIM SET MODELLING.
 
 # SETUP
 
@@ -1459,7 +1469,6 @@ rm(df, ds, order, A,B,S)
 
 ```
 
-
 ### ACTION CHOICE
 
 The final question participants were asked to answer after responding to all previous questions was:
@@ -1513,9 +1522,6 @@ B
 ##note: can't do sankey on tool_id because it is a multi-select field, so we can't track flow for one person through each node [stimulus]
 
 ```
-
-
-
 
 ## SEMANTIC DIFFERENTIAL QUESTIONS
 
@@ -1611,18 +1617,13 @@ rm(x, i, plots)
 
 ```
 
-
 ```{r display-semantic-differentials}
 
 rain_stimuli
 
 ```
 
-
-
-
-
-### DONTUS BY STIMULUS 
+### DONTUS BY STIMULUS
 
 ```{r donuts-by-stimulis}
 
@@ -1681,47 +1682,56 @@ for (s in stimuli){
 
 ```
 
-
-
-
-
-
-
-
-
-
 # TODO B0 SUPERPOWER ANALYSIS
+
 ## TODO MAKER
+
 ## TODO TOOL
+
 ## TODO BEHAVIOR
+
 ## TODO SEMANTIC DIFFERENTIALS
-## TODO DATA MODELLING 
+
+## TODO DATA MODELLING
 
 # TODO LIMITED MODELLING
+
 ## FULL STIMULUS SET
+
 ### What predicts TRUST?
+
 design competence? data competence? chart intent? maker id?
 
 ### What predicts BEAUTY?
+
 ### What predicts ACTION?
+
 ### Does MAKER ID predict MAKER POLITICS?
+
 ### Does MAKER ID predict CHART INTENT?
+
 ### Does MAKER AGE <predict> TOOL ID
+
 ### Does MAKER GENDER <predict> anything?
 
-- highlight maker_gender = female points in raincloud SD plots
+-   highlight maker_gender = female points in raincloud SD plots
 
 ### DOES TOOL ID predict DATA (VS) DESIGN competence
+
 ### DOES CHART(TYPE) <predict> MAKER(DATA COMPETENCE)
+
 ### DOES MAKER ID=individual imply TOOL(ID)=[simple]
 
 ### Worth doing any stimulus abstraction category level analysis?
+
 #### PREDICT more abstract corresponds with low design competence (opposite for figural)
 
-
 # TODO ARGUMENTS
+
 ## TODO look for examples of inconsistent relationships between TRUST and BEAUTY
+
 ## TODO look for examples of inconsistent relationships between TRUST and DATA COMPETENCE
+
 ## TODO look for patterns of reversal between CHART LIKE and CHART BEAUTY
 
 # STASH
@@ -1820,7 +1830,7 @@ wip code stash
 
 ```
 
-## ggplot donuts 
+## ggplot donuts
 
 ```{r}
 #   df <- df_graphs %>% filter(STIMULUS== s)
