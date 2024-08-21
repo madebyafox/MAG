@@ -41,6 +41,7 @@ library(ggformula) #regression syntax viz
 # library(vcd) #mosaic plots
 # library(vcdExtra) #mosaic plot helpers
 library(ggstatsplot) #dummies
+library(gghalves) #half boxplots 
 library(GGally) #extends ggplot for EDA 
 library(ggeasy) #easy labelling
 library(ggh4x) #guides [dual axes]
@@ -327,6 +328,350 @@ TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times ranged fro
 rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.t, p_participants, t_participants)
 ```
 
+# FULL SAMPLE ANALYSIS
+
+As we argue in our manuscript, we understand that an individual's response to a visualization (both inferences about data, as well as any other behaviours) will vary based on properties of: (1) the visualization, (2) the data, (3) the individual, and (4) the situational context.  Thus, our survey is 
+_not_ designed to uncover _consistencies_ in behaviour, but rather, explore the nature of _variance_ in behaviour as a function of the individual and visualization.  For this reason, we do not _expect_ to see any systematic relationships between survey variables.  
+
+## SAMPLE
+
+```{r setup-full-sample}
+
+#full stimulus-level data
+df_full <- df_graphs %>% 
+  mutate(
+    STUDY = "" #dummy variable for univariate visualizations
+  )
+# %>%
+#   mutate(MAKER_ID = fct_rev(MAKER_ID))
+
+```
+
+(n = `r nrow(df_participants)` ) survey respondents answered questions about some subset of the stimuli, (common stimulus B0-0 and 4 additional images defined as a block), yielding (o = `r nrow(df_full)`) stimulus-level observations.
+
+
+
+### CONFIDENCE IN ATTRIBUTIONS
+
+When asking participants to identify the type, age and gender of the maker of a visualization, we also asked participants to indicate their confidence in these choices.  
+
+_Across all participants and all stimuli, are these questions answered with the same degree of confidence?_
+Here we examine both the central tendency (mean) and shape of the distribution for each confidence variable. 
+
+
+```{r compare-confidence}
+
+df <- df_full %>% select(Distribution, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c(MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF),
+    names_to = "QUESTION",
+    values_to = "CONFIDENCE"
+  )
+
+
+## B
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## BOXPLOT W/ JITTER
+df %>% ggplot(aes(x=QUESTION, y= CONFIDENCE)) + 
+  geom_boxplot(width = 0.5) + 
+  geom_jitter(alpha = 0.25, position=position_dodge2(width = 0.25)) + 
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=+0.5, hjust = -1.25, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", size = 4, colour="blue")+
+  theme_minimal() + 
+  labs(title = "Confidence by Survey Question", caption = "(mean in blue)")
+
+
+df %>% 
+  ggplot(aes(x=CONFIDENCE, y=QUESTION)) + 
+  geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.75) + 
+  scale_x_continuous(limits = c(0,100))+
+  theme_minimal() + 
+  labs(title = "Confidence by Survey Question")
+
+
+```
+
+
+### MAKER ID
+
+Participants were asked:
+
+**Who do you think is most likely responsible for having this image created?\
+***options: [business or corporation / journalist or news outlet / educational or academic institution / government or political organization / other organization / an individual] (select one)*\
+The response is stored as `MAKER_ID`
+
+Participants were also asked: **Please rate your confidence in this choice.** The response is stored as `MAKER_CONF` .
+
+```{r maker-id-confidence-full}
+
+#FILTER DATASET
+df <- df_full
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_ID = fct_rev(MAKER_ID) )
+S <-   ggbarstats( data = dx, x = MAKER_ID, y = STUDY,
+                   legend.title = "MAKER ID") + 
+    scale_fill_manual(values = my_palettes(name="reds", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+  
+## H
+## HALF BOXPLOT + DOTPLOT + MEAN
+##############################
+H <- df %>% 
+  group_by(MAKER_ID) %>% 
+  mutate(count = n(), m = mean(MAKER_CONF)) %>% 
+  ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_ID), color = fct_rev(MAKER_ID))) + 
+   geom_half_boxplot(side="r", alpha = 0.5, aes(fill=fct_rev(MAKER_ID))) + 
+  # geom_boxplot(width = 0.6)+
+  # geom_jitter(position=position_jitterdodge(width ), alpha = 0.2) + 
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=-0.75, hjust = 1, aes( label=round(..y.., digits=0)))+
+
+  scale_color_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) + 
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA,
+                        aes(fill = fct_rev(MAKER_ID)) , color="black",  point_interval = "mean_qi")  +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) + 
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+    geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker ID Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "Maker ID and Confidence",
+  # subtitle = "the categories of MAKER ID were chosen in similar proportion, 
+  # and both the mean (in blue) and shape of distribution of confidence scores is similar across values of Maker ID",
+  caption = "(blue indicates mean)"
+)
+
+```
+
+### MAKER AGE
+
+Participants were asked:\
+Take a moment to **imagine the person(s) responsible for creating the image**. **What generation are they most likely from?\
+***options: [boomers (60+ years old) / Generation X (44-59 years old) / Millennials (28-43 years old) / Generation Z (12 - 27 years old] (select one)***\
+**The response was saved as `MAKER_AGE`
+
+Participants were asked: **Please rate your confidence in this choice.** The response is stored as `AGE_CONF` .
+
+
+```{r maker-age-confidence-full}
+
+#FILTER DATASET
+df <- df_full
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_AGE = fct_rev(MAKER_AGE) )
+S <-   ggbarstats( data = dx, x = MAKER_AGE, y = STUDY,
+                   legend.title = "MAKER AGE") + 
+    scale_fill_manual(values = my_palettes(name="lightblues", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+  
+## H
+## HALF BOXPLOT + DOTPLOT + MEAN
+##############################
+H <-  df %>% 
+  group_by(MAKER_AGE) %>% 
+  mutate(count = n(), m = mean(MAKER_CONF)) %>% 
+  ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_AGE), color = fct_rev(MAKER_AGE))) + 
+    geom_half_boxplot(side="r", alpha = 0.5, aes(fill=fct_rev(MAKER_AGE))) + 
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=-0.75, hjust = 1, aes( label=round(..y.., digits=0)))+
+    scale_color_manual(values = my_palettes(name="lightblues", direction = "-1"), 
+                       guide = guide_legend(reverse = TRUE)) + 
+    scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), 
+                      guide = guide_legend(reverse = TRUE)) + 
+    stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, 
+                        aes(fill = fct_rev(MAKER_AGE)) , color="black",  point_interval = "mean_qi")  +
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+    geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker Age Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "Maker AGE and Confidence",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+```
+
+
+### MAKER GENDER
+
+Participants were asked:\
+Take a moment to **imagine the person(s) responsible for creating the image**. **What gender do they most likely identify with?\
+***options: [female / male / other ] (select one)***\
+**Responses were stored as `MAKER_GENDER.`
+
+Participants were asked: **Please rate your confidence in this choice.** The response is stored as `GENDER_CONF` .
+
+
+```{r maker-gender-confidence-full}
+
+#FILTER DATASET
+df <- df_full
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_AGE = fct_rev(MAKER_AGE) )
+S <-   ggbarstats( data = dx, x = MAKER_GENDER, y = STUDY,
+                   legend.title = "MAKER GENDER") + 
+    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+## H
+## HALF BOXPLOT + DOTPLOT + MEAN
+##############################
+H <-  df %>% 
+  group_by(MAKER_GENDER) %>% 
+  mutate(count = n(), m = mean(GENDER_CONF)) %>% 
+  ggplot(aes(y = GENDER_CONF, x = fct_rev(MAKER_GENDER), color = fct_rev(MAKER_GENDER))) + 
+    geom_half_boxplot(side="r", alpha = 0.5, aes(fill=fct_rev(MAKER_GENDER))) + 
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=-0.75, hjust = 1, aes( label=round(..y.., digits=0)))+
+    scale_color_manual(values = my_palettes(name="smallgreens", direction = "-1"), 
+                       guide = guide_legend(reverse = TRUE)) + 
+    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), 
+                      guide = guide_legend(reverse = TRUE)) + 
+    stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, 
+                        aes(fill = fct_rev(MAKER_GENDER)) , color="black",  point_interval = "mean_qi")  +
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+    geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker Gender Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "Maker GENDER and Confidence",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+```
+
+### TOOL ID
+
+Participants were asked: **What tools do you think were most likely used to create this image?\
+***options: [basic graphic design software (e.g. Canva, or similar) / advanced graphic design software (e.g. Adobe Illustrator, Figma, or similar) / data visualization software (e.g. Tableau, PowerBI, or similar)/ general purpose software (e.g. MS Word/Excel, Google Sheets, or similar) / programming language (e.g. R, python, javascript, or similar) ] (select all that apply)*\
+The response was saved as variable `TOOL_ID` (multi-select)
+
+Participants were asked: **Please rate your confidence in this choice.** The response is stored as `TOOL_CONF` .
+
+
+
+```{r maker-tool-confidence-full}
+
+#FILTER DATASET
+df <- df_tools %>% 
+  mutate(
+    STUDY = ""
+  )
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+S <-   ggbarstats( data = df, x = TOOL_ID, y = STUDY,
+                   legend.title = "TOOL ID") + 
+    scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+
+
+## H
+## HALF BOXPLOT + DOTPLOT + MEAN
+##############################
+H <-  df %>% 
+  group_by(TOOL_ID) %>% 
+  mutate(count = n(), m = mean(TOOL_CONF)) %>% 
+  ggplot(aes(y = TOOL_CONF, x = fct_rev(TOOL_ID), color = fct_rev(TOOL_ID))) + 
+    geom_half_boxplot(side="r", alpha = 0.5, aes(fill=fct_rev(TOOL_ID))) + 
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=-0.75, hjust = 1, aes( label=round(..y.., digits=0)))+
+    scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    scale_color_paletteer_d("awtools::a_palette", direction = 1)+
+    stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, 
+                        aes(fill = fct_rev(TOOL_ID)) , color="black",  point_interval = "mean_qi")  +
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+    geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Tool ID Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "TOOL ID and Confidence",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+```
+
+```{r sample-cleanup}
+rm(df, df_full, p, S,H)
+```
+
+
+
+
+
+
+
 # BLOCK 2 ANALYSIS
 
 In the interest of space, for the manuscript we report analysis of one stimulus block (stimulus block == 2; pictured in the teaser image), rather than analysis of each of the six blocks. Each block contains for images, one of each "abstraction category" ranging from [1] *most abstract* (at left) to [4] *most figural* (at right). Within each block we selected visualizations such that there was diversity in: (1) chart type (2) source (i.e. where the graphic actually came from), and (3) what we as authors perceived to be aesthetic "vibe", (i.e) a diversity of what we subjectively judged to be sophisticated and unsophisticated, aesthetically pleasing, not pleasing, etc. The goal in structuring stimulus blocks was to offer each participant a set of visualizations that varied in multiple ways.
@@ -587,7 +932,7 @@ MC <- ggplot(df, aes( x = (STIMULUS), y = MAKER_CONF, color = MAKER_ID)) +
 
 
 # CONFIDENCE by ID
-C <- ggplot(df, aes( x = (MAKER_ID), y = AGE_CONF, color = (MAKER_ID))) + 
+C <- ggplot(df, aes( x = (MAKER_ID), y = MAKER_CONF, color = (MAKER_ID))) + 
   geom_boxplot(position=position_dodge(0.9), width = 0.6)+
   geom_jitter(position=position_jitterdodge(), alpha = 0.2) + 
   scale_color_manual(values = my_palettes(name="reds", direction = "1"), guide = guide_legend(reverse = FALSE)) +   
