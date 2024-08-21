@@ -796,7 +796,9 @@ saveRDS(df_sd_questions_long, file = "data/output/df_sd_questions_long.rds")
 # tool_id is a multiselect field 
 df_tools <- df_questions %>% 
   # select(ID.Prolific, QUESTION, value) %>%
-  filter(QUESTION  %in% c("TOOL_ID", "TOOL_CONF")) %>% 
+  filter(QUESTION  %in% c("TOOL_ID", "TOOL_CONF", 
+                          "MAKER_DESIGN"  ,"MAKER_DATA" ,"MAKER_POLITIC" ,"MAKER_ARGUE"  ,"MAKER_SELF"    ,"MAKER_ALIGN"  ,"MAKER_TRUST",
+                          "CHART_LIKE","CHART_BEAUTY"  ,"CHART_INTENT", "CHART_TRUST" )) %>% 
   mutate(QUESTION = fct_drop(QUESTION)) %>% 
   pivot_wider(
     names_from = QUESTION,
@@ -819,13 +821,22 @@ saveRDS(df_tools, file = "data/output/df_tools.rds")
 # 1 ROW per PARTICIPANT X STIMULUS X chart_action selection 
 # chart_action is a multiselect field 
 df_actions <- df_questions %>% 
-  filter(QUESTION == "CHART_ACTION") %>% 
+  # filter(QUESTION == "CHART_ACTION") %>%
+  filter(QUESTION  %in% c("CHART_ACTION",
+                          "MAKER_DESIGN"  ,"MAKER_DATA" ,"MAKER_POLITIC" ,"MAKER_ARGUE"  ,"MAKER_SELF"    ,"MAKER_ALIGN"  ,"MAKER_TRUST",
+                          "CHART_LIKE","CHART_BEAUTY"  ,"CHART_INTENT", "CHART_TRUST" )) %>%
   mutate(QUESTION = fct_drop(QUESTION)) %>% 
+  pivot_wider(
+    names_from = QUESTION,
+    values_from = value 
+  ) %>% 
   separate_longer_delim(
-    cols = value,
+    # cols = value,
+    cols = CHART_ACTION,
     delim = ","
   ) %>% 
-  mutate(CHART_ACTION = factor(value, 
+  # mutate(CHART_ACTION = factor(value, 
+  mutate(CHART_ACTION = factor(CHART_ACTION, 
                                   levels =  c("NOTHING — just keep scrolling",
                                               "unfollow / block the source",
                                               "post a comment",
@@ -838,8 +849,8 @@ df_actions <- df_questions %>%
                                               "share",
                                               "share w/ comment",
                                               "seek information")),
-         PID = droplevels(PID)) %>% 
-  select(-value,-QUESTION)
+         PID = droplevels(PID)) 
+  # select(-value,-QUESTION)
 ## WRITE DATAFRAME
 write.csv(df_actions, file = "data/output/df_actions.csv", na="")
 saveRDS(df_actions, file = "data/output/df_actions.rds")
