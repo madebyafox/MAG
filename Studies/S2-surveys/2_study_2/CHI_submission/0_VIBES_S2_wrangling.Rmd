@@ -811,8 +811,19 @@ df_tools <- df_questions %>%
   mutate(TOOL_ID = factor(TOOL_ID, 
                              levels = c("?", "design_basic","design_advanced", "viz_basic", "viz_advanced", "programming")),
          PID = droplevels(PID),
-         TOOL_CONF = as.numeric(TOOL_CONF)
-         ) 
+         TOOL_CONF = as.numeric(TOOL_CONF), 
+         MAKER_DESIGN  = as.numeric(MAKER_DESIGN  ),
+         MAKER_DATA= as.numeric(MAKER_DATA),
+         MAKER_POLITIC = as.numeric(MAKER_POLITIC ),
+         MAKER_ARGUE  = as.numeric(MAKER_ARGUE  ),
+         MAKER_SELF= as.numeric(MAKER_SELF),
+         MAKER_ALIGN  = as.numeric(MAKER_ALIGN  ),
+         MAKER_TRUST= as.numeric(MAKER_TRUST),
+         CHART_LIKE   = as.numeric(CHART_LIKE   ),
+         CHART_BEAUTY  = as.numeric(CHART_BEAUTY  ),
+         CHART_INTENT = as.numeric(CHART_INTENT ),
+         CHART_TRUST = as.numeric(CHART_TRUST )
+        ) 
 ## WRITE DATAFRAME
 write.csv(df_tools, file = "data/output/df_tools.csv", na="")
 saveRDS(df_tools, file = "data/output/df_tools.rds")
@@ -849,6 +860,17 @@ df_actions <- df_questions %>%
                                               "share",
                                               "share w/ comment",
                                               "seek information")),
+         MAKER_DESIGN  = as.numeric(MAKER_DESIGN  ),
+         MAKER_DATA= as.numeric(MAKER_DATA),
+         MAKER_POLITIC = as.numeric(MAKER_POLITIC ),
+         MAKER_ARGUE  = as.numeric(MAKER_ARGUE  ),
+         MAKER_SELF= as.numeric(MAKER_SELF),
+         MAKER_ALIGN  = as.numeric(MAKER_ALIGN  ),
+         MAKER_TRUST= as.numeric(MAKER_TRUST),
+         CHART_LIKE   = as.numeric(CHART_LIKE   ),
+         CHART_BEAUTY  = as.numeric(CHART_BEAUTY  ),
+         CHART_INTENT = as.numeric(CHART_INTENT ),
+         CHART_TRUST = as.numeric(CHART_TRUST ),
          PID = droplevels(PID)) 
   # select(-value,-QUESTION)
 ## WRITE DATAFRAME
