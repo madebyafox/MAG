@@ -102,7 +102,7 @@ ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
 ```{r import-data, message=FALSE, warning = FALSE}
 
 ############## IMPORT DATA FILES
-# df_data <- readRDS("data/output/df_data.rds") #1 row per participant — WIDE
+df_data <- readRDS("data/output/df_data.rds") #1 row per participant — WIDE
 df_participants <- readRDS("data/output/df_participants.rds") #1 row per participant — demographic
 df_questions <- readRDS("data/output/df_questions.rds") #1 row per question — LONG
 df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds") # only sd questions WIDE
@@ -809,6 +809,260 @@ rm(df, df_full, p, S,H)
 
 
 
+
+
+
+
+
+### INTUITION EDA
+
+#### WIP SD by category values
+```{r, message=FALSE}
+
+df <- df_graphs
+
+## Does MAKER POLITICS depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_POLITIC','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_POLITIC','right'],  length(levels(df$MAKER_ID)))
+df %>% ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_POLITIC, fill = fct_rev(MAKER_ID))) + 
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+   cowplot::draw_text(text = toupper(answers), x = 10, y= answers,size = 10, vjust=-2) + 
+  labs (title = "POLITICS by MAKER ID", y = "", x = "MAKER POLITICS", caption="(mean in blue)") +
+  theme_minimal() + easy_remove_legend()
+
+
+
+## Does MAKER_DATA  depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_DATA','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_DATA','right'],  length(levels(df$MAKER_ID)))
+df %>% ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_DATA, fill = fct_rev(MAKER_ID))) + 
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+   cowplot::draw_text(text = toupper(answers), x = 10, y= answers,size = 10, vjust=-2) + 
+  labs (title = "DATA COMPETENCY by MAKER ID", y = "", x = "MAKER DATA COMPETENCY", caption="(mean in blue)") +
+  theme_minimal() + easy_remove_legend()
+
+
+
+## Does MAKER_DESIGN  depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_DESIGN','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_DESIGN','right'],  length(levels(df$MAKER_ID)))
+df %>% ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_DESIGN, fill = fct_rev(MAKER_ID))) + 
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+   cowplot::draw_text(text = toupper(answers), x = 10, y= answers,size = 10, vjust=-2) + 
+  labs (title = "DESIGN COMPETENCY by MAKER ID", y = "", x = "MAKER DESIGN COMPETENCY", caption="(mean in blue)") +
+  theme_minimal() + easy_remove_legend()
+
+
+
+## Does MAKER_TRUST  depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_TRUST','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_TRUST','right'],  length(levels(df$MAKER_ID)))
+df %>% ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_TRUST, fill = fct_rev(MAKER_ID))) + 
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+   cowplot::draw_text(text = toupper(answers), x = 10, y= answers,size = 10, vjust=-2) + 
+  labs (title = "MAKER TRUST by MAKER ID", y = "", x = "MAKER TRUST", caption="(mean in blue)") +
+  theme_minimal() + easy_remove_legend()
+
+
+# DESIGN BY DATA
+df %>% ggplot(aes(x = MAKER_DATA, y = MAKER_DESIGN, color = MAKER_ID)) +
+  geom_point() +
+  scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  facet_grid(MAKER_ID ~ .) + 
+  geom_line(stat="lm")+
+  theme_minimal()
+
+### MAKER ID TRUST 
+
+
+
+
+grouped_ggscatterstats(
+  data             = df,
+  x                = MAKER_DATA,
+  y                = MAKER_DESIGN,
+  type             = "parametric",
+  # bf.message = FALSE,
+  grouping.var     = MAKER_ID,
+  point.args = list(size = 1, alpha = 0.4, stroke = 0),
+  ggplot.component = list(geom_rug(sides = "b")))
+
+
+
+
+
+
+```
+
+#### WIP exploring correlation matrices
+```{r}
+
+
+
+df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+                    MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
+                    CHART_INTENT, CHART_TRUST, 
+                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                    MAKER_ID, MAKER_AGE, MAKER_GENDER)
+
+ggcorrmat(
+  data = df,
+  grouping.var = MAKER_ID,
+  type = "robust",
+  p.adjust.method = "holm",
+  plotgrid.args = list(ncol = 1L),
+  annotation.args = list(tag_levels = "i"),
+  ggtheme = ggstatsplot::theme_ggstatsplot()
+
+)
+
+
+df %>% 
+  correlation(partial=TRUE) %>% 
+  # cor_sort() %>% 
+  summary(redundant = FALSE) %>% 
+  plot()
+
+df %>% 
+  correlation(partial=TRUE) %>% 
+  cor_sort() %>%
+  summary(redundant = FALSE) %>% 
+  plot()
+
+ggcorr(df,
+       label = TRUE, 
+       layout.exp=2,
+       angle = -0,
+       hjust = 0.8,
+       size = 3) 
+
+
+
+ggcorr(df, 
+      geom = "blank", label = TRUE, 
+      layout.exp = 2, hjust = 0.8, size = 3) +
+      geom_point(size = 10, aes(color = coefficient > 0, alpha = abs(coefficient) > 0.35)) +
+      scale_alpha_manual(values = c("TRUE" = 0.25, "FALSE" = 0)) +
+      guides(color = FALSE, alpha = FALSE)
+```
+
+
+#### correlation matrices by groups
+```{r}
+
+df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+                    MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
+                    CHART_INTENT, CHART_TRUST, 
+                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                    MAKER_ID, MAKER_AGE, MAKER_GENDER)
+
+## CORRELATION MATRIX SPLIT BY MAKER ID  
+(x <-   ggscatmat(df, columns = 1:11, color = "MAKER_ID", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
+    theme_minimal())
+ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_id_corr_x.png"), units = c("in"), width = 14, height = 10 )
+
+## CORRELATION MATRIX SPLIT BY MAKER AGE  
+(x <-   ggscatmat(df, columns = 1:11, color = "MAKER_AGE", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="lightblues", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    theme_minimal())
+ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_age_corr_x.png"), units = c("in"), width = 14, height = 10 )
+  
+  
+## CORRELATION MATRIX SPLIT BY MAKER GENDER  
+(x <-   ggscatmat(df, columns = 1:11, color = "MAKER_GENDER", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    theme_minimal() )
+ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_gender_corr_x.png"), units = c("in"), width = 14, height = 10 )
+
+  
+  
+  df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+                    MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
+                    CHART_INTENT, CHART_TRUST, 
+                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                    TOOL_ID) 
+  
+  ## CORRELATION MATRIX SPLIT BY TOOL ID
+ (x <-  ggscatmat(df, columns = 1:11, color = "TOOL_ID", alpha = 0.8) + 
+    scale_color_paletteer_d("awtools::a_palette", direction = -1)+
+    theme_minimal() )
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("tool_id_corr_x.png"), units = c("in"), width = 14, height = 10 )
+  
+  
+  
+  df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+                    MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
+                    CHART_INTENT, CHART_TRUST, 
+                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                    ENCOUNTER) %>% 
+    mutate(ENCOUNTER = fct_rev(ENCOUNTER))
+
+## CORRELATION MATRIX SPLIT BY ENCOUNTER
+(x <-   ggscatmat(df, columns = 1:11, color = "ENCOUNTER", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="traffic", direction = "1"))+
+    theme_minimal())
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("encounter_corr_x.png"), units = c("in"), width = 14, height = 10 )
+  
+  
+  
+  df <- df_actions %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+                    MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
+                    CHART_INTENT, CHART_TRUST, 
+                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                    CHART_ACTION) 
+  
+  ## CORRELATION MATRIX SPLIT BY CHART ACTION
+(x <- ggscatmat(df, columns = 1:11, color = "CHART_ACTION", alpha = 0.2) + 
+    scale_color_paletteer_d("awtools::a_palette", direction = 1)+
+    theme_minimal() )
+ggsave(plot = x, path="figs/corr_by_group", filename =paste0("chart_action_corr_x.png"), units = c("in"), width = 14, height = 10  )
+
+```
 
 
 
@@ -2122,6 +2376,7 @@ rain_stimuli
 #set stimuli to be graphed 
 # stimuli <- ref_stimuli #created in wrangling block ##TODO IF NOT WORK ref_stim_id
 # stimuli <- c("B0-0","B2-1" ,"B2-2", "B2-3", "B2-4")
+
 #DEFINE BLOCK 2 STIMULI
 stimuli <- c("B2-1" ,"B2-2", "B2-3", "B2-4")
 cols = ref_cat_questions
@@ -2149,16 +2404,16 @@ for (s in stimuli){
   ##ONLY SAVE IF RENDER GRAPHS IF SET TO TRUE
   if(graph_render == TRUE){
   # CREATE A CHART TO SACE  
-  PieChart(value, data = df, pdf_file = paste0("figs/donuts_by_stimulus/",s," ",c),
+  lessR::PieChart(value, data = df, pdf_file = paste0("figs/donuts_by_stimulus/",s," ",c),
          fill = palettes[a], quiet=TRUE,
-         main = paste0(s, " ",c)) + theme_minimal()
+         main = paste0(s, " ",c)) 
   }
   
   # CREATE A CHART TO DISPLAY 
   ## because lessR is DUMB and can't do both at the same time
-  PieChart(value, data = df, 
+  lessR::PieChart(value, data = df, 
          fill = palettes[a], quiet=FALSE,
-         main = paste0(s, " ",c)) + theme_minimal()
+         main = paste0(s, " ",c)) 
  
   }
 }
