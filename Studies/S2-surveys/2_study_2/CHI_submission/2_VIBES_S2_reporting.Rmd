@@ -662,6 +662,147 @@ H <-  df %>%
 
 ```
 
+### ENCOUNTER CHOICE
+
+```{r}
+## B
+## ENCOUNTER  BY STIMULUS
+## GGSTATSPLOT
+#hack for consistent ordering of ggstats bar plot
+df_full %>% 
+  ggbarstats(  
+            x = ENCOUNTER, y = STUDY,
+            legend.title = "ENCOUNTER",
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="traffic", direction = "1"))+
+    theme_minimal() + 
+    labs( title = "ENCOUNTER Choice ", subtitle = "", x = "")
+```
+### ACTION CHOICE
+
+```{r}
+## B
+## ACTION  BY STIMULUS
+## GGSTATSPLOT
+#hack for consistent ordering of ggstats bar plot
+df_actions %>% mutate(
+  CHART_ACTION = fct_rev(CHART_ACTION),
+  STUDY="") %>% 
+  ggbarstats( x = CHART_ACTION, y = STUDY,
+            legend.title = "CHART ACTION",
+            results.subtitle = FALSE) + 
+    scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    theme_minimal() + 
+    labs( title = "ACTION Choice ", subtitle = "", x = "")
+    
+```
+### SEMANTIC DIFFERENTIALS
+
+```{r ALL-Q-COLLAPSED}
+
+##ONLY RENDER GRAPHS IF SET TO TRUE
+if(graph_render == TRUE){
+
+  
+#################### ALL QUESTIONS across ALL STIMULUS #####################
+
+  df <- df_graphs 
+
+  #subset data cols 
+  cols <- df %>% select( all_of(ref_sd_questions))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", facet = FALSE, boxplot=TRUE))
+  
+  #aggregate q plots into one for stimulus 
+  plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
+   plot_annotation(
+     title = "ALL STIMULI",
+     subtitle =""
+   )
+  
+  ggsave(plot = plot_master_questions, path="figs/_master", filename =paste0("combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
+  
+  
+  #### RAINCLOUD PLOT#############################################################################
+  # setup dataframe 
+  df <- df_sd_questions_long %>% select(1:8, QUESTION, value) 
+
+  #RAINCLOUD PLOT
+  R <- ggplot(df, aes(y = fct_rev(QUESTION), x = value)) +
+    stat_slab(aes(thickness = after_stat(pdf*n)), scale = 0.7) +
+    stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA) +
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) + 
+  cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 10, vjust=-2) + 
+  labs (title = "ALL STIMULI", y = "") +
+  theme_minimal()  
+ 
+  
+  ggsave(plot = R, path="figs/_master", filename =paste0("combined_stimuli","_rain.png"), units = c("in"), width = 10, height = 14  )
+  
+  
+  #### DENSITY RIDGES#############################################################################
+  # setup dataframe 
+  
+  magic_colors = list(
+  amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
+  my_favourite_colours = c("#702963", "#637029",    "#296370")
+)
+  
+  
+  magic_palettes = function(name, n, all_palettes = magic_colors, type = c("discrete", "continuous")) {
+  palette = all_palettes[[name]]
+  if (missing(n)) {
+    n = length(palette)
+  }
+  type = match.arg(type)
+  out = switch(type,
+               continuous = grDevices::colorRampPalette(palette)(n),
+               discrete = palette[1:n]
+  )
+  structure(out, name = name, class = "palette")
+}
+  
+
+  
+  df <- df_sd_questions_long %>% select(1:8, QUESTION, value) 
+  
+  
+ x <-  ggplot(df, aes(x = value, y = fct_rev(QUESTION), fill = fct_rev(QUESTION))) +
+    geom_density_ridges(scale = 1,quantile_lines = TRUE, alpha = 0.75) + 
+    # scale_fill_paletteer_d("colorBlindness::SteppedSequential5Steps")+ #don't hate this
+    # scale_fill_paletteer_d("dichromat::SteppedSequential_5", direction = 1)+  #don't hate this
+    # scale_fill_paletteer_d("ggthemes::Hue_Circle", direction = 1)+  #LOVE THIS
+    # scale_fill_paletteer_d("ggthemes::Classic_Cyclic", direction = 1)+  #LOVE THIS
+    ggplot2::scale_fill_manual(values = magic_palettes("amy_gradient"))+
+    theme_minimal() +
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) + 
+    labs(title = "ALL STIMULI", y = "") + 
+    cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 10, vjust=-2) + 
+    theme_minimal() + easy_remove_legend()
+
+  
+  ggsave(plot = x, path="figs/_master", filename =paste0("combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
+
+  
+  
+}
+  
+
+
+(p <- R+x)
+
+
+
+```
+
+
+
 ```{r sample-cleanup}
 rm(df, df_full, p, S,H)
 ```
