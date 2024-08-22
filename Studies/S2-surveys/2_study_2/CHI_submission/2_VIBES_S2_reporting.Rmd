@@ -43,6 +43,7 @@ library(ggformula) #regression syntax viz
 library(ggstatsplot) #dummies
 library(gghalves) #half boxplots 
 library(GGally) #extends ggplot for EDA 
+library(corrplot) #sophisticated correlation plots
 library(ggeasy) #easy labelling
 library(ggh4x) #guides [dual axes]
 library(patchwork) #multi-plot layout
@@ -154,10 +155,13 @@ my_colors = list(
   lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
   darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
   reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
-  traffic = c("#CE98A2","#81A06D","yellow")
+  traffic = c("#CE98A2","#81A06D","yellow"),
+  questions = c("#B17380","#3787D2", "#567E39", "#EE897F"),
+  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"),
+  encounter = c("#729B7D","#8E8E8E"),
+  actions = c("#2A363B","#039876ff","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff")
+                
 )
-
-
 
 ## function for using palettes
 my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete","continuous"), direction = c("1","-1")) {
@@ -351,7 +355,7 @@ df_full <- df_graphs %>%
 
 
 
-### CONFIDENCE IN ATTRIBUTIONS
+### CONFIDENCE BY QUESTION
 
 When asking participants to identify the type, age and gender of the maker of a visualization, we also asked participants to indicate their confidence in these choices.  
 
@@ -361,18 +365,21 @@ Here we examine both the central tendency (mean) and shape of the distribution f
 
 ```{r compare-confidence}
 
-df <- df_full %>% select(Distribution, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+df <- df_full %>% select(PID, Distribution, STIMULUS,MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
   pivot_longer(
     cols = c(MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF),
     names_to = "QUESTION",
     values_to = "CONFIDENCE"
+  ) %>% 
+  mutate(
+    QUESTION = factor(QUESTION, levels=c("MAKER_CONF","AGE_CONF","GENDER_CONF","TOOL_CONF"  ) )
   )
 
 
 ## B
 ## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
 ## BOXPLOT W/ JITTER
-df %>% ggplot(aes(x=QUESTION, y= CONFIDENCE)) + 
+B <- df %>% ggplot(aes(x=QUESTION, y= CONFIDENCE)) + 
   geom_boxplot(width = 0.5) + 
   geom_jitter(alpha = 0.25, position=position_dodge2(width = 0.25)) + 
   stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
@@ -382,13 +389,104 @@ df %>% ggplot(aes(x=QUESTION, y= CONFIDENCE)) +
   labs(title = "Confidence by Survey Question", caption = "(mean in blue)")
 
 
-df %>% 
-  ggplot(aes(x=CONFIDENCE, y=QUESTION)) + 
-  geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.75) + 
-  scale_x_continuous(limits = c(0,100))+
+## R
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## RIDGEPLOT W/ INTERVAL MEAN
+R <- df %>% 
+  ggplot(aes(x=CONFIDENCE, y=fct_rev(QUESTION), fill=fct_rev(QUESTION))) + 
+    geom_density_ridges(scale = 0.65, alpha = 0.75, quantile_lines = TRUE) +
+    scale_x_continuous(limits = c(0,100))+
+    scale_fill_manual(values = my_palettes(name="questions", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
+               vjust=+2, hjust = 0.50, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
   theme_minimal() + 
-  labs(title = "Confidence by Survey Question")
+  labs(title = "Confidence by Survey Question", y = "QUESTION", caption =" (mean in blue)") + 
+  easy_remove_legend()
 
+(B+R)
+```
+#### WIP MODELLING
+```{r}
+
+## [test-frame] Are the confidence scores significantly different for different questions?
+## [model-frame] Does QUESTION predict CONFIDENCE, accounting for random variance in SUBJECT and STIMULUS?
+
+
+## MIXED model with random variance only at subject (not stimulus)
+mm1 <- lmer( CONFIDENCE ~ QUESTION + (1|PID), data = df)
+# summary(mm1)
+# plot(check_model(mm1))
+# pm <- model_parameters(mm1)
+# plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION + (1|PID)")
+# performance(mm1)
+# report(mm1)
+
+
+## MIXED model with random variance only at subject AND stimulus
+mm2 <- lmer( CONFIDENCE ~ QUESTION + (1|PID) + (1|STIMULUS), data = df)
+# summary(mm2)
+# plot(check_model(mm2))
+# pm <- model_parameters(mm2)
+# plot_model(mm2)
+# plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION + (1|PID) + (1|STIMULUS)")
+# performance(mm2)
+# report(mm2)
+
+
+## MIXED model with random slope for question by person and random intercept by stimulus
+mm3 <- lmer( CONFIDENCE ~ QUESTION +  (1 + QUESTION | PID) + (1|STIMULUS), data = df)
+# summary(mm3)
+# plot(check_model(mm3))
+# pm <- model_parameters(mm3)
+# plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION +   (1 + QUESTION | PID) + (1|STIMULUS)")
+# performance(mm3)
+# report(mm3)
+
+
+## MIXED model with STIMULUS as FIXED effect and random intercept by person
+mm4 <- lmer( CONFIDENCE ~ QUESTION + STIMULUS +  (1 | PID), data = df)
+# summary(mm4)
+# plot(check_model(mm4))
+# pm <- model_parameters(mm4)
+# plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ QUESTION + STIMULUS +  (1 | PID)")
+# performance(mm4)
+# report(mm4)
+
+## MIXED model with STIMULUS * QUESTION interaction and random intercept by person
+mm5 <- lmer( CONFIDENCE ~ QUESTION * STIMULUS +  (1 | PID), data = df)
+# summary(mm5)
+# plot(check_model(mm5))
+# pm <- model_parameters(mm5)
+# plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ QUESTION * STIMULUS +  (1 | PID)")
+# performance(mm5)
+# report(mm5)
+
+
+## MIXED model with STIMULUS * QUESTION interaction and random intercept by person
+mmx <- lmer( CONFIDENCE ~ STIMULUS  +  (1 | PID) + (1 | QUESTION), data = df)
+# summary(mmx)
+# plot(check_model(mmx))
+# pm <- model_parameters(mmx)
+# plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ STIMULUS  +  (1 | PID) + (1 | QUESTION)")
+# performance(mmx)
+# report(mmx)
+
+
+### COMPARE MODELS
+# compare_parameters(mm1,mm2,mm3, mm4, mm5, mmx)
+compare_performance(mm1,mm2,mm3, mm4, mm5, mmx, rank = TRUE )
+## model 3 is the best fit, and is appropriate to the design of the study
+summary(mm3)
+report(mm3)
+# plot_model(mm3, terms = c("QUESTION", "STIMULUS"), type = "diag")
+
+# ## repeated measures aov
+print("Repeated Measures ANOVA")
+ex1 <-aov (CONFIDENCE~QUESTION+Error(PID), data=df)
+summary(ex1)
+report(ex1)
 
 ```
 
@@ -674,7 +772,7 @@ df_full %>%
             x = ENCOUNTER, y = STUDY,
             legend.title = "ENCOUNTER",
             results.subtitle = FALSE) + 
-    scale_fill_manual(values = my_palettes(name="traffic", direction = "1"))+
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))+
     theme_minimal() + 
     labs( title = "ENCOUNTER Choice ", subtitle = "", x = "")
 ```
@@ -691,7 +789,8 @@ df_actions %>% mutate(
   ggbarstats( x = CHART_ACTION, y = STUDY,
             legend.title = "CHART ACTION",
             results.subtitle = FALSE) + 
-    scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    # scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    scale_fill_manual(values = my_palettes(name="actions", direction = "1"))+
     theme_minimal() + 
     labs( title = "ACTION Choice ", subtitle = "", x = "")
     
@@ -804,7 +903,7 @@ if(graph_render == TRUE){
 
 
 ```{r sample-cleanup}
-rm(df, df_full, p, S,H)
+rm(df, df_full, p, S,H, B,R)
 ```
 
 
@@ -814,180 +913,72 @@ rm(df, df_full, p, S,H)
 
 
 
-### INTUITION EDA
 
-#### WIP SD by category values
-```{r, message=FALSE}
+### CORRELATIONS
 
-df <- df_graphs
+#### CORRELATION MATRIX SDS
 
-## Does MAKER POLITICS depend on MAKER ID?
-##RIDGEPLOT w/ MEAN 
-answers <- levels(df$MAKER_ID)
-left <- rep(ref_labels['MAKER_POLITIC','left'],  length(levels(df$MAKER_ID)))
-right <- rep(ref_labels['MAKER_POLITIC','right'],  length(levels(df$MAKER_ID)))
-df %>% ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_POLITIC, fill = fct_rev(MAKER_ID))) + 
-  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
-  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
-               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
-  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
-    guides(
-      y = guide_axis_manual(labels = left, title = ""),
-      y.sec = guide_axis_manual(labels = right)
-    ) +
-   cowplot::draw_text(text = toupper(answers), x = 10, y= answers,size = 10, vjust=-2) + 
-  labs (title = "POLITICS by MAKER ID", y = "", x = "MAKER POLITICS", caption="(mean in blue)") +
-  theme_minimal() + easy_remove_legend()
+```{r, correlation-matrices}
 
 
+df <- df_graphs %>% select(
+          MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+          MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+          CHART_LIKE, CHART_BEAUTY, CHART_INTENT, CHART_TRUST, 
+          PID)
 
-## Does MAKER_DATA  depend on MAKER ID?
-##RIDGEPLOT w/ MEAN 
-answers <- levels(df$MAKER_ID)
-left <- rep(ref_labels['MAKER_DATA','left'],  length(levels(df$MAKER_ID)))
-right <- rep(ref_labels['MAKER_DATA','right'],  length(levels(df$MAKER_ID)))
-df %>% ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_DATA, fill = fct_rev(MAKER_ID))) + 
-  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
-  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
-               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
-  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
-    guides(
-      y = guide_axis_manual(labels = left, title = ""),
-      y.sec = guide_axis_manual(labels = right)
-    ) +
-   cowplot::draw_text(text = toupper(answers), x = 10, y= answers,size = 10, vjust=-2) + 
-  labs (title = "DATA COMPETENCY by MAKER ID", y = "", x = "MAKER DATA COMPETENCY", caption="(mean in blue)") +
-  theme_minimal() + easy_remove_legend()
+
+print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
+#CALCULATE partial correlations with PID as random effect
+c <- df %>% 
+  correlation(partial=TRUE,
+              multilevel = TRUE)
+
+#PRINT A SUMMARY
+(s <- c %>% summary(redundant = FALSE ))
+#GET THE MATRIX
+m <- as.matrix(c)
+#VIS WITH CORRPLOT
+corrplot(m, order = 'AOE', 
+         method = "shade",
+         number.digits = 2,
+         # addCoef.col = 'grey',
+         type = 'lower', diag=FALSE,
+         # sig.level = c(0.001, 0.01, 0.05), insig = 'label_sig',
+         tl.col = "black")
 
 
 
-## Does MAKER_DESIGN  depend on MAKER ID?
-##RIDGEPLOT w/ MEAN 
-answers <- levels(df$MAKER_ID)
-left <- rep(ref_labels['MAKER_DESIGN','left'],  length(levels(df$MAKER_ID)))
-right <- rep(ref_labels['MAKER_DESIGN','right'],  length(levels(df$MAKER_ID)))
-df %>% ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_DESIGN, fill = fct_rev(MAKER_ID))) + 
-  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
-  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
-               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
-  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
-    guides(
-      y = guide_axis_manual(labels = left, title = ""),
-      y.sec = guide_axis_manual(labels = right)
-    ) +
-   cowplot::draw_text(text = toupper(answers), x = 10, y= answers,size = 10, vjust=-2) + 
-  labs (title = "DESIGN COMPETENCY by MAKER ID", y = "", x = "MAKER DESIGN COMPETENCY", caption="(mean in blue)") +
-  theme_minimal() + easy_remove_legend()
+# corrplot(m, method = 'circle', type = 'lower', insig='blank',
+#          order = 'AOE', diag = FALSE)$corrPos -> p1
+# text(p1$x, p1$y, round(p1$corr, 2))
 
 
+## SHADED NUMBERS
+## add significant level stars and cluster rectangles
+corrplot(m,  order = 'AOE', method = "number", 
+         diag = FALSE, type = "lower",
+         insig='blank',
+         # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+         addCoef.col = '#595D60',
+         tl.pos = "ld", tl.col = "#595D60")
+         
 
-## Does MAKER_TRUST  depend on MAKER ID?
-##RIDGEPLOT w/ MEAN 
-answers <- levels(df$MAKER_ID)
-left <- rep(ref_labels['MAKER_TRUST','left'],  length(levels(df$MAKER_ID)))
-right <- rep(ref_labels['MAKER_TRUST','right'],  length(levels(df$MAKER_ID)))
-df %>% ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_TRUST, fill = fct_rev(MAKER_ID))) + 
-  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
-  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
-               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
-  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
-    guides(
-      y = guide_axis_manual(labels = left, title = ""),
-      y.sec = guide_axis_manual(labels = right)
-    ) +
-   cowplot::draw_text(text = toupper(answers), x = 10, y= answers,size = 10, vjust=-2) + 
-  labs (title = "MAKER TRUST by MAKER ID", y = "", x = "MAKER TRUST", caption="(mean in blue)") +
-  theme_minimal() + easy_remove_legend()
-
-
-# DESIGN BY DATA
-df %>% ggplot(aes(x = MAKER_DATA, y = MAKER_DESIGN, color = MAKER_ID)) +
-  geom_point() +
-  scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
-  facet_grid(MAKER_ID ~ .) + 
-  geom_line(stat="lm")+
-  theme_minimal()
-
-### MAKER ID TRUST 
+## SHADED NUMBERS
+## add significant level stars and cluster rectangles
+corrplot(m,  order = 'AOE', method = "color", 
+         diag = FALSE, type = "lower",
+         insig='p-value', sig.level = 0.05,
+         # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+         # addCoef.col = '#595D60',
+         tl.pos = "ld", tl.col = "#595D60")
+         
 
 
+corrplot.mixed(m, lower = 'shade', upper = 'number', order = 'AOE',
+               tl.pos = "lt", tl.col = "black")
 
 
-grouped_ggscatterstats(
-  data             = df,
-  x                = MAKER_DATA,
-  y                = MAKER_DESIGN,
-  type             = "parametric",
-  # bf.message = FALSE,
-  grouping.var     = MAKER_ID,
-  point.args = list(size = 1, alpha = 0.4, stroke = 0),
-  ggplot.component = list(geom_rug(sides = "b")))
-
-
-
-
-
-
-```
-
-#### WIP exploring correlation matrices
-```{r}
-
-
-
-df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
-                    MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
-                    CHART_INTENT, CHART_TRUST, 
-                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
-                    MAKER_ID, MAKER_AGE, MAKER_GENDER)
-
-ggcorrmat(
-  data = df,
-  grouping.var = MAKER_ID,
-  type = "robust",
-  p.adjust.method = "holm",
-  plotgrid.args = list(ncol = 1L),
-  annotation.args = list(tag_levels = "i"),
-  ggtheme = ggstatsplot::theme_ggstatsplot()
-
-)
-
-
-df %>% 
-  correlation(partial=TRUE) %>% 
-  # cor_sort() %>% 
-  summary(redundant = FALSE) %>% 
-  plot()
-
-df %>% 
-  correlation(partial=TRUE) %>% 
-  cor_sort() %>%
-  summary(redundant = FALSE) %>% 
-  plot()
-
-ggcorr(df,
-       label = TRUE, 
-       layout.exp=2,
-       angle = -0,
-       hjust = 0.8,
-       size = 3) 
-
-
-
-ggcorr(df, 
-      geom = "blank", label = TRUE, 
-      layout.exp = 2, hjust = 0.8, size = 3) +
-      geom_point(size = 10, aes(color = coefficient > 0, alpha = abs(coefficient) > 0.35)) +
-      scale_alpha_manual(values = c("TRUE" = 0.25, "FALSE" = 0)) +
-      guides(color = FALSE, alpha = FALSE)
 ```
 
 
@@ -1063,6 +1054,180 @@ ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_gender_corr_
 ggsave(plot = x, path="figs/corr_by_group", filename =paste0("chart_action_corr_x.png"), units = c("in"), width = 14, height = 10  )
 
 ```
+
+
+### EXPLORATORY QUESTIONS
+
+#### Maker ID & Maker POLITICS
+```{r, message=FALSE}
+
+df <- df_graphs
+
+## Does MAKER POLITICS depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_POLITIC','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_POLITIC','right'],  length(levels(df$MAKER_ID)))
+
+df %>% 
+  group_by(MAKER_ID) %>% 
+  mutate(count = n()) %>% 
+  ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_POLITIC, fill = fct_rev(MAKER_ID))) + 
+  scale_x_continuous(limits = c(0,100))+
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 100), color = "black",size = 3, nudge_y = 0.25) + 
+  cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
+  labs (title = "POLITICS by MAKER ID", y = "", x = "MAKER POLITICS", caption="(mean in blue)") +
+  theme_minimal() + easy_remove_legend()
+
+```
+#### Maker ID & Maker DATA COMPETENCY
+```{r}
+
+df <- df_graphs
+
+## Does MAKER_DATA  depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_DATA','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_DATA','right'],  length(levels(df$MAKER_ID)))
+
+df %>% 
+  group_by(MAKER_ID) %>% 
+  mutate(count = n()) %>% 
+  ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_DATA, fill = fct_rev(MAKER_ID))) + 
+  scale_x_continuous(limits = c(0,100))+
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 100), color = "black",size = 3, nudge_y = 0.25) + 
+  cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
+  labs (title = "DATA COMPETENCY by MAKER ID", y = "", x = "MAKER DATA COMPETENCY", caption="(mean in blue)") +
+  theme_minimal() + easy_remove_legend()
+
+
+```
+#### Maker ID & Maker DESIGN COMPETENCY
+
+```{r}
+
+df <- df_graphs
+
+## Does MAKER_DESIGN  depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_DESIGN','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_DESIGN','right'],  length(levels(df$MAKER_ID)))
+
+df %>% 
+  group_by(MAKER_ID) %>% 
+  mutate(count = n()) %>% 
+  ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_DESIGN, fill = fct_rev(MAKER_ID))) + 
+  scale_x_continuous(limits = c(0,100))+
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 100), color = "black",size = 3, nudge_y = 0.25) + 
+  cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
+  labs (title = "DESIGN COMPETENCY by MAKER ID", y = "", x = "MAKER DESIGN COMPETENCY", caption="(mean in blue)") +
+  theme_minimal() + easy_remove_legend()
+
+
+
+```
+
+#### Maker ID & Maker TRUST
+
+```{r}
+
+df <- df_graphs
+
+## Does MAKER_TRUST  depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_TRUST','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_TRUST','right'],  length(levels(df$MAKER_ID)))
+
+df %>% 
+  group_by(MAKER_ID) %>% 
+  mutate(count = n()) %>% 
+  ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_TRUST, fill = fct_rev(MAKER_ID))) + 
+  scale_x_continuous(limits = c(0,100))+
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 100), color = "black",size = 3, nudge_y = 0.25) + 
+  cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
+  labs (title = "MAKER TRUST COMPETENCY by MAKER ID", y = "", x = "MAKER TRUST", caption="(mean in blue)") +
+  theme_minimal() + easy_remove_legend()
+
+```
+
+```{r}
+# DESIGN BY DATA
+df %>% ggplot(aes(x = MAKER_DATA, y = MAKER_DESIGN, color = MAKER_ID)) +
+  geom_point() +
+  scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  facet_grid(MAKER_ID ~ .) + 
+  geom_line(stat="lm")+
+  theme_minimal()
+
+### MAKER ID TRUST 
+
+
+
+
+grouped_ggscatterstats(
+  data             = df,
+  x                = MAKER_DATA,
+  y                = MAKER_DESIGN,
+  type             = "parametric",
+  # bf.message = FALSE,
+  grouping.var     = MAKER_ID,
+  point.args = list(size = 1, alpha = 0.4, stroke = 0),
+  ggplot.component = list(geom_rug(sides = "b")))
+
+
+
+
+
+
+```
+
+
 
 
 
@@ -2478,6 +2643,47 @@ design competence? data competence? chart intent? maker id?
 # STASH
 
 wip code stash
+
+## correlation matrix
+```{r}
+## GGALLY correlation heatmap
+# ggcorr(df,
+#        label = TRUE,  geom = "tile",
+#        nbreaks = 5, layout.exp = 2,   
+#        # label_round = 2,
+#        angle = -0, hjust = 0.8, vjust = 1, size = 2.5,
+#        low = "#D88585",mid = "white", high= "#6DA0D6") +
+#        easy_remove_legend() + 
+#   labs(title = "Correlation between SD measures", subtitle = ("pairwise; Pearson correlations"))
+```
+
+
+## ridgeplot with interval and mean
+```{r}
+
+# ## Does MAKER_TRUST  depend on MAKER ID?
+# ##RIDGEPLOT w/ MEAN 
+# answers <- levels(df$MAKER_ID)
+# left <- rep(ref_labels['MAKER_TRUST','left'],  length(levels(df$MAKER_ID)))
+# right <- rep(ref_labels['MAKER_TRUST','right'],  length(levels(df$MAKER_ID)))
+# df %>% ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_TRUST, fill = fct_rev(MAKER_ID))) + 
+#   geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+#   stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+#   stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+#                vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
+#     stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+#   scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+#     guides(
+#       y = guide_axis_manual(labels = left, title = ""),
+#       y.sec = guide_axis_manual(labels = right)
+#     ) +
+#    cowplot::draw_text(text = toupper(answers), x = 10, y= answers,size = 10, vjust=-2) + 
+#   labs (title = "MAKER TRUST by MAKER ID", y = "", x = "MAKER TRUST", caption="(mean in blue)") +
+#   theme_minimal() + easy_remove_legend()
+
+
+```
+
 
 ## lessR donuts
 
