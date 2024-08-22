@@ -70,68 +70,84 @@ In VIBES Study 2, participants completed an attitutde eliciation survey, asking 
 
 _We start by importing data files previously wrangled in  `0_VIBES_S2_wrangling.Rmd`._
 
+## IMPORT DATA
+
 ```{r import-refs, message=FALSE, warning = FALSE}
 
 ############## IMPORT REFERENCE FILES
 ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
 ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
+ref_labels <- readRDS("data/input/REFERENCE/ref_labels.rds")
+ref_labels_abs <- readRDS("data/input/REFERENCE/ref_labels_abs.rds")
+
+############## SETUP Graph Labels
+ref_stim_id <- levels(ref_stimuli$ID)
+ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
+ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
+ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
+ref_sd_questions <- rownames(ref_labels)
+ref_sd_questions_abs <- rownames(ref_labels_abs)
+  
+
+# ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
+ref_blocks <- c(1,2,3,4,5,6)
+
+
 ```
 
 ```{r import-data, message=FALSE, warning = FALSE}
 
 ############## IMPORT DATA FILES
-df_data <- readRDS("data/output/df_data.rds")
-df_participants <- readRDS("data/output/df_participants.rds")
-df_questions <- readRDS("data/output/df_questions.rds")
-df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds")
-df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds")
-df_tools <- readRDS("data/output/df_tools.rds")
-df_actions <- readRDS("data/output/df_actions.rds")
-df_graphs_full <- readRDS("data/output/df_graphs_full.rds")
-df_graphs <- readRDS("data/output/df_graphs.rds")
+df_participants <- readRDS("data/output/df_participants.rds") #1 row per participant — demographic
 
-```
 
-```{r setup-labels}
+df_tools <- readRDS("data/output/df_tools.rds") #multiselect format for tools Question
+df_actions <- readRDS("data/output/df_actions.rds") # multiselect format for action Question
 
-############## SETUP GRAPH LABELS 
-ref_stim_id <- levels(ref_stimuli$ID)
-ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
-ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
-ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
-ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
-               "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
-               "CHART_LIKE", "CHART_BEAUTY", "CHART_INTENT", "CHART_TRUST")
-left <- c("professional","professional","left-leaning","confrontational",
-          "altruistic","does NOT share","untrustworthy",
-          "NOT at all","NOT at all", "inform", "untrustworthy")
-right <- c("layperson","layperson","right-leaning","diplomatic",
-           "selfish", "DOES share", "trustworthy",
-           "very much", "very much", "persuade", "trusthworthy")
-ref_labels <- as.data.frame(cbind(left,right))
-rownames(ref_labels) <- ref_sd_questions
-# ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
-ref_blocks <- c(1,2,3,4,5,6)
-rm(left,right)
+## TRIAL LEVEL DATA FILES
+df_graphs <- readRDS("data/output/df_graphs.rds") #only categorical and numeric questions
+df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds") # only sd questions LONG
 
+### TRIAL LEVEL DATA FILES WITH (VARIABLE-WISE) Z-SCORED SEMANTIC DIFFERENTIAL QS 
+df_graphs_z <- readRDS("data/output/df_graphs_z.rds") #only categorical and numeric questions
+df_sd_questions_long_z <- readRDS("data/output/df_sd_questions_long_z.rds") # only sd questions LONG
+
+
+### TRIAL LEVEL DATA FILES WITH ABSOLUTE VALUE SEMANTIC DIFFERENTIAL QS 
+df_graphs_abs <- readRDS("data/output/df_graphs_abs.rds") #only categorical and numeric questions
+df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") # only sd questions LONG
 
 ```
 
 
+## SETUP GRAPHING
 ```{r setup-pallettes}
 
-
-############## SETUP COLOUR PALETTES
-
+############## SETUP Colour Palettes
 #https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
 
 ## list of color pallettes
 my_colors = list(
-  politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000")
+  politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
+  blackred = c("black","red"),
+  greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
+  smallgreens = c("#ADC69D","#567E39","#193E0A"),
+  olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
+  lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
+  darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
+  reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
+  traffic = c("#CE98A2","#81A06D","yellow"),
+  questions = c("#B17380","#3787D2", "#567E39", "#EE897F"),
+  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"),
+  encounter = c("#729B7D","#8E8E8E"),
+  actions = c("#2A363B","#039876ff","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
+  amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
+  my_favourite_colours = c("#702963", "#637029",    "#296370")
+                
 )
 
 ## function for using palettes
-my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete")) {
+my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete","continuous"), direction = c("1","-1")) {
   palette = all_palettes[[name]]
   if (missing(n)) {
     n = length(palette)
@@ -141,10 +157,16 @@ my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete")) 
                continuous = grDevices::colorRampPalette(palette)(n),
                discrete = palette[1:n]
   )
+  out = switch(direction,
+               "1" = out,
+               "-1" = palette[n:1])
   structure(out, name = name, class = "palette")
 }
 
 ```
+
+
+
 
 
 # SAMPLE
@@ -178,7 +200,7 @@ _At the start of the study, participants were asked to choose one of five social
 ```{r platform-choice}
 
 #SET DATAFRAME
-df = df_data
+df = df_participants
 
 # PLATFORM by SAMPLE 
 # HORIZONTAL STACKED BAR 
@@ -228,10 +250,10 @@ ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(PLATFORM) )) +
 ## Response Time
 ```{r demo-response-time}
 
-df <- df_data
+df <- df_participants
 
 ## BOXPLOT — SURVEY RESPONSE TIME 
-ggplot(df_data, aes(x=fct_rev(Assigned.Block), y=duration.min, color=Assigned.Block))+
+ggplot(df, aes(x=fct_rev(Assigned.Block), y=duration.min, color=Assigned.Block))+
   geom_boxplot(position=position_dodge(0.9))+
   geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
   facet_grid(Distribution ~.) + 
@@ -257,8 +279,8 @@ ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Ass
 
 
 
-p.desc.duration <- psych::describe(df_data %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
-t.desc.duration <- psych::describe(df_data %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
+p.desc.duration <- psych::describe(df %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
+t.desc.duration <- psych::describe(df %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
 
 ``` 
 
@@ -277,7 +299,7 @@ Convenience sampling on both TUMBLR and PROLIFIC pools means we do not expect a 
 ```{r demo-age, message=FALSE, warning=FALSE}
 
 #SET DATAFRAME
-df = df_data
+df = df_participants
 
 # AGE by SAMPLE 
 # HORIZONTAL STACKED BAR 
@@ -328,7 +350,7 @@ Convenience sampling on both TUMBLR and PROLIFIC pools means we do not expect a 
 ```{r demo-gender, message=FALSE}
  
 #SET DATAFRAME
-df = df_data
+df = df_participants
 
 # GENDER by SAMPLE 
 # HORIZONTAL STACKED BAR 
@@ -373,7 +395,7 @@ _As expected, the smaller Tumblr sample contained a greater proportion of users 
 ### Gender (collapsed)
 ```{r gender-collapsed, message = FALSE}
 
-df <- df_data
+df <- df_participants
 
 # GENDER (collapsed) by SAMPLE 
 # HORIZONTAL STACKED BAR 
@@ -424,7 +446,7 @@ Here we explore the free-text responses given for the survey question 'Gender' a
 
 ```{r describe-gender}
 
-df <- df_data
+df <- df_participants
 
 ### DESCRIBE GENDER FREE REPONSE TEXT
 
@@ -437,13 +459,13 @@ cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_clas
 
 ## FOR DESCRIPTIVES PARAGRAPH
 # #PROLIFIC
-df.p <- df_data %>% filter(Distribution == "PROLIFIC")
+df.p <- df %>% filter(Distribution == "PROLIFIC")
 desc.gender.p <- table(df.p$D_gender) %>% prop.table()
 names(desc.gender.p) <- levels(df.p$D_gender)
 p_participants <- nrow(df.p)
 
 # #TUMBLR
-df.t <- df_data %>% filter(Distribution == "TUMBLR")
+df.t <- df %>% filter(Distribution == "TUMBLR")
 desc.gender.t <- table(df.t$D_gender) %>% prop.table()
 names(desc.gender.t) <- levels(df.t$D_gender)
 t_participants <- nrow(df.t)
@@ -465,7 +487,7 @@ We have no particular expecations with respect to the distribution of education-
 
 ```{r demo-education, message=FALSE}
 
-df <- df_data
+df <- df_participants
 
 # EDUCATION by SAMPLE 
 # HORIZONTAL STACKED BAR 
@@ -509,7 +531,7 @@ _The relative distribution across education categories within each sample is rou
 ### Education (collapsed)
 ```{r education-collapsed, message=FALSE}
 
-df <- df_data
+df <- df_participants
 
 # EDUCATION (collapsed) by SAMPLE 
 # HORIZONTAL STACKED BAR 
@@ -558,7 +580,7 @@ Convenience sampling on both TUMBLR and PROLIFIC pools means we do not expect a 
 
 ```{r demo-political-party}
 
-df <- df_data %>% mutate(politicalParty = fct_rev(D_politicalParty))
+df <- df_participants %>% mutate(politicalParty = fct_rev(D_politicalParty))
 
 
 # AFFILIATION by SAMPLE 
@@ -577,7 +599,7 @@ ggplot(data = df, aes( y = politicalParty, fill = Distribution)) +
 # HORIZONTAL STACKED BAR 
 ggplot(data = df, aes( y = Distribution, fill = fct_rev(politicalParty) )) +
   geom_bar(position = "stack") +
-  scale_fill_manual(values = my_palettes(name="politics", type = "discrete")) +
+  scale_fill_manual(values = my_palettes(name="politics", direction="1")) +
   labs( 
     title = "Political AFFILIATION by SAMPLE", 
     caption = "", 
@@ -588,10 +610,10 @@ ggplot(data = df, aes( y = Distribution, fill = fct_rev(politicalParty) )) +
 
 # AFFILIATION by SAMPLE and BLOCK
 # VERTICAL FACET BAR CHART 
-ggplot(data = df_data, aes( fill = D_politicalParty, x = Assigned.Block )) +
+ggplot(data = df, aes( fill = D_politicalParty, x = Assigned.Block )) +
   geom_bar(position = "stack") +
   facet_grid(Distribution ~ .) + 
-  scale_fill_manual(values = my_palettes(name="politics", type = "discrete")) +
+  scale_fill_manual(values = my_palettes(name="politics", direction="1")) +
   labs( title = "Political AFFILIATION by SAMPLE and BLOCK",
         caption = "Similar distribution across BLOCKS within SAMPLES", x = "Stimulus Block",
         fill = "AFFILIATION") +
@@ -606,7 +628,7 @@ In addition to political affiliation, participants were asked to rate their _fis
 
 ```{r, demo-political-fiscal, warning=FALSE}
 
-df <- df_data
+df <- df_participants
 
 # FISCAL POLITICAL by SAMPLE
 # VERTICAL SEMANTIC DIFFERENTIAL
@@ -666,7 +688,7 @@ In addition to political affiliation, participants were asked to rate their _soc
 
 ```{r, demo-political-social, warning=FALSE}
 
-df <- df_data
+df <- df_participants
 
 # SOCIAL POLITICAL by SAMPLE
 # VERTICAL SEMANTIC DIFFERENTIAL
@@ -723,20 +745,22 @@ _Across stimulus blocks within each sample, the distribution of social political
 ### Political Values — Description
 ```{r describe-politics}
 
-r_politics <- nrow(df_data %>% filter(D_politicsSocial >= 50)) / nrow(df_data)
-l_politics <- nrow(df_data %>% filter(D_politicsSocial < 50)) / nrow(df_data)
-r_fiscal <- nrow(df_data %>% filter(D_politicsFiscal >= 50)) / nrow(df_data)
-l_fiscal <- nrow(df_data %>% filter(D_politicsFiscal < 50)) / nrow(df_data)
+df <- df_participants
+
+r_politics <- nrow(df %>% filter(D_politicsSocial >= 50)) / nrow(df)
+l_politics <- nrow(df %>% filter(D_politicsSocial < 50)) / nrow(df)
+r_fiscal <- nrow(df %>% filter(D_politicsFiscal >= 50)) / nrow(df)
+l_fiscal <- nrow(df %>% filter(D_politicsFiscal < 50)) / nrow(df)
  
 
 #PROLIFIC
-df.p <- df_data %>% filter(Distribution == "PROLIFIC")
+df.p <- df %>% filter(Distribution == "PROLIFIC")
 desc.fiscal.p <- psych::describe(df.p$D_politicsFiscal)
 desc.social.p <- psych::describe(df.p$D_politicsSocial)
 
 
 #TUMBLR
-df.t <- df_data %>% filter(Distribution == "TUMBLR")
+df.t <- df %>% filter(Distribution == "TUMBLR")
 desc.fiscal.t <- psych::describe(df.t$D_politicsFiscal)
 desc.social.t <- psych::describe(df.t$D_politicsSocial)
 
@@ -757,7 +781,7 @@ We have no expectation for distribution across income categories, but expect tha
 
 ```{r demo-income, message=FALSE}
 
-df <- df_data
+df <- df_participants
 
 # INCOME (collapsed) by SAMPLE 
 # HORIZONTAL STACKED BAR 
@@ -807,7 +831,7 @@ We have no expectation for distribution across employment categories, but expect
 
 ```{r demo-employment, message=FALSE}
 
-df <- df_data
+df <- df_participants
 
 # EMPLOYMENT STATUS by SAMPLE 
 # HORIZONTAL STACKED BAR 
@@ -855,7 +879,7 @@ Here we explore the free-text responses given for the survey question 'Work Deta
 
 ```{r describe-work}
 
-df <- df_data
+df <- df_participants
 
 #TABLE of Free Response Work Detail
 title = "Participant WORK DETAIL — Self Describe"
@@ -899,7 +923,7 @@ ggplot(df, aes(x = d_social, y = d_fiscal, color = D_politicalParty)) +
 
 ```{r platform-age}
 
-df <- df_data
+df <- df_participants
 
 #PLATFORM CHOICE by Age
 ## FACETED STACKED BAR CHART 
@@ -921,7 +945,7 @@ ggplot( df, aes( x = D_age, fill = PLATFORM)) +
 
 ## Education X Income
 ```{r education-income, message=FALSE}
-df <- df_data
+df <- df_participants
 
 #Education by Income
 ## FACETED STACKED BAR CHART 
