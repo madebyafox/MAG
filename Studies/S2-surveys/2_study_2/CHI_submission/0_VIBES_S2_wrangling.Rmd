@@ -710,7 +710,8 @@ df_participants <- df_data %>%
     EndState, Sample, Scope, 
     duration.sec, duration.min, 
     contains("D_"), 
-    contains("SCREEN_")
+    contains("SCREEN_"),
+    PLATFORM
   )
 
 #WRITE  A CSV FILE WITH DEMOGRAPHIC DATA ALL VALID PARTICIPANTS (NOT EXCLUDED, NOT PILOT) in wide format
