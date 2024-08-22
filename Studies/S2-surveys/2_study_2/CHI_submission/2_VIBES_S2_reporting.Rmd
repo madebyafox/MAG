@@ -937,8 +937,6 @@ df <- df_graphs %>% select(
           CHART_LIKE, CHART_BEAUTY, CHART_INTENT, CHART_TRUST, 
           PID)
 
-sjp.corr()
-
 # print("PARTIAL CORRELATION NO RANDOM EFFECT")
 # #CALCULATE partial correlations with PID as random effect
 # c <- df %>%  correlation(partial=TRUE) 
@@ -1174,13 +1172,7 @@ df %>%
 ## CREATE subject.id for within comparisons
 df <- df_graphs %>% mutate( subject.id = PID)
 
-## Do ratings of DATA COMPETENCE differ significantly as a function of MAKER ID?
-ggwithinstats(data = df, 
-              x = MAKER_ID, y = MAKER_DATA)
-
-
-
-### REPEATED MEASURES ANOVA
+### REPEATED MEASURES ANOVA?
 
 # print("Repeated Measures ANOVA")
 # a <-aov (MAKER_DATA ~ MAKER_ID + Error(PID), data=df)
