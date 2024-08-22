@@ -125,9 +125,9 @@ saveRDS(ref_labels, file = "data/input/REFERENCE/ref_labels.rds")
 
 
 ### LABELS FOR ABS VALUE OF SD QUESTIONS
-ref_sd_questions_abs <- c("abs_MAKER_DESIGN","abs_MAKER_DATA",
-                      "abs_MAKER_POLITIC", "abs_MAKER_ARGUE","abs_MAKER_SELF","abs_MAKER_ALIGN","abs_MAKER_TRUST",
-                      "abs_CHART_TRUST", "abs_CHART_INTENT", "abs_CHART_LIKE", "abs_CHART_BEAUTY")
+ref_sd_questions_abs <- c("MAKER_DESIGN","MAKER_DATA",
+                      "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
+                      "CHART_TRUST", "CHART_INTENT", "CHART_LIKE", "CHART_BEAUTY")
 
 left <- c("(neutral)","(neutral)",
           "(neutral)","(neutral)","(neutral)","(neutral)","(neutral)",
@@ -1121,7 +1121,45 @@ saveRDS(df_sd_questions_long_abs, file = "data/output/df_sd_questions_long_abs.r
 
 ```
 
-#### STASH
+# PROFILING
+
+## PARTICIPANT-LEVEL
+
+```{r summarytools-profile-participants, results='asis'}
+
+
+dfSummary(df_participants , #%>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM, 
+                      #       contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
+          headings = TRUE,
+          plain.ascii  = FALSE,
+          style        = 'grid',
+          graph.magnif = 0.85,
+          varnumbers = FALSE,
+          valid.col    = FALSE,
+          tmp.img.dir  = "/tmp")
+
+
+```
+
+## TRIAL-LEVEL
+```{r summarytools-profile-graphs, results='asis'}
+
+
+dfSummary(df_graphs,  # %>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM,
+                      #       contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
+          headings = TRUE,
+          plain.ascii  = FALSE,
+          style        = 'grid',
+          graph.magnif = 0.85,
+          varnumbers = FALSE,
+          valid.col    = FALSE,
+          tmp.img.dir  = "/tmp")
+
+
+```
+
+
+# STASH
 ```{r}
 # EXPLORING HOW CORRELATION IS AFFECTED BY STANDARDIZING BY VARIABLE, PARTICIPANT OR BOTH
 # AS WELL AS THE EFFECT OF SUBJECT RANDOM EFFECT IN CORRPLOT
@@ -1314,41 +1352,4 @@ saveRDS(df_sd_questions_long_abs, file = "data/output/df_sd_questions_long_abs.r
 ```
 
 
-
-# PROFILING
-
-## PARTICIPANT-LEVEL
-
-```{r summarytools-profile-participants, results='asis'}
-
-
-dfSummary(df_participants , #%>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM, 
-                      #       contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
-          headings = TRUE,
-          plain.ascii  = FALSE,
-          style        = 'grid',
-          graph.magnif = 0.85,
-          varnumbers = FALSE,
-          valid.col    = FALSE,
-          tmp.img.dir  = "/tmp")
-
-
-```
-
-## TRIAL-LEVEL
-```{r summarytools-profile-graphs, results='asis'}
-
-
-dfSummary(df_graphs,  # %>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM,
-                      #       contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
-          headings = TRUE,
-          plain.ascii  = FALSE,
-          style        = 'grid',
-          graph.magnif = 0.85,
-          varnumbers = FALSE,
-          valid.col    = FALSE,
-          tmp.img.dir  = "/tmp")
-
-
-```
 
