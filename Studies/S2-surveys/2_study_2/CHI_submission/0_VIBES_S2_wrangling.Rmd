@@ -88,6 +88,7 @@ saveRDS(ref_surveys, file = "data/input/REFERENCE/ref_surveys.rds")
 *Here we define labels used in survey questions and response options.*
 
 ```{r setup-labels}
+
 ############## BUILD LABELS
 ref_stim_id <- levels(ref_stimuli$ID)
 ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
@@ -96,16 +97,20 @@ ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
 ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
                "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
                "CHART_LIKE", "CHART_BEAUTY", "CHART_INTENT", "CHART_TRUST")
+
 left <- c("professional","professional","left-leaning","confrontational",
           "altruistic","does NOT share","untrustworthy",
           "NOT at all","NOT at all", "inform", "untrustworthy")
 right <- c("layperson","layperson","right-leaning","diplomatic",
            "selfish", "DOES share", "trustworthy",
            "very much", "very much", "persuade", "trusthworthy")
+
 ref_labels <- as.data.frame(cbind(left,right))
 rownames(ref_labels) <- ref_sd_questions
 ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
+
 rm(left,right)
+
 ```
 
 ## IMPORT Participant Data Files
