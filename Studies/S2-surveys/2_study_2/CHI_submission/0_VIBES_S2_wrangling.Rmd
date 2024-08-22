@@ -91,25 +91,113 @@ saveRDS(ref_surveys, file = "data/input/REFERENCE/ref_surveys.rds")
 
 ############## BUILD LABELS
 ref_stim_id <- levels(ref_stimuli$ID)
+ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
 ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
 ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
 ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
-ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
-               "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
-               "CHART_LIKE", "CHART_BEAUTY", "CHART_INTENT", "CHART_TRUST")
 
-left <- c("professional","professional","left-leaning","confrontational",
-          "altruistic","does NOT share","untrustworthy",
-          "NOT at all","NOT at all", "inform", "untrustworthy")
-right <- c("layperson","layperson","right-leaning","diplomatic",
-           "selfish", "DOES share", "trustworthy",
-           "very much", "very much", "persuade", "trusthworthy")
 
-ref_labels <- as.data.frame(cbind(left,right))
+
+
+### LABELS FOR RAW VALUE OF SD QUESTIONS
+ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA",
+                      "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
+                      "CHART_TRUST", "CHART_INTENT", "CHART_LIKE", "CHART_BEAUTY")
+
+left <- c("professional","professional",
+          "left-leaning","confrontational","altruistic","does NOT share","untrustworthy",
+          "untrustworthy", "inform", "NOT at all","NOT at all")
+
+right <- c("layperson","layperson", 
+           "right-leaning","diplomatic", "selfish", "DOES share", "trustworthy",
+           "trusthworthy", "very much", "persuade", "very much")
+
+category <- c("COMPETENCY","COMPETENCY",
+              "MAKER","MAKER","MAKER","MAKER","MAKER",
+              "CHART","CHART","CHART","CHART")
+              
+
+ref_labels <- as.data.frame(cbind(ref_sd_questions, left,right,category))
 rownames(ref_labels) <- ref_sd_questions
-ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
 
-rm(left,right)
+write.csv(ref_labels, file = "data/input/REFERENCE/ref_labels.csv", na="")
+saveRDS(ref_labels, file = "data/input/REFERENCE/ref_labels.rds")
+
+
+### LABELS FOR ABS VALUE OF SD QUESTIONS
+ref_sd_questions_abs <- c("abs_MAKER_DESIGN","abs_MAKER_DATA",
+                      "abs_MAKER_POLITIC", "abs_MAKER_ARGUE","abs_MAKER_SELF","abs_MAKER_ALIGN","abs_MAKER_TRUST",
+                      "abs_CHART_TRUST", "abs_CHART_INTENT", "abs_CHART_LIKE", "abs_CHART_BEAUTY")
+
+left <- c("(neutral)","(neutral)",
+          "(neutral)","(neutral)","(neutral)","(neutral)","(neutral)",
+          "(neutral)","(neutral)", "(neutral)", "(neutral)")
+
+right <- c("professional/layperson","professiona/layperson",
+           "left-leaning/right-leaning","confrontational/diplomatic", "altruistic/selfish","does NOT share/DOES share","untrustworthy/trustworthy",
+            "untrustworthy/trustworthy","inform/persuade", "NOT at all/VERY much","NOT at all/VERY much" )
+
+category <- c("COMPETENCY","COMPETENCY",
+              "MAKER","MAKER","MAKER","MAKER","MAKER",
+              "CHART","CHART","CHART","CHART")
+
+ref_labels_abs <- as.data.frame(cbind(ref_sd_questions_abs,left,right,category))
+rownames(ref_labels_abs) <- ref_sd_questions_abs
+
+write.csv(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.csv", na="")
+saveRDS(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.rds")
+
+
+
+```
+
+
+```{r}
+## PRIOR ORDERING OF QUESTIONS — CHANGED ORDER OF FACTORS FOR READABILITY
+# ### LABELS FOR RAW VALUE OF SD QUESTIONS
+# ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
+#                "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
+#                "CHART_LIKE", "CHART_BEAUTY", "CHART_INTENT", "CHART_TRUST")
+# 
+# left <- c("professional","professional","left-leaning","confrontational",
+#           "altruistic","does NOT share","untrustworthy",
+#           "NOT at all","NOT at all", "inform", "untrustworthy")
+# right <- c("layperson","layperson","right-leaning","diplomatic",
+#            "selfish", "DOES share", "trustworthy",
+#            "very much", "very much", "persuade", "trusthworthy")
+# category <- c("COMPETENCY","COMPETENCY",
+#               "VALUES","VALUES","VALUES",
+#               "ALIGN",
+#               "TRUST","LIKE","LIKE","INTENT","TRUST")
+# 
+# ref_labels <- as.data.frame(cbind(ref_sd_questions, left,right,category))
+# rownames(ref_labels) <- ref_sd_questions
+# 
+# write.csv(ref_labels, file = "data/input/REFERENCE/ref_labels.csv", na="")
+# saveRDS(ref_labels, file = "data/input/REFERENCE/ref_labels.rds")
+# 
+# 
+# ### LABELS FOR ABS VALUE OF SD QUESTIONS
+# ref_sd_questions_abs <- c("abs_MAKER_DESIGN","abs_MAKER_DATA","abs_MAKER_POLITIC",
+#                "abs_MAKER_ARGUE","abs_MAKER_SELF","abs_MAKER_ALIGN","abs_MAKER_TRUST",
+#                "abs_CHART_LIKE", "abs_CHART_BEAUTY", "abs_CHART_INTENT", "abs_CHART_TRUST")
+# 
+# left <- c("(neutral)","(neutral)","(neutral)","(neutral)",
+#           "(neutral)","(neutral)","(neutral)",
+#           "(neutral)","(neutral)", "(neutral)", "(neutral)")
+# right <- c("professional/layperson","professiona/layperson","left-leaning/right-leaning","confrontational/diplomatic",
+#           "altruistic/selfish","does NOT share/DOES share","untrustworthy/trustworthy",
+#           "NOT at all/VERY much","NOT at all/VERY much", "inform/persuade", "untrustworthy/trustworthy")
+# category <- c("COMPETENCY","COMPETENCY",
+#               "VALUES","VALUES","VALUES",
+#               "ALIGN",
+#               "TRUST","LIKE","LIKE","INTENT","TRUST")
+# 
+# ref_labels_abs <- as.data.frame(cbind(ref_sd_questions_abs,left,right,category))
+# rownames(ref_labels_abs) <- ref_sd_questions_abs
+# 
+# write.csv(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.csv", na="")
+# saveRDS(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.rds")
 
 ```
 
@@ -929,15 +1017,310 @@ print("df_graphs_full is trial level dataset; df_graphs is trial level quantitat
 
 ```
 
+## STANDARDIZING SEMANTIC DIFFERENTIALS
+
+Finally, we create duplicate versions of datasets used to analyze the semantic differential scores, with standardized (i.e. z-scored), and absolute values (i.e. folding SD scale in half, so 0 = center of the slider, and 50 = the left and right extremes)
+
+### Z-SCORED 
+```{r, standardizing-zscores}
+
+########## Z-SCORE
+## ON STANDARDIZATION
+## https://cran.r-project.org/web/packages/datawizard/vignettes/standardize_data.html
+
+## DF_GRAPHS_Z
+## VARIABLE WISE STANDARDIZATION
+df_graphs_z <- df_graphs %>% 
+  mutate(
+    MAKER_DESIGN  = datawizard::standardize(MAKER_DESIGN ),
+    MAKER_DATA = datawizard::standardize(MAKER_DATA),
+    MAKER_POLITIC = datawizard::standardize(MAKER_POLITIC),
+    MAKER_ARGUE = datawizard::standardize(MAKER_ARGUE),
+    MAKER_SELF = datawizard::standardize(MAKER_SELF),
+    MAKER_ALIGN = datawizard::standardize(MAKER_ALIGN),
+    MAKER_TRUST = datawizard::standardize(MAKER_TRUST),
+    CHART_LIKE = datawizard::standardize(CHART_LIKE),
+    CHART_BEAUTY = datawizard::standardize(CHART_BEAUTY),
+    CHART_INTENT = datawizard::standardize(CHART_INTENT),
+    CHART_TRUST = datawizard::standardize(CHART_TRUST)
+  )
+write.csv(df_graphs_z, file = "data/output/df_graphs_z.csv", na="")
+saveRDS(df_graphs_z, file = "data/output/df_graphs_z.rds")
+
+## DF_SD_QUESTIONS_LONG_Z
+## LONG DATAFRAME FOR RAINCLOUDS
+df_sd_questions_long_z <- df_graphs_z %>% 
+  ##first transform dw-transformer to numeric
+  mutate(
+    MAKER_DESIGN = as.numeric(MAKER_DESIGN),
+    MAKER_DATA = as.numeric(MAKER_DATA),
+    MAKER_POLITIC = as.numeric(MAKER_POLITIC),
+    MAKER_ARGUE = as.numeric(MAKER_ARGUE),
+    MAKER_SELF = as.numeric(MAKER_SELF),
+    MAKER_ALIGN = as.numeric(MAKER_ALIGN),
+    MAKER_TRUST = as.numeric(MAKER_TRUST),
+    CHART_LIKE = as.numeric(CHART_LIKE),
+    CHART_BEAUTY = as.numeric(CHART_BEAUTY),
+    CHART_INTENT = as.numeric(CHART_INTENT),
+    CHART_TRUST = as.numeric(CHART_TRUST)
+  ) %>% 
+  ## pivot longer the SD questions
+  pivot_longer(
+    cols = ref_sd_questions,
+    names_to = "QUESTION"
+  ) %>% mutate(
+    QUESTION = factor(QUESTION, levels=ref_sd_questions)
+  )
+write.csv(df_sd_questions_long_z, file = "data/output/df_sd_questions_long_z.csv", na="")
+saveRDS(df_sd_questions_long_z, file = "data/output/df_sd_questions_long_z.rds")    
+
+
+
+```
+
+### ABS_VALUE
+```{r, standardizing-absvalue}
+
+########## ABS VALUE
+## COLLAPSE SD SCALES AT 0 TO SHOW MIDDLE VS EXTREMES
+
+## DF_GRAPHS_ABS
+## VARIABLE WISE STANDARDIZATION
+df_graphs_abs <- df_graphs %>% 
+  mutate(
+    MAKER_DESIGN  =  abs(MAKER_DESIGN - 50),
+    MAKER_DATA =  abs(MAKER_DATA - 50),
+    MAKER_POLITIC =  abs(MAKER_POLITIC - 50),
+    MAKER_ARGUE =  abs(MAKER_ARGUE - 50),
+    MAKER_SELF =  abs(MAKER_SELF - 50),
+    MAKER_ALIGN =  abs(MAKER_ALIGN - 50),
+    MAKER_TRUST =  abs(MAKER_TRUST - 50),
+    CHART_LIKE =  abs(CHART_LIKE - 50),
+    CHART_BEAUTY =  abs(CHART_BEAUTY - 50),
+    CHART_INTENT =  abs(CHART_INTENT - 50),
+    CHART_TRUST =  abs(CHART_TRUST - 50)
+  )
+write.csv(df_graphs_abs, file = "data/output/df_graphs_abs.csv", na="")
+saveRDS(df_graphs_abs, file = "data/output/df_graphs_abs.rds")
+
+## DF_SD_QUESTIONS_LONG_ABS
+## LONG DATAFRAME FOR RAINCLOUDS
+df_sd_questions_long_abs <- df_graphs_abs %>% 
+  ## pivot longer the SD questions
+  pivot_longer(
+    cols = ref_sd_questions,
+    names_to = "QUESTION"
+  ) %>% mutate(
+    QUESTION = factor(QUESTION, levels=ref_sd_questions)
+  )
+write.csv(df_sd_questions_long_abs, file = "data/output/df_sd_questions_long_abs.csv", na="")
+saveRDS(df_sd_questions_long_abs, file = "data/output/df_sd_questions_long_abs.rds")    
+
+
+
+```
+
+#### STASH
+```{r}
+# EXPLORING HOW CORRELATION IS AFFECTED BY STANDARDIZING BY VARIABLE, PARTICIPANT OR BOTH
+# AS WELL AS THE EFFECT OF SUBJECT RANDOM EFFECT IN CORRPLOT
+# 
+# ########################################################################
+# ### CORRELATION OF RAW SCORES (NO RANDOM ID)
+# df <- df_graphs %>% select(
+#           MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+#           MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+#           CHART_LIKE, CHART_BEAUTY, CHART_INTENT, CHART_TRUST)
+# 
+# print("PARTIAL CORRELATION")
+# #CALCULATE partial correlations 
+# c <- df %>% 
+#   correlation(partial=TRUE)
+# 
+# #PRINT A SUMMARY
+# (s1 <- c %>% summary(redundant = FALSE ))
+# #GET THE MATRIX
+# m <- as.matrix(c)
+# #VIS WITH CORRPLOT
+# 
+# 
+# ## SHADED NUMBERS
+# corrplot(m,  order = 'original', method = "number", 
+#          diag = FALSE, type = "lower",
+#          insig='blank',
+#          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+#          addCoef.col = '#595D60',
+#          tl.pos = "ld", tl.col = "#595D60",
+#          title = "CORRELATION OF RAW SCORES (NO RANDOM ID)") 
+# 
+# 
+# ########################################################################
+# ### CORRELATION OF RAW SCORES W/ RANDOM PID
+# df <- df_graphs %>% select(
+#           MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+#           MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+#           CHART_LIKE, CHART_BEAUTY, CHART_INTENT, CHART_TRUST, PID)
+# 
+# print("PARTIAL CORRELATION")
+# #CALCULATE partial correlations with PID as random effect
+# c <- df %>% 
+#   correlation(partial=TRUE, multilevel = TRUE)
+# 
+# #PRINT A SUMMARY
+# (s2 <- c %>% summary(redundant = FALSE ))
+# #GET THE MATRIX
+# m <- as.matrix(c)
+# #VIS WITH CORRPLOT
+# 
+# 
+# ## SHADED NUMBERS
+# corrplot(m,  order = 'original', method = "number", 
+#          diag = FALSE, type = "lower",
+#          insig='blank',
+#          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+#          addCoef.col = '#595D60',
+#          tl.pos = "ld", tl.col = "#595D60",
+#          title = "CORRELATION OF RAW SCORES W/ RANDOM PID") 
+# 
+# 
+# 
+# ########################################################################
+# ### CORRELATION OF VARIABLE WISE Z-SCORED SCORES NO RANDOM ID
+# df <- df_graphs_z %>% select(
+#           MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+#           MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+#           CHART_LIKE, CHART_BEAUTY, CHART_INTENT, CHART_TRUST)
+# 
+# print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT ON Z-SCORED SDS")
+# #CALCULATE partial correlations with PID as random effect
+# c <- df %>% 
+#   correlation(partial=TRUE)
+# 
+# #PRINT A SUMMARY
+# (s3 <- c %>% summary(redundant = FALSE ))
+# #GET THE MATRIX
+# m <- as.matrix(c)
+# #VIS WITH CORRPLOT
+# 
+# 
+# ## SHADED NUMBERS
+# corrplot(m,  order = 'original', method = "number", 
+#          diag = FALSE, type = "lower",
+#          insig='blank',
+#          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+#          addCoef.col = '#595D60',
+#          tl.pos = "ld", tl.col = "#595D60",
+#          title = "CORRELATION OF VARIABLE WISE Z-SCORED SCORES NO RANDOM ID") 
+# 
+# ########################################################################
+# ### CORRELATION OF VARIABLE WISE Z-SCORED SCORES W/ RANDOM PID
+# df <- df_graphs_z %>% select(
+#           MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+#           MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+#           CHART_LIKE, CHART_BEAUTY, CHART_INTENT, CHART_TRUST, 
+#           PID)
+# 
+# print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT ON Z-SCORED SDS")
+# #CALCULATE partial correlations with PID as random effect
+# c <- df %>% 
+#   correlation(partial=TRUE,
+#               multilevel = TRUE)
+# 
+# #PRINT A SUMMARY
+# (s4 <- c %>% summary(redundant = FALSE ))
+# #GET THE MATRIX
+# m <- as.matrix(c)
+# #VIS WITH CORRPLOT
+# 
+# 
+# ## SHADED NUMBERS
+# corrplot(m,  order = 'original', method = "number", 
+#          diag = FALSE, type = "lower",
+#          insig='blank',
+#          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+#          addCoef.col = '#595D60',
+#          tl.pos = "ld", tl.col = "#595D60",
+#          title = "CORRELATION OF VARIABLE WISE Z-SCORED SCORES W/ RANDOM PID") 
+# 
+# 
+# ########################################################################
+# ### CORRELATION OF (BOTH) WISE Z-SCORED SCORES W/0 RANDOM PID
+# df <- df_graphs_zb %>% select(
+#           MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+#           MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+#           CHART_LIKE, CHART_BEAUTY, CHART_INTENT, CHART_TRUST)
+# 
+# print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT ON Z-SCORED SDS")
+# #CALCULATE partial correlations with PID as random effect
+# c <- df %>% 
+#   correlation(partial=TRUE)
+#               
+# 
+# #PRINT A SUMMARY
+# (s5 <- c %>% summary(redundant = FALSE ))
+# #GET THE MATRIX
+# m <- as.matrix(c)
+# #VIS WITH CORRPLOT
+# 
+# 
+# ## SHADED NUMBERS
+# corrplot(m,  order = 'original', method = "number", 
+#          diag = FALSE, type = "lower",
+#          insig='blank',
+#          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+#          addCoef.col = '#595D60',
+#          tl.pos = "ld", tl.col = "#595D60",
+#          title = "CORRELATION OF (BOTH) WISE Z-SCORED SCORES W/0 RANDOM PID") 
+# 
+# 
+# 
+# ########################################################################
+# ### CORRELATION OF (BOTH) WISE Z-SCORED SCORES RANDOM PID
+# df <- df_graphs_zb %>% select(
+#           MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+#           MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+#           CHART_LIKE, CHART_BEAUTY, CHART_INTENT, CHART_TRUST, 
+#           PID)
+# 
+# print("PARTIAL CORRELATION ON Z-SCORED SDS")
+# #CALCULATE partial correlations (no random effect b/c scores are participant-wise z-scored)
+# c <- df %>% 
+#   correlation(partial=TRUE, multilevel = TRUE)
+# 
+# #PRINT A SUMMARY
+# (s6s1 <- c %>% summary(redundant = FALSE ))
+# #GET THE MATRIX
+# m <- as.matrix(c)
+# #VIS WITH CORRPLOT
+# 
+# 
+# ## SHADED NUMBERS
+# corrplot(m,  order = 'original', method = "number", 
+#          diag = FALSE, type = "lower",
+#          insig='blank',
+#          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+#          addCoef.col = '#595D60',
+#          tl.pos = "ld", tl.col = "#595D60",
+#          title = "CORRELATION OF (BOTH) WISE Z-SCORED SCORES RANDOM PID") 
+# 
+# 
+# 
+# 
+# 
+
+
+
+```
+
+
+
 # PROFILING
 
+```{r summarytools-profile-graphs, results='asis'}
 
 
-```{r summarytools-profile, results='asis'}
-
-
-dfSummary(df_data %>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM, 
-                             contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
+dfSummary(df_graphs , #%>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM, 
+                      #       contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
           headings = TRUE,
           plain.ascii  = FALSE,
           style        = 'grid',
@@ -948,3 +1331,4 @@ dfSummary(df_data %>% select(PID, duration.min, Distribution, Assigned.Block, PL
 
 
 ```
+
