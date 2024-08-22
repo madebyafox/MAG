@@ -110,7 +110,7 @@ left <- c("professional","professional",
 
 right <- c("layperson","layperson", 
            "right-leaning","diplomatic", "selfish", "DOES share", "trustworthy",
-           "trusthworthy", "very much", "persuade", "very much")
+           "trusthworthy", "persuade","very much",  "very much")
 
 category <- c("COMPETENCY","COMPETENCY",
               "MAKER","MAKER","MAKER","MAKER","MAKER",

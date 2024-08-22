@@ -7,6 +7,6 @@
 "MAKER_ALIGN","MAKER_ALIGN","does NOT share","DOES share","MAKER"
 "MAKER_TRUST","MAKER_TRUST","untrustworthy","trustworthy","MAKER"
 "CHART_TRUST","CHART_TRUST","untrustworthy","trusthworthy","CHART"
-"CHART_INTENT","CHART_INTENT","inform","very much","CHART"
-"CHART_LIKE","CHART_LIKE","NOT at all","persuade","CHART"
+"CHART_INTENT","CHART_INTENT","inform","persuade","CHART"
+"CHART_LIKE","CHART_LIKE","NOT at all","very much","CHART"
 "CHART_BEAUTY","CHART_BEAUTY","NOT at all","very much","CHART"

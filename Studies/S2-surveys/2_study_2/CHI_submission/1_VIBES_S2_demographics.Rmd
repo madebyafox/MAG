@@ -73,23 +73,23 @@ _We start by importing data files previously wrangled in  `0_VIBES_S2_wrangling.
 ## IMPORT DATA
 
 ```{r import-refs, message=FALSE, warning = FALSE}
-
-############## IMPORT REFERENCE FILES
-ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
-ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
-ref_labels <- readRDS("data/input/REFERENCE/ref_labels.rds")
-ref_labels_abs <- readRDS("data/input/REFERENCE/ref_labels_abs.rds")
-
-############## SETUP Graph Labels
-ref_stim_id <- levels(ref_stimuli$ID)
-ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
-ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
-ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
-ref_sd_questions <- rownames(ref_labels)
-ref_sd_questions_abs <- rownames(ref_labels_abs)
-  
-
-# ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
+# 
+# ############## IMPORT REFERENCE FILES
+# ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
+# ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
+# ref_labels <- readRDS("data/input/REFERENCE/ref_labels.rds")
+# ref_labels_abs <- readRDS("data/input/REFERENCE/ref_labels_abs.rds")
+# 
+# ############## SETUP Graph Labels
+# ref_stim_id <- levels(ref_stimuli$ID)
+# ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
+# ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
+# ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
+# ref_sd_questions <- rownames(ref_labels)
+# ref_sd_questions_abs <- rownames(ref_labels_abs)
+#   
+# 
+# # ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
 ref_blocks <- c(1,2,3,4,5,6)
 
 
