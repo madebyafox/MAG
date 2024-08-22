@@ -1317,10 +1317,29 @@ saveRDS(df_sd_questions_long_abs, file = "data/output/df_sd_questions_long_abs.r
 
 # PROFILING
 
+## PARTICIPANT-LEVEL
+
+```{r summarytools-profile-participants, results='asis'}
+
+
+dfSummary(df_participants , #%>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM, 
+                      #       contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
+          headings = TRUE,
+          plain.ascii  = FALSE,
+          style        = 'grid',
+          graph.magnif = 0.85,
+          varnumbers = FALSE,
+          valid.col    = FALSE,
+          tmp.img.dir  = "/tmp")
+
+
+```
+
+## TRIAL-LEVEL
 ```{r summarytools-profile-graphs, results='asis'}
 
 
-dfSummary(df_graphs , #%>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM, 
+dfSummary(df_graphs,  # %>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM,
                       #       contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
           headings = TRUE,
           plain.ascii  = FALSE,
