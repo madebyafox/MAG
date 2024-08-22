@@ -928,6 +928,13 @@ df <- df_graphs %>% select(
           PID)
 
 
+# print("PARTIAL CORRELATION NO RANDOM EFFECT")
+# #CALCULATE partial correlations with PID as random effect
+# c <- df %>%  correlation(partial=TRUE) 
+# s <- c %>% summary(redundant = FALSE)
+# m <- as.matrix(c)
+
+
 print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
 #CALCULATE partial correlations with PID as random effect
 c <- df %>% 
@@ -939,23 +946,16 @@ c <- df %>%
 #GET THE MATRIX
 m <- as.matrix(c)
 #VIS WITH CORRPLOT
-corrplot(m, order = 'AOE', 
-         method = "shade",
-         number.digits = 2,
-         # addCoef.col = 'grey',
-         type = 'lower', diag=FALSE,
-         # sig.level = c(0.001, 0.01, 0.05), insig = 'label_sig',
+
+
+## SHADED CIRCLES
+corrplot(m, method = 'circle', type = 'lower', 
+         order = 'AOE', diag = FALSE,
+         insig='blank',
          tl.col = "black")
 
 
-
-# corrplot(m, method = 'circle', type = 'lower', insig='blank',
-#          order = 'AOE', diag = FALSE)$corrPos -> p1
-# text(p1$x, p1$y, round(p1$corr, 2))
-
-
 ## SHADED NUMBERS
-## add significant level stars and cluster rectangles
 corrplot(m,  order = 'AOE', method = "number", 
          diag = FALSE, type = "lower",
          insig='blank',
@@ -964,19 +964,20 @@ corrplot(m,  order = 'AOE', method = "number",
          tl.pos = "ld", tl.col = "#595D60")
          
 
-## SHADED NUMBERS
-## add significant level stars and cluster rectangles
-corrplot(m,  order = 'AOE', method = "color", 
+## SHADED SQUARED + COEFFS
+corrplot(m,  order = 'AOE', method = "circle", 
          diag = FALSE, type = "lower",
-         insig='p-value', sig.level = 0.05,
+         insig='blank', sig.level = 0.05,
          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
-         # addCoef.col = '#595D60',
+         addCoef.col = '#595D60',
          tl.pos = "ld", tl.col = "#595D60")
          
 
-
-corrplot.mixed(m, lower = 'shade', upper = 'number', order = 'AOE',
+## UPPER CIRCLES LOWER NUMBERS 
+corrplot.mixed(m, lower = 'number', upper = 'circle', 
+               order = 'AOE',
                tl.pos = "lt", tl.col = "black")
+
 
 
 ```
