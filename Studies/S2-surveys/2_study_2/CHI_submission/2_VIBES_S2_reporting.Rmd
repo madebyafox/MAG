@@ -916,7 +916,7 @@ rm(df, df_full, p, S,H, B,R)
 
 ### CORRELATIONS
 
-#### CORRELATION MATRIX SDS
+#### correlation matrices — semantic differetial
 
 ```{r, correlation-matrices}
 
@@ -983,8 +983,11 @@ corrplot.mixed(m, lower = 'number', upper = 'circle',
 ```
 
 
-#### correlation matrices by groups
-```{r}
+#### correlation matrices — by category levels
+
+##### maker ID
+```{r, maker_id-sds}
+if(graph_render){
 
 df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
                     MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
@@ -998,22 +1001,55 @@ df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
     theme_minimal())
 ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_id_corr_x.png"), units = c("in"), width = 14, height = 10 )
 
-## CORRELATION MATRIX SPLIT BY MAKER AGE  
-(x <-   ggscatmat(df, columns = 1:11, color = "MAKER_AGE", alpha = 0.8) + 
+}
+```
+**Interesting patterns to explore further**
+
+- When participants identify the maker as an INDIVIDUAL, the following variables show a different pattern than the other identifications: MAKER_DESIGN, MAKER_DATA, CHART INTENT
+- interesting bimodal distribution on CHART INTENT for most identifications, except individuals and organizations 
+
+
+
+
+##### maker AGE
+```{r, maker_age-sds}
+if(graph_render){
+
+  ## CORRELATION MATRIX SPLIT BY MAKER AGE  
+  (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_AGE", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="lightblues", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal())
-ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_age_corr_x.png"), units = c("in"), width = 14, height = 10 )
-  
-  
-## CORRELATION MATRIX SPLIT BY MAKER GENDER  
-(x <-   ggscatmat(df, columns = 1:11, color = "MAKER_GENDER", alpha = 0.8) + 
-    scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
-    theme_minimal() )
-ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_gender_corr_x.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_age_corr_x.png"), units = c("in"), width = 14, height = 10 )
+}
+```
+
+**Interesting patterns to explore further**
+
+- maker_design, chart_like, chart_beauty for BOOMER vs. others
+- maker_data for gen Z vs others 
+
+
+##### maker GENDER
+```{r, maker_gender-sds}
+if(graph_render){
 
   
+  ## CORRELATION MATRIX SPLIT BY MAKER GENDER  
+  (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_GENDER", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    theme_minimal() )
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_gender_corr_x.png"), units = c("in"), width = 14, height = 10 )
+}
+```
+**Interesting patterns to explore further**
+- maker-data for FEMALE
+
+##### tool ID  
+```{r, tool-id-sds}
+if(graph_render){
   
-  df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+
+df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
                     MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
                     CHART_INTENT, CHART_TRUST, 
                     PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
@@ -1021,13 +1057,25 @@ ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_gender_corr_
   
   ## CORRELATION MATRIX SPLIT BY TOOL ID
  (x <-  ggscatmat(df, columns = 1:11, color = "TOOL_ID", alpha = 0.8) + 
-    scale_color_paletteer_d("awtools::a_palette", direction = -1)+
+    scale_color_manual(values = my_palettes(name="tools", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
     theme_minimal() )
   ggsave(plot = x, path="figs/corr_by_group", filename =paste0("tool_id_corr_x.png"), units = c("in"), width = 14, height = 10 )
+}  
+```
+
+**Interesting patterns to explore further**
+- maker data for design-basic, interesting pattern
+- look closer at chart beauty
+- interesting pattern across values on chart intent
+
+
+
+##### ENCOUNTER
+```{r, encounter-sds}  
+if(graph_render){
   
-  
-  
-  df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+
+df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
                     MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
                     CHART_INTENT, CHART_TRUST, 
                     PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
@@ -1036,13 +1084,25 @@ ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_gender_corr_
 
 ## CORRELATION MATRIX SPLIT BY ENCOUNTER
 (x <-   ggscatmat(df, columns = 1:11, color = "ENCOUNTER", alpha = 0.8) + 
-    scale_color_manual(values = my_palettes(name="traffic", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="encounter", direction = "1"))+
     theme_minimal())
   ggsave(plot = x, path="figs/corr_by_group", filename =paste0("encounter_corr_x.png"), units = c("in"), width = 14, height = 10 )
   
+}  
+```    
+**Interesting patterns to explore further**
+— no difference at ALL in maker data - interesting!
+- chart beauty very diff
+- chart intent intersting bimodal
+
+
+
+##### chart ACTION 
+```{r, chart-action-sds}
+if(graph_render){
   
-  
-  df <- df_actions %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+
+df <- df_actions %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
                     MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
                     CHART_INTENT, CHART_TRUST, 
                     PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
@@ -1050,14 +1110,32 @@ ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_gender_corr_
   
   ## CORRELATION MATRIX SPLIT BY CHART ACTION
 (x <- ggscatmat(df, columns = 1:11, color = "CHART_ACTION", alpha = 0.2) + 
-    scale_color_paletteer_d("awtools::a_palette", direction = 1)+
+    scale_color_manual(values = my_palettes(name="actions", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
     theme_minimal() )
 ggsave(plot = x, path="figs/corr_by_group", filename =paste0("chart_action_corr_x.png"), units = c("in"), width = 14, height = 10  )
 
+}
 ```
-
+**Interesting patterns to explore further**
+- unfollow/block across all! 
 
 ### EXPLORATORY QUESTIONS
+
+- When participants identify the maker as an INDIVIDUAL, the following variables show a different pattern than the other identifications: MAKER_DESIGN, MAKER_DATA, CHART INTENT
+- interesting bimodal distribution on CHART INTENT for most identifications, except individuals and organizations 
+
+- maker_design, chart_like, chart_beauty for BOOMER vs. others
+- maker_data for gen Z vs others 
+- maker-data for FEMALE
+
+
+- maker data for design-basic, interesting pattern
+- look closer at chart beauty
+- interesting pattern across values on chart intent
+
+— no difference at ALL in maker data - interesting!
+- chart beauty very diff
+- chart intent intersting bimodal
 
 #### Maker ID & Maker POLITICS
 ```{r, message=FALSE}
@@ -1091,6 +1169,7 @@ df %>%
   theme_minimal() + easy_remove_legend()
 
 ```
+
 #### Maker ID & Maker DATA COMPETENCY
 ```{r}
 
@@ -1125,8 +1204,8 @@ df %>%
 
 
 ```
-#### Maker ID & Maker DESIGN COMPETENCY
 
+#### Maker ID & Maker DESIGN COMPETENCY
 ```{r}
 
 df <- df_graphs
