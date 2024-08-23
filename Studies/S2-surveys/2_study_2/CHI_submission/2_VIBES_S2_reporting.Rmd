@@ -64,7 +64,8 @@ library(see)
 library(sjPlot)
 library(lme4)
 library(lmerTest) #for CIs in glmer
-
+library(equatiomatic) ## extracting model formula
+library(latex2exp) ## extracting and printing model formula
 
 #CONFIG
 options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
@@ -115,7 +116,6 @@ ref_sd_questions_abs <- rownames(ref_labels_abs)
 # ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
 ref_blocks <- c(1,2,3,4,5,6)
 
-
 ```
 
 ```{r import-data, message=FALSE, warning = FALSE}
@@ -125,7 +125,6 @@ ref_blocks <- c(1,2,3,4,5,6)
 df_participants <- readRDS("data/output/df_participants.rds") #1 row per participant — demographic
 # df_questions <- readRDS("data/output/df_questions.rds") #1 row per question — LONG
 # df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds") # only sd questions WIDE
-
 
 
 df_tools <- readRDS("data/output/df_tools.rds") #multiselect format for tools Question
@@ -1056,7 +1055,7 @@ if(graph_render == TRUE){
     cowplot::draw_text(text = ref_sd_questions_abs, x = 20, y= ref_sd_questions_abs,size = 10, vjust=2) + ##raw
     theme_minimal() + easy_remove_legend()
 
-    ggsave(plot = c, path="figs/_full_sample", filename =paste0("ABS_combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
+    ggplot2::ggsave(plot = c, path="figs/_full_sample", filename =paste0("ABS_combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
   
 }
 
@@ -1068,7 +1067,7 @@ if(graph_render == TRUE){
 
 
 
-```{r sample-cleanup}
+```{r sample-cleanup-abs}
 rm(df, df_full, p, S,H, B,g,c)
 ```
 
@@ -1438,7 +1437,7 @@ ggsave(plot = x, path="figs/corr_by_group", filename =paste0("chart_action_corr_
 
 
 #### Maker ID & Maker DATA COMPETENCY
-```{r}
+```{r vis-maker-id-data, warning=FALSE}
 
 df <- df_graphs 
 
@@ -1469,48 +1468,60 @@ df %>%
   labs (title = "DATA COMPETENCY by MAKER ID", y = "", x = "MAKER DATA COMPETENCY", caption="(mean in blue)") +
   theme_minimal() + easy_remove_legend()
 
+```
 
+##### model
+```{r model-maker-id-data}
 
+### LINEAR MIXED EFFECTS MODEL ##################
 
-## CREATE subject.id for within comparisons
-df <- df_graphs %>% mutate( subject.id = PID)
+df <- df_graphs 
 
-### REPEATED MEASURES ANOVA?
+## SET CONTRASTS
+contrasts(df$MAKER_ID) <-car::contr.Treatment(levels(df$MAKER_ID)) # intercept first group mean; coeff dif from first
 
-# print("Repeated Measures ANOVA")
-# a <-aov (MAKER_DATA ~ MAKER_ID + Error(PID), data=df)
-# summary(a)
-# report(a)
-
-
-### MIXED EFFECTS MODEL
-
-print("MIXED EFFECTS MODEL")
+## DEFINE MODEL
+f <- "MAKER_DATA ~ MAKER_ID + (1|PID) + (1|STIMULUS)"
 m1 <-lmer(MAKER_DATA ~ MAKER_ID + (1|PID) + (1|STIMULUS), data=df)
-summary(m1)
-report(m1)
-anova(m1)
 
-#PLOT COEFFICIENTS
+## PRINT MODEL 
+(m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
+
+## DESCRIBE MODEL
+summary(m1)
+anova(m1)
+performance(m1)
+report(m1)
+
+## PLOT MODEL COEFFICIENTS
+coefs <- model_parameters(m1)
 plot_model(m1, type = "est",
         show.intercept = TRUE,
         show.values = TRUE,
-        show.p = TRUE,
-        show.legend = TRUE,
-) + theme_minimal()
-
-#PLOT PREDICTIONS
-plot_model(m1, type = "pred",
-          terms = c("MAKER_ID"),
-          # show.data = TRUE,
-          # jitter = 0.2,
-        show.values = TRUE,
-        show.p = TRUE,
-        # show.legend = TRUE,
-) + theme_minimal()
+        value.offset = .25,
+        show.p = TRUE
+) + theme_minimal() + labs(caption=f)
 
 
+## PLOT MODEL PREDICTIONS
+means <- estimate_means(m1, at = c("MAKER_ID"))
 
+# sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
+#     theme_minimal() + labs(caption=f)
+
+# plot(means) + theme_minimal() + labs(caption=f) +
+# geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
+#           color="blue", position = position_nudge(x=0.25)) 
+
+
+## PLOT MODEL PREDICTIONS with CONTRASTS
+
+## contrasts
+# black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
+(contrasts <- estimate_contrasts(m1, contrast="MAKER_ID", method="pairwise"))
+plot(contrasts, means) + 
+    geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption = f)
 
 ```
 
@@ -1546,9 +1557,65 @@ df %>%
   labs (title = "DESIGN COMPETENCY by MAKER ID", y = "", x = "MAKER DESIGN COMPETENCY", caption="(mean in blue)") +
   theme_minimal() + easy_remove_legend()
 
+```
 
+
+##### model
+```{r model-maker-id-design}
+
+### LINEAR MIXED EFFECTS MODEL ##################
+
+df <- df_graphs 
+
+## DEFINE MODEL
+f <- "MAKER_DESIGN ~ MAKER_ID + (1|PID) + (1|STIMULUS)"
+m1 <-lmer(MAKER_DESIGN ~ MAKER_ID + (1|PID) + (1|STIMULUS), data=df)
+
+## PRINT MODEL 
+(m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
+
+## DESCRIBE MODEL
+summary(m1)
+anova(m1)
+performance(m1)
+report(m1)
+
+## PLOT MODEL COEFFICIENTS
+coefs <- model_parameters(m1)
+plot_model(m1, type = "est",
+        show.intercept = TRUE,
+        show.values = TRUE,
+        show.p = TRUE
+) + theme_minimal() + labs(caption=f)
+
+
+## PLOT MODEL PREDICTIONS
+means <- estimate_means(m1, at = c("MAKER_ID"))
+
+# sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
+#     theme_minimal() + labs(caption=f)
+
+# plot(means) + theme_minimal() + labs(caption=f) +
+# geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
+#           color="blue", position = position_nudge(x=0.25)) 
+
+
+## PLOT MODEL PREDICTIONS with CONTRASTS
+
+## contrasts
+# black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
+(contrasts <- estimate_contrasts(m1, contrast="MAKER_ID", method="pairwise"))
+plot(contrasts, means) + 
+    geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption = f)
 
 ```
+
+
+
+
+
+
 
 
 
@@ -1598,6 +1665,56 @@ df %>%
 
 ```
 
+##### model
+```{r model-maker-id-politics}
+
+### LINEAR MIXED EFFECTS MODEL ##################
+
+df <- df_graphs 
+
+## DEFINE MODEL
+f <- "MAKER_POLITIC ~ MAKER_ID + (1|PID) + (1|STIMULUS)"
+m1 <-lmer(MAKER_POLITIC ~ MAKER_ID + (1|PID) + (1|STIMULUS), data=df)
+
+## PRINT MODEL 
+(m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
+
+## DESCRIBE MODEL
+summary(m1)
+anova(m1)
+performance(m1)
+report(m1)
+
+## PLOT MODEL COEFFICIENTS
+coefs <- model_parameters(m1)
+plot_model(m1, type = "est",
+        show.intercept = TRUE,
+        show.values = TRUE,
+        show.p = TRUE
+) + theme_minimal() + labs(caption=f)
+
+
+## PLOT MODEL PREDICTIONS
+means <- estimate_means(m1, at = c("MAKER_ID"))
+
+# sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
+#     theme_minimal() + labs(caption=f)
+
+# plot(means) + theme_minimal() + labs(caption=f) +
+# geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
+#           color="blue", position = position_nudge(x=0.25)) 
+
+
+## PLOT MODEL PREDICTIONS with CONTRASTS
+
+## contrasts
+# black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
+(contrasts <- estimate_contrasts(m1, contrast="MAKER_ID", method="pairwise"))
+plot(contrasts, means) + 
+    geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption = f)
+
+```
 
 
 #### Maker ID & Maker TRUST
@@ -1635,40 +1752,56 @@ df %>%
 
 ```
 
-```{r}
-# DESIGN BY DATA
-df %>% ggplot(aes(x = MAKER_DATA, y = MAKER_DESIGN, color = MAKER_ID)) +
-  geom_point() +
-  scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
-  facet_grid(MAKER_ID ~ .) + 
-  geom_line(stat="lm")+
-  theme_minimal()
+##### model
+```{r model-maker-id-trust}
 
-### MAKER ID TRUST 
+### LINEAR MIXED EFFECTS MODEL ##################
+
+df <- df_graphs 
+
+## DEFINE MODEL
+f <- "MAKER_TRUST ~ MAKER_ID + (1|PID) + (1|STIMULUS)"
+m1 <-lmer(MAKER_TRUST ~ MAKER_ID + (1|PID) + (1|STIMULUS), data=df)
+
+## PRINT MODEL 
+(m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
+
+## DESCRIBE MODEL
+summary(m1)
+anova(m1)
+performance(m1)
+report(m1)
+
+## PLOT MODEL COEFFICIENTS
+coefs <- model_parameters(m1)
+plot_model(m1, type = "est",
+        show.intercept = TRUE,
+        show.values = TRUE,
+        show.p = TRUE
+) + theme_minimal() + labs(caption=f)
 
 
+## PLOT MODEL PREDICTIONS
+means <- estimate_means(m1, at = c("MAKER_ID"))
+
+# sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
+#     theme_minimal() + labs(caption=f)
+
+# plot(means) + theme_minimal() + labs(caption=f) +
+# geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
+#           color="blue", position = position_nudge(x=0.25)) 
 
 
-grouped_ggscatterstats(
-  data             = df,
-  x                = MAKER_DATA,
-  y                = MAKER_DESIGN,
-  type             = "parametric",
-  # bf.message = FALSE,
-  grouping.var     = MAKER_ID,
-  point.args = list(size = 1, alpha = 0.4, stroke = 0),
-  ggplot.component = list(geom_rug(sides = "b")))
+## PLOT MODEL PREDICTIONS with CONTRASTS
 
-
-
-
-
+## contrasts
+# black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
+(contrasts <- estimate_contrasts(m1, contrast="MAKER_ID", method="pairwise"))
+plot(contrasts, means) + 
+    geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption = f)
 
 ```
-
-
-
-
 
 
 # BLOCK 2 ANALYSIS
@@ -3343,3 +3476,7 @@ rownames(ref_labels_reordered) <- ref_sd_questions
 -   GGSANKEY <https://github.com/davidsjoberg/ggsankey>
 -   GGALLUVIAL <https://corybrunson.github.io/ggalluvial/articles/ggalluvial.html>
 -   variable standardization [variable (vs) participant] :https://cran.r-project.org/web/packages/datawizard/vignettes/standardize_data.html
+- contrasts:
+- UCLA:https://stats.oarc.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables
+- https://phillipalday.com/stats/lazy-contrasts.html
+- level naming with contrasts :https://rpubs.com/bbolker/5335
