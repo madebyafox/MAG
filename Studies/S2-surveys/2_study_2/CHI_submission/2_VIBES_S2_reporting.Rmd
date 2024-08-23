@@ -836,7 +836,7 @@ if(graph_render == TRUE){
      subtitle =""
    )
   
-  ggsave(plot = plot_master_questions, path="figs/_master", filename =paste0("combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = plot_master_questions, path="figs/_full_sample", filename =paste0("combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
   
   
   #### GGDIST PLOT#############################################################################
@@ -865,7 +865,7 @@ if(graph_render == TRUE){
   labs (title = "ALL STIMULI", y = "") +
   theme_minimal() + easy_remove_legend()
  
-  ggsave(plot = g, path="figs/_master", filename =paste0("combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = g, path="figs/_full_sample", filename =paste0("combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
   
   
   #### DENSITY RIDGES#############################################################################
@@ -891,7 +891,7 @@ if(graph_render == TRUE){
     # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
     theme_minimal() + easy_remove_legend()
 
-    ggsave(plot = x, path="figs/_master", filename =paste0("combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
+    ggsave(plot = x, path="figs/_full_sample", filename =paste0("combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
   
     
     
@@ -919,7 +919,7 @@ if(graph_render == TRUE){
     # # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
     theme_minimal() + easy_remove_legend()
 
-    ggsave(plot = c, path="figs/_master", filename =paste0("combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
+    ggsave(plot = c, path="figs/_full_sample", filename =paste0("combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
   
 }
 
@@ -974,7 +974,7 @@ if(graph_render == TRUE){
      subtitle =""
    )
   
-  ggsave(plot = plot_master_questions, path="figs/_master", filename =paste0("ABS_combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = plot_master_questions, path="figs/_full_sample", filename =paste0("ABS_combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
   
   
   #### GGDIST PLOT#############################################################################
@@ -1003,7 +1003,7 @@ if(graph_render == TRUE){
   labs (title = "ALL STIMULI", y = "") +
   theme_minimal() + easy_remove_legend()
  
-  ggsave(plot = g, path="figs/_master", filename =paste0("ABS_combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = g, path="figs/_full_sample", filename =paste0("ABS_combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
   
   
   #### DENSITY RIDGES#############################################################################
@@ -1029,7 +1029,7 @@ if(graph_render == TRUE){
     # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
     theme_minimal() + easy_remove_legend()
 
-    ggsave(plot = x, path="figs/_master", filename =paste0("ABS_combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
+    ggsave(plot = x, path="figs/_full_sample", filename =paste0("ABS_combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
   
     
     
@@ -1056,7 +1056,7 @@ if(graph_render == TRUE){
     cowplot::draw_text(text = ref_sd_questions_abs, x = 20, y= ref_sd_questions_abs,size = 10, vjust=2) + ##raw
     theme_minimal() + easy_remove_legend()
 
-    ggsave(plot = c, path="figs/_master", filename =paste0("ABS_combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
+    ggsave(plot = c, path="figs/_full_sample", filename =paste0("ABS_combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
   
 }
 
@@ -1086,129 +1086,147 @@ rm(df, df_full, p, S,H, B,g,c)
 ### CORRELATIONS
 
 
-#### WIP ABS VALUES
-
-```{r}
-
-##1. half scores
-
-d <- df_graphs %>% 
-  # CENTER SCORES AT 0 RATHER THAN 50
-  # (range of values on slider was 0 <-> 100)
-  mutate(
-    MAKER_DESIGN = MAKER_DESIGN - 50,
-    MAKER_DATA = MAKER_DATA - 50,
-    MAKER_POLITIC = MAKER_POLITIC - 50,
-    MAKER_ARGUE = MAKER_ARGUE - 50,
-    MAKER_SELF = MAKER_SELF - 50,
-    MAKER_ALIGN = MAKER_ALIGN - 50,
-    MAKER_TRUST = MAKER_TRUST - 50,
-    CHART_LIKE = CHART_LIKE - 50,
-    CHART_BEAUTY = CHART_BEAUTY - 50,
-    CHART_INTENT = CHART_INTENT - 50,
-    CHART_TRUST = CHART_TRUST - 50,
-  ) %>% 
-  mutate(
-    abs_MAKER_DESIGN = abs(MAKER_DESIGN),
-    abs_MAKER_DATA = abs(MAKER_DATA),
-    abs_MAKER_POLITIC = abs(MAKER_POLITIC),
-    abs_MAKER_ARGUE = abs(MAKER_ARGUE),
-    abs_MAKER_SELF = abs(MAKER_SELF),
-    abs_MAKER_ALIGN = abs(MAKER_ALIGN),
-    abs_MAKER_TRUST = abs(MAKER_TRUST),
-    abs_CHART_LIKE = abs(CHART_LIKE),
-    abs_CHART_BEAUTY = abs(CHART_BEAUTY),
-    abs_CHART_INTENT = abs(CHART_INTENT),
-    abs_CHART_TRUST = abs(CHART_TRUST)
-  )
-
-
-
-```
-
 #### correlation matrices — semantic differential
 
 ```{r, correlation-matrices}
 
 
 df <- df_graphs %>% select(
-          MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
+          MAKER_DESIGN, MAKER_DATA, 
+          MAKER_POLITIC, MAKER_ARGUE,
           MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
-          CHART_LIKE, CHART_BEAUTY, CHART_INTENT, CHART_TRUST, 
+          CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
           PID)
 
-# print("PARTIAL CORRELATION NO RANDOM EFFECT")
-# #CALCULATE partial correlations with PID as random effect
-# c <- df %>%  correlation(partial=TRUE) 
-# s <- c %>% summary(redundant = FALSE)
-# m <- as.matrix(c)
+print("FULL CORRELATION NO RANDOM EFFECT")
+## CALCULATE full correlations with no random effects
+c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
+(s <- c %>% summary(redundant = FALSE))
+plot(s, show_data="point") + labs(title = "Correlation Matrix",
+               subtitle="(full correlation; pearson method; Holm p-value adjustment)")
+
 
 
 print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
 #CALCULATE partial correlations with PID as random effect
-c <- df %>% 
-  correlation(partial=TRUE,
-              multilevel = TRUE)
-
-#PRINT A SUMMARY
+## (this isolates correlation pairwise factoring out other variables)
+c <- df %>% correlation(partial=TRUE,multilevel = TRUE)
 (s <- c %>% summary(redundant = FALSE ))
-#GET THE MATRIX
+
+
+###### VIS WITH CORRELATION PACKAGE
+#SEE [correlation] PLOT
+g <- plot(s, show_data = "point",   show_text = "label",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     labs(title = "Correlation Matrix", 
+          subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/_correlations/partial_correlation_all.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+#PLOT GAUSSIAN GRAPH MODEL
+# plot(c)
+
+
+###### VIS WITH CORRPLOT <- -- customizable but can't save to file ARGH
+
+## GET THE MATRIX
 m <- as.matrix(c)
-#VIS WITH CORRPLOT
 
 
-## SHADED CIRCLES
-corrplot(m, method = 'circle', type = 'lower', 
-         order = 'AOE', diag = FALSE,
-         insig='blank',
+## JUST CICLES
+corrplot(m, method = 'circle', type = 'lower',
+         order = 'AOE', diag = FALSE, addCoef.col = "black",
          tl.col = "black")
 
 
-## SHADED NUMBERS
-corrplot(m,  order = 'AOE', method = "number", 
-         diag = FALSE, type = "lower",
-         insig='blank',
-         # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
-         addCoef.col = '#595D60',
-         tl.pos = "ld", tl.col = "#595D60")
-         
 
-## SHADED SQUARED + COEFFS
-corrplot(m,  order = 'AOE', method = "circle", 
-         diag = FALSE, type = "lower",
-         insig='blank', sig.level = 0.05,
-         # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
-         addCoef.col = '#595D60',
-         tl.pos = "ld", tl.col = "#595D60")
-         
-
-## UPPER CIRCLES LOWER NUMBERS 
-corrplot.mixed(m, lower = 'number', upper = 'circle', 
-               order = 'AOE',
-               tl.pos = "lt", tl.col = "black")
 
 
 
 ```
 
 
+
+
+#### correlation matrices — semantic differential — absolute values
+
+```{r, correlation-matrices—abs}
+
+
+df <- df_graphs_abs %>% select(
+          MAKER_DESIGN, MAKER_DATA, 
+          MAKER_POLITIC, MAKER_ARGUE,
+          MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+          CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+          PID)
+
+
+print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
+#CALCULATE partial correlations with PID as random effect
+## (this isolates correlation pairwise factoring out other variables)
+c <- df %>% correlation(partial=TRUE, multilevel = TRUE)
+(s <- c %>% summary(redundant = FALSE ))
+
+
+###### VIS WITH CORRELATION PACKAGE
+#SEE [correlation] PLOT
+g <- plot(s, show_data = "point",   show_text = "label",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     labs(title = "Correlation Matrix", 
+          subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/_correlations/partial_correlation_abs.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+#PLOT GAUSSIAN GRAPH MODEL
+# plot(c)
+
+
+###### VIS WITH CORRPLOT <- -- customizable but can't save to file ARGH
+
+## GET THE MATRIX
+m <- as.matrix(c)
+
+
+## JUST CICLES
+corrplot(m, method = 'circle', type = 'lower',
+         order = 'AOE', diag = FALSE, addCoef.col = "black",
+         tl.col = "black")
+
+
+
+
+
+
+```
+
+
+
+
+
+
 #### correlation matrices — by category levels
 
-##### maker ID
+_Here we explore the distribution of each SD variable (e.g. MAKER TRUST) by the different values of each categorical variable (e.g. MAKER ID). Patterns of interest are noted, which we explore further in the section **exploratory questions**._
+
+##### maker ID X SD 
 ```{r, maker_id-sds}
 if(graph_render){
 
-df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
-                    MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
-                    CHART_INTENT, CHART_TRUST, 
-                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
-                    MAKER_ID, MAKER_AGE, MAKER_GENDER)
+df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
 
 ## CORRELATION MATRIX SPLIT BY MAKER ID  
 (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_ID", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
     theme_minimal())
-ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_id_corr_x.png"), units = c("in"), width = 14, height = 10 )
+ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_id_corr_sd.png"), units = c("in"), width = 14, height = 10 )
 
 }
 ```
@@ -1217,18 +1235,41 @@ ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_id_corr_x.pn
 - When participants identify the maker as an INDIVIDUAL, the following variables show a different pattern than the other identifications: MAKER_DESIGN, MAKER_DATA, CHART INTENT
 - interesting bimodal distribution on CHART INTENT for most identifications, except individuals and organizations 
 
+##### maker ID X SD (abs)
+```{r, maker_id-sds-abs}
+if(graph_render){
+
+df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
+
+## CORRELATION MATRIX SPLIT BY MAKER ID  
+(x <-   ggscatmat(df, columns = 1:11, color = "MAKER_ID", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
+    theme_minimal())
+ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_id_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+
+}
+```
 
 
-
-##### maker AGE
+##### maker AGE X SD
 ```{r, maker_age-sds}
 if(graph_render){
 
+  df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
+  
   ## CORRELATION MATRIX SPLIT BY MAKER AGE  
   (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_AGE", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="lightblues", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal())
-  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_age_corr_x.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_age_corr_sd.png"), units = c("in"), width = 14, height = 10 )
 }
 ```
 
@@ -1238,29 +1279,71 @@ if(graph_render){
 - maker_data for gen Z vs others 
 
 
-##### maker GENDER
+##### maker AGE X SD (abs)
+```{r, maker_age-sds-abs}
+if(graph_render){
+  
+  df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
+
+  ## CORRELATION MATRIX SPLIT BY MAKER AGE  
+  (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_AGE", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="lightblues", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    theme_minimal())
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_age_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+}
+```
+
+
+##### maker GENDER X SD 
 ```{r, maker_gender-sds}
 if(graph_render){
+  
+  df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
+  
+  ## CORRELATION MATRIX SPLIT BY MAKER GENDER  
+  (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_GENDER", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    theme_minimal() )
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_gender_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+}
+```
+**Interesting patterns to explore further**
+- maker-data for FEMALE
+
+##### maker GENDER X SD (abs)
+```{r, maker_gender-sds-abs}
+if(graph_render){
+  
+  df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
 
   
   ## CORRELATION MATRIX SPLIT BY MAKER GENDER  
   (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_GENDER", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal() )
-  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_gender_corr_x.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_gender_corr_abs.png"), units = c("in"), width = 14, height = 10 )
 }
 ```
-**Interesting patterns to explore further**
-- maker-data for FEMALE
 
-##### tool ID  
+##### tool ID  X SD
 ```{r, tool-id-sds}
 if(graph_render){
   
-
-df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
-                    MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
-                    CHART_INTENT, CHART_TRUST, 
+df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
                     PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
                     TOOL_ID) 
   
@@ -1268,7 +1351,7 @@ df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
  (x <-  ggscatmat(df, columns = 1:11, color = "TOOL_ID", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="tools", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
     theme_minimal() )
-  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("tool_id_corr_x.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("tool_id_corr_sd.png"), units = c("in"), width = 14, height = 10 )
 }  
 ```
 
@@ -1279,14 +1362,14 @@ df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
 
 
 
-##### ENCOUNTER
+##### ENCOUNTER X SD
 ```{r, encounter-sds}  
 if(graph_render){
   
 
-df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
-                    MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
-                    CHART_INTENT, CHART_TRUST, 
+df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
                     PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
                     ENCOUNTER) %>% 
     mutate(ENCOUNTER = fct_rev(ENCOUNTER))
@@ -1295,7 +1378,7 @@ df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
 (x <-   ggscatmat(df, columns = 1:11, color = "ENCOUNTER", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="encounter", direction = "1"))+
     theme_minimal())
-  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("encounter_corr_x.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("encounter_corr_sd.png"), units = c("in"), width = 14, height = 10 )
   
 }  
 ```    
@@ -1304,16 +1387,36 @@ df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
 - chart beauty very diff
 - chart intent intersting bimodal
 
+##### ENCOUNTER X SD (abs)
+```{r, encounter-sds-abs}  
+if(graph_render){
+  
+
+df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                    ENCOUNTER) %>% 
+    mutate(ENCOUNTER = fct_rev(ENCOUNTER))
+
+## CORRELATION MATRIX SPLIT BY ENCOUNTER
+(x <-   ggscatmat(df, columns = 1:11, color = "ENCOUNTER", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="encounter", direction = "1"))+
+    theme_minimal())
+  ggsave(plot = x, path="figs/corr_by_group", filename =paste0("encounter_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+  
+}  
+```    
 
 
-##### chart ACTION 
+##### chart ACTION X SD
 ```{r, chart-action-sds}
 if(graph_render){
   
 
-df <- df_actions %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE,
-                    MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, CHART_LIKE, CHART_BEAUTY, 
-                    CHART_INTENT, CHART_TRUST, 
+df <- df_actions %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
                     PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
                     CHART_ACTION) 
   
@@ -1321,7 +1424,7 @@ df <- df_actions %>% select(MAKER_DESIGN, MAKER_DATA, MAKER_POLITIC, MAKER_ARGUE
 (x <- ggscatmat(df, columns = 1:11, color = "CHART_ACTION", alpha = 0.2) + 
     scale_color_manual(values = my_palettes(name="actions", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
     theme_minimal() )
-ggsave(plot = x, path="figs/corr_by_group", filename =paste0("chart_action_corr_x.png"), units = c("in"), width = 14, height = 10  )
+ggsave(plot = x, path="figs/corr_by_group", filename =paste0("chart_action_corr_sd.png"), units = c("in"), width = 14, height = 10  )
 
 }
 ```
@@ -2981,6 +3084,37 @@ design competence? data competence? chart intent? maker id?
 wip code stash
 
 
+## correlation plot code 
+
+```{r}
+# ## SHADED CIRCLES
+# corrplot(m, method = 'circle', type = 'lower', 
+#          order = 'AOE', diag = FALSE,
+#          insig='blank',
+#          tl.col = "black")
+# 
+# 
+# ## SHADED NUMBERS
+# corrplot(m,  order = 'AOE', method = "number", 
+#          diag = FALSE, type = "lower",
+#          insig='blank',
+#          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+#          addCoef.col = '#595D60',
+#          tl.pos = "ld", tl.col = "#595D60")
+#          
+# 
+# ## SHADED SQUARED + COEFFS
+# corrplot(m,  order = 'AOE', method = "circle", 
+#          diag = FALSE, type = "lower",
+#          insig='blank', sig.level = 0.05,
+#          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+#          addCoef.col = '#595D60',
+#          tl.pos = "ld", tl.col = "#595D60")
+#          
+
+```
+
+
 ## flip some sds
 ```{r}
 
@@ -3208,3 +3342,4 @@ rownames(ref_labels_reordered) <- ref_sd_questions
 -   lessR donuts <https://r-charts.com/part-whole/donut-chart/>
 -   GGSANKEY <https://github.com/davidsjoberg/ggsankey>
 -   GGALLUVIAL <https://corybrunson.github.io/ggalluvial/articles/ggalluvial.html>
+-   variable standardization [variable (vs) participant] :https://cran.r-project.org/web/packages/datawizard/vignettes/standardize_data.html
