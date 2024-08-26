@@ -1102,7 +1102,7 @@ print("FULL CORRELATION NO RANDOM EFFECT")
 c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
 (s <- c %>% summary(redundant = FALSE))
 plot(s, show_data="point") + labs(title = "Correlation Matrix",
-               subtitle="(full correlation; pearson method; Holm p-value adjustment)")
+               subtitle="(full correlation; pearson method; Holm p-value adjustment)") + theme_minimal()
 
 
 
@@ -1118,7 +1118,8 @@ c <- df %>% correlation(partial=TRUE,multilevel = TRUE)
 g <- plot(s, show_data = "point",   show_text = "label",
      stars=TRUE, show_legend=FALSE,
      show_statistic = FALSE, show_ci = FALSE) + 
-     labs(title = "Correlation Matrix", 
+     theme_minimal()+
+     labs(title = "Correlation Matrix — SD Questions", 
           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
      # text = list(fontface = "italic")
 g
@@ -1134,9 +1135,9 @@ ggsave(g, scale =1, filename = "figs/_correlations/partial_correlation_all.png",
 m <- as.matrix(c)
 
 
-## JUST CICLES
+## JUST CIRCLES
 corrplot(m, method = 'circle', type = 'lower',
-         order = 'AOE', diag = FALSE, addCoef.col = "black",
+         order = 'AOE', diag = FALSE, addCoef.col = "#7A7A7A",
          tl.col = "black")
 
 
@@ -1174,7 +1175,8 @@ c <- df %>% correlation(partial=TRUE, multilevel = TRUE)
 g <- plot(s, show_data = "point",   show_text = "label",
      stars=TRUE, show_legend=FALSE,
      show_statistic = FALSE, show_ci = FALSE) + 
-     labs(title = "Correlation Matrix", 
+     theme_minimal()+
+     labs(title = "Correlation Matrix — SD Questions — absolute values", 
           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
      # text = list(fontface = "italic")
 g
@@ -1190,9 +1192,9 @@ ggsave(g, scale =1, filename = "figs/_correlations/partial_correlation_abs.png",
 m <- as.matrix(c)
 
 
-## JUST CICLES
+## JUST CIRCLES
 corrplot(m, method = 'circle', type = 'lower',
-         order = 'AOE', diag = FALSE, addCoef.col = "black",
+         order = 'AOE', diag = FALSE, addCoef.col = "#7A7A7A",
          tl.col = "black")
 
 
