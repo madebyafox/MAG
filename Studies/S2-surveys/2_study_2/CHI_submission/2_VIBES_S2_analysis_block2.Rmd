@@ -1663,7 +1663,7 @@ for (s in stimuli){
    )
   
   box_stimuli[[i]] <- x
-  ggsave(plot = x, path="figs/_block2", filename =paste0(s,"_box.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = x, path="figs/_block2/distributions", filename =paste0(s,"_box.png"), units = c("in"), width = 10, height = 14  )
   #### END BOXPLOT PLOT  
   
   # #### RAINCLOUD PLOT
@@ -1691,7 +1691,7 @@ for (s in stimuli){
   
 
   rain_stimuli[[i]] <- x
-  ggsave(plot = x, path="figs/_block2", filename =paste0(s,"_rain.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = x, path="figs/_block2/distributions", filename =paste0(s,"_rain.png"), units = c("in"), width = 10, height = 14  )
   # #### END RAINCLOUD PLOT  
   
   
