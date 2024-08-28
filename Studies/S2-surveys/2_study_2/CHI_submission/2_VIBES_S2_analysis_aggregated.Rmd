@@ -1543,7 +1543,7 @@ df %>%
 
 ```
 
-#### model
+#### (YES) model
 
 ```{r model-maker-id-data}
 
@@ -1634,7 +1634,7 @@ df %>%
 
 ```
 
-#### model
+#### (YES) model
 
 ```{r model-maker-id-design}
 
@@ -1703,21 +1703,24 @@ diff - chart intent intersting bimodal
 
 ### Maker ID & Maker POLITICS
 
+**Is there an association between MAKER ID and MAKER POLITICS?  We hypothesize that when the MAKER ID is identified as POLITICAL, the MAKER POLITICS score will be more strongly associated with either ends of the semantic differential scale (ie. left leaning or right leaning). We expect this to not be the case with the other MAKER ID values.  
+
+To test this hypothesis, we will model MAKER_ID as a predictor of MAKER_POLITICS_ABS (the absolute value of the collapsed maker politics sd scale), where 0 = the midpoint of the original scale, and 50 = both the 0 and 100 pts of the original scale
 ```{r, message=FALSE}
 
-df <- df_graphs
+df <- df_graphs_abs
 
 ## Does MAKER POLITICS depend on MAKER ID?
 ##RIDGEPLOT w/ MEAN 
 answers <- levels(df$MAKER_ID)
-left <- rep(ref_labels['MAKER_POLITIC','left'],  length(levels(df$MAKER_ID)))
-right <- rep(ref_labels['MAKER_POLITIC','right'],  length(levels(df$MAKER_ID)))
+left <- rep(ref_labels_abs['MAKER_POLITIC','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels_abs['MAKER_POLITIC','right'],  length(levels(df$MAKER_ID)))
 
 df %>% 
   group_by(MAKER_ID) %>% 
   mutate(count = n()) %>% 
   ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_POLITIC, fill = fct_rev(MAKER_ID))) + 
-  scale_x_continuous(limits = c(0,100))+
+  scale_x_continuous(limits = c(0,50))+
   geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
   stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
   stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
@@ -1728,20 +1731,21 @@ df %>%
       y = guide_axis_manual(labels = left, title = ""),
       y.sec = guide_axis_manual(labels = right)
     ) +
-  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 100), color = "black",size = 3, nudge_y = 0.25) + 
+  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 50), color = "black",size = 3, nudge_y = 0.25) + 
   cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
-  labs (title = "POLITICS by MAKER ID", y = "", x = "MAKER POLITICS", caption="(mean in blue)") +
+  labs (title = "POLITICS (absolute value) by MAKER ID", y = "", x = "MAKER POLITICS", caption="(mean in blue)") +
   theme_minimal() + easy_remove_legend()
 
 ```
+Once the MAKER_POLITICS score has been collapsed to the SD scale, we see that our hypothesis is likely false, as the mean (absolute value) maker_politics scores are nearly the same for individual, organization and politics, with only news, education and business being slighly more neutral.  
 
-#### model
+#### (NO) model
 
 ```{r model-maker-id-politics}
 
 ### LINEAR MIXED EFFECTS MODEL ##################
 
-df <- df_graphs 
+df <- df_graphs_abs
 
 ## DEFINE MODEL
 f <- "MAKER_POLITIC ~ MAKER_ID + (1|PID) + (1|STIMULUS)"
@@ -1786,9 +1790,11 @@ plot(contrasts, means) +
   theme_minimal() + labs(caption = f)
 
 ```
+The results of the model confirm our suspicion that our hypothesis is not supported by the data.  MAKER_ID is not a strong predictor of MAKER_POLITICS (absolute value).  Post-hoc contrasts demonstrate that the mean values of some levels are significantly different (e.g individual v. education, organization v. education, education v. political) however the overall model does not indicate a good fit.  
 
 ### Maker ID & Maker TRUST
 
+**Do people indicate higher TRUST in artifacts they attribute to EDUCATION type makers? 
 ```{r}
 
 df <- df_graphs
@@ -1817,12 +1823,12 @@ df %>%
     ) +
   geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 100), color = "black",size = 3, nudge_y = 0.25) + 
   cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
-  labs (title = "MAKER TRUST COMPETENCY by MAKER ID", y = "", x = "MAKER TRUST", caption="(mean in blue)") +
+  labs (title = "MAKER TRUST  by MAKER ID", y = "", x = "MAKER TRUST", caption="(mean in blue)") +
   theme_minimal() + easy_remove_legend()
 
 ```
 
-#### model
+#### (YES) model
 
 ```{r model-maker-id-trust}
 
