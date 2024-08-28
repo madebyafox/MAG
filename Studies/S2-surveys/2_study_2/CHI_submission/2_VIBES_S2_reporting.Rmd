@@ -94,7 +94,7 @@ This notebook includes (3) primary analyses:
 
 *We start by importing data files previously wrangled in `0_VIBES_S2_wrangling.Rmd`.*
 
-## IMPORT DATA
+## Import Data
 
 ```{r import-refs, message=FALSE, warning = FALSE}
 
@@ -146,7 +146,7 @@ df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") 
 ```
 
 
-## SETUP GRAPHING
+## Set up Graphing
 ```{r setup-pallettes}
 
 ############## SETUP Colour Palettes
@@ -346,11 +346,11 @@ df_full <- df_graphs %>%
 ```
 
 
-### CONFIDENCE by QUESTION
+## CONFIDENCE
 
 When asking participants to identify the type, age and gender of the maker of a visualization, we also asked participants to indicate their confidence in these choices.  
 
-_Across all participants and all stimuli, are these questions answered with the same degree of confidence?_
+_Across all participants and all stimuli, are these (categorical) questions answered with the same degree of confidence?_
 Here we examine both the central tendency (mean) and shape of the distribution for each confidence variable. 
 
 
@@ -398,88 +398,8 @@ R <- df %>%
 
 (B+R)
 ```
-#### TODO WIP CONFIDENCE MODELLING
-```{r}
+Aggregated across all participants and all stimuli, the average confidence scores for each question (maker id, age, gender, tool id) are similar, with slighly lower confidence for the GENDER question.  This tells us there is enough variance in response to each question for the measure to be meaningful, and so we will follow up by investigating confidence at the STIMULUS level.  
 
-## [test-frame] Are the confidence scores significantly different for different questions?
-## [model-frame] Does QUESTION predict CONFIDENCE, accounting for random variance in SUBJECT and STIMULUS?
-
-
-## MIXED model with random variance only at subject (not stimulus)
-mm1 <- lmer( CONFIDENCE ~ QUESTION + (1|PID), data = df)
-# summary(mm1)
-# plot(check_model(mm1))
-# pm <- model_parameters(mm1)
-# plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION + (1|PID)")
-# performance(mm1)
-# report(mm1)
-
-
-## MIXED model with random variance only at subject AND stimulus
-mm2 <- lmer( CONFIDENCE ~ QUESTION + (1|PID) + (1|STIMULUS), data = df)
-# summary(mm2)
-# plot(check_model(mm2))
-# pm <- model_parameters(mm2)
-# plot_model(mm2)
-# plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION + (1|PID) + (1|STIMULUS)")
-# performance(mm2)
-# report(mm2)
-
-
-## MIXED model with random slope for question by person and random intercept by stimulus
-mm3 <- lmer( CONFIDENCE ~ QUESTION +  (1 + QUESTION | PID) + (1|STIMULUS), data = df)
-# summary(mm3)
-# plot(check_model(mm3))
-# pm <- model_parameters(mm3)
-# plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION +   (1 + QUESTION | PID) + (1|STIMULUS)")
-# performance(mm3)
-# report(mm3)
-
-
-## MIXED model with STIMULUS as FIXED effect and random intercept by person
-mm4 <- lmer( CONFIDENCE ~ QUESTION + STIMULUS +  (1 | PID), data = df)
-# summary(mm4)
-# plot(check_model(mm4))
-# pm <- model_parameters(mm4)
-# plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ QUESTION + STIMULUS +  (1 | PID)")
-# performance(mm4)
-# report(mm4)
-
-## MIXED model with STIMULUS * QUESTION interaction and random intercept by person
-mm5 <- lmer( CONFIDENCE ~ QUESTION * STIMULUS +  (1 | PID), data = df)
-# summary(mm5)
-# plot(check_model(mm5))
-# pm <- model_parameters(mm5)
-# plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ QUESTION * STIMULUS +  (1 | PID)")
-# performance(mm5)
-# report(mm5)
-
-
-## MIXED model with STIMULUS * QUESTION interaction and random intercept by person
-mmx <- lmer( CONFIDENCE ~ STIMULUS  +  (1 | PID) + (1 | QUESTION), data = df)
-# summary(mmx)
-# plot(check_model(mmx))
-# pm <- model_parameters(mmx)
-# plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ STIMULUS  +  (1 | PID) + (1 | QUESTION)")
-# performance(mmx)
-# report(mmx)
-
-
-### COMPARE MODELS
-# compare_parameters(mm1,mm2,mm3, mm4, mm5, mmx)
-compare_performance(mm1,mm2,mm3, mm4, mm5, mmx, rank = TRUE )
-## model 3 is the best fit, and is appropriate to the design of the study
-summary(mm3)
-report(mm3)
-# plot_model(mm3, terms = c("QUESTION", "STIMULUS"), type = "diag")
-
-# ## repeated measures aov
-print("Repeated Measures ANOVA")
-ex1 <-aov (CONFIDENCE~QUESTION+Error(PID), data=df)
-summary(ex1)
-report(ex1)
-
-```
 
 
 ### MAKER ID
@@ -549,6 +469,7 @@ H <- df %>%
 )
 
 ```
+The distribution of maker types is surprisingly equal across levels of the `maker_id` variable... exception of 'organization'. This distribution is likely a function of the diversity of stimuli we selected. Notably, the confidence scores are similar (both in mean and shape of distribution) regardless of the maker_id, indicating that in general, there is no maker identification for which participants have less confidence.  
 
 ### MAKER AGE
 
@@ -616,7 +537,7 @@ H <-  df %>%
 )
 
 ```
-
+The distribution of maker ages is distributed as we would expect if participants are answering the question with some sense of the maker's occupation in mind, and thus answering with the generations that are mostly likely of working age (gen X, millenial).  As with maker_id,  confidence scores are similar (both in mean and shape of distribution) across all levels of maker_age, indicating that in general, there is no maker age for which participants have less confidence.  
 
 ### MAKER GENDER
 
@@ -682,7 +603,7 @@ H <-  df %>%
 )
 
 ```
-
+The distribution of maker genders is not evenly distributed between men and women as we might expect.  We think it is most likely that the 'male' category serves as a default value for the maker gender, in the absence of any particular feature of stimulus that viewers interpret as strongly feminine.  This hypothesis is grounded in the free response data, however it is only a hypothesis.   
 ### TOOL ID
 
 Participants were asked: **What tools do you think were most likely used to create this image?\
@@ -750,8 +671,14 @@ H <-  df %>%
 )
 
 ```
+We had no expectations with respect to the distribution of values in tool identification, but note that are roughly even across categories (exception of 'unknown' and 'programming'), and the confidence scores are similar.  
+
 
 ### ENCOUNTER CHOICE
+
+The first question each participant saw in each stimulus block was: **As you're scrolling through your feed, you see this image.  What would you do?**
+options:  keep scrolling, pause and look at the image
+The response was saved as variable `ENCOUNTER` (select one)
 
 ```{r}
 ## B
@@ -766,7 +693,13 @@ df_full %>%
     theme_minimal() + 
     labs( title = "ENCOUNTER Choice ", subtitle = "", x = "")
 ```
+Participants chose to 'engage' rather than 'scroll past' 59% of the time. 
+
 ### ACTION CHOICE
+
+The last question participants were asked in each stimulus block was: **Imagine you encounter the following image while scrolling. Which of the following are you most likely to do?**
+options: post a comment, share/repost, share/repost WITH comment, look up more information about the topic or source, unfollow/block the source, NOTHING—just keep scrolling
+The response was saved as variable `CHART_ACTION` (multi-select)
 
 ```{r}
 ## B
@@ -785,8 +718,14 @@ df_actions %>% mutate(
     labs( title = "ACTION Choice ", subtitle = "", x = "")
     
 ```
+A high proportion of participants answered 'nothing' chart action, which is not surprising given the social media context. I am surprised to see such a high proportion answering that they would seek further information! 
+
 ### PLATFORM CHOICE
 
+Before starting the experimental blocks, participants were asked 
+**Please choose a social media platform to imagine you are engaging with during this study**
+options: Twitter/X, Tumblr, LinkedIn, Instagram, Facebook
+The response was saved as variable `PLATFORM` (select one)
 ```{r}
 ## B
 ## PLATFORM  BY STIMULUS
@@ -802,10 +741,11 @@ df_full %>%
     labs( title = "PLATFORM Choice ", subtitle = "", x = "")
     
 ```
+We had no expectations about the distribution of social media platform.
 
 ### SEMANTIC DIFFERENTIALS
 
-#### SCALE DATA 
+#### Full Scales
 
 _The SD scores visualized here are in the same form as the participants' resposne scale (slider from 0-100)._
 
@@ -943,7 +883,7 @@ rm(df, df_full, p, S,H, B,g)
 
 
 
-#### ABSOLUTE VALUES
+#### Absolute Values
 
 _Here the scale of the semantic differential questions have been collapsed, such that 0 is the midpoint of the scale (indicating uncertainty, or not strongly indicating either of the labelled traits) and both 100 and 0 are 50 (indicating a strong signal toward either of the labelled traits)._
 
@@ -1082,10 +1022,10 @@ rm(df, df_full, p, S,H, B,g,c)
 
 
 
-### CORRELATIONS
+## CORRELATIONS
 
 
-#### correlation matrices — semantic differential
+### correlation matrices — semantic differential
 
 ```{r, correlation-matrices}
 
@@ -1137,7 +1077,7 @@ m <- as.matrix(c)
 
 ## JUST CIRCLES
 corrplot(m, method = 'circle', type = 'lower',
-         order = 'AOE', diag = FALSE, addCoef.col = "#7A7A7A",
+         order = 'original', diag = FALSE, addCoef.col = "#7A7A7A",
          tl.col = "black")
 
 
@@ -1146,11 +1086,11 @@ corrplot(m, method = 'circle', type = 'lower',
 
 
 ```
+These plots depict the PARTIAL CORRELATION pairwise between variables (partial correlation factors out influence of other variables), with participant ID as a random effect. The resulting values are pearson moment-correlation coefficients ranging of -1 (direct negative) to +1 direct positive correlation.  These correlations are calculated on the full scale semantic differential questions (i.e. with the 0 - 100 range, where 1 and 100 are end points and 50 is the central point)
 
 
 
-
-#### correlation matrices — semantic differential — absolute values
+### correlation matrices — semantic differential — absolute values
 
 ```{r, correlation-matrices—abs}
 
@@ -1161,6 +1101,13 @@ df <- df_graphs_abs %>% select(
           MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
           PID)
+
+print("FULL CORRELATION NO RANDOM EFFECT")
+## CALCULATE full correlations with no random effects
+c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
+(s <- c %>% summary(redundant = FALSE))
+plot(s, show_data="point") + labs(title = "Correlation Matrix",
+               subtitle="(full correlation; pearson method; Holm p-value adjustment)") + theme_minimal()
 
 
 print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
@@ -1194,7 +1141,7 @@ m <- as.matrix(c)
 
 ## JUST CIRCLES
 corrplot(m, method = 'circle', type = 'lower',
-         order = 'AOE', diag = FALSE, addCoef.col = "#7A7A7A",
+         order = 'original', diag = FALSE, addCoef.col = "#7A7A7A",
          tl.col = "black")
 
 
@@ -1205,15 +1152,15 @@ corrplot(m, method = 'circle', type = 'lower',
 ```
 
 
+These plots depict the PARTIAL CORRELATION pairwise between variables (partial correlation factors out influence of other variables), with participant ID as a random effect. The resulting values are pearson moment-correlation coefficients ranging of -1 (direct negative) to +1 direct positive correlation.  These correlations are calculated on the ABSOLUTE VALUE of the semantic differential questions (i.e. with the full scale folded in half, such that 50 now becomes 0, and the extrememe values (0, 100) become 50). The absolute value scale allows us to collapse for weak (near zero) vs. strong (near 50) signal in each variable. 
 
 
 
-
-#### correlation matrices — by category levels
+### correlation matrices — by category levels
 
 _Here we explore the distribution of each SD variable (e.g. MAKER TRUST) by the different values of each categorical variable (e.g. MAKER ID). Patterns of interest are noted, which we explore further in the section **exploratory questions**._
 
-##### maker ID X SD 
+##### MAKER ID X SD 
 ```{r, maker_id-sds}
 if(graph_render){
 
@@ -1236,7 +1183,7 @@ ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_id_corr_sd.p
 - When participants identify the maker as an INDIVIDUAL, the following variables show a different pattern than the other identifications: MAKER_DESIGN, MAKER_DATA, CHART INTENT
 - interesting bimodal distribution on CHART INTENT for most identifications, except individuals and organizations 
 
-##### maker ID X SD (abs)
+##### MAKER ID X SD (abs)
 ```{r, maker_id-sds-abs}
 if(graph_render){
 
@@ -1256,7 +1203,7 @@ ggsave(plot = x, path="figs/corr_by_group", filename =paste0("maker_id_corr_abs.
 ```
 
 
-##### maker AGE X SD
+##### MAKER AGE X SD
 ```{r, maker_age-sds}
 if(graph_render){
 
@@ -1280,7 +1227,7 @@ if(graph_render){
 - maker_data for gen Z vs others 
 
 
-##### maker AGE X SD (abs)
+##### MAKER AGE X SD (abs)
 ```{r, maker_age-sds-abs}
 if(graph_render){
   
@@ -1299,7 +1246,7 @@ if(graph_render){
 ```
 
 
-##### maker GENDER X SD 
+##### MAKER GENDER X SD 
 ```{r, maker_gender-sds}
 if(graph_render){
   
@@ -1319,7 +1266,7 @@ if(graph_render){
 **Interesting patterns to explore further**
 - maker-data for FEMALE
 
-##### maker GENDER X SD (abs)
+##### MAKER GENDER X SD (abs)
 ```{r, maker_gender-sds-abs}
 if(graph_render){
   
@@ -1338,7 +1285,7 @@ if(graph_render){
 }
 ```
 
-##### tool ID  X SD
+##### TOOL ID  X SD
 ```{r, tool-id-sds}
 if(graph_render){
   
@@ -1410,7 +1357,7 @@ df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA,
 ```    
 
 
-##### chart ACTION X SD
+##### CHART ACTION X SD
 ```{r, chart-action-sds}
 if(graph_render){
   
@@ -1432,13 +1379,13 @@ ggsave(plot = x, path="figs/corr_by_group", filename =paste0("chart_action_corr_
 **Interesting patterns to explore further**
 - unfollow/block across all! 
 
-### EXPLORATORY QUESTIONS
+## EXPLORATORY QUESTIONS
 
 - When participants identify the maker as an INDIVIDUAL, the following variables show a different pattern than the other identifications: MAKER_DESIGN, MAKER_DATA, CHART INTENT
 - interesting bimodal distribution on CHART INTENT for most identifications, except individuals and organizations 
 
 
-#### Maker ID & Maker DATA COMPETENCY
+### MAKER ID & Maker DATA COMPETENCY
 ```{r vis-maker-id-data, warning=FALSE}
 
 df <- df_graphs 
@@ -1472,7 +1419,7 @@ df %>%
 
 ```
 
-##### model
+#### model
 ```{r model-maker-id-data}
 
 ### LINEAR MIXED EFFECTS MODEL ##################
@@ -1527,7 +1474,7 @@ plot(contrasts, means) +
 
 ```
 
-#### Maker ID & Maker DESIGN COMPETENCY
+### Maker ID & Maker DESIGN COMPETENCY
 ```{r}
 
 df <- df_graphs
@@ -1562,7 +1509,7 @@ df %>%
 ```
 
 
-##### model
+#### model
 ```{r model-maker-id-design}
 
 ### LINEAR MIXED EFFECTS MODEL ##################
@@ -1634,7 +1581,7 @@ plot(contrasts, means) +
 - chart beauty very diff
 - chart intent intersting bimodal
 
-#### Maker ID & Maker POLITICS
+### Maker ID & Maker POLITICS
 ```{r, message=FALSE}
 
 df <- df_graphs
@@ -1667,7 +1614,7 @@ df %>%
 
 ```
 
-##### model
+#### model
 ```{r model-maker-id-politics}
 
 ### LINEAR MIXED EFFECTS MODEL ##################
@@ -1719,7 +1666,7 @@ plot(contrasts, means) +
 ```
 
 
-#### Maker ID & Maker TRUST
+### Maker ID & Maker TRUST
 
 ```{r}
 
@@ -1754,7 +1701,7 @@ df %>%
 
 ```
 
-##### model
+#### model
 ```{r model-maker-id-trust}
 
 ### LINEAR MIXED EFFECTS MODEL ##################
@@ -3214,6 +3161,94 @@ design competence? data competence? chart intent? maker id?
 # STASH
 
 wip code stash
+
+## wip confidence modelling
+```{r}
+# 
+# ## [test-frame] Are the confidence scores significantly different for different questions?
+# ## [model-frame] Does QUESTION predict CONFIDENCE, accounting for random variance in SUBJECT and STIMULUS?
+# 
+# 
+# ## MIXED model with random variance only at subject (not stimulus)
+# mm1 <- lmer( CONFIDENCE ~ QUESTION + (1|PID), data = df)
+# # summary(mm1)
+# # plot(check_model(mm1))
+# # pm <- model_parameters(mm1)
+# # plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION + (1|PID)")
+# # performance(mm1)
+# # report(mm1)
+# 
+# 
+# ## MIXED model with random variance only at subject AND stimulus
+# mm2 <- lmer( CONFIDENCE ~ QUESTION + (1|PID) + (1|STIMULUS), data = df)
+# # summary(mm2)
+# # plot(check_model(mm2))
+# # pm <- model_parameters(mm2)
+# # plot_model(mm2)
+# # plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION + (1|PID) + (1|STIMULUS)")
+# # performance(mm2)
+# # report(mm2)
+# 
+# 
+# ## MIXED model with random slope for question by person and random intercept by stimulus
+# mm3 <- lmer( CONFIDENCE ~ QUESTION +  (1 + QUESTION | PID) + (1|STIMULUS), data = df)
+# # summary(mm3)
+# # plot(check_model(mm3))
+# # pm <- model_parameters(mm3)
+# # plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION +   (1 + QUESTION | PID) + (1|STIMULUS)")
+# # performance(mm3)
+# # report(mm3)
+# 
+# 
+# ## MIXED model with STIMULUS as FIXED effect and random intercept by person
+# mm4 <- lmer( CONFIDENCE ~ QUESTION + STIMULUS +  (1 | PID), data = df)
+# # summary(mm4)
+# # plot(check_model(mm4))
+# # pm <- model_parameters(mm4)
+# # plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ QUESTION + STIMULUS +  (1 | PID)")
+# # performance(mm4)
+# # report(mm4)
+# 
+# ## MIXED model with STIMULUS * QUESTION interaction and random intercept by person
+# mm5 <- lmer( CONFIDENCE ~ QUESTION * STIMULUS +  (1 | PID), data = df)
+# # summary(mm5)
+# # plot(check_model(mm5))
+# # pm <- model_parameters(mm5)
+# # plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ QUESTION * STIMULUS +  (1 | PID)")
+# # performance(mm5)
+# # report(mm5)
+# 
+# 
+# ## MIXED model with STIMULUS * QUESTION interaction and random intercept by person
+# mmx <- lmer( CONFIDENCE ~ STIMULUS  +  (1 | PID) + (1 | QUESTION), data = df)
+# # summary(mmx)
+# # plot(check_model(mmx))
+# # pm <- model_parameters(mmx)
+# # plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ STIMULUS  +  (1 | PID) + (1 | QUESTION)")
+# # performance(mmx)
+# # report(mmx)
+# 
+# 
+# ### COMPARE MODELS
+# # compare_parameters(mm1,mm2,mm3, mm4, mm5, mmx)
+# compare_performance(mm1,mm2,mm3, mm4, mm5, mmx, rank = TRUE )
+# ## model 3 is the best fit, and is appropriate to the design of the study
+# summary(mm3)
+# report(mm3)
+# # plot_model(mm3, terms = c("QUESTION", "STIMULUS"), type = "diag")
+# 
+# # # ## repeated measures aov
+# # print("Repeated Measures ANOVA")
+# # ex1 <- aov(CONFIDENCE~QUESTION+Error(PID), data=df)
+# # summary(ex1)
+# # report(ex1)
+# 
+
+
+
+
+```
+
 
 
 ## correlation plot code 
