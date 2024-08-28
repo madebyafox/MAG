@@ -334,7 +334,7 @@ Other). Note that a higher proportion of participants recruited from
 TUMBLR report identities other than cis-gender Female and cis-gender
 Male.
 
-## Study Response Time
+### Study Response Time
 
 ```{r demo-response-time}
 
@@ -360,7 +360,7 @@ SD = `r (round(t.desc.duration$sd,2))`.
 rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.t, p_participants, t_participants)
 ```
 
-```{r setup-full-sample}
+```{r block2_setup}
 
 #block 2 data only
 df_b2 <- df_graphs %>% filter (str_detect(STIMULUS, "B2")) %>% 
@@ -1663,7 +1663,7 @@ for (s in stimuli){
    )
   
   box_stimuli[[i]] <- x
-  ggsave(plot = x, path="figs/_block2/distributions", filename =paste0(s,"_box.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = x, path="figs/level_block2/distributions", filename =paste0(s,"_box.png"), units = c("in"), width = 10, height = 14  )
   #### END BOXPLOT PLOT  
   
   # #### RAINCLOUD PLOT
@@ -1691,7 +1691,7 @@ for (s in stimuli){
   
 
   rain_stimuli[[i]] <- x
-  ggsave(plot = x, path="figs/_block2/distributions", filename =paste0(s,"_rain.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = x, path="figs/level_block2/distributions", filename =paste0(s,"_rain.png"), units = c("in"), width = 10, height = 14  )
   # #### END RAINCLOUD PLOT  
   
   
@@ -1754,7 +1754,7 @@ for (s in stimuli){
   ##ONLY SAVE IF RENDER GRAPHS IF SET TO TRUE
   if(graph_render == TRUE){
   # CREATE A CHART TO SACE  
-  lessR::PieChart(value, data = df, pdf_file = paste0("figs/donuts_by_stimulus/",s," ",c),
+  lessR::PieChart(value, data = df, pdf_file = paste0("figs/level_block2/donuts/",s," ",c),
          fill = palettes[a], quiet=TRUE,
          main = paste0(s, " ",c)) 
   }

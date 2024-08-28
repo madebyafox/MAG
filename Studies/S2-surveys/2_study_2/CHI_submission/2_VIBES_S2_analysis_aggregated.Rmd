@@ -1421,6 +1421,8 @@ df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA,
 design-basic, interesting pattern - look closer at chart beauty -
 interesting pattern across values on chart intent
 
+
+
 ##### ENCOUNTER X SD
 
 ```{r, encounter-sds}
