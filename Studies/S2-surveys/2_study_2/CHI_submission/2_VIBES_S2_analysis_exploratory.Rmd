@@ -303,23 +303,24 @@ df <- df_graphs  %>% select(PID, Distribution, STIMULUS, STIMULUS_CATEGORY, BLOC
 ## B
 ## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
 ## BOXPLOT W/ JITTER
-(B <- 
+B <- 
   df %>% ggplot(aes(x=QUESTION, y= CONFIDENCE)) + 
   geom_boxplot(width = 0.5) + 
   geom_jitter(alpha = 0.25, position=position_dodge2(width = 0.25)) + 
-  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
-               vjust=-2, hjust = +0.25, aes( label=round(..y.., digits=0)))+
-  stat_summary(fun=mean, geom="point", size = 2, colour="blue")+
+  # stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+  #              vjust=-2, hjust = +0.25, aes( label=round(..y.., digits=0)))+
+  # stat_summary(fun=mean, geom="point", size = 2, colour="blue")+
   facet_grid(BLOCK ~ STIMULUS_CATEGORY) + 
   coord_flip()+
   theme_minimal() + 
   labs(title = "ALL STIMULI Confidence by Survey Question", caption = "(mean in blue)")
-)
+  ggsave(plot = B, path="figs/level_stimulus/distributions", filename =paste0("ALL_CONFIDENCE_box.png"), units = c("in"), width = 10, height = 14  )
+
 
 ## R
 ## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
 ## RIDGEPLOT W/ INTERVAL MEAN
-( R <-  df %>% 
+R <-  df %>% 
   ggplot(aes(x=CONFIDENCE, y=fct_rev(QUESTION), fill=fct_rev(QUESTION))) + 
     geom_density_ridges(scale = 0.65, alpha = 0.75, quantile_lines = TRUE) +
     scale_x_continuous(limits = c(0,100))+
@@ -332,11 +333,12 @@ df <- df_graphs  %>% select(PID, Distribution, STIMULUS, STIMULUS_CATEGORY, BLOC
   theme_minimal() + 
   labs(title = "ALL STIMULI Confidence by Survey Question", y = "QUESTION", caption =" (mean in blue)") + 
   easy_remove_legend()
-)
+  ggsave(plot = R, path="figs/level_stimulus/distributions", filename =paste0("ALL_CONFIDENCE_ridges.png"), units = c("in"), width = 10, height = 14  )
+
 
 
   # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
-  ggplot(df, aes(y = fct_rev(QUESTION), x = CONFIDENCE, fill = QUESTION)) +
+G <-   ggplot(df, aes(y = fct_rev(QUESTION), x = CONFIDENCE, fill = QUESTION)) +
     stat_halfeye(scale=1, density="bounded", point_interval = "mean_qi", alpha = 0.5) +
     scale_fill_manual(values = my_palettes(name="questions", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     # stat_interval(side = "bottom", scale = 2, slab_linewidth = NA) +  
@@ -346,10 +348,12 @@ df <- df_graphs  %>% select(PID, Distribution, STIMULUS, STIMULUS_CATEGORY, BLOC
     facet_grid(BLOCK ~ STIMULUS_CATEGORY) + 
   labs (title = "ALL STIMULUS CONFIDENCE BY STIMULUS & QUESTION", y = "") +
   theme_minimal() + easy_remove_legend()
- 
+   ggsave(plot = G, path="figs/level_stimulus/distributions", filename =paste0("ALL_CONFIDENCE_ggdist.png"), units = c("in"), width = 10, height = 14  )
+
 
 B
 R
+G
 ```
 
 
@@ -375,7 +379,7 @@ B <-
   # coord_flip()+
   theme_minimal() + 
   labs(title = "MAKER ID CONFIDENCE by STIMULUS", caption = "(mean in blue)") 
-  ggsave(plot = B, path="figs/_stimulus_level", filename =paste0("MAKER_CONF_box.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = B, path="figs/level_stimulus/distributions", filename =paste0("MAKER_CONF_box.png"), units = c("in"), width = 10, height = 14  )
 
 ## R
 ## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
@@ -391,7 +395,7 @@ B <-
   theme_minimal() + 
   labs(title = "MAKER ID CONFIDENCE by STIMULUS", caption = "(mean in blue)") + 
   easy_remove_legend()
-  ggsave(plot = R, path="figs/_stimulus_level", filename =paste0("MAKER_CONF_ridges.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = R, path="figs/level_stimulus/distributions", filename =paste0("MAKER_CONF_ridges.png"), units = c("in"), width = 10, height = 14  )
 
 
   # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
@@ -405,13 +409,214 @@ G <-   ggplot(df, aes(y = STIMULUS, x = MAKER_CONF)) +
     # facet_grid(BLOCK ~ STIMULUS_CATEGORY, ) + 
       labs(title = "MAKER ID CONFIDENCE by STIMULUS", caption = "(mean in blue)") + 
   theme_minimal() + easy_remove_legend()
-  ggsave(plot = G, path="figs/_stimulus_level", filename =paste0("MAKER_CONF_ggdist.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = G, path="figs/level_stimulus/distributions", filename =paste0("MAKER_CONF_ggdist.png"), units = c("in"), width = 10, height = 14  )
  
 
 B
 R
 G
 ```
+
+
+
+
+
+
+
+
+### CONFIDENCE — MAKER AGE
+
+```{r stimulus_confidence}
+
+df <- df_graphs
+
+## B
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## BOXPLOT W/ JITTER
+B <- 
+  df %>% ggplot(aes(x=STIMULUS, y= AGE_CONF)) + 
+  geom_boxplot(width = 0.5) + 
+  geom_jitter(alpha = 0.25, position=position_dodge2(width = 0.25)) + 
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=-2, hjust = +0.25, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", size = 2, colour="blue")+
+  # coord_flip()+
+  theme_minimal() + 
+  labs(title = "MAKER AGE CONFIDENCE by STIMULUS", caption = "(mean in blue)") 
+  ggsave(plot = B, path="figs/level_stimulus/distributions", filename =paste0("AGE_CONF_box.png"), units = c("in"), width = 10, height = 14  )
+
+## R
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## RIDGEPLOT W/ INTERVAL MEAN
+ R <-  df %>% 
+  ggplot(aes(x=AGE_CONF, y=STIMULUS)) + 
+    geom_density_ridges(scale = 0.65, alpha = 0.75, quantile_lines = TRUE) +
+    scale_x_continuous(limits = c(0,100))+
+    stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
+               vjust=+2, hjust = 0.40, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  theme_minimal() + 
+  labs(title = "MAKER AGE CONFIDENCE by STIMULUS", caption = "(mean in blue)") + 
+  easy_remove_legend()
+  ggsave(plot = R, path="figs/level_stimulus/distributions", filename =paste0("AGE_CONF_ridges.png"), units = c("in"), width = 10, height = 14  )
+
+
+  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+G <-   ggplot(df, aes(y = STIMULUS, x = AGE_CONF)) +
+    stat_halfeye(scale=1, density="bounded", point_interval = "mean_qi", alpha = 0.5) +
+    # scale_fill_manual(values = my_palettes(name="questions", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    # stat_interval(side = "bottom", scale = 2, slab_linewidth = NA) +  
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
+                vjust=+2, hjust = 0.50, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+    # facet_grid(BLOCK ~ STIMULUS_CATEGORY, ) + 
+      labs(title = "MAKER AGE CONFIDENCE by STIMULUS", caption = "(mean in blue)") + 
+  theme_minimal() + easy_remove_legend()
+  ggsave(plot = G, path="figs/level_stimulus/distributions", filename =paste0("AGE_CONF_ggdist.png"), units = c("in"), width = 10, height = 14  )
+ 
+
+B
+R
+G
+```
+
+
+
+
+
+
+
+
+
+### CONFIDENCE — MAKER GENDER
+
+```{r stimulus_confidence}
+
+df <- df_graphs
+
+## B
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## BOXPLOT W/ JITTER
+B <- 
+  df %>% ggplot(aes(x=STIMULUS, y= GENDER_CONF)) + 
+  geom_boxplot(width = 0.5) + 
+  geom_jitter(alpha = 0.25, position=position_dodge2(width = 0.25)) + 
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=-2, hjust = +0.25, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", size = 2, colour="blue")+
+  # coord_flip()+
+  theme_minimal() + 
+  labs(title = "MAKER GENDER CONFIDENCE by STIMULUS", caption = "(mean in blue)") 
+  ggsave(plot = B, path="figs/level_stimulus/distributions", filename =paste0("GENDER_CONF_box.png"), units = c("in"), width = 10, height = 14  )
+
+## R
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## RIDGEPLOT W/ INTERVAL MEAN
+ R <-  df %>% 
+  ggplot(aes(x=GENDER_CONF, y=STIMULUS)) + 
+    geom_density_ridges(scale = 0.65, alpha = 0.75, quantile_lines = TRUE) +
+    scale_x_continuous(limits = c(0,100))+
+    stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
+               vjust=+2, hjust = 0.40, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  theme_minimal() + 
+  labs(title = "MAKER GENDER CONFIDENCE by STIMULUS", caption = "(mean in blue)") + 
+  easy_remove_legend()
+  ggsave(plot = R, path="figs/level_stimulus/distributions", filename =paste0("GENDER_CONF_ridges.png"), units = c("in"), width = 10, height = 14  )
+
+
+  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+G <-   ggplot(df, aes(y = STIMULUS, x = GENDER_CONF)) +
+    stat_halfeye(scale=1, density="bounded", point_interval = "mean_qi", alpha = 0.5) +
+    # scale_fill_manual(values = my_palettes(name="questions", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    # stat_interval(side = "bottom", scale = 2, slab_linewidth = NA) +  
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
+                vjust=+2, hjust = 0.50, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+    # facet_grid(BLOCK ~ STIMULUS_CATEGORY, ) + 
+      labs(title = "MAKER GENDER CONFIDENCE by STIMULUS", caption = "(mean in blue)") + 
+  theme_minimal() + easy_remove_legend()
+  ggsave(plot = G, path="figs/level_stimulus/distributions", filename =paste0("GENDER_CONF_ggdist.png"), units = c("in"), width = 10, height = 14  )
+ 
+
+B
+R
+G
+```
+
+
+
+
+
+
+
+
+
+
+### CONFIDENCE — TOOL ID
+
+```{r stimulus_confidence}
+
+df <- df_graphs
+
+## B
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## BOXPLOT W/ JITTER
+B <- 
+  df %>% ggplot(aes(x=STIMULUS, y= TOOL_CONF)) + 
+  geom_boxplot(width = 0.5) + 
+  geom_jitter(alpha = 0.25, position=position_dodge2(width = 0.25)) + 
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+               vjust=-2, hjust = +0.25, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", size = 2, colour="blue")+
+  # coord_flip()+
+  theme_minimal() + 
+  labs(title = "TOOL ID CONFIDENCE by STIMULUS", caption = "(mean in blue)") 
+  ggsave(plot = B, path="figs/level_stimulus/distributions", filename =paste0("TOOL_CONF_box.png"), units = c("in"), width = 10, height = 14  )
+
+## R
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## RIDGEPLOT W/ INTERVAL MEAN
+ R <-  df %>% 
+  ggplot(aes(x=TOOL_CONF, y=STIMULUS)) + 
+    geom_density_ridges(scale = 0.65, alpha = 0.75, quantile_lines = TRUE) +
+    scale_x_continuous(limits = c(0,100))+
+    stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
+               vjust=+2, hjust = 0.40, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+  theme_minimal() + 
+  labs(title = "TOOL ID CONFIDENCE by STIMULUS", caption = "(mean in blue)") + 
+  easy_remove_legend()
+  ggsave(plot = R, path="figs/level_stimulus/distributions", filename =paste0("TOOL_CONF_ridges.png"), units = c("in"), width = 10, height = 14  )
+
+
+  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+G <-   ggplot(df, aes(y = STIMULUS, x = TOOL_CONF)) +
+    stat_halfeye(scale=1, density="bounded", point_interval = "mean_qi", alpha = 0.5) +
+    # scale_fill_manual(values = my_palettes(name="questions", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    # stat_interval(side = "bottom", scale = 2, slab_linewidth = NA) +  
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
+                vjust=+2, hjust = 0.50, aes( label=round(..x.., digits=0)))+
+    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+    # facet_grid(BLOCK ~ STIMULUS_CATEGORY, ) + 
+      labs(title = "TOOL ID CONFIDENCE by STIMULUS", caption = "(mean in blue)") + 
+  theme_minimal() + easy_remove_legend()
+  ggsave(plot = G, path="figs/level_stimulus/distributions", filename =paste0("TOOL_CONF_ggdist.png"), units = c("in"), width = 10, height = 14  )
+ 
+
+B
+R
+G
+```
+
+
+
+
+
+
 
 
 
@@ -485,18 +690,6 @@ rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.
 ```
 
 
-```{r setup-full-sample}
-
-#full stimulus-level data
-df_full <- df_graphs %>% 
-  mutate(
-    STUDY = "" #dummy variable for univariate visualizations
-  )
-# %>%
-#   mutate(MAKER_ID = fct_rev(MAKER_ID))
-
-```
-
 
 ## CONFIDENCE
 
@@ -508,7 +701,7 @@ Here we examine both the central tendency (mean) and shape of the distribution f
 
 ```{r compare-confidence}
 
-df <- df_full %>% select(PID, Distribution, STIMULUS,MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+df <- df_graphs %>% select(PID, Distribution, STIMULUS,MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
   pivot_longer(
     cols = c(MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF),
     names_to = "QUESTION",
