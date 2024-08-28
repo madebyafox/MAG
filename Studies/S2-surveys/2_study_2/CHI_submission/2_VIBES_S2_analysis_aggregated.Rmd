@@ -869,7 +869,7 @@ if(graph_render == TRUE){
      subtitle =""
    )
   
-  ggsave(plot = plot_master_questions, path="figs/_aggregated", filename =paste0("combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = plot_master_questions, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
   
   
   #### GGDIST PLOT#############################################################################
@@ -898,7 +898,7 @@ if(graph_render == TRUE){
   labs (title = "ALL STIMULI", y = "") +
   theme_minimal() + easy_remove_legend()
 ) 
-  ggsave(plot = g, path="figs/_aggregated", filename =paste0("combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = g, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
 
   
   #### DENSITY RIDGES#############################################################################
@@ -924,7 +924,7 @@ if(graph_render == TRUE){
     # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
     theme_minimal() + easy_remove_legend()
 )
-    ggsave(plot = x, path="figs/_aggregated", filename =paste0("combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
+    ggsave(plot = x, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
 
   
     
@@ -953,7 +953,7 @@ if(graph_render == TRUE){
     # # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
     theme_minimal() + easy_remove_legend()
 )
-    ggsave(plot = c, path="figs/_aggregated", filename =paste0("combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
+    ggsave(plot = c, path="figs/level_aggregated/distributions", filename =paste0("combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
   
   
 }
@@ -1004,7 +1004,7 @@ if(graph_render == TRUE){
      subtitle =""
    )
   
-  ggsave(plot = plot_master_questions, path="figs/_aggregated", filename =paste0("ABS_combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = plot_master_questions, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
   
   
   #### GGDIST PLOT#############################################################################
@@ -1033,7 +1033,7 @@ if(graph_render == TRUE){
   labs (title = "ALL STIMULI", y = "") +
   theme_minimal() + easy_remove_legend()
 ) 
-  ggsave(plot = g, path="figs/_aggregated", filename =paste0("ABS_combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+  ggsave(plot = g, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
   
   
   #### DENSITY RIDGES#############################################################################
@@ -1059,7 +1059,7 @@ if(graph_render == TRUE){
     # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
     theme_minimal() + easy_remove_legend()
 )
-    ggsave(plot = x, path="figs/_aggregated", filename =paste0("ABS_combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
+    ggsave(plot = x, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
   
     
     
@@ -1086,7 +1086,7 @@ if(graph_render == TRUE){
     cowplot::draw_text(text = ref_sd_questions_abs, x = 20, y= ref_sd_questions_abs,size = 10, vjust=2) + ##raw
     theme_minimal() + easy_remove_legend()
 )
-    ggplot2::ggsave(plot = c, path="figs/_aggregated", filename =paste0("ABS_combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
+    ggplot2::ggsave(plot = c, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
   
 }
 
@@ -1142,7 +1142,7 @@ g <- plot(s, show_data = "point",   show_text = "label",
           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
      # text = list(fontface = "italic")
 g
-ggsave(g, scale =1, filename = "figs/_aggregated/correlations/partial_correlation_all.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/partial_correlation_all.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
 
 #PLOT GAUSSIAN GRAPH MODEL
 # plot(c)
@@ -1211,7 +1211,7 @@ g <- plot(s, show_data = "point",   show_text = "label",
           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
      # text = list(fontface = "italic")
 g
-ggsave(g, scale =1, filename = "figs/_aggregated/correlations/partial_correlation_abs.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/partial_correlation_abs.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
 
 #PLOT GAUSSIAN GRAPH MODEL
 # plot(c)
@@ -1269,7 +1269,7 @@ df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA,
     scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
     theme_minimal()
 )
-ggsave(plot = x, path="figs/_aggregated/corr_by_level", filename =paste0("maker_id_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_id_corr_sd.png"), units = c("in"), width = 14, height = 10 )
 
 x
 
@@ -1299,7 +1299,7 @@ df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA,
 (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_ID", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
     theme_minimal())
-ggsave(plot = x, path="figs/_aggregated/corr_by_level", filename =paste0("maker_id_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_id_corr_abs.png"), units = c("in"), width = 14, height = 10 )
 
 x
 }
@@ -1320,7 +1320,7 @@ if(graph_render){
   (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_AGE", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="lightblues", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal())
-  ggsave(plot = x, path="figs/_aggregated/corr_by_level", filename =paste0("maker_age_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_age_corr_sd.png"), units = c("in"), width = 14, height = 10 )
 
 x  
 }
@@ -1346,7 +1346,7 @@ if(graph_render){
   (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_AGE", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="lightblues", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal())
-  ggsave(plot = x, path="figs/_aggregated/corr_by_level", filename =paste0("maker_age_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_age_corr_abs.png"), units = c("in"), width = 14, height = 10 )
 x
 }
 ```
@@ -1366,7 +1366,7 @@ if(graph_render){
   (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_GENDER", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal() )
-  ggsave(plot = x, path="figs/_aggregated/corr_by_level", filename =paste0("maker_gender_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_gender_corr_sd.png"), units = c("in"), width = 14, height = 10 )
   
   x
 }
@@ -1390,7 +1390,7 @@ if(graph_render){
   (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_GENDER", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal() )
-  ggsave(plot = x, path="figs/_aggregated/corr_by_level", filename =paste0("maker_gender_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_gender_corr_abs.png"), units = c("in"), width = 14, height = 10 )
   
   x
 }
@@ -1411,7 +1411,7 @@ df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA,
  (x <-  ggscatmat(df, columns = 1:11, color = "TOOL_ID", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="tools", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
     theme_minimal() )
-  ggsave(plot = x, path="figs/_aggregated/corr_by_level", filename =paste0("tool_id_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("tool_id_corr_sd.png"), units = c("in"), width = 14, height = 10 )
   
   x
 }  
@@ -1438,7 +1438,7 @@ df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA,
 (x <-   ggscatmat(df, columns = 1:11, color = "ENCOUNTER", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="encounter", direction = "1"))+
     theme_minimal())
-  ggsave(plot = x, path="figs/_aggregated/corr_by_level", filename =paste0("encounter_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("encounter_corr_sd.png"), units = c("in"), width = 14, height = 10 )
   
   x
   
@@ -1466,7 +1466,7 @@ df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA,
 (x <-   ggscatmat(df, columns = 1:11, color = "ENCOUNTER", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="encounter", direction = "1"))+
     theme_minimal())
-  ggsave(plot = x, path="figs/_aggregated/corr_by_level", filename =paste0("encounter_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("encounter_corr_abs.png"), units = c("in"), width = 14, height = 10 )
   
   x
   
@@ -1489,7 +1489,7 @@ df <- df_actions %>% select(MAKER_DESIGN, MAKER_DATA,
 (x <- ggscatmat(df, columns = 1:11, color = "CHART_ACTION", alpha = 0.2) + 
     scale_color_manual(values = my_palettes(name="actions", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
     theme_minimal() )
-ggsave(plot = x, path="figs/_aggregated/corr_by_level", filename =paste0("chart_action_corr_sd.png"), units = c("in"), width = 14, height = 10  )
+ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("chart_action_corr_sd.png"), units = c("in"), width = 14, height = 10  )
 
 x
 
