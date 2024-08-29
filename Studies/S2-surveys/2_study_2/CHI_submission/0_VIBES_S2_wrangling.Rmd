@@ -97,8 +97,6 @@ ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EX
 ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
 
 
-
-
 ### LABELS FOR RAW VALUE OF SD QUESTIONS
 ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA",
                       "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
@@ -198,6 +196,20 @@ saveRDS(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.rds")
 # 
 # write.csv(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.csv", na="")
 # saveRDS(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.rds")
+
+```
+
+## DEFINE Factor Orders
+```{r define-factor-orders}
+
+## set order of several factor vars used in plots 
+
+order_maker = c("individual","organization","education","business","news","political")
+order_age = c("boomer", "gen-x","millennial","gen-z")
+order_gender = c("Male","Female","Other" )
+order_encounter = c("engage","scroll")
+order_tools= c("?","design_basic","design_advanced","viz_basic","viz_advanced","programming")
+order_actions = c("nothing","unfollow/block","comment","share","share w/ comment","seek information")
 
 ```
 
@@ -464,8 +476,8 @@ df_data <- df_raw %>%
     EndState = factor(EndState), 
     D_gender = factor(D_gender), 
     D_gender_collapsed = fct_collapse(D_gender, 
-                                female = "Female", 
                                 male = "Male", 
+                                female = "Female", 
                                 other = c("Non-binary / third gender", "Prefer not to say", "Prefer to self-describe")),
     D_age = factor(D_age), 
     D_income = factor(D_income, 
@@ -903,7 +915,7 @@ df_tools <- df_questions %>%
     delim = ","
   ) %>% 
   mutate(TOOL_ID = factor(TOOL_ID, 
-                             levels = c("?", "design_basic","design_advanced", "viz_basic", "viz_advanced", "programming")),
+                             levels = order_tools),
          PID = droplevels(PID),
          TOOL_CONF = as.numeric(TOOL_CONF), 
          MAKER_DESIGN  = as.numeric(MAKER_DESIGN  ),
@@ -954,6 +966,7 @@ df_actions <- df_questions %>%
                                               "share",
                                               "share w/ comment",
                                               "seek information")),
+         CHART_ACTION = factor(CHART_ACTION, levels = order_actions),
          MAKER_DESIGN  = as.numeric(MAKER_DESIGN  ),
          MAKER_DATA= as.numeric(MAKER_DATA),
          MAKER_POLITIC = as.numeric(MAKER_POLITIC ),
@@ -1007,8 +1020,10 @@ df_graphs <- df_graphs_full %>%
   select( !where(is.character)) %>% 
   mutate(
     ##re order factor levels
-   MAKER_ID = fct_rev(MAKER_ID),
-   MAKER_AGE = factor(MAKER_AGE, levels = c("boomer","gen-x","millennial","gen-z") ) 
+   MAKER_ID = factor(MAKER_ID, levels = order_maker),
+   MAKER_AGE = factor(MAKER_AGE, levels = order_age),
+   MAKER_GENDER = factor(MAKER_GENDER, levels = order_gender),
+   ENCOUNTER = factor(ENCOUNTER, levels = order_encounter)
   )
 ## WRITE DATAFRAME
 write.csv(df_graphs, file = "data/output/df_graphs.csv", na="")
