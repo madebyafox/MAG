@@ -904,7 +904,9 @@ df_tools <- df_questions %>%
   # select(ID.Prolific, QUESTION, value) %>%
   filter(QUESTION  %in% c("TOOL_ID", "TOOL_CONF", 
                           "MAKER_DESIGN"  ,"MAKER_DATA" ,"MAKER_POLITIC" ,"MAKER_ARGUE"  ,"MAKER_SELF"    ,"MAKER_ALIGN"  ,"MAKER_TRUST",
-                          "CHART_LIKE","CHART_BEAUTY"  ,"CHART_INTENT", "CHART_TRUST" )) %>% 
+                          "CHART_LIKE","CHART_BEAUTY"  ,"CHART_INTENT", "CHART_TRUST",
+                          "MAKER_ID", "MAKER_AGE","MAKER_GENDER"
+                          )) %>% 
   mutate(QUESTION = fct_drop(QUESTION)) %>% 
   pivot_wider(
     names_from = QUESTION,
@@ -928,7 +930,10 @@ df_tools <- df_questions %>%
          CHART_LIKE   = as.numeric(CHART_LIKE   ),
          CHART_BEAUTY  = as.numeric(CHART_BEAUTY  ),
          CHART_INTENT = as.numeric(CHART_INTENT ),
-         CHART_TRUST = as.numeric(CHART_TRUST )
+         CHART_TRUST = as.numeric(CHART_TRUST ),
+         MAKER_ID = factor(MAKER_ID, levels = order_maker),
+         MAKER_AGE = factor(MAKER_AGE, levels = order_age),
+         MAKER_GENDER = factor(MAKER_GENDER, levels = order_gender),
         ) 
 ## WRITE DATAFRAME
 write.csv(df_tools, file = "data/output/df_tools.csv", na="")
@@ -941,7 +946,7 @@ df_actions <- df_questions %>%
   # filter(QUESTION == "CHART_ACTION") %>%
   filter(QUESTION  %in% c("CHART_ACTION",
                           "MAKER_DESIGN"  ,"MAKER_DATA" ,"MAKER_POLITIC" ,"MAKER_ARGUE"  ,"MAKER_SELF"    ,"MAKER_ALIGN"  ,"MAKER_TRUST",
-                          "CHART_LIKE","CHART_BEAUTY"  ,"CHART_INTENT", "CHART_TRUST" )) %>%
+                          "CHART_LIKE","CHART_BEAUTY"  ,"CHART_INTENT", "CHART_TRUST","MAKER_ID", "MAKER_AGE","MAKER_GENDER" )) %>%
   mutate(QUESTION = fct_drop(QUESTION)) %>% 
   pivot_wider(
     names_from = QUESTION,
@@ -978,6 +983,9 @@ df_actions <- df_questions %>%
          CHART_BEAUTY  = as.numeric(CHART_BEAUTY  ),
          CHART_INTENT = as.numeric(CHART_INTENT ),
          CHART_TRUST = as.numeric(CHART_TRUST ),
+         MAKER_ID = factor(MAKER_ID, levels = order_maker),
+         MAKER_AGE = factor(MAKER_AGE, levels = order_age),
+         MAKER_GENDER = factor(MAKER_GENDER, levels = order_gender),
          PID = droplevels(PID)) 
   # select(-value,-QUESTION)
 ## WRITE DATAFRAME
