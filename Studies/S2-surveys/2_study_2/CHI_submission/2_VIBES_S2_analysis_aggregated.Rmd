@@ -911,7 +911,7 @@ response scale (slider from 0-100).*
 #### AGGREGATED 
 
 ##### boxplot
-```{r plot_boxplot_sds}
+```{r plot_boxplot_sds, fig.width=10, fig.height=14}
 
   #### LIST OF BLOXPLOTS + JITTER #############################################################################
 
@@ -934,7 +934,7 @@ if(graph_save == TRUE){
   ggsave(plot = plot_master_questions, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
 }
 
-plot_master_questions
+print(plot_master_questions)
   
 ```  
   
@@ -1081,10 +1081,7 @@ the labelled traits).*
 #### AGGREGATED 
 
 ##### boxplot
-```{r ALL-Q-COLLAPSED-ABS}
-
-  
-#################### ALL QUESTIONS across ALL STIMULUS #############################################################
+```{r ALL-Q-COLLAPSED-ABS, fig.width=10, fig.height=14}
 
   
   #### LIST OF BLOXPLOTS + JITTER #############################################################################
@@ -1649,6 +1646,51 @@ x
     MAKER_DESIGN, MAKER_DATA, CHART INTENT
 -   interesting bimodal distribution on CHART INTENT for most
     identifications, except individuals and organizations
+    
+    
+### TOOL ID & DATA COMPETENCY    
+    
+```{r vis-tool-id-data, warning=FALSE}
+
+df <- df_tools
+
+## Does DATA COMPETENCY  depend on TOOL ID?
+##RIDGEPLOT w/ MEAN 
+
+answers <- levels(df$TOOL_ID)
+left <- rep(ref_labels['MAKER_DATA','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_DATA','right'],  length(levels(df$MAKER_ID)))
+
+df %>% 
+    group_by(MAKER_ID) %>% 
+    mutate(
+      md=median(MAKER_DATA),
+      m=mean(MAKER_DATA),
+      count = n()
+    ) %>% 
+  ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_DATA, fill = fct_rev(MAKER_ID))) + 
+  scale_x_continuous(limits = c(0,100))+
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  ##MEDIAN
+  stat_summary(fun=median, geom="text", colour="red",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(md, digits=0)))+
+  stat_summary(fun=median, geom="point", shape=20, size=3, color="red", fill="red") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(m, digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 100), color = "black",size = 3, nudge_y = 0.25) + 
+  cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
+  labs (title = "DATA COMPETENCY by MAKER ID", y = "", x = "MAKER DATA COMPETENCY", caption="(mean in blue) (median in red)") +
+  theme_minimal() + easy_remove_legend()
+
+```    
 
 ### MAKER ID & Maker DATA COMPETENCY
 
