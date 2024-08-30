@@ -1649,11 +1649,145 @@ x
 -   interesting bimodal distribution on CHART INTENT for most
     identifications, except individuals and organizations
     
-#### DATA AND DESIGN BY CATEGORY and BLOCK
+    
+    
+    
+### HYPO TEST EMBELLISHMENT --> ENTICEMENT
+```{r}
+
+df <- df_graphs %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, PID) %>% 
+  mutate(
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
+  ) %>% filter(STIMULUS != "B0-0")
+
+
+# m <- glm(df)
+
+
+## CATEGORY
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = ENCOUNTER, y = STIMULUS_CATEGORY,
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "-1")) +
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+## BLOCK
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = ENCOUNTER, y = BLOCK,
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "-1")) +
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+## CATEGORY / BLOCK
+# GGSTATSPLOT
+##############################
+grouped_ggbarstats( data = df, x = ENCOUNTER, y = STIMULUS_CATEGORY,   grouping.var=BLOCK,
+                    results.subtitle = FALSE,
+                    ggplot.component = scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))) + 
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+# BLOCK / CATEGORY
+# GGSTATSPLOT
+##############################
+grouped_ggbarstats( data = df, x = ENCOUNTER, y = BLOCK,   grouping.var=STIMULUS_CATEGORY,
+                    results.subtitle = FALSE,
+                    ggplot.component = scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))) + 
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+# STIMULUS
+# GGSTATSPLOT
+##############################
+# TODO STACKED BAR BY ENCOUNTER
+
+```
+    
+    ```{r}
+
+df <- df_actions %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, CHART_ACTION, CHART_LIKE, PID) %>% 
+  mutate(
+    CHART_ACTION = fct_rev(CHART_ACTION),
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
+  ) %>% filter(STIMULUS != "B0-0")
+
+
+# m <- glm(df)
+
+
+## CATEGORY
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = CHART_ACTION, y = STIMULUS_CATEGORY,
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+## BLOCK
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = CHART_ACTION, y = BLOCK,
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+## CATEGORY / BLOCK
+# GGSTATSPLOT
+##############################
+grouped_ggbarstats( data = df, x = CHART_ACTION, y = STIMULUS_CATEGORY,   grouping.var=BLOCK,
+                    results.subtitle = FALSE,
+                    ggplot.component = scale_fill_manual(values = my_palettes(name="actions", direction = "1"))) + 
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+# BLOCK / CATEGORY
+# GGSTATSPLOT
+##############################
+grouped_ggbarstats( data = df, x = CHART_ACTION, y = BLOCK,   grouping.var=STIMULUS_CATEGORY,
+                    results.subtitle = FALSE,
+                    ggplot.component = scale_fill_manual(values = my_palettes(name="actions", direction = "1"))) + 
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+# STIMULUS
+# GGSTATSPLOT
+# TODO STACKED BAR BY ACTION
+
+```
+    
+### DATA AND DESIGN BY CATEGORY and BLOCK
 
 
 
-##### visualization 
+#### visualization 
 
 ```{r}
 
@@ -1690,9 +1824,9 @@ df %>% ggplot(aes(x=MAKER_DATA,  y=BLOCK))+
 
 ```
 
-##### models
+#### models
 
-###### MAKER_DATA BY CATEGORY
+##### MAKER_DATA BY CATEGORY
 ```{r model-DATA-BY-CATEGORY}
 
 ### LINEAR MIXED EFFECTS MODEL ##################
@@ -1805,7 +1939,7 @@ plot_model(mm4, type = "est",
 ```
 **INTERPRETATION** *Here we see that a linear mixed effects model, predicting MAKER_DATA by the interaction of STIMULUS_CATEGORY and BLOCK indicates that ratings of maker data competencies do NOT vary consistently as a function of CATEGORY (i.e. the degree of 'embellishment').  Although the degree of embellishment within a block (A,B,C,D) is the same, the ratings of maker data competency vary. This pattern is particularly salient in categories C and D (with more embellishment).  These data suggest that social inferences about a maker's data competency are not made solely based on the amount of embellishment, but rather, in response to the particular features of the visualization.  A highly embellished chart might be rated with relatively high high data competency (e.g. B3-D) or lower data competency (eg. B5-D).* 
 
-###### MAKER_DESIGN BY CATEGORY
+##### MAKER_DESIGN BY CATEGORY
 ```{r model-DESIGN-BY-CATEGORY}
 
 df <- df_graphs %>% 
