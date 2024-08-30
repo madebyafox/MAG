@@ -12,7 +12,7 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: yes
-    toc_depth: 5
+    toc_depth: 6
   pdf_document:
     toc: yes
     toc_depth: '5'
@@ -1653,7 +1653,7 @@ x
 
 
 
-#### visualization 
+##### visualization 
 
 ```{r}
 
@@ -1664,15 +1664,35 @@ df <- df_graphs %>%
     ## chose NOT to z-score data, bc we want the data in terms of the original scale 
     r_MAKER_DATA = reverse_scale(MAKER_DATA),
     STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY)
-  ) %>% filter(STIMULUS!="B0-0")
+  ) %>% filter(STIMULUS!="B0-0") %>% 
+  group_by(STIMULUS_CATEGORY, BLOCK) %>% 
+  mutate(
+    m=mean(MAKER_DATA), 
+    md=median(MAKER_DATA)
+  )
+
+df %>% ggplot(aes(x=MAKER_DATA,  y=BLOCK))+
+  geom_density_ridges( scale = 0.75) + 
+  # ##MEDIAN
+  # stat_summary(fun=median, geom="text", colour="red",  fontface = "bold", size = 2.5,
+  #              vjust=+2, hjust = 0, aes( label=round(md, digits=0)))+
+  # stat_summary(fun=median, geom="point", shape=20, size=3, color="red", fill="red") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(m, digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=3, color="blue", fill="blue") +
+  facet_wrap(~STIMULUS_CATEGORY)+ 
+  labs(title = "MAKER_DATA by BLOCK AND CATEGORY", caption="(mean in blue)")+
+  theme_minimal() + easy_remove_legend()
 
 
 
 
 ```
 
-#### models
+##### models
 
+###### MAKER_DATA BY CATEGORY
 ```{r model-DATA-BY-CATEGORY}
 
 ### LINEAR MIXED EFFECTS MODEL ##################
@@ -1694,16 +1714,73 @@ mr1 <-lmer(r_MAKER_DATA ~  (1|PID) , data=df)
 mr2 <-lmer(r_MAKER_DATA ~  (1|PID) + (1|STIMULUS), data=df)
 mm1 <-lmer(r_MAKER_DATA ~  STIMULUS +  (1|PID) , data=df)
 mm2 <-lmer(r_MAKER_DATA ~  STIMULUS_CATEGORY +  (1|PID) , data=df)
-mm3 <-lmer(r_MAKER_DATA ~  STIMULUS_CATEGORY*BLOCK +  (1|PID) , data=df)
+mm3 <-lmer(r_MAKER_DATA ~  BLOCK +  (1|PID) , data=df)
+mm4 <-lmer(r_MAKER_DATA ~  STIMULUS_CATEGORY*BLOCK +  (1|PID) , data=df)
 
 
-compare_performance(mr1, mr2, mm1,mm2,mm3, rank=TRUE)
+
+## sig diff between categories?
+print("PREDICTED BY CATEGORY?")
+print("we do expect to see some difference between categories, likely between A and D, however, variance within each category should be substantial")
+f <- "MAKER_DATA ~ STIMULUS_CATEGORY"
+anova(mm2)
+r2 = r2(mm2)
+means <- estimate_means(mm2, at="STIMULUS_CATEGORY")
+contrasts <- estimate_contrasts(mm2, contrast="STIMULUS_CATEGORY",method="pairwise")
+plot(contrasts, means) + 
+    geom_text(aes(x=means$STIMULUS_CATEGORY, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DATA COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
+
+
+print("PREDICTED BY BLOCK")
+print("we do not expect to see sig diffs btwn blocks if they are aesthetically balanced")
 f <- "MAKER_DATA ~ STIMULUS_CATEGORY * BLOCK + (1|PID)"
-report(mm3)
 anova(mm3)
+r2 = r2(mm3)
+means <- estimate_means(mm3, at="BLOCK")
+contrasts <- estimate_contrasts(mm3, contrast="BLOCK",method="pairwise")
+plot(contrasts, means) + 
+    geom_text(aes(x=means$BLOCK, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DATA COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
 
-## PLOT MODEL PREDICTIONS
-(p_data <- cat_plot(mm3, pred = BLOCK, modx = STIMULUS_CATEGORY,
+
+
+
+
+print("PREDICTED BY INTERACTION")
+print("")
+f <- "MAKER_DATA ~ STIMULUS_CATEGORY"
+anova(mm4)
+r2 = r2(mm4)
+means <- estimate_means(mm4, at=c("STIMULUS_CATEGORY","BLOCK"))
+contrasts <- estimate_contrasts(mm4, c("STIMULUS_CATEGORY","BLOCK"),method="pairwise")
+plot(contrasts, means) + facet_wrap("BLOCK")+
+    # geom_text(aes(x=means$BLOCK, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DATA COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
+## TEST MODEL FIT 
+# test_performance(mm2,mm3)    
+# test_performance(mm2,mm4)    
+# test_performance(mm3,mm4)    
+anova(mm2,mm3)
+print("the model with CATEGORY is not a significantly better fit than the model with BLOCK")
+test_likelihoodratio(mm2, mm4)
+print("interaction better fit than category")
+test_likelihoodratio(mm3, mm4)
+print("interaction better fit than block")
+
+compare_models(mm2,mm3,mm4)
+compare_performance(mr1, mr2, mm1,mm2,mm3,mm4, rank=TRUE)
+f <- "MAKER_DATA ~ STIMULUS_CATEGORY * BLOCK + (1|PID)"
+
+
+## PLOT BEST FIT MODEL PREDICTIONS
+(p_data <- cat_plot(mm4, pred = BLOCK, modx = STIMULUS_CATEGORY,
          geom = "line", interval.geom= "linerange", 
          interval=TRUE, int.type = "confidence", int.width = 0.95, robust = TRUE,
          plot.points = FALSE) + 
@@ -1714,21 +1791,21 @@ anova(mm3)
 )
 
 if(graph_save){
-  ggsave(plot = p_data, path="figs/level_aggregated/models", filename =paste0("lmer_makerdata_by_stimulus_category","_ixn.png"), units = c("in"))
+  ggsave(plot = p_data, path="figs/level_aggregated/models", filename =paste0("lmer_maker_DATA_by_stimulus_category","_ixn.png"), units = c("in"))
 }
 
 
 ## PLOT MODEL PARAMETERS
-plot_model(mm3, type = "est",
+plot_model(mm4, type = "est",
         # show.intercept = TRUE,
         show.values = TRUE,
         value.offset = .25,
         show.p = TRUE
 ) + theme_minimal() + labs(caption=f)
 ```
-**INTERPRETATION** *Here we see that a linear mixed effects model, predicting MAKER_DATA by the combination of STIMULUS_CATEGORY and BLOCK indicates that ratings of maker data competencies do NOT vary consistently as a function of CATEGORY (i.e. the degree of 'embellishment').  Although the degree of embellishment within a block (A,B,C,D) is the same, the ratings of maker data competency vary. This pattern is particularly salient in categories C and D (with more embellishment).  These data suggest that social inferences about a maker's data competency are not made solely based on the amount of embellishment, but rather, in response to the particular features of the visualization.  A highly embellished chart might be rated with relatively high high data competency (e.g. B3-D) or lower data competency (eg. B5-D).* 
+**INTERPRETATION** *Here we see that a linear mixed effects model, predicting MAKER_DATA by the interaction of STIMULUS_CATEGORY and BLOCK indicates that ratings of maker data competencies do NOT vary consistently as a function of CATEGORY (i.e. the degree of 'embellishment').  Although the degree of embellishment within a block (A,B,C,D) is the same, the ratings of maker data competency vary. This pattern is particularly salient in categories C and D (with more embellishment).  These data suggest that social inferences about a maker's data competency are not made solely based on the amount of embellishment, but rather, in response to the particular features of the visualization.  A highly embellished chart might be rated with relatively high high data competency (e.g. B3-D) or lower data competency (eg. B5-D).* 
 
-
+###### MAKER_DESIGN BY CATEGORY
 ```{r model-DESIGN-BY-CATEGORY}
 
 df <- df_graphs %>% 
@@ -1740,23 +1817,78 @@ df <- df_graphs %>%
     STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY)
   ) %>% filter(STIMULUS!="B0-0")
 
-## SET CONTRASTS
-# contrasts(df$MAKER_ID) <-car::contr.Treatment(levels(df$MAKER_ID)) # intercept first group mean; coeff dif from first
 
 ## DEFINE MODEL
-mr1 <-lmer(r_MAKER_DESIGN ~ (1|PID) , data=df)
-mr2 <-lmer(r_MAKER_DESIGN ~ (1|PID) + (1|STIMULUS), data=df)
-mm1 <-lmer(r_MAKER_DESIGN ~ STIMULUS +  (1|PID) , data=df)
-mm2 <-lmer(r_MAKER_DESIGN ~ STIMULUS_CATEGORY +  (1|PID) , data=df)
-mm3 <-lmer(r_MAKER_DESIGN ~ STIMULUS_CATEGORY*BLOCK +  (1|PID) , data=df)
+mr1 <-lmer(r_MAKER_DESIGN ~  (1|PID) , data=df)
+mr2 <-lmer(r_MAKER_DESIGN ~  (1|PID) + (1|STIMULUS), data=df)
+mm1 <-lmer(r_MAKER_DESIGN ~  STIMULUS +  (1|PID) , data=df)
+mm2 <-lmer(r_MAKER_DESIGN ~  STIMULUS_CATEGORY +  (1|PID) , data=df)
+mm3 <-lmer(r_MAKER_DESIGN ~  BLOCK +  (1|PID) , data=df)
+mm4 <-lmer(r_MAKER_DESIGN ~  STIMULUS_CATEGORY*BLOCK +  (1|PID) , data=df)
 
 
-compare_performance(mr1, mr2, mm1,mm2,mm3, rank=TRUE)
-f <- "MAKER_DESIGN ~ STIMULUS_CATEGORY * BLOCK + (1|PID)"
-report(mm3)
+
+## sig diff between categories?
+print("PREDICTED BY CATEGORY?")
+print("we do expect to see some difference between categories, likely between A and D, however, variance within each category should be substantial")
+f <- "MAKER_DESIGN ~ STIMULUS_CATEGORY"
+anova(mm2)
+r2 = r2(mm2)
+means <- estimate_means(mm2, at="STIMULUS_CATEGORY")
+contrasts <- estimate_contrasts(mm2, contrast="STIMULUS_CATEGORY",method="pairwise")
+plot(contrasts, means) + 
+    geom_text(aes(x=means$STIMULUS_CATEGORY, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DESIGN COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
+
+
+print("PREDICTED BY BLOCK")
+print("we do not expect to see sig diffs btwn blocks if they are aesthetically balanced")
+f <- "MAKER_DESIGN ~ BLOCK"
 anova(mm3)
+r2 = r2(mm3)
+means <- estimate_means(mm3, at="BLOCK")
+contrasts <- estimate_contrasts(mm3, contrast="BLOCK",method="pairwise")
+plot(contrasts, means) + 
+    geom_text(aes(x=means$BLOCK, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DESIGN COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
 
-(p_design <- cat_plot(mm3, pred = BLOCK, modx = STIMULUS_CATEGORY,
+
+
+print("PREDICTED BY INTERACTION")
+print("")
+f <- "MAKER_DESIGN ~ STIMULUS_CATEGORY * BLOCK + (1|PID)"
+anova(mm4)
+r2 = r2(mm4)
+means <- estimate_means(mm4, at=c("BLOCK","STIMULUS_CATEGORY"))
+contrasts <- estimate_contrasts(mm4, c("BLOCK","STIMULUS_CATEGORY"),method="pairwise")
+plot(contrasts, means) + facet_wrap("STIMULUS_CATEGORY")+
+    # geom_text(aes(x=means$BLOCK, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DESIGN COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
+
+## TEST MODEL FIT 
+# test_performance(mm2,mm3)    
+# test_performance(mm2,mm4)    
+# test_performance(mm3,mm4)    
+anova(mm2,mm3)
+print("the model with CATEGORY is not a significantly better fit than the model with BLOCK")
+test_likelihoodratio(mm2, mm4)
+print("interaction better fit than category")
+test_likelihoodratio(mm3, mm4)
+print("interaction better fit than block")
+
+compare_models(mm2,mm3,mm4)
+compare_performance(mr1, mr2, mm1,mm2,mm3,mm4, rank=TRUE)
+f <- "MAKER_DATA ~ STIMULUS_CATEGORY * BLOCK + (1|PID)"
+
+
+## PLOT BEST FIT MODEL PREDICTIONS
+(p_design <- cat_plot(mm4, pred = BLOCK, modx = STIMULUS_CATEGORY,
          geom = "line", interval.geom= "linerange", 
          interval=TRUE, int.type = "confidence", int.width = 0.95, robust = TRUE,
          plot.points = FALSE) + 
@@ -1767,19 +1899,17 @@ anova(mm3)
 )
 
 if(graph_save){
-  ggsave(plot = p_design, path="figs/level_aggregated/models", filename =paste0("lmer_makerdesign_by_stimulus_category","_ixn.png"), units = c("in"))
+  ggsave(plot = p_design, path="figs/level_aggregated/models", filename =paste0("lmer_maker_DESIGN_by_stimulus_category","_ixn.png"), units = c("in"))
 }
 
 
-
 ## PLOT MODEL PARAMETERS
-plot_model(mm3, type = "est",
+plot_model(mm4, type = "est",
         # show.intercept = TRUE,
         show.values = TRUE,
         value.offset = .25,
         show.p = TRUE
 ) + theme_minimal() + labs(caption=f)
-
 ```
 **INTERPRETATION** *Here we see that a linear mixed effects model, predicting MAKER_DESIGN by the combination of STIMULUS_CATEGORY and BLOCK indicates that ratings of maker design competencies do NOT vary consistently as a function of CATEGORY (i.e. the degree of 'embellishment').  Although the degree of embellishment within a block (A,B,C,D) is the same, the ratings of maker design competency vary. This pattern is particularly salient in category C.  These data suggest that social inferences about a maker's design competency are not made solely based on the amount of embellishment, but rather, in response to the particular features of the visualization.  A highly embellished chart might be rated with relatively high design competency (e.g. B2-C) or lower data competency (eg. B5-C).*
 
@@ -1832,91 +1962,94 @@ df %>%
   theme_minimal() + easy_remove_legend()
 
 ```    
-#### model 
+
+
+
+#### TODO PICKUP HERE model 
 
 
 
 
 ```{r}
-
-df <- df_tools %>% 
-  mutate(
-    ## reverse order of MAKER_DATA, because scale ranged from 0=expert to 100=layperson
-    ## we want the reverse 
-    ## chose NOT to z-score data, bc we want the data in terms of the original scale 
-    r_MAKER_DATA = reverse_scale(MAKER_DATA),
-    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY)
-  ) %>% filter(STIMULUS!="B0-0")
-
-## SET CONTRASTS
-# contrasts(df$MAKER_ID) <-car::contr.Treatment(levels(df$MAKER_ID)) # intercept first group mean; coeff dif from first
-
-## DEFINE MODEL
-lm5 <-lmer(r_MAKER_DATA ~ TOOL_ID + STIMULUS_CATEGORY*BLOCK +  (1|PID) , data=df)
-
-# ## PRINT MODEL 
-# (m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
-
-## DESCRIBE MODEL
-summary(lm5)
-anova(lm5)
-performance(m1)
-report(m1)
-
-## PLOT MODEL COEFFICIENTS
-coefs <- model_parameters(m1)
-plot_model(m1, type = "est",
-        # show.intercept = TRUE,
-        show.values = TRUE,
-        value.offset = .25,
-        show.p = TRUE
-) + theme_minimal() + labs(caption=f)
-
-
-## PLOT MODEL PREDICTIONS
-means <- estimate_means(m1, at = c("TOOL_ID"))
-
-# sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
-#     theme_minimal() + labs(caption=f)
-
-# plot(means) + theme_minimal() + labs(caption=f) +
-# geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
-#           color="blue", position = position_nudge(x=0.25)) 
-
-
-## PLOT MODEL PREDICTIONS with CONTRASTS
-
-## contrasts
-# black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
-(contrasts <- estimate_contrasts(m1, contrast="TOOL_ID", method="pairwise"))
-plot(contrasts, means) + 
-    geom_text(aes(x=means$TOOL_ID, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
-  theme_minimal() + labs(caption =f, y="predicted MAKER DATA COMPETENCY \n (0=layperson, 100=expert)")
-
-##prediced data 
-plot_model(m1, type = "eff", terms = "TOOL_ID", show.p = TRUE,
-           show.values = TRUE, auto.label = TRUE)
+# 
+# df <- df_tools %>% 
+#   mutate(
+#     ## reverse order of MAKER_DATA, because scale ranged from 0=expert to 100=layperson
+#     ## we want the reverse 
+#     ## chose NOT to z-score data, bc we want the data in terms of the original scale 
+#     r_MAKER_DATA = reverse_scale(MAKER_DATA),
+#     STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY)
+#   ) %>% filter(STIMULUS!="B0-0")
+# 
+# ## SET CONTRASTS
+# # contrasts(df$MAKER_ID) <-car::contr.Treatment(levels(df$MAKER_ID)) # intercept first group mean; coeff dif from first
+# 
+# ## DEFINE MODEL
+# lm5 <-lmer(r_MAKER_DATA ~ TOOL_ID + STIMULUS_CATEGORY*BLOCK +  (1|PID) , data=df)
+# 
+# # ## PRINT MODEL 
+# # (m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
+# 
+# ## DESCRIBE MODEL
+# summary(lm5)
+# anova(lm5)
+# performance(m1)
+# report(m1)
+# 
+# ## PLOT MODEL COEFFICIENTS
+# coefs <- model_parameters(m1)
+# plot_model(m1, type = "est",
+#         # show.intercept = TRUE,
+#         show.values = TRUE,
+#         value.offset = .25,
+#         show.p = TRUE
+# ) + theme_minimal() + labs(caption=f)
+# 
+# 
+# ## PLOT MODEL PREDICTIONS
+# means <- estimate_means(m1, at = c("TOOL_ID"))
+# 
+# # sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
+# #     theme_minimal() + labs(caption=f)
+# 
+# # plot(means) + theme_minimal() + labs(caption=f) +
+# # geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
+# #           color="blue", position = position_nudge(x=0.25)) 
+# 
+# 
+# ## PLOT MODEL PREDICTIONS with CONTRASTS
+# 
+# ## contrasts
+# # black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
+# (contrasts <- estimate_contrasts(m1, contrast="TOOL_ID", method="pairwise"))
+# plot(contrasts, means) + 
+#     geom_text(aes(x=means$TOOL_ID, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+#   theme_minimal() + labs(caption =f, y="predicted MAKER DATA COMPETENCY \n (0=layperson, 100=expert)")
+# 
+# ##prediced data 
+# plot_model(m1, type = "eff", terms = "TOOL_ID", show.p = TRUE,
+#            show.values = TRUE, auto.label = TRUE)
 
 ```
 
 ```{r}
-### JK DO QUANTILE REGRESSION AT THE MEDIAN 
-library(qrLMM)
-
-
-
-## tau is the quantile on which to run the model 
-m2 <-df %>% QRLMM( 
-              y = r_MAKER_DATA, 
-          r_MAKER_DATA ~ TOOL_ID, 
-           random = ~ 1,
-           group = PID,
-           data=df, tau = 0.5)
-
-
-
-summary(m2)
-plot_model(m1)
+# <!-- ### JK DO QUANTILE REGRESSION AT THE MEDIAN  -->
+# <!-- library(qrLMM) -->
+# 
+# 
+# 
+# <!-- ## tau is the quantile on which to run the model  -->
+# <!-- m2 <-df %>% QRLMM(  -->
+# <!--               y = r_MAKER_DATA,  -->
+# <!--           r_MAKER_DATA ~ TOOL_ID,  -->
+# <!--            random = ~ 1, -->
+# <!--            group = PID, -->
+# <!--            data=df, tau = 0.5) -->
+# 
+# 
+# 
+# <!-- summary(m2) -->
+# <!-- plot_model(m1) -->
 
 ```
 
