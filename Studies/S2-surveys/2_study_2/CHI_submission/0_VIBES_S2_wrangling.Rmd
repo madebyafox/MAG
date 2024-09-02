@@ -210,6 +210,10 @@ order_gender = c("Male","Female","Other" )
 order_encounter = c("engage","scroll")
 order_tools= c("?","design_basic","design_advanced","viz_basic","viz_advanced","programming")
 order_actions = c("nothing","unfollow/block","comment","share","share w/ comment","seek information")
+## condensed categories for actions 
+order_actions4 = c("nothing","unfollow/block","comment/share","seek information")
+order_actions3 = c("nothing","solo engagement","social engagement")
+order_actions2 = c("nothing","something")
 
 ```
 
@@ -972,6 +976,41 @@ df_actions <- df_questions %>%
                                               "share w/ comment",
                                               "seek information")),
          CHART_ACTION = factor(CHART_ACTION, levels = order_actions),
+         
+         ## CONDENSE FOR 2 CATEGORIES
+         CHART_ACTION2 = fct_recode(CHART_ACTION ,
+         nothing  = "nothing",
+         something = "unfollow/block",
+         something = "comment",  
+         something = "share",
+         something = "share w/ comment",
+         something = "seek information"),
+         CHART_ACTION2 = factor(CHART_ACTION2, levels = order_actions2),
+
+         
+         
+         ## CONDENSE FOR 3 CATEGORIES
+         CHART_ACTION3 = fct_recode(CHART_ACTION ,
+         nothing  = "nothing",
+         solo_engagement = "unfollow/block",
+         social_engagement = "comment",  
+         social_engagement = "share",
+         social_engagement = "share w/ comment",
+         solo_engagement = "seek information"),
+         # CHART_ACTION3 = factor(CHART_ACTION3, levels = order_actions3),
+         
+         
+         ## CONDENSE FOR 4 CATEGORIES
+         CHART_ACTION4 = fct_recode(CHART_ACTION ,
+         nothing  = "nothing",
+         unfollow_block = "unfollow/block",
+         comment_share = "comment",  
+         comment_share = "share",
+         comment_share = "share w/ comment",
+         seek_info = "seek information"),
+         # CHART_ACTION4 = factor(CHART_ACTION4, levels = order_actions4),
+      
+         
          MAKER_DESIGN  = as.numeric(MAKER_DESIGN  ),
          MAKER_DATA= as.numeric(MAKER_DATA),
          MAKER_POLITIC = as.numeric(MAKER_POLITIC ),
@@ -1031,7 +1070,7 @@ df_graphs <- df_graphs_full %>%
    MAKER_ID = factor(MAKER_ID, levels = order_maker),
    MAKER_AGE = factor(MAKER_AGE, levels = order_age),
    MAKER_GENDER = factor(MAKER_GENDER, levels = order_gender),
-   ENCOUNTER = factor(ENCOUNTER, levels = order_encounter)
+   ENCOUNTER = factor(ENCOUNTER, levels = order_encounter),
   )
 ## WRITE DATAFRAME
 write.csv(df_graphs, file = "data/output/df_graphs.csv", na="")
@@ -1376,3 +1415,4 @@ dfSummary(df_graphs,  # %>% select(PID, duration.min, Distribution, Assigned.Blo
 
 
 
+         
