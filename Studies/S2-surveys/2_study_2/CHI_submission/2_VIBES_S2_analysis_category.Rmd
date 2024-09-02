@@ -1,0 +1,1591 @@
+---
+title: "VIBES STUDY 2 ANALYSIS — STIMULUS CATEGORY LEVEL"
+author: "ANONYMIZED"
+date: "2024-08-07"
+output:
+  html_document:
+    theme: flatly
+    code_folding: hide
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    toc_depth: 6
+  pdf_document:
+    toc: yes
+    toc_depth: '5'
+always_allow_html: yes
+font-family: DejaVu Sans
+mainfont: DejaVu Sans
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(psych) #describe()
+library(tidyverse) #all the things
+library(magrittr) #special pipes like %<>%
+library(summarytools) #data quality
+library(lubridate) #dealing with dates
+
+#EDA
+library(qacBase)
+
+#VIZ
+library(kableExtra) #printing tables
+library(ggformula) #regression syntax viz
+# library(vcd) #mosaic plots
+# library(vcdExtra) #mosaic plot helpers
+library(ggstatsplot) #dummies
+library(gghalves) #half boxplots 
+library(GGally) #extends ggplot for EDA 
+library(corrplot) #sophisticated correlation plots
+library(ggeasy) #easy labelling
+library(ggh4x) #guides [dual axes]
+library(patchwork) #multi-plot layout
+library(ggdist) #raincloud plots and other distributionals
+library(ggridges) #ridge plots
+library(viridis) #color palettes
+library(RColorBrewer) #color palettes
+library(plotly) # interactive graphs
+library(paletteer) #more palettes
+library(lessR) ##very pretty donuts 
+library(ggsankey) ## ggplot2 sankey extension
+library(interactions) ##easier regression ixn plots.srlsy
+
+
+
+#MODELLING
+library(jtools) #Social Science regression utilities
+library(easystats) #modelling helpers
+library(see)
+library(sjPlot)
+library(lme4)
+library(lmerTest) #for CIs in glmer
+library(equatiomatic) ## extracting model formula
+library(latex2exp) ## extracting and printing model formula
+
+#CONFIG
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+n_blocks = 6
+
+## IMPORTANT 
+graph_save = TRUE #set to true to generate all the SD graphs and save to folders 
+
+```
+
+In VISUALIZATION VIBES project Study 2, participants completed an
+*attitutde eliciation* survey, asking questions about their attitude
+toward (5) stimulus images (data visualizations). Each participant was
+randomly assigned to one of 6 stimulus blocks, each containing 1 image
+from each of (4) pseudo-categories (ranging from most abstract to most
+figural). Each participant started by responding to questions for a
+single 'common' stimulus (that is thus super-powered as it was seen by
+all participants). Two participant recruitment pools were used:
+Prolific, with a smaller set of participants recruited from Tumblr (to
+replicate and compare survey results to Study 1 interviews with
+participants sourced from Tumblr).
+
+This notebook contains code to replicate quantitative analysis of data
+from Study 2 reported in the CHI submission. Note that due to limited
+space, we were unable to report results for *all* stimulus blocks, and
+all possible analyses. A separate set of R notebooks are included in the
+supplementary materials that document analysis of the other blocks not
+reported here.
+
+**This notebook includes analysis and exploration of the data set at the
+stimulus category level**
+
+# SETUP
+
+*We start by importing data files previously wrangled in
+`0_VIBES_S2_wrangling.Rmd`.*
+
+## Import Data
+
+```{r import-refs, message=FALSE, warning = FALSE}
+
+############## IMPORT REFERENCE FILES
+ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
+ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
+ref_labels <- readRDS("data/input/REFERENCE/ref_labels.rds")
+ref_labels_abs <- readRDS("data/input/REFERENCE/ref_labels_abs.rds")
+
+############## SETUP Graph Labels
+ref_stim_id <- levels(ref_stimuli$ID)
+ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
+ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
+ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
+ref_sd_questions <- rownames(ref_labels)
+ref_sd_questions_abs <- rownames(ref_labels_abs)
+  
+
+# ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
+ref_blocks <- c(1,2,3,4,5,6)
+
+```
+
+```{r import-data, message=FALSE, warning = FALSE}
+
+############## IMPORT DATA FILES
+# df_data <- readRDS("data/output/df_data.rds") #1 row per participant — WIDE
+df_participants <- readRDS("data/output/df_participants.rds") #1 row per participant — demographic
+df_questions <- readRDS("data/output/df_questions.rds") #1 row per question — LONG
+df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds") # only sd questions WIDE
+
+
+df_tools <- readRDS("data/output/df_tools.rds") #multiselect format for tools Question
+df_actions <- readRDS("data/output/df_actions.rds") # multiselect format for action Question
+# # df_graphs_full <- readRDS("data/output/df_graphs_full.rds") #includes free response data
+
+df_graphs <- readRDS("data/output/df_graphs.rds") #only categorical and numeric questions
+df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds") # only sd questions LONG
+
+### DATA FILES WITH (VARIABLE-WISE) Z-SCORED SEMANTIC DIFFERENTIAL QS 
+df_graphs_z <- readRDS("data/output/df_graphs_z.rds") #only categorical and numeric questions
+df_sd_questions_long_z <- readRDS("data/output/df_sd_questions_long_z.rds") # only sd questions LONG
+
+
+### DATA FILES WITH ABSOLUTE VALUE SEMANTIC DIFFERENTIAL QS 
+df_graphs_abs <- readRDS("data/output/df_graphs_abs.rds") #only categorical and numeric questions
+df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") # only sd questions LONG
+
+```
+
+## Set up Graphing
+
+```{r setup-pallettes}
+
+############## SETUP Colour Palettes
+#https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
+
+## list of color pallettes
+my_colors = list(
+  politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
+  blackred = c("black","red"),
+  greys = c("#707070","#999999","#C2C2C2"),
+  greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
+  smallgreens = c("#ADC69D","#567E39","#193E0A"),
+  olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
+  lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
+  darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
+  reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
+  traffic = c("#CE98A2","#81A06D","yellow"),
+  questions = c("#B17380","#3787D2", "#567E39", "#EE897F"),
+  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"),
+  encounter = c("#729B7D","#8E8E8E"),
+  actions = c("#2A363B","#039876ff","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
+  platforms = c("#5D93EA","#FF70CD", "#3BD3F5", "#8B69B5","black"),
+  amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
+  my_favourite_colours = c("#702963", "#637029",    "#296370")
+                
+)
+
+## function for using palettes
+my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete","continuous"), direction = c("1","-1")) {
+  palette = all_palettes[[name]]
+  if (missing(n)) {
+    n = length(palette)
+  }
+  type = match.arg(type)
+  out = switch(type,
+               continuous = grDevices::colorRampPalette(palette)(n),
+               discrete = palette[1:n]
+  )
+  out = switch(direction,
+               "1" = out,
+               "-1" = palette[n:1])
+  structure(out, name = name, class = "palette")
+}
+
+```
+
+```{r SD-GRAPHING-FUNCTIONS}
+
+
+############## RETURNS SD STACKED AND COLORED BY BY X
+## LOOP STYLE
+multi_sd <- function (data, left, right, x, y, color) {
+
+  # g <- ggplot(df, aes(y = .data[[x]], x = {{y}}, color = {{color}}))+
+  g <- ggplot(data, aes(y = .data[[x]], x = .data[[y]], color = .data[[color]]))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) +
+    
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() +
+  guides(
+    y = guide_axis_manual(labels = left),
+    y.sec = guide_axis_manual(labels = right)
+  ) + theme_minimal()
+
+  return(g)
+}
+
+
+############## RETURNS SINGLE SD 
+## LOOP STYLE
+single_sd <- function (data, left, right, x) {
+
+  g <- ggplot(data, aes(y = {{x}}, x = ""))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) +
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() +
+  guides(
+    y = guide_axis_manual(labels = left),
+    y.sec = guide_axis_manual(labels = right)
+  ) + theme_minimal()
+
+  return(g)
+}
+
+
+######## RETURNS SINGLE SD
+##  APPLY STYLE
+plot_sd = function (data, column, type, mean, facet, facet_by, boxplot) {
+  
+  ggplot(data, aes(y = .data[[column]], x="")) +
+    {if(boxplot) geom_boxplot(width = 0.5) } +
+    geom_jitter(width = 0.1, alpha=0.2, {if(facet) aes(color=.data[[facet_by]])}) +
+    {if(mean) 
+      stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue")
+      } +
+    {if(mean)
+      ## assumes data has been passed in with mean column at m
+      # stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
+      #            vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0)))
+      stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
+                 vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0)))
+      } +
+
+    {if(facet) facet_grid(.data[[facet_by]] ~ .)} +
+    # scale_y_continuous(limits=c(-1,101)) +
+    labs(x="", y="") +
+    coord_flip()  +
+    {if(type == "S")
+      guides(
+        y = guide_axis_manual(labels = ref_labels[column,"left"]),
+        y.sec = guide_axis_manual(labels = ref_labels[column,"right"])
+      )} +
+    {if(type == "Q")
+      guides(
+        y = guide_axis_manual(labels = ref_labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
+      )} +
+  theme_minimal()  +
+     labs (
+       caption = column
+     ) + easy_remove_legend()
+}
+
+```
+
+# STIMULUS-CATEGORY
+
+For the purpose of optimizing aesthetic diversity of stimuli seen by
+each participant, we organized the stimuli into 4 approximate
+'categories' of abstraction, where A = the most abstract, and D the most
+figural. Each participant first saw the common stimulus (B0-0) followed
+by one stimulus from each category (order randomized) in a block
+structure.
+
+## SAMPLE
+
+### Sample Demographics
+
+```{r sample-size}
+
+df <- df_participants
+
+## FOR DESCRIPTIVES PARAGRAPH
+# #PROLIFIC
+df.p <- df %>% filter(Distribution == "PROLIFIC")
+desc.gender.p <- table(df.p$D_gender) %>% prop.table()
+names(desc.gender.p) <- levels(df.p$D_gender)
+p_participants <- nrow(df.p)
+
+# #TUMBLR
+df.t <- df %>% filter(Distribution == "TUMBLR")
+desc.gender.t <- table(df.t$D_gender) %>% prop.table()
+names(desc.gender.t) <- levels(df.t$D_gender)
+t_participants <- nrow(df.t)
+
+
+```
+
+For study 2, a total of `r p_participants + t_participants` participants
+were recruited from US-located English speaking users of TUMBLR (n =
+`r t_participants`) and PROLIFIC (n = `r p_participants`).
+
+`r p_participants` individuals from PROLIFIC participated in Study 2, (
+`r round(desc.gender.p[["Female"]],2)*100`% Female,
+`r round(desc.gender.p[["Male"]],2)*100`% Male,
+`r round(desc.gender.p[["Non-binary / third gender"]],2)*100`%
+Non-binary,
+`r (round((desc.gender.p[["Prefer not to say"]] + desc.gender.p[["Prefer to self-describe"]]),2)) * 100`%
+Other).
+
+`r t_participants` individuals from Tumblr participated in Study 2, (
+`r round(desc.gender.t[["Female"]],2)*100`% Female,
+`r round(desc.gender.t[["Male"]],2)*100`% Male,
+`r round(desc.gender.t[["Non-binary / third gender"]],2)*100`%
+Non-binary,
+`r (round((desc.gender.t[["Prefer not to say"]] + desc.gender.t[["Prefer to self-describe"]]),2)) * 100`%
+Other). Note that a higher proportion of participants recruited from
+TUMBLR report identities other than cis-gender Female and cis-gender
+Male.
+
+### Study Response Time
+
+```{r demo-response-time}
+
+df <- df_participants
+
+## for descriptives paragraph
+p.desc.duration <- psych::describe(df %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
+t.desc.duration <- psych::describe(df %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
+
+```
+
+PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times
+ranged from `r p.desc.duration$min` to `r p.desc.duration$max` minutes,
+with a mean response time of `r round(p.desc.duration$mean,2)` minutes,
+SD = `r (round(p.desc.duration$sd,2))`.
+
+TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times
+ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes,
+with a mean response time of `r round(t.desc.duration$mean,2)` minutes,
+SD = `r (round(t.desc.duration$sd,2))`.
+
+```{r demo-cleanup}
+rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.t, p_participants, t_participants)
+```
+
+```{r setup-categories}
+
+#full data except for common stimulus B0-0
+df_cat <- df_graphs %>% 
+  filter(STIMULUS != "B0-0") %>% 
+  mutate(
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
+    STUDY = "" #dummy variable for univariate visualizations
+  )
+# %>%
+#   mutate(MAKER_ID = fct_rev(MAKER_ID))
+
+```
+
+## CONFIDENCE
+
+When asking participants to identify the type, age and gender of the
+maker of a visualization, we also asked participants to indicate their
+confidence in these choices.
+
+**Across all participants and all stimuli, are these (categorical)
+questions answered with the same degree of confidence?**
+
+Here we examine both the central tendency (mean) and shape of the
+distribution for each confidence variable.
+
+```{r compare-confidence}
+
+df <- df_cat %>% select(PID, Distribution, STIMULUS_CATEGORY, STIMULUS,MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c(MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF),
+    names_to = "QUESTION",
+    values_to = "CONFIDENCE"
+  ) %>% 
+  mutate(
+    QUESTION = factor(QUESTION, levels=c("MAKER_CONF","AGE_CONF","GENDER_CONF","TOOL_CONF"  ) )
+  ) %>% 
+  group_by(QUESTION, STIMULUS_CATEGORY) %>% 
+  mutate(
+    m=round(mean(CONFIDENCE),0) #calc mean for showing in plots 
+  )
+
+
+## B
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## BOXPLOT W/ JITTER
+B <-
+  df %>% 
+  ggplot(aes(x=STIMULUS_CATEGORY, y= CONFIDENCE, fill = STIMULUS_CATEGORY)) + 
+  geom_jitter(aes(color = STIMULUS_CATEGORY), alpha = 0.25, position=position_dodge2(width = 0.25)) + 
+  geom_boxplot(width = 0.5) + 
+  facet_wrap(~QUESTION)+
+  ## MEAN
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size=3,
+                 vjust=+0.5, hjust = -1.5, aes( label=round(m, digits=0)))+
+    stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
+  theme_minimal() + easy_remove_legend()
+  labs(title = "Confidence by Question and Stimulus Category", caption = "(mean in blue)")
+
+
+## R
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## RIDGEPLOT W/ INTERVAL MEAN
+R <-
+  df %>% 
+  ggplot(aes(x=CONFIDENCE, y=STIMULUS_CATEGORY, fill=STIMULUS_CATEGORY)) + 
+    geom_density_ridges(scale = 0.65, alpha = 0.75, quantile_lines = TRUE) +
+    scale_x_continuous(limits = c(0,100))+
+    # scale_fill_manual(values = my_palettes(name="questions", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+    facet_wrap(~QUESTION)+
+  ## MEAN
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size=3,
+                vjust=+2.5, hjust = 0.50, aes( label=round(m, digits=0)))+
+    stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
+  theme_minimal() + 
+  labs(title = "Confidence by Question and Stimulus Category", y = "QUESTION", caption =" (mean in blue)") + 
+  easy_remove_legend()
+
+B
+R
+```
+
+
+## MAKER ID
+
+Participants were asked:
+
+**Who do you think is most likely responsible for having this image
+created?\
+***options:* (select one). The response is stored as `MAKER_ID`
+
+-   business or corporation
+
+-   journalist or news outlet
+
+-   educational or academic institution
+
+-   government or political organization
+
+-   other organization
+
+-   an individual]\
+
+Participants were also asked: **Please rate your confidence in this
+choice.** The response is stored as `MAKER_CONF` .
+
+```{r maker-id-confidence-full}
+
+#FILTER DATASET
+df <- df_cat
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_ID = fct_rev(MAKER_ID) )
+S <-   ggbarstats( data = dx, x = MAKER_ID, y = STIMULUS_CATEGORY,
+                   results.subtitle = FALSE,
+                   legend.title = "MAKER ID") + 
+    scale_fill_manual(values = my_palettes(name="reds", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <-
+  df %>% 
+  group_by(MAKER_ID, STIMULUS_CATEGORY) %>% 
+  mutate(count = n(), m = mean(MAKER_CONF)) %>% 
+  ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_ID), fill = fct_rev(MAKER_ID))) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  facet_wrap(~STIMULUS_CATEGORY)+
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker ID Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+S + plot_annotation(
+  title = "Maker ID by STIMULUS CATEGORY",
+  # subtitle = "the categories of MAKER ID were chosen in similar proportion, 
+  # and both the mean (in blue) and shape of distribution of confidence scores is similar across values of Maker ID",
+  caption = "(blue indicates mean)"
+)
+
+H + plot_annotation(
+  title = "Maker ID Confidence by STIMULUS CATEGORY",
+  # subtitle = "the categories of MAKER ID were chosen in similar proportion, 
+  # and both the mean (in blue) and shape of distribution of confidence scores is similar across values of Maker ID",
+  caption = "(blue indicates mean)"
+)
+
+
+```
+
+
+
+## MAKER AGE
+
+Participants were asked: **Take a moment to imagine the person(s)
+responsible for creating the image. What generation are they most likely
+from?\
+***options: (select one)* The response was saved as `MAKER_AGE`
+
+-   *boomers (60+ years old)*
+
+-   *Generation X (44-59 years old)*
+
+-   *Millennials (28-43 years old)*
+
+-   *Generation Z (12 - 27 years old]*
+
+Participants were asked: **Please rate your confidence in this choice.**
+The response is stored as `AGE_CONF` .
+
+```{r maker-age-confidence-full}
+
+#FILTER DATASET
+df <- df_cat
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_AGE = fct_rev(MAKER_AGE) )
+S <-   ggbarstats( data = dx, x = MAKER_AGE, y = STIMULUS_CATEGORY,
+                   legend.title = "MAKER AGE",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="lightblues", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+  
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <- df %>% 
+  group_by(MAKER_AGE, STIMULUS_CATEGORY) %>% 
+  mutate(count = n(), m = mean(AGE_CONF)) %>% 
+  ggplot(aes(y = AGE_CONF, x = fct_rev(MAKER_AGE), fill = fct_rev(MAKER_AGE))) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  facet_wrap(~STIMULUS_CATEGORY)+
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker AGE Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+
+
+S  + plot_annotation(
+  title = "Maker AGE by STIMULUS CATEGORY",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+
+H + plot_annotation(
+  title = "Maker AGE Confidence by STIMULUS CATEGORY",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+
+```
+
+
+## MAKER GENDER
+
+Participants were asked: **Take a moment to imagine the person(s)
+responsible for creating the image. What gender do they most likely
+identify with?\
+***options: [female / male / other ] (select one).* Responses were
+stored as `MAKER_GENDER.`
+
+Participants were asked: **Please rate your confidence in this choice.**
+The response is stored as `GENDER_CONF` .
+
+```{r maker-gender-confidence-full}
+
+#FILTER DATASET
+df <- df_cat
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_AGE = fct_rev(MAKER_AGE) )
+S <-   ggbarstats( data = dx, x = MAKER_GENDER, y = STIMULUS_CATEGORY,
+                   legend.title = "MAKER GENDER", 
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <- df %>% 
+  group_by(MAKER_GENDER, STIMULUS_CATEGORY) %>% 
+  mutate(count = n(), m = mean(GENDER_CONF)) %>% 
+  ggplot(aes(y = GENDER_CONF, x = MAKER_GENDER, fill = MAKER_GENDER)) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  facet_wrap(~STIMULUS_CATEGORY) + 
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="greens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker GENDER Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+
+  
+
+S + plot_annotation(
+  title = "Maker GENDER by STIMULUS CATEGORY",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+
+H + plot_annotation(
+  title = "Maker GENDER Confidence by STIMULUS_CATEGORY",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+```
+
+
+
+## TOOL ID
+
+Participants were asked: **What tools do you think were most likely used
+to create this image?\
+***options: (select all that apply).* The response was saved as variable
+`TOOL_ID` (multi-select)
+
+-   basic graphic design software (e.g. Canva, or similar)
+
+-   advanced graphic design software (e.g. Adobe Illustrator, Figma, or
+    similar)
+
+-   data visualization software (e.g. Tableau, PowerBI, or similar)
+
+-   general purpose software (e.g. MS Word/Excel, Google Sheets, or
+    similar)
+
+-   programming language (e.g. R, python, javascript, or similar)
+
+Participants were asked: **Please rate your confidence in this choice.**
+The response is stored as `TOOL_CONF` .
+
+```{r maker-tool-confidence-full}
+
+#FILTER DATASET
+df <- df_tools %>% 
+  mutate(
+    STUDY = "",
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY)
+  )
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+S <-   ggbarstats( data = df, x = TOOL_ID, y = STIMULUS_CATEGORY,
+                   legend.title = "TOOL ID", results.subtitle = FALSE) + 
+    scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <-  df %>% 
+  group_by(TOOL_ID, STIMULUS_CATEGORY) %>% 
+  mutate(count = n(), m = mean(TOOL_CONF)) %>% 
+  ggplot(aes(y = TOOL_CONF, x = TOOL_ID, fill = TOOL_ID)) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  facet_wrap(~STIMULUS_CATEGORY) + 
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="tools", direction = "1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="TOOL ID Confidence", x="", caption="(mean in blue) (median in red)") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+S + plot_annotation(
+  title = "TOOL ID by STIMULUS CATEGORY",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+H + plot_annotation(
+  title = "TOOL ID Confidence by STIMULUS CATEGORY",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+```
+
+
+## ENCOUNTER CHOICE
+
+The first question each participant saw in each stimulus block was: **As
+you're scrolling through your feed, you see this image. What would you
+do?**
+
+options: keep scrolling, pause and look at the image. (select one) The
+response was saved as variable `ENCOUNTER`
+
+```{r}
+## B
+## ENCOUNTER  BY STIMULUS
+## GGSTATSPLOT
+df_cat %>% 
+  ggbarstats(  
+            x = ENCOUNTER, y = STIMULUS_CATEGORY,
+            legend.title = "ENCOUNTER",
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))+
+    theme_minimal() + 
+    labs( title = "ENCOUNTER Choice by STIMULUS_CATEGORY", subtitle = "", x = "")
+```
+
+
+## ACTION CHOICE
+
+The last question participants were asked in each stimulus block was:
+**Imagine you encounter the following image while scrolling. Which of
+the following are you most likely to do?**
+
+options: (select all that apply). The response was saved as variable
+`CHART_ACTION`
+
+-   post a comment
+
+-   share/repost
+
+-   share/repost WITH comment
+
+-   look up more information about the topic or source
+
+-   unfollow/block the source
+
+-   NOTHING—just keep scrolling
+
+```{r}
+## B
+## ACTION  BY STIMULUS
+## GGSTATSPLOT
+df_actions %>% mutate(
+  CHART_ACTION = fct_rev(CHART_ACTION),
+  STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
+  STUDY="") %>% 
+  ggbarstats( x = CHART_ACTION, y = STIMULUS_CATEGORY,
+            legend.title = "CHART ACTION",
+            results.subtitle = FALSE) + 
+    # scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    scale_fill_manual(values = my_palettes(name="actions", direction = "1"))+
+    theme_minimal() + 
+    labs( title = "ACTION Choice by CATEGORY ", subtitle = "", x = "")
+    
+
+## B
+## ACTION  BY STIMULUS
+## GGSTATSPLOT
+df_actions %>% mutate(
+  CHART_ACTION4 = fct_rev(CHART_ACTION4),
+  STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
+  STUDY="") %>% 
+  ggbarstats( x = CHART_ACTION4, y = STIMULUS_CATEGORY,
+            legend.title = "collapsed CHART ACTION",
+            results.subtitle = FALSE) + 
+    # scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    scale_fill_manual(values = my_palettes(name="actions", direction = "1"))+
+    theme_minimal() + 
+    labs( title = "collapsed ACTION Choice4 by CATEGORY ", subtitle = "", x = "")
+    
+
+## B
+## ACTION  BY STIMULUS
+## GGSTATSPLOT
+df_actions %>% mutate(
+  CHART_ACTION3 = fct_rev(CHART_ACTION3),
+  STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
+  STUDY="") %>% 
+  ggbarstats( x = CHART_ACTION3, y = STIMULUS_CATEGORY,
+            legend.title = "collapsed CHART ACTION",
+            results.subtitle = FALSE) + 
+    # scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    scale_fill_manual(values = my_palettes(name="actions", direction = "1"))+
+    theme_minimal() + 
+    labs( title = "collapsed ACTION Choice3 by CATEGORY ", subtitle = "", x = "")
+    
+
+## B
+## ACTION  BY STIMULUS
+## GGSTATSPLOT
+df_actions %>% mutate(
+  CHART_ACTION2 = fct_rev(CHART_ACTION2),
+  STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
+  STUDY="") %>% 
+  ggbarstats( x = CHART_ACTION2, y = STIMULUS_CATEGORY,
+            legend.title = "collapsed CHART ACTION",
+            results.subtitle = FALSE) + 
+    # scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    scale_fill_manual(values = my_palettes(name="actions", direction = "1"))+
+    theme_minimal() + 
+    labs( title = "collapsed ACTION Choice2 by CATEGORY ", subtitle = "", x = "")
+    
+```
+
+
+## SEMANTIC DIFFERENTIALS
+
+Participants were also asked to rate certain characteristics of the
+chart, or its maker, along a **semantic differential scale**,
+implemented in Qualtrics as a continuous slider ranging from 0 -\> 100
+with biploar adjectives at the end of each scale. The slider defaulted
+to the center point (50), and the interface displayed the numeric value
+of the slider position as a tooltip while the element had focus. Note
+that on both touch and mouse devices participants could interact with
+the survey element as a slider (i.e. click and and drag, or touch and
+drag) *or* as a visual analogue scale (i.e. click or tap on position
+along the scale).
+
+### Full Scales
+
+*The SD scores visualized here are in the same form as the participants'
+response scale (slider from 0-100).*
+
+
+```{r sd-densities-category}
+  
+#### GROUPED DENSITY RIDGES#############################################################################
+  # setup dataframe 
+  df <- df_sd_questions_long %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value)  
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions),
+          STIMULUS_CATEGORY = factor(STIMULUS_CATEGORY, levels = c("A","B","C","D","F")))%>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+  
+(  c <-ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill=STIMULUS_CATEGORY))+ 
+    geom_density_ridges(scale = 0.75, alpha = 0.5, panel_scaling = TRUE) +
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=-0.5, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=1) +
+    facet_grid2(.~STIMULUS_CATEGORY)+
+    # geom_density_ridges(scale = 1, quantile_lines = TRUE, alpha = 0.25) 
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+    labs(title = "by STIMULUS CATEGORY", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 40, y= ref_sd_questions, size = 6, vjust=2) + ##raw
+    # # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
+    theme_minimal() + easy_remove_legend()
+)
+  
+if(graph_save){
+    ggsave(plot = c, path="figs/level_category/distributions", filename =paste0("combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
+}  
+
+
+```
+
+```{r plot-sd-cleanup}
+rm(df,d, c)
+```
+
+### Absolute Values
+
+*Here the scale of the semantic differential questions have been
+collapsed, such that 0 is the midpoint of the scale (indicating
+uncertainty, or not strongly indicating either of the labelled traits)
+and both 100 and 0 are 50 (indicating a strong signal toward either of
+the labelled traits).*
+
+
+```{r plot_grouped_ridges_abs}
+  #### GROUPED DENSITY RIDGES#############################################################################
+  # setup dataframe 
+  df <- df_sd_questions_long_abs %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value)  
+  d <- left_join( x = df, y = ref_labels_abs, 
+                  by = c("QUESTION" = "ref_sd_questions_abs")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions),
+          STIMULUS_CATEGORY = factor(STIMULUS_CATEGORY, levels = c("A","B","C","D","F")))%>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+  
+(  c <-ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill=STIMULUS_CATEGORY))+ 
+    geom_density_ridges(scale = 0.75, alpha = 0.5, panel_scaling = TRUE) +
+    facet_grid2(.~STIMULUS_CATEGORY)+
+     ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=-0.5, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=1) +
+    # geom_density_ridges(scale = 1, quantile_lines = TRUE, alpha = 0.25) 
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels_abs$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
+    ) +
+    labs(title = "by STIMULUS CATEGORY (absolute value)", y = "") +
+    cowplot::draw_text(text = ref_sd_questions_abs, x = 20, y= ref_sd_questions_abs, size = 6, vjust=2) + ##raw
+    theme_minimal() + easy_remove_legend()
+)
+
+if(graph_save == TRUE){
+    ggplot2::ggsave(plot = c, path="figs/level_category/distributions", filename =paste0("ABS_combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
+}
+
+```
+
+```{r plot-sd-abs-cleanup}
+rm(df, d, c)
+```
+
+## CORRELATIONS
+
+### correlation matrices — semantic differential
+
+```{r, correlation-matrices}
+
+
+df <- df_graphs %>% 
+  filter(STIMULUS != "B0-0") %>% 
+  select(
+          MAKER_DESIGN, MAKER_DATA, 
+          MAKER_POLITIC, MAKER_ARGUE,
+          MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+          CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+          PID)
+
+print("FULL CORRELATION NO RANDOM EFFECT")
+## CALCULATE full correlations with no random effects
+c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
+(s <- c %>% summary(redundant = FALSE))
+plot(s, show_data="point") + labs(title = "Correlation Matrix",
+               subtitle="(full correlation; pearson method; Holm p-value adjustment)") + theme_minimal()
+
+
+
+print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
+#CALCULATE partial correlations with PID as random effect
+## (this isolates correlation pairwise factoring out other variables)
+c <- df %>% correlation(partial=TRUE,multilevel = TRUE)
+(s <- c %>% summary(redundant = FALSE ))
+
+
+###### VIS WITH CORRELATION PACKAGE
+#SEE [correlation] PLOT
+g <- plot(s, show_data = "point",   show_text = "label",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     theme_minimal()+
+     labs(title = "Correlation Matrix — SD Questions", 
+          subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/level_category/heatmaps/partial_correlation_no_b00.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+#PLOT GAUSSIAN GRAPH MODEL
+# plot(c)
+
+
+###### VIS WITH CORRPLOT <- -- customizable but can't save to file ARGH
+
+## GET THE MATRIX
+m <- as.matrix(c)
+
+
+## JUST CIRCLES
+corrplot(m, method = 'circle', type = 'lower',
+         order = 'original', diag = FALSE, addCoef.col = "#7A7A7A",
+         tl.col = "black")
+
+
+
+
+
+
+```
+
+These plots depict the PARTIAL CORRELATION pairwise between variables
+(partial correlation factors out influence of other variables), with
+participant ID as a random effect. The resulting values are pearson
+moment-correlation coefficients ranging of -1 (direct negative) to +1
+direct positive correlation. These correlations are calculated on the
+full scale semantic differential questions (i.e. with the 0 - 100 range,
+where 1 and 100 are end points and 50 is the central point)
+
+### correlation matrices — semantic differential — absolute values
+
+```{r, correlation-matrices—abs}
+
+
+df <- df_graphs_abs %>% 
+  filter(STIMULUS != "B0-0") %>% 
+  select(
+          MAKER_DESIGN, MAKER_DATA, 
+          MAKER_POLITIC, MAKER_ARGUE,
+          MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+          CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+          PID)
+
+print("FULL CORRELATION NO RANDOM EFFECT")
+## CALCULATE full correlations with no random effects
+c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
+(s <- c %>% summary(redundant = FALSE))
+plot(s, show_data="point") + labs(title = "Correlation Matrix",
+               subtitle="(full correlation; pearson method; Holm p-value adjustment)") + theme_minimal()
+
+
+print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
+#CALCULATE partial correlations with PID as random effect
+## (this isolates correlation pairwise factoring out other variables)
+c <- df %>% correlation(partial=TRUE, multilevel = TRUE)
+(s <- c %>% summary(redundant = FALSE ))
+
+
+###### VIS WITH CORRELATION PACKAGE
+#SEE [correlation] PLOT
+g <- plot(s, show_data = "point",   show_text = "label",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     theme_minimal()+
+     labs(title = "Correlation Matrix — SD Questions — absolute values", 
+          subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/level_category/heatmaps/partial_correlation_abs_no_b00.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+#PLOT GAUSSIAN GRAPH MODEL
+# plot(c)
+
+
+###### VIS WITH CORRPLOT <- -- customizable but can't save to file ARGH
+
+## GET THE MATRIX
+m <- as.matrix(c)
+
+
+## JUST CIRCLES
+corrplot(m, method = 'circle', type = 'lower',
+         order = 'original', diag = FALSE, addCoef.col = "#7A7A7A",
+         tl.col = "black")
+
+```
+
+
+## EXPLORATORY QUESTIONS
+
+
+### WIP HYPO TEST EMBELLISHMENT --\> ENTICEMENT
+
+```{r}
+
+df <- df_graphs %>% 
+  filter(STIMULUS != "B0-0") %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, PID) %>% 
+  mutate(
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
+  ) %>% filter(STIMULUS != "B0-0")
+
+
+# m <- glm(df)
+
+
+## CATEGORY
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = ENCOUNTER, y = STIMULUS_CATEGORY,
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "-1")) +
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+## BLOCK
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = ENCOUNTER, y = BLOCK,
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "-1")) +
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+## CATEGORY / BLOCK
+# GGSTATSPLOT
+##############################
+grouped_ggbarstats( data = df, x = ENCOUNTER, y = STIMULUS_CATEGORY,   grouping.var=BLOCK,
+                    results.subtitle = FALSE,
+                    ggplot.component = scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))) + 
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+# BLOCK / CATEGORY
+# GGSTATSPLOT
+##############################
+grouped_ggbarstats( data = df, x = ENCOUNTER, y = BLOCK,   grouping.var=STIMULUS_CATEGORY,
+                    results.subtitle = FALSE,
+                    ggplot.component = scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))) + 
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+```
+
+```{{r}}
+
+df <- df_actions %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, CHART_ACTION, CHART_LIKE, PID) %>% 
+  mutate(
+CHART_ACTION = fct_rev(CHART_ACTION),
+STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
+  ) %>% filter(STIMULUS != "B0-0")
+
+
+# m <- glm(df)
+
+
+## CATEGORY
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = CHART_ACTION, y = STIMULUS_CATEGORY,
+        results.subtitle = FALSE) + 
+scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
+theme_minimal() +
+# labs( title = "",  x = "", y="") + 
+theme(aspect.ratio = 1)
+##############################
+
+## BLOCK
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = CHART_ACTION, y = BLOCK,
+        results.subtitle = FALSE) + 
+scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
+theme_minimal() +
+# labs( title = "",  x = "", y="") + 
+theme(aspect.ratio = 1)
+##############################
+
+
+## CATEGORY / BLOCK
+# GGSTATSPLOT
+##############################
+grouped_ggbarstats( data = df, x = CHART_ACTION, y = STIMULUS_CATEGORY,   grouping.var=BLOCK,
+                results.subtitle = FALSE,
+                ggplot.component = scale_fill_manual(values = my_palettes(name="actions", direction = "1"))) + 
+theme_minimal() +
+# labs( title = "",  x = "", y="") + 
+theme(aspect.ratio = 1)
+##############################
+
+
+# BLOCK / CATEGORY
+# GGSTATSPLOT
+##############################
+grouped_ggbarstats( data = df, x = CHART_ACTION, y = BLOCK,   grouping.var=STIMULUS_CATEGORY,
+                results.subtitle = FALSE,
+                ggplot.component = scale_fill_manual(values = my_palettes(name="actions", direction = "1"))) + 
+theme_minimal() +
+# labs( title = "",  x = "", y="") + 
+theme(aspect.ratio = 1)
+##############################
+
+# STIMULUS
+# GGSTATSPLOT
+# TODO STACKED BAR BY ACTION
+
+```
+
+### WIP DATA AND DESIGN BY CATEGORY and BLOCK
+
+#### visualization
+
+```{r}
+
+df <- df_graphs %>% 
+  mutate(
+    ## reverse order of MAKER_DATA, because scale ranged from 0=expert to 100=layperson
+    ## we want the reverse 
+    ## chose NOT to z-score data, bc we want the data in terms of the original scale 
+    r_MAKER_DATA = reverse_scale(MAKER_DATA),
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY)
+  ) %>% filter(STIMULUS!="B0-0") %>% 
+  group_by(STIMULUS_CATEGORY, BLOCK) %>% 
+  mutate(
+    m=mean(MAKER_DATA), 
+    md=median(MAKER_DATA)
+  )
+
+df %>% ggplot(aes(x=MAKER_DATA,  y=BLOCK))+
+  geom_density_ridges( scale = 0.75) + 
+  # ##MEDIAN
+  # stat_summary(fun=median, geom="text", colour="red",  fontface = "bold", size = 2.5,
+  #              vjust=+2, hjust = 0, aes( label=round(md, digits=0)))+
+  # stat_summary(fun=median, geom="point", shape=20, size=3, color="red", fill="red") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(m, digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=3, color="blue", fill="blue") +
+  facet_wrap(~STIMULUS_CATEGORY)+ 
+  labs(title = "MAKER_DATA by BLOCK AND CATEGORY", caption="(mean in blue)")+
+  theme_minimal() + easy_remove_legend()
+
+
+
+
+```
+
+#### models
+
+##### MAKER_DATA BY CATEGORY
+
+```{r model-DATA-BY-CATEGORY}
+
+### LINEAR MIXED EFFECTS MODEL ##################
+
+df <- df_graphs %>% 
+  mutate(
+    ## reverse order of MAKER_DATA, because scale ranged from 0=expert to 100=layperson
+    ## we want the reverse 
+    ## chose NOT to z-score data, bc we want the data in terms of the original scale 
+    r_MAKER_DATA = reverse_scale(MAKER_DATA),
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY)
+  ) %>% filter(STIMULUS!="B0-0")
+
+## SET CONTRASTS
+# contrasts(df$MAKER_ID) <-car::contr.Treatment(levels(df$MAKER_ID)) # intercept first group mean; coeff dif from first
+
+## DEFINE MODEL
+mr1 <-lmer(r_MAKER_DATA ~  (1|PID) , data=df)
+mr2 <-lmer(r_MAKER_DATA ~  (1|PID) + (1|STIMULUS), data=df)
+mm1 <-lmer(r_MAKER_DATA ~  STIMULUS +  (1|PID) , data=df)
+mm2 <-lmer(r_MAKER_DATA ~  STIMULUS_CATEGORY +  (1|PID) , data=df)
+mm3 <-lmer(r_MAKER_DATA ~  BLOCK +  (1|PID) , data=df)
+mm4 <-lmer(r_MAKER_DATA ~  STIMULUS_CATEGORY*BLOCK +  (1|PID) , data=df)
+
+
+
+## sig diff between categories?
+print("PREDICTED BY CATEGORY?")
+print("we do expect to see some difference between categories, likely between A and D, however, variance within each category should be substantial")
+f <- "MAKER_DATA ~ STIMULUS_CATEGORY"
+anova(mm2)
+r2 = r2(mm2)
+means <- estimate_means(mm2, at="STIMULUS_CATEGORY")
+contrasts <- estimate_contrasts(mm2, contrast="STIMULUS_CATEGORY",method="pairwise")
+plot(contrasts, means) + 
+    geom_text(aes(x=means$STIMULUS_CATEGORY, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DATA COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
+
+
+print("PREDICTED BY BLOCK")
+print("we do not expect to see sig diffs btwn blocks if they are aesthetically balanced")
+f <- "MAKER_DATA ~ STIMULUS_CATEGORY * BLOCK + (1|PID)"
+anova(mm3)
+r2 = r2(mm3)
+means <- estimate_means(mm3, at="BLOCK")
+contrasts <- estimate_contrasts(mm3, contrast="BLOCK",method="pairwise")
+plot(contrasts, means) + 
+    geom_text(aes(x=means$BLOCK, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DATA COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
+
+
+
+
+
+print("PREDICTED BY INTERACTION")
+print("")
+f <- "MAKER_DATA ~ STIMULUS_CATEGORY"
+anova(mm4)
+r2 = r2(mm4)
+means <- estimate_means(mm4, at=c("STIMULUS_CATEGORY","BLOCK"))
+contrasts <- estimate_contrasts(mm4, c("STIMULUS_CATEGORY","BLOCK"),method="pairwise")
+plot(contrasts, means) + facet_wrap("BLOCK")+
+    # geom_text(aes(x=means$BLOCK, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DATA COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
+## TEST MODEL FIT 
+# test_performance(mm2,mm3)    
+# test_performance(mm2,mm4)    
+# test_performance(mm3,mm4)    
+anova(mm2,mm3)
+print("the model with CATEGORY is not a significantly better fit than the model with BLOCK")
+test_likelihoodratio(mm2, mm4)
+print("interaction better fit than category")
+test_likelihoodratio(mm3, mm4)
+print("interaction better fit than block")
+
+compare_models(mm2,mm3,mm4)
+compare_performance(mr1, mr2, mm1,mm2,mm3,mm4, rank=TRUE)
+f <- "MAKER_DATA ~ STIMULUS_CATEGORY * BLOCK + (1|PID)"
+
+
+## PLOT BEST FIT MODEL PREDICTIONS
+(p_data <- cat_plot(mm4, pred = BLOCK, modx = STIMULUS_CATEGORY,
+         geom = "line", interval.geom= "linerange", 
+         interval=TRUE, int.type = "confidence", int.width = 0.95, robust = TRUE,
+         plot.points = FALSE) + 
+    facet_wrap(~STIMULUS_CATEGORY) + 
+    labs(title = "LMER Predictions | MAKER_DATA by BLOCK X CATEGORY", 
+         caption = f, 
+         y="MAKER_DATA \n 0(layerpson) --> 100 (professional)") + easy_remove_legend()
+)
+
+# if(graph_save){
+#   ggsave(plot = p_data, path="figs/level_category/models", filename =paste0("lmer_maker_DATA_by_stimulus_category","_ixn.png"), units = c("in"))
+# }
+
+
+## PLOT MODEL PARAMETERS
+plot_model(mm4, type = "est",
+        # show.intercept = TRUE,
+        show.values = TRUE,
+        value.offset = .25,
+        show.p = TRUE
+) + theme_minimal() + labs(caption=f)
+```
+
+**INTERPRETATION** *Here we see that a linear mixed effects model,
+predicting MAKER_DATA by the interaction of STIMULUS_CATEGORY and BLOCK
+indicates that ratings of maker data competencies do NOT vary
+consistently as a function of CATEGORY (i.e. the degree of
+'embellishment'). Although the degree of embellishment within a block
+(A,B,C,D) is the same, the ratings of maker data competency vary. This
+pattern is particularly salient in categories C and D (with more
+embellishment). These data suggest that social inferences about a
+maker's data competency are not made solely based on the amount of
+embellishment, but rather, in response to the particular features of the
+visualization. A highly embellished chart might be rated with relatively
+high high data competency (e.g. B3-D) or lower data competency (eg.
+B5-D).*
+
+##### MAKER_DESIGN BY CATEGORY
+
+```{r model-DESIGN-BY-CATEGORY}
+
+df <- df_graphs %>% 
+  mutate(
+    ## reverse order of MAKER_DATA, because scale ranged from 0=expert to 100=layperson
+    ## we want the reverse 
+    ## chose NOT to z-score data, bc we want the data in terms of the original scale 
+    r_MAKER_DESIGN = reverse_scale(MAKER_DESIGN),
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY)
+  ) %>% filter(STIMULUS!="B0-0")
+
+
+## DEFINE MODEL
+mr1 <-lmer(r_MAKER_DESIGN ~  (1|PID) , data=df)
+mr2 <-lmer(r_MAKER_DESIGN ~  (1|PID) + (1|STIMULUS), data=df)
+mm1 <-lmer(r_MAKER_DESIGN ~  STIMULUS +  (1|PID) , data=df)
+mm2 <-lmer(r_MAKER_DESIGN ~  STIMULUS_CATEGORY +  (1|PID) , data=df)
+mm3 <-lmer(r_MAKER_DESIGN ~  BLOCK +  (1|PID) , data=df)
+mm4 <-lmer(r_MAKER_DESIGN ~  STIMULUS_CATEGORY*BLOCK +  (1|PID) , data=df)
+
+
+
+## sig diff between categories?
+print("PREDICTED BY CATEGORY?")
+print("we do expect to see some difference between categories, likely between A and D, however, variance within each category should be substantial")
+f <- "MAKER_DESIGN ~ STIMULUS_CATEGORY"
+anova(mm2)
+r2 = r2(mm2)
+means <- estimate_means(mm2, at="STIMULUS_CATEGORY")
+contrasts <- estimate_contrasts(mm2, contrast="STIMULUS_CATEGORY",method="pairwise")
+plot(contrasts, means) + 
+    geom_text(aes(x=means$STIMULUS_CATEGORY, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DESIGN COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
+
+
+print("PREDICTED BY BLOCK")
+print("we do not expect to see sig diffs btwn blocks if they are aesthetically balanced")
+f <- "MAKER_DESIGN ~ BLOCK"
+anova(mm3)
+r2 = r2(mm3)
+means <- estimate_means(mm3, at="BLOCK")
+contrasts <- estimate_contrasts(mm3, contrast="BLOCK",method="pairwise")
+plot(contrasts, means) + 
+    geom_text(aes(x=means$BLOCK, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DESIGN COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
+
+
+
+print("PREDICTED BY INTERACTION")
+print("")
+f <- "MAKER_DESIGN ~ STIMULUS_CATEGORY * BLOCK + (1|PID)"
+anova(mm4)
+r2 = r2(mm4)
+means <- estimate_means(mm4, at=c("BLOCK","STIMULUS_CATEGORY"))
+contrasts <- estimate_contrasts(mm4, c("BLOCK","STIMULUS_CATEGORY"),method="pairwise")
+plot(contrasts, means) + facet_wrap("STIMULUS_CATEGORY")+
+    # geom_text(aes(x=means$BLOCK, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption =f, y="predicted MAKER DESIGN COMPETENCY \n (0=layperson, 100=expert)", 
+                         subtitle=paste0("R2 marginal ",round(r2$R2_marginal*100,2),"%"))
+    
+
+## TEST MODEL FIT 
+# test_performance(mm2,mm3)    
+# test_performance(mm2,mm4)    
+# test_performance(mm3,mm4)    
+anova(mm2,mm3)
+print("the model with CATEGORY is not a significantly better fit than the model with BLOCK")
+test_likelihoodratio(mm2, mm4)
+print("interaction better fit than category")
+test_likelihoodratio(mm3, mm4)
+print("interaction better fit than block")
+
+compare_models(mm2,mm3,mm4)
+compare_performance(mr1, mr2, mm1,mm2,mm3,mm4, rank=TRUE)
+f <- "MAKER_DATA ~ STIMULUS_CATEGORY * BLOCK + (1|PID)"
+
+
+## PLOT BEST FIT MODEL PREDICTIONS
+(p_design <- cat_plot(mm4, pred = BLOCK, modx = STIMULUS_CATEGORY,
+         geom = "line", interval.geom= "linerange", 
+         interval=TRUE, int.type = "confidence", int.width = 0.95, robust = TRUE,
+         plot.points = FALSE) + 
+    facet_wrap(~STIMULUS_CATEGORY) + 
+    labs(title = "LMER Predictions | MAKER_DESIGN by BLOCK X CATEGORY", 
+         caption = f, 
+         y="MAKER_DESIGN \n 0(layerpson) --> 100 (professional)") + easy_remove_legend()
+)
+
+# if(graph_save){
+#   ggsave(plot = p_design, path="figs/level_category/models", filename =paste0("lmer_maker_DESIGN_by_stimulus_category","_ixn.png"), units = c("in"))
+# }
+
+
+## PLOT MODEL PARAMETERS
+plot_model(mm4, type = "est",
+        # show.intercept = TRUE,
+        show.values = TRUE,
+        value.offset = .25,
+        show.p = TRUE
+) + theme_minimal() + labs(caption=f)
+```
+
+**INTERPRETATION** *Here we see that a linear mixed effects model,
+predicting MAKER_DESIGN by the combination of STIMULUS_CATEGORY and
+BLOCK indicates that ratings of maker design competencies do NOT vary
+consistently as a function of CATEGORY (i.e. the degree of
+'embellishment'). Although the degree of embellishment within a block
+(A,B,C,D) is the same, the ratings of maker design competency vary. This
+pattern is particularly salient in category C. These data suggest that
+social inferences about a maker's design competency are not made solely
+based on the amount of embellishment, but rather, in response to the
+particular features of the visualization. A highly embellished chart
+might be rated with relatively high design competency (e.g. B2-C) or
+lower data competency (eg. B5-C).*
+
+
+
+# RESOURCES
+
+-   custom color palettes:
+    <https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/>
+-   lessR donuts <https://r-charts.com/part-whole/donut-chart/>
+-   GGSANKEY <https://github.com/davidsjoberg/ggsankey>
+-   GGALLUVIAL
+    <https://corybrunson.github.io/ggalluvial/articles/ggalluvial.html>
+-   variable standardization [variable (vs) participant]
+    :<https://cran.r-project.org/web/packages/datawizard/vignettes/standardize_data.html>
+-   contrasts:
+-   UCLA:<https://stats.oarc.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables>
+-   <https://phillipalday.com/stats/lazy-contrasts.html>
+-   level naming with contrasts :<https://rpubs.com/bbolker/5335>
+-   ggdist slab normaliztion
+    <https://mjskay.github.io/ggdist/articles/thickness.html>
+-   visualizing regression models visreg
+    <https://pbreheny.github.io/visreg/index.html>
