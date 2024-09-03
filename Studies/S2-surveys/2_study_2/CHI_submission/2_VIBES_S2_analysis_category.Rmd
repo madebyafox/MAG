@@ -1057,7 +1057,7 @@ g <- plot(s, show_data = "point",   show_text = "label",
           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
      # text = list(fontface = "italic")
 g
-ggsave(g, scale =1, filename = "figs/level_category/heatmaps/partial_correlation_no_b00.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+ggsave(g, scale =1, filename = "figs/level_category/heatmaps/blocks_partial_correlation_no_b00.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
 
 #PLOT GAUSSIAN GRAPH MODEL
 # plot(c)
@@ -1128,7 +1128,7 @@ g <- plot(s, show_data = "point",   show_text = "label",
           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
      # text = list(fontface = "italic")
 g
-ggsave(g, scale =1, filename = "figs/level_category/heatmaps/partial_correlation_abs_no_b00.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+ggsave(g, scale =1, filename = "figs/level_category/heatmaps/blocks_partial_correlation_abs_no_b00.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
 
 #PLOT GAUSSIAN GRAPH MODEL
 # plot(c)
