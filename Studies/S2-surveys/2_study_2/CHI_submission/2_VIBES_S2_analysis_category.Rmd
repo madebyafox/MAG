@@ -68,6 +68,7 @@ library(easystats) #modelling helpers
 library(see)
 library(sjPlot)
 library(lme4)
+library(broom.mixed) #tidy mixed models
 library(lmerTest) #for CIs in glmer
 library(equatiomatic) ## extracting model formula
 library(latex2exp) ## extracting and printing model formula
@@ -250,14 +251,14 @@ single_sd <- function (data, left, right, x) {
 }
 
 
-######## RETURNS SINGLE SD
-##  APPLY STYLE
-plot_sd = function (data, column, type, mean, facet, facet_by, boxplot) {
-  
+# ######## RETURNS SINGLE SD
+# ##  APPLY STYLE
+plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) {
+
   ggplot(data, aes(y = .data[[column]], x="")) +
     {if(boxplot) geom_boxplot(width = 0.5) } +
     geom_jitter(width = 0.1, alpha=0.2, {if(facet) aes(color=.data[[facet_by]])}) +
-    {if(mean) 
+    {if(mean)
       stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue")
       } +
     {if(mean)
@@ -274,20 +275,19 @@ plot_sd = function (data, column, type, mean, facet, facet_by, boxplot) {
     coord_flip()  +
     {if(type == "S")
       guides(
-        y = guide_axis_manual(labels = ref_labels[column,"left"]),
-        y.sec = guide_axis_manual(labels = ref_labels[column,"right"])
+        y = guide_axis_manual(labels = labels[column,"left"]),
+        y.sec = guide_axis_manual(labels = labels[column,"right"])
       )} +
     {if(type == "Q")
       guides(
-        y = guide_axis_manual(labels = ref_labels[q,"left"]),
-        y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
+        y = guide_axis_manual(labels = labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = labels[q,"right"])
       )} +
   theme_minimal()  +
      labs (
        caption = column
      ) + easy_remove_legend()
 }
-
 ```
 
 # STIMULUS-CATEGORY
@@ -1148,32 +1148,38 @@ corrplot(m, method = 'circle', type = 'lower',
 ```
 
 
-## EXPLORATORY QUESTIONS
+# EXPLORATORY QUESTIONS
 
 
-### WIP HYPO TEST EMBELLISHMENT --\> ENTICEMENT
+### ENCOUNTER ~ CATEGORY
 
-```{r}
+Are more figural (e.g. figures with more embellishments) graphs _more likely to be interacted with_ than less figural graphs? 
+To address this question, we explore the relationship between `STIMULUS_CATEGORY` and `ENCOUNTER` (whether they would likely scroll past and stop and look at the graph).  
 
-df <- df_graphs %>% 
+#### visualize 
+```{r hypo-category-encounter-vis}
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
   filter(STIMULUS != "B0-0") %>% 
-  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, PID) %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, CHART_TRUST, PID) %>% 
   mutate(
-    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
-  ) %>% filter(STIMULUS != "B0-0")
-
-
-# m <- glm(df)
-
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY), #REVERSE FACTOR ORDER SO A IS REFERENCE
+    ENCOUNTER = fct_rev(ENCOUNTER) #REVERSE SO SCROLL IS REFERENCE
+    ## (only used if not filtering out B0-0)
+    ## RECODE #recode b00 graph as category D [bc it fits in that category]
+    # STIMULUS_CATEGORY = fct_recode(STIMULUS_CATEGORY, D="F") 
+  ) %>% droplevels()
 
 ## CATEGORY
 ## GGSTATSPLOT
 ##############################
 ggbarstats( data = df, x = ENCOUNTER, y = STIMULUS_CATEGORY,
             results.subtitle = FALSE) + 
-    scale_fill_manual(values = my_palettes(name="encounter", direction = "-1")) +
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) +
     theme_minimal() +
-    # labs( title = "",  x = "", y="") + 
+    labs( title = "ENCOUNTER by CATEGORY",  x = "", y="",
+          subtitle = "the more figural categories (C,D) have a higher proportion of engagement") +
     theme(aspect.ratio = 1)
 ##############################
 
@@ -1182,41 +1188,466 @@ ggbarstats( data = df, x = ENCOUNTER, y = STIMULUS_CATEGORY,
 ##############################
 ggbarstats( data = df, x = ENCOUNTER, y = BLOCK,
             results.subtitle = FALSE) + 
-    scale_fill_manual(values = my_palettes(name="encounter", direction = "-1")) +
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) +
     theme_minimal() +
-    # labs( title = "",  x = "", y="") + 
+    labs( title = "ENCOUNTER by BLOCK",  x = "", y="",
+          subtitle = "very little variance in proportion across blocks (as expected)") +
     theme(aspect.ratio = 1)
 ##############################
 
-
-## CATEGORY / BLOCK
-# GGSTATSPLOT
-##############################
-grouped_ggbarstats( data = df, x = ENCOUNTER, y = STIMULUS_CATEGORY,   grouping.var=BLOCK,
-                    results.subtitle = FALSE,
-                    ggplot.component = scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))) + 
-    theme_minimal() +
-    # labs( title = "",  x = "", y="") + 
-    theme(aspect.ratio = 1)
-##############################
 
 
 # BLOCK / CATEGORY
 # GGSTATSPLOT
 ##############################
-grouped_ggbarstats( data = df, x = ENCOUNTER, y = BLOCK,   grouping.var=STIMULUS_CATEGORY,
-                    results.subtitle = FALSE,
-                    ggplot.component = scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))) + 
+x <- grouped_ggbarstats( data = df, x = ENCOUNTER, y = BLOCK,   grouping.var=STIMULUS_CATEGORY,
+                    results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) + 
     theme_minimal() +
     # labs( title = "",  x = "", y="") + 
-    theme(aspect.ratio = 1)
+    theme(aspect.ratio = 1) + easy_remove_legend()
 ##############################
+
+(x[[1]] + scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) + labs(title = "CATEGORY A", subtitle = "some variance across category") + 
+x[[2]] + scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) + labs(title = "CATEGORY B", subtitle = "alot of variance across category")) / 
+(x[[3]] + scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) + labs(title = "CATEGORY C", subtitle = "alot of variance across category") +
+x[[4]] + scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) + theme_ggstatsplot() + labs(title = "CATEGORY D", subtitle = "very little variance across category")) + plot_annotation(title = "ENCOUNTER by BLOCK and CATEGORY")
+
 
 
 ```
 
-```{{r}}
+**INTERPRETATION**  _Here we see that when aggregated, it appears that more figural categories (C,D) have more engagement. However, when we visualize individual blocks (i.e. stimuli) within a particular category, we see a great deal of variance.  This indicates that features of a particular stimulus may be stronger predictors of engagement than the degree of embellishment.  
 
+
+#### model fit 
+
+Is _stimulus_ or _category_ a better predictor of engagement?  Here we fit a series of mixed effects logistic regression models, predicting `ENCOUNTER` (reference category = SCROLL) by `STIMULUS_CATEGORY` and `BLOCK` to determine if variance in encounter choice is best explained by the stimulus category (i.e. level of embellishment) or unique features of the stimulus (i.e. embellishment can be engaging or not engaging).
+
+Parameter estimate: intercept = Log Odds of (SCROLL) responses in REFERENCE (exponetiate for odds)
+EB1 = Log Odds of ODDS of SCROLL response in CONTROL condition
+Parameter estimate: 
+ = 
+ Log Odds (Log OR; change in odds for correct response in impasse (vs) control [log scale])
+ = ODDS RATIO of correct response in IMPASSE (vs) CONTROL
+Null hypothesis:
+ the odds for a correct response does not change, or decreases
+Alternative hypothesis: 
+ the odds of a correct response increases
+
+```{r hypo-category-encounter-fit}
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  filter(STIMULUS != "B0-0") %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, CHART_TRUST, PID) %>% 
+  mutate(
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY), #REVERSE FACTOR ORDER SO A IS REFERENCE
+    ENCOUNTER = fct_rev(ENCOUNTER) #REVERSE SO SCROLL IS REFERENCE
+    
+    ## (only used if not filtering out B0-0)
+    ## RECODE #recode b00 graph as category D [bc it fits in that category]
+    # STIMULUS_CATEGORY = fct_recode(STIMULUS_CATEGORY, D="F") 
+  ) %>% droplevels()
+
+
+
+################## BUILD MODELS #################
+
+# RANDOM INTERCEPT SUBJECT
+mm.rP <- glmer(ENCOUNTER ~ (1|PID), data = df,family = "binomial")
+
+
+# SUBJECT INTERCEPT | FIXED BLOCK 
+## should be non predictive
+print("ENCOUNTER ~ BLOCK + (1|PID)")
+mm.BrP <- glmer(ENCOUNTER ~ BLOCK + (1|PID), 
+                data = df,family = "binomial")
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, rank = TRUE)
+paste("AIC with fixed effect is lower than random intercept only model?", AIC(logLik(mm.rP)) > AIC(logLik(mm.BrP)) )
+test_lrt(mm.rP,mm.BrP) #same as anova(m0, m1, test = "Chi")
+paste("Likelihood Ratio test is significant? p = ",(test_lrt(mm.rP,mm.BrP))$p[2])
+print("A model with BLOCK is NOT a better fit than (random effect) participant alone")
+car::Anova(mm.BrP, type=2)
+print("BLOCK is NOT significant predictor in the model")
+print("[this is as expected. suggests that we were successful in randomizing stimuli across the blocks]")
+
+
+
+# SUBJECT INTERCEPT | FIXED CATEGORY 
+print("ENCOUNTER ~ CATEGORY + (1|PID)")
+mm.CrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY + (1|PID), 
+                data = df,family = "binomial")
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, mm.CrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.BrP,mm.CrP) #same as anova(m0, m1, test = "Chi")
+paste("A model with CATEGORY predicting ENCOUNTER is a better fit than a model with only BLOCK, however it is not a significantly better fit, as evaluated by a CHISQR btwn the models")
+car::Anova(mm.CrP, type = 3)
+print("CATEGORY is a significant predictor in this model")
+
+# SUBJECT INTERCEPT | FIXED CATEGORY + BLOCK
+print("ENCOUNTER ~ CATEGORY + BLOCK + (1|PID)")
+mm.C_BrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY + BLOCK + (1|PID), 
+                data = df,family = "binomial")
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, mm.CrP, mm.C_BrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.CrP,mm.C_BrP) #same as anova(m0, m1, test = "Chi")
+test_lrt(mm.CrP, mm.C_BrP)
+paste("A model with a linear combination of CATEGORY and BLOCK predicting ENCOUNTER is NOT better fit than a model with only CATEGORY.")
+car::Anova(mm.C_BrP, type = 3)
+print("CATEGORY is a significant predictor in this model, but BLOCK is not")
+
+
+# SUBJECT INTERCEPT | FIXED BLOCK * CATEGORY INTERACTION 
+print("ENCOUNTER ~ CATEGORY * BLOCK + (1|PID)")
+mm.CBrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY * BLOCK + (1|PID), 
+                data = df,family = "binomial",
+               control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+               optCtrl=list(maxfun=2e5)))
+# :: TEST fixed factor 
+compare_performance(mm.BrP, mm.CrP, mm.C_BrP, mm.CBrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.C_BrP, mm.CBrP)
+test_lrt(mm.C_BrP, mm.CBrP, verbose = TRUE) #same as anova(m0, m1, test = "Chi")
+paste("A model with an interaction of BLOCK * CATEGORY is a significantly better fit than a model with main effects only. (NOTE that block*category == stimulus. Here we fit the interaction so that we can portion variance between block and category, and compare the models as they will be nested)")
+car::Anova(mm.CBrP, type = 3)
+print("In this model, only the interaction is significant. Neither main effects are significant.")
+print("THIS SUGGESTS THAT ENCOUNTER IS BETTER PREDICTED BY THE UNIQUE STIMULUS THAN THE CATEGORY")
+
+
+
+## SANITY CHECK, MODEL WITH STIMULUS SHOULD MATCH VARIANCE EXPLAINED BY BLOCK*CATEGORY
+# SUBJECT INTERCEPT | FIXED STIMULUS 
+print("SANITY CHECK — MODEL BY STIMULUS")
+print("ENCOUNTER ~ STIMULUS + (1|PID)")
+mm.SrP <- glmer(ENCOUNTER ~ STIMULUS + (1|PID),
+                data = df,family = "binomial",
+               control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+                            optCtrl=list(maxfun=2e5)))
+## :: TEST fixed factor 
+compare_performance(mm.CBrP, mm.SrP, rank = TRUE)
+anova(mm.SrP, mm.CBrP)
+print ("SANITY CHECKED! STIMULUS MODEL SAME FIT AS BLOCK*CATEGORY")
+
+
+#### SET BEST MODEL
+m_best <- mm.CBrP
+
+```
+
+
+#### model describe
+
+```{r hypo-category-encounter-describe}
+
+############ DESCRIBE FINAL MODEL ###########
+summary(m_best)
+report(m_best)
+
+
+######### PRINT COEFFICIENTS 
+print("COEFFICIENT ESTIMATES — LOG ODDS")
+tidy(m_best)
+print("COEFFICIENT ESTIMATES — ODDS RATIOS")
+tidy(m_best, exponentiate=TRUE)
+
+``` 
+
+#### model vis
+```{r hypo-category-encounter-modelvis}
+
+############ VISUALIZE MODEL COEFFICIENTS 
+#SJPLOT | MODEL | ODDS RATIO
+#library(sjPlot)
+plot_model(m_best, type = "est",
+           vline.color = "red", 
+           show.intercept = TRUE, 
+           show.values = TRUE) + theme_minimal() + 
+  labs(title = "Model Predicted Odds Ratio for ENCOUNTER",
+       subtitle = "")
+
+
+
+############ VISUALIZE MODEL PREDICTIONS
+#SJPLOT | MODEL | PROBABILITIES
+plot_model(m_best, type = "int", mdrt.values = "meansd") + theme_minimal()
+
+plot_model(m_best, type="emm", 
+           terms = c("BLOCK"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means for BLOCK")
+
+plot_model(m_best, type="emm", 
+           terms = c("STIMULUS_CATEGORY"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means for CATEGORY")
+
+plot_model(m_best, type="emm", 
+           terms = c("BLOCK","STIMULUS_CATEGORY"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means for INTERACTION")
+
+
+
+## MANUAL PREDICTION INTERACTION PLOT [bc sjPlot cant facet argh]
+means <- estimate_means(m_best, at=c("BLOCK","STIMULUS_CATEGORY"), transform = "response",
+                        backend="emmeans")
+m <- as_tibble(means)
+
+## CUSTOM PREDICTIONS PLOT
+m %>% ggplot( aes(x = BLOCK, y = Probability, color=STIMULUS_CATEGORY)) +
+  geom_point() +
+  geom_linerange(aes(ymin = CI_low, ymax=CI_high)) + 
+  scale_y_continuous(limits = c(0,1))+
+  facet_wrap(~STIMULUS_CATEGORY) + 
+  theme_minimal() + easy_remove_legend() + 
+  labs(title = "MODEL PREDICTED Probability of ENGAGE (rather than scroll)")
+
+```
+
+
+### ENCOUNTER ~ LIKE
+Here we explore whether another variable `CHART_LIKE` is a better predictor of `ENCOUNTER` than `STIMULUS_CATEGORY`. 
+
+#### visualize
+
+```{r hypo-like-encounter-vis}
+
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  filter(STIMULUS != "B0-0") %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, CHART_TRUST, PID) %>% 
+  mutate(
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY), #REVERSE FACTOR ORDER SO A IS REFERENCE
+    ENCOUNTER = fct_rev(ENCOUNTER), #REVERSE SO SCROLL IS REFERENCE
+    STIM_NUM = str_remove(STIMULUS, regex("B..", dotall = TRUE))
+    ## (only used if not filtering out B0-0)
+    ## RECODE #recode b00 graph as category D [bc it fits in that category]
+    # STIMULUS_CATEGORY = fct_recode(STIMULUS_CATEGORY, D="F") 
+  ) %>% droplevels()
+
+
+## ENCOUNTER BY AVG CHART LIKE
+ggbetweenstats(data = df, x = ENCOUNTER, y=CHART_LIKE, color = ENCOUNTER,
+               violin.args = list(width = 0, linewidth = 0), #REMOVE violin plot
+               results.subtitle = FALSE) + 
+  scale_color_manual(values = my_palettes(name="encounter", direction = "-1")) + 
+  labs(title = "ENCOUNTER ~ CHART LIKE")
+
+
+## ENCOUNTER BY AVG CHART LIKE & CATEGORY
+grouped_ggbetweenstats(data = df, x = ENCOUNTER, y=CHART_LIKE, color = ENCOUNTER,
+                       grouping.var = STIMULUS_CATEGORY,
+               violin.args = list(width = 0, linewidth = 0), #REMOVE violin plot
+               results.subtitle = FALSE,
+               ggplot.component = scale_color_manual(values = my_palettes(name="encounter", direction = "-1"))
+               ) + 
+  scale_color_manual(values = my_palettes(name="encounter", direction = "-1")) +
+  plot_annotation(title = "ENCOUNTER ~ CHART LIKE + CATEGORY")
+
+
+
+
+## ENCOUNTER BY AVG CHART LIKE & BLOCK
+grouped_ggbetweenstats(data = df, x = ENCOUNTER, y=CHART_LIKE, color = ENCOUNTER,
+                       grouping.var = BLOCK,
+               violin.args = list(width = 0, linewidth = 0), #REMOVE violin plot
+               results.subtitle = FALSE,
+               ggplot.component = scale_color_manual(values = my_palettes(name="encounter", direction = "-1"))
+               ) + 
+  scale_color_manual(values = my_palettes(name="encounter", direction = "-1")) +
+  plot_annotation(title = "ENCOUNTER ~ CHART LIKE + BLOCK")
+
+
+
+## ENCOUNTER BY AVG CHART LIKE & STIMULUS
+df %>% 
+  group_by(BLOCK, STIMULUS_CATEGORY) %>% mutate(m=mean(CHART_LIKE)) %>%
+  ggplot( aes(x = BLOCK, y = CHART_LIKE, color = ENCOUNTER)) + 
+  geom_boxplot(width = 0.3, fill = "white", position = position_dodge(width=1)) + 
+  geom_jitter(alpha = 0.2, position = position_dodge(width=1)) +
+  scale_fill_manual(values = my_palettes(name="encounter", direction = "-1")) +
+  scale_color_manual(values = my_palettes(name="encounter", direction = "-1")) +
+  facet_wrap(~STIMULUS_CATEGORY) + 
+  theme_minimal() + easy_remove_legend() + 
+  labs(title = "ENCOUNTER by CHART LIKE for BLOCK & STIMULUS")
+  
+
+```
+
+#### model fit 
+
+Is `CHART_LIKE` a better predictor of engagement?  Here we fit a series of mixed effects logistic regression models, predicting `ENCOUNTER` (reference category = SCROLL) by `CHART_LIKE` and comparing this to the best fit model of `STIMULUS_CATEGORY` and `BLOCK` to determine if variance in encounter choice is better explained by the stimulus category (i.e. level of embellishment) or whether the participant likes the chart. 
+
+
+```{r hypo-like-encounter-fit}
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  filter(STIMULUS != "B0-0") %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, CHART_TRUST, PID) %>% 
+  mutate(
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY), #REVERSE FACTOR ORDER SO A IS REFERENCE
+    ENCOUNTER = fct_rev(ENCOUNTER), #REVERSE SO SCROLL IS REFERENCE
+    CHART_LIKE_Z = datawizard::standardise(CHART_LIKE) ## to avoid model non converge
+    ## (only used if not filtering out B0-0)
+    ## RECODE #recode b00 graph as category D [bc it fits in that category]
+    # STIMULUS_CATEGORY = fct_recode(STIMULUS_CATEGORY, D="F") 
+  ) %>% droplevels()
+
+
+
+################## BUILD MODELS #################
+
+## BEST FIT MODEL OF CATEGORY * BLOCK
+# SUBJECT INTERCEPT | FIXED BLOCK * CATEGORY INTERACTION 
+print("ENCOUNTER ~ CATEGORY * BLOCK + (1|PID)")
+mm.CBrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY * BLOCK + (1|PID), 
+                data = df,family = "binomial",
+               control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+               optCtrl=list(maxfun=2e5)))
+
+
+
+# SUBJECT INTERCEPT | FIXED CHART_LIKE
+print("ENCOUNTER ~ CATEGORY + (1|PID)")
+mm.LrP <- glmer(ENCOUNTER ~ CHART_LIKE_Z + (1|PID), 
+                data = df,family = "binomial")
+# :: TEST fixed factor 
+compare_performance(mm.CBrP, mm.LrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.CBrP, mm.LrP) #same as anova(m0, m1, test = "Chi")
+paste("A model with CHART_LIKE predicting ENCOUNTER is a better fit than a model with CATEGORY*BLOCK, though not significantly so")
+car::Anova(mm.LrP, type = 3)
+print("CHART_LIKE is a significant predictor in this model")
+
+
+
+
+# SUBJECT INTERCEPT | FIXED CHART_LIKE + STIMULUS_CATEGORY * BLOCK
+print("ENCOUNTER ~ CATEGORY * BLOCK + (1|PID)")
+mm.L_CBrP <- glmer(ENCOUNTER ~ CHART_LIKE_Z + STIMULUS_CATEGORY * BLOCK + (1|PID), 
+                data = df,family = "binomial",
+               control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+               optCtrl=list(maxfun=2e5)))
+# :: TEST fixed factor 
+compare_performance(mm.LrP, mm.CBrP, mm.L_CBrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+
+### CHECK AGAINST JUST CHART LIKE
+anova(mm.L_CBrP, mm.LrP)
+test_lrt(mm.L_CBrP, mm.LrP, verbose = TRUE) #same as anova(m0, m1, test = "Chi")
+paste("A model adding the interaction of BLOCK * CATEGORY to CHART_LIKE is a significantly better fit than a model with the CHART_LIKE alone")
+
+### CHECK AGAINST IXN MODEL
+anova(mm.L_CBrP, mm.CBrP)
+test_lrt(mm.L_CBrP, mm.CBrP, verbose = TRUE) #same as anova(m0, m1, test = "Chi")
+paste("A model adding CHART LIKE to the interaction of BLOCK * CATEGORY is a significantly better fit than a model with the interaction only.")
+
+### EXAMINE THIS MODEL
+car::Anova(mm.L_CBrP, type = 3)
+print("In this model, the CHART_LIKE variable is significant, along with the STIMULUS_CATEGORY and interaction of CATEGORY & BLOCK")
+print("THIS SUGGESTS THAT ENCOUNTER IS BETTER PREDICTED BY THE UNIQUE STIMULUS THAN THE CATEGORY")
+
+
+
+#### SET BEST MODEL
+m_best <- mm.L_CBrP
+
+```
+
+
+#### model describe
+
+```{r hypo-like-encounter-describe}
+
+############ DESCRIBE FINAL MODEL ###########
+summary(m_best)
+report(m_best)
+
+
+######### PRINT COEFFICIENTS 
+# print("COEFFICIENT ESTIMATES — LOG ODDS")
+# tidy(m_best)
+print("COEFFICIENT ESTIMATES — ODDS RATIOS")
+tidy(m_best, exponentiate=TRUE)
+
+``` 
+
+
+
+
+#### model vis
+```{r hypo-like-encounter-modelvis}
+
+############ VISUALIZE MODEL COEFFICIENTS 
+#SJPLOT | MODEL | ODDS RATIO
+#library(sjPlot)
+plot_model(m_best, type = "est",
+           vline.color = "red", 
+           show.intercept = TRUE, 
+           show.values = TRUE) + theme_minimal() + 
+  labs(title = "Model Predicted Odds Ratio for ENCOUNTER",
+       subtitle = "")
+
+
+
+############ VISUALIZE MODEL PREDICTIONS
+#SJPLOT | MODEL | PROBABILITIES
+
+plot_model(m_best, type="pred", 
+           terms = c("CHART_LIKE_Z"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means on ENCOUNTER",
+       subtitle = "Probability of ENAGAGE steadily increases as a function of CHART_LIKE",
+       caption = "predicted effect of CHART LIKE holding CATEGORY and BLOCK at weighted average")
+
+plot_model(m_best, type="pred", 
+           terms = c("CHART_LIKE_Z", "STIMULUS_CATEGORY"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means on ENCOUNTER",
+       subtitle = "Increases as a function of CHART_LIKE, with CATEGORY A (least embellished) lower",
+       caption = "predicted effect of CHART LIKE AT CATEGORY holding BLOCK at weighted average")
+
+
+plot_model(m_best, type="pred", 
+           terms = c("CHART_LIKE_Z", "BLOCK"), ci.lvl = 0.95) + theme_minimal() + 
+      labs(title = "Estimated Marginal Means on ENCOUNTER",
+           subtitle = "Steady increases by CHART_LIKE, little diff by block",
+          caption = "predicted effect of CHART LIKE AT BLOCK holding CATEGORY at weighted average")
+
+plot_model(m_best, type="pred", 
+           terms = c("CHART_LIKE_Z","STIMULUS_CATEGORY","BLOCK"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means on ENCOUNTER",
+       subtitle = "Steady increase by CHART_LIKE, with CATEGORY differences differing by BLOCK",
+       caption = "predicted effect conditioned on all predictors")
+
+
+## MANUAL PREDICTION INTERACTION PLOT [bc sjPlot cant facet argh]
+means <- estimate_means(m_best, at=c("CHART_LIKE_Z","BLOCK","STIMULUS_CATEGORY"), transform = "response",
+                        backend="emmeans")
+m <- as_tibble(means)
+
+## CUSTOM PREDICTIONS PLOT
+m %>% ggplot( aes(x = CHART_LIKE_Z, y = Probability, color=STIMULUS_CATEGORY, fill=STIMULUS_CATEGORY)) +
+  geom_ribbon(aes(x=CHART_LIKE_Z, ymin = CI_low, ymax=CI_high), alpha= 0.5) + 
+  geom_linerange(aes(ymin = CI_low, ymax=CI_high)) +
+  geom_point() +
+  scale_y_continuous(limits = c(0,1))+
+  facet_grid(BLOCK ~ STIMULUS_CATEGORY) +
+  # facet_wrap(~BLOCK) +
+  theme_minimal() + easy_remove_legend() + 
+  labs(title = "MODEL PREDICTED Probability of ENGAGE (rather than scroll)",
+      subtitle = "Steady increase by CHART_LIKE, with CATEGORY differences differing by BLOCK",
+       caption = "ENCONTER ~ CHART_LIKE_Z + CATEGORY * BLOCK + (1|PID")
+
+```
+
+
+### CHART ACTION ~ CATEGORY
+### PICKUP HERE 
+
+
+```{r}
 df <- df_actions %>% 
   select(STIMULUS, STIMULUS_CATEGORY, BLOCK, CHART_ACTION, CHART_LIKE, PID) %>% 
   mutate(
@@ -1279,6 +1710,11 @@ theme(aspect.ratio = 1)
 # TODO STACKED BAR BY ACTION
 
 ```
+
+    
+    
+
+
 
 ### WIP DATA AND DESIGN BY CATEGORY and BLOCK
 
@@ -1589,3 +2025,5 @@ lower data competency (eg. B5-C).*
     <https://mjskay.github.io/ggdist/articles/thickness.html>
 -   visualizing regression models visreg
     <https://pbreheny.github.io/visreg/index.html>
+- troubleshooting model convergence issues https://rstudio-pubs-static.s3.amazonaws.com/33653_57fc7b8e5d484c909b615d8633c01d51.html
+- understanding marginal effects https://strengejacke.github.io/ggeffects/articles/ggeffects.html#summary-of-most-important-points

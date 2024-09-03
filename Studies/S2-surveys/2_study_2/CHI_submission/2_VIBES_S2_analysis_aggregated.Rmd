@@ -69,6 +69,7 @@ library(see)
 library(sjPlot)
 library(lme4)
 library(lmerTest) #for CIs in glmer
+# library(mixed) ## utilities for glmers 
 library(equatiomatic) ## extracting model formula
 library(latex2exp) ## extracting and printing model formula
 
@@ -250,14 +251,14 @@ single_sd <- function (data, left, right, x) {
 }
 
 
-######## RETURNS SINGLE SD
-##  APPLY STYLE
-plot_sd = function (data, column, type, mean, facet, facet_by, boxplot) {
-  
+# ######## RETURNS SINGLE SD
+# ##  APPLY STYLE
+plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) {
+
   ggplot(data, aes(y = .data[[column]], x="")) +
     {if(boxplot) geom_boxplot(width = 0.5) } +
     geom_jitter(width = 0.1, alpha=0.2, {if(facet) aes(color=.data[[facet_by]])}) +
-    {if(mean) 
+    {if(mean)
       stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue")
       } +
     {if(mean)
@@ -274,13 +275,13 @@ plot_sd = function (data, column, type, mean, facet, facet_by, boxplot) {
     coord_flip()  +
     {if(type == "S")
       guides(
-        y = guide_axis_manual(labels = ref_labels[column,"left"]),
-        y.sec = guide_axis_manual(labels = ref_labels[column,"right"])
+        y = guide_axis_manual(labels = labels[column,"left"]),
+        y.sec = guide_axis_manual(labels = labels[column,"right"])
       )} +
     {if(type == "Q")
       guides(
-        y = guide_axis_manual(labels = ref_labels[q,"left"]),
-        y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
+        y = guide_axis_manual(labels = labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = labels[q,"right"])
       )} +
   theme_minimal()  +
      labs (
@@ -905,7 +906,7 @@ the survey element as a slider (i.e. click and and drag, or touch and
 drag) *or* as a visual analogue scale (i.e. click or tap on position
 along the scale).
 
-### Full Scales
+### FULL SCALES
 
 *The SD scores visualized here are in the same form as the participants'
 response scale (slider from 0-100).*
@@ -922,7 +923,7 @@ response scale (slider from 0-100).*
   
   #subset data cols 
   cols <- df %>% select( all_of(ref_sd_questions))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = FALSE, boxplot=TRUE))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = FALSE, boxplot=TRUE, labels=ref_labels))
   
   #aggregate q plots into one for stimulus 
   plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
@@ -1027,7 +1028,7 @@ if(graph_save == TRUE) {
 ```    
   
 
-### Absolute Values
+### ABSOLUTE VALUES
 
 *Here the scale of the semantic differential questions have been
 collapsed, such that 0 is the midpoint of the scale (indicating
@@ -1048,7 +1049,7 @@ the labelled traits).*
   
   #subset data cols 
   cols <- df %>% select( all_of(ref_sd_questions_abs))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = FALSE, boxplot=TRUE))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = FALSE, boxplot=TRUE, labels = ref_labels_abs))
   
   #aggregate q plots into one for stimulus 
 plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
@@ -1091,8 +1092,8 @@ if(graph_save == TRUE){
                 vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
     stat_summary(fun=median, geom="point", size=2) +
     guides(
-      y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
-      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+      y = guide_axis_manual(labels = rev(ref_labels_abs$left), title = ""),
+      y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
     ) +
   cowplot::draw_text(text = ref_sd_questions, x = 45, y= ref_sd_questions_abs,size = 8, vjust=-2) +
   labs (title = "ALL STIMULI — SD (ABSOLUTE VALUE)", y = "", caption = "(point is median)") +
@@ -1129,8 +1130,8 @@ if(graph_save == TRUE){
                 vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
     stat_summary(fun=median, geom="point", size=2) +
     guides(
-      y = guide_axis_manual(labels = rev(ref_labels$left)),
-      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+      y = guide_axis_manual(labels = rev(ref_labels_abs$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
     ) +
     labs(title = "ALL STIMULI — SD (ABSOLUTE VALUE)", y = "", caption = "(point is median)") +
     cowplot::draw_text(text = ref_sd_questions, x = 45, y= ref_sd_questions_abs, size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
@@ -1557,13 +1558,14 @@ x
 
 **Interesting patterns to explore further** - unfollow/block across all!
 
-## EXPLORATORY QUESTIONS
+# EXPLORATORY QUESTIONS
 
 -   When participants identify the maker as an INDIVIDUAL, the following
     variables show a different pattern than the other identifications:
     MAKER_DESIGN, MAKER_DATA, CHART INTENT
 -   interesting bimodal distribution on CHART INTENT for most
     identifications, except individuals and organizations
+    
     
     
 ### TOOL ID & DATA COMPETENCY    
