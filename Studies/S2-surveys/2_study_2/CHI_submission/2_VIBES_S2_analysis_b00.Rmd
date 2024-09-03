@@ -1,5 +1,5 @@
 ---
-title: "VIBES STUDY 2 REPORTING-STIMULUS B0-0"
+title: "VIBES STUDY 2 ANALYSIS — STIMULUS LEVEL — MILLENIAL PINK PLANTS B0-0"
 author: "ANONYMIZED"
 date: "2024-08-07"
 output:
@@ -12,13 +12,16 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: yes
-    toc_depth: 5
+    toc_depth: 6
   pdf_document:
     toc: yes
     toc_depth: '5'
 always_allow_html: yes
 font-family: DejaVu Sans
 mainfont: DejaVu Sans
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -55,6 +58,8 @@ library(plotly) # interactive graphs
 library(paletteer) #more palettes
 library(lessR) ##very pretty donuts 
 library(ggsankey) ## ggplot2 sankey extension
+library(interactions) ##easier regression ixn plots.srlsy
+
 
 
 #MODELLING
@@ -63,6 +68,7 @@ library(easystats) #modelling helpers
 library(see)
 library(sjPlot)
 library(lme4)
+library(broom.mixed) #tidy mixed models
 library(lmerTest) #for CIs in glmer
 library(equatiomatic) ## extracting model formula
 library(latex2exp) ## extracting and printing model formula
@@ -72,19 +78,36 @@ options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-graph_render = TRUE #set to true to generate all the SD graphs and save to folders 
+graph_save = TRUE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
-In VISUALIZATION VIBES project Study 2, participants completed an *attitutde eliciation* survey, asking questions about their attitude toward (5) stimulus images (data visualizations). Each participant was randomly assigned to one of 6 stimulus blocks, each containing 1 image from each of (4) pseudo-categories (ranging from most abstract to most figural). Each participant started by responding to questions for a single 'common' stimulus (that is thus super-powered as it was seen by all participants). Two participant recruitment pools were used: Prolific, with a smaller set of participants recruited from Tumblr (to replicate and compare survey results to Study 1 interviews with participants sourced from Tumblr).
+In VISUALIZATION VIBES project Study 2, participants completed an
+*attitutde eliciation* survey, asking questions about their attitude
+toward (5) stimulus images (data visualizations). Each participant was
+randomly assigned to one of 6 stimulus blocks, each containing 1 image
+from each of (4) pseudo-categories (ranging from most abstract to most
+figural). Each participant started by responding to questions for a
+single 'common' stimulus (that is thus super-powered as it was seen by
+all participants). Two participant recruitment pools were used:
+Prolific, with a smaller set of participants recruited from Tumblr (to
+replicate and compare survey results to Study 1 interviews with
+participants sourced from Tumblr).
 
-This notebook contains code to replicate quantitative analysis of data from Study 2 reported in the CHI submission. Note that due to limited space, we were unable to report results for *all* stimulus blocks, and all possible analyses. A separate set of R notebooks are included in the supplementary materials that document analysis of the other blocks not reported here.
+This notebook contains code to replicate quantitative analysis of data
+from Study 2 reported in the CHI submission. Note that due to limited
+space, we were unable to report results for *all* stimulus blocks, and
+all possible analyses. A separate set of R notebooks are included in the
+supplementary materials that document analysis of the other blocks not
+reported here.
 
-**This notebook includes analysis and exploration of data for common stimulus block B0-0, seen by all participants**
+**This notebook includes analysis and exploration of the data set at the
+stimulus level FOR the single common stimulus, `B0-0`**
 
 # SETUP
 
-*We start by importing data files previously wrangled in `0_VIBES_S2_wrangling.Rmd`.*
+*We start by importing data files previously wrangled in
+`0_VIBES_S2_wrangling.Rmd`.*
 
 ## Import Data
 
@@ -137,8 +160,8 @@ df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") 
 
 ```
 
-
 ## Set up Graphing
+
 ```{r setup-pallettes}
 
 ############## SETUP Colour Palettes
@@ -148,7 +171,7 @@ df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") 
 my_colors = list(
   politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
   blackred = c("black","red"),
-  greys = c("#3D3D3D","#7A7A7A","#A3A3A3"),
+  greys = c("#707070","#999999","#C2C2C2"),
   greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
   smallgreens = c("#ADC69D","#567E39","#193E0A"),
   olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
@@ -228,43 +251,44 @@ single_sd <- function (data, left, right, x) {
 }
 
 
-######## RETURNS SINGLE SD
-##  APPLY STYLE
-plot_sd = function (data, column, type, mean, facet, facet_by, boxplot) {
+# ######## RETURNS SINGLE SD
+# ##  APPLY STYLE
+plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) {
 
   ggplot(data, aes(y = .data[[column]], x="")) +
     {if(boxplot) geom_boxplot(width = 0.5) } +
     geom_jitter(width = 0.1, alpha=0.2, {if(facet) aes(color=.data[[facet_by]])}) +
-    {if(mean) stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue")} +
-    {if(mean) stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
-                 vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0))) } +
-    
+    {if(mean)
+      stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue")
+      } +
+    {if(mean)
+      ## assumes data has been passed in with mean column at m
+      # stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
+      #            vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0)))
+      stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
+                 vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0)))
+      } +
+
     {if(facet) facet_grid(.data[[facet_by]] ~ .)} +
     # scale_y_continuous(limits=c(-1,101)) +
     labs(x="", y="") +
     coord_flip()  +
     {if(type == "S")
       guides(
-        y = guide_axis_manual(labels = ref_labels[column,"left"]),
-        y.sec = guide_axis_manual(labels = ref_labels[column,"right"])
+        y = guide_axis_manual(labels = labels[column,"left"]),
+        y.sec = guide_axis_manual(labels = labels[column,"right"])
       )} +
     {if(type == "Q")
       guides(
-        y = guide_axis_manual(labels = ref_labels[q,"left"]),
-        y.sec = guide_axis_manual(labels = ref_labels[q,"right"])
+        y = guide_axis_manual(labels = labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = labels[q,"right"])
       )} +
   theme_minimal()  +
      labs (
        caption = column
      ) + easy_remove_legend()
 }
-
 ```
-
-
-
-
-
 
 
 
@@ -413,10 +437,11 @@ The response is stored as `MAKER_ID`
 
 Participants were also asked: **Please rate your confidence in this choice.** The response is stored as `MAKER_CONF` .
 
-```{r maker-id-confidence-full}
+```{r maker-id-confidence}
 
 #FILTER DATASET
-df <- df_full
+df <- df_b00
+
 
 
 ## D
@@ -425,52 +450,73 @@ df <- df_full
 ##############################
 #hack for consistent ordering of ggstats bar plot
 dx <- df %>% mutate( MAKER_ID = fct_rev(MAKER_ID) )
-S <-   ggbarstats( data = dx, x = MAKER_ID, y = STUDY,
-                   legend.title = "MAKER ID") + 
+## get chisqr gof from ggpiestats
+stat <- extract_subtitle( ggpiestats( data = dx, x = MAKER_ID))
+cap <- expression(chi^2~indicates~null~hypothesis~of~even~distribution~between~levels~can~be~rejected)
+## display on ggbarstats
+S <- ggbarstats(dx, x = MAKER_ID, y = STUDY) + 
     scale_fill_manual(values = my_palettes(name="reds", direction = "1")) +
-    theme_minimal() +
-    labs( title = "",  x = "", y="") + 
-    theme(aspect.ratio = 1)
+    theme_minimal() + labs(
+      title = "B0-0 | Distribution of MAKER_ID is not equal across levels",
+      subtitle = stat, 
+      caption = cap
+    )
+    # labs( title = "",  x = "", y="") + 
+    # theme(aspect.ratio = 1)
 ##############################
+
 
 
   
 ## H
-## HALF BOXPLOT + DOTPLOT + MEAN
+## HALF EYE SLAB GGDIST
 ##############################
 H <- df %>% 
   group_by(MAKER_ID) %>% 
   mutate(count = n(), m = mean(MAKER_CONF)) %>% 
-  ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_ID), color = fct_rev(MAKER_ID))) + 
-   geom_half_boxplot(side="r", alpha = 0.5, aes(fill=fct_rev(MAKER_ID))) + 
-  # geom_boxplot(width = 0.6)+
-  # geom_jitter(position=position_jitterdodge(width ), alpha = 0.2) + 
-  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
-               vjust=-0.75, hjust = 1, aes( label=round(..y.., digits=0)))+
-
-  scale_color_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) + 
-  stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA,
-                        aes(fill = fct_rev(MAKER_ID)) , color="black",  point_interval = "mean_qi")  +
-  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) + 
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
-    geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+  ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_ID), fill = fct_rev(MAKER_ID))) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
             size = 3, nudge_x=0.35) + 
-  labs(y="Maker ID Confidence", x="") + 
+  labs(y="Maker ID Confidence", x="", title = "B0-0 | MAKER CONFIDENCE by MAKER_ID",   caption = "(blue indicates mean)") + 
   theme_minimal() + 
   easy_remove_legend()+
   coord_flip() 
 ##############################
   
+## B
+## JITTER BOXPLOT
+##############################
+B <- df %>% 
+  group_by(MAKER_ID) %>% 
+  mutate(count = n(), m = mean(MAKER_CONF)) %>% 
+  ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_ID), color = fct_rev(MAKER_ID))) + 
+  geom_boxplot() + 
+  geom_point(position = position_jitter(width=0.2)) + 
+  scale_color_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) + 
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  theme_minimal() + easy_remove_legend() + 
+  labs(title = "B0-0 | MAKER CONFIDENCE by MAKER_ID", x = "MAKER_ID")
 
-(p <- (S + H)) + plot_annotation(
-  title = "Maker ID and Confidence",
-  # subtitle = "the categories of MAKER ID were chosen in similar proportion, 
-  # and both the mean (in blue) and shape of distribution of confidence scores is similar across values of Maker ID",
-  caption = "(blue indicates mean)"
-)
+
+S 
+H
+B
 
 ```
-The distribution of maker types is surprisingly equal across levels of the `maker_id` variable... exception of 'organization'. This distribution is likely a function of the diversity of stimuli we selected. Notably, the confidence scores are similar (both in mean and shape of distribution) regardless of the maker_id, indicating that in general, there is no maker identification for which participants have less confidence.  
+
+
 
 ### MAKER AGE
 
@@ -482,10 +528,11 @@ Take a moment to **imagine the person(s) responsible for creating the image**. 
 Participants were asked: **Please rate your confidence in this choice.** The response is stored as `AGE_CONF` .
 
 
-```{r maker-age-confidence-full}
+```{r maker-age-confidence}
 
 #FILTER DATASET
-df <- df_full
+df <- df_b00
+
 
 
 ## D
@@ -494,51 +541,72 @@ df <- df_full
 ##############################
 #hack for consistent ordering of ggstats bar plot
 dx <- df %>% mutate( MAKER_AGE = fct_rev(MAKER_AGE) )
-S <-   ggbarstats( data = dx, x = MAKER_AGE, y = STUDY,
-                   legend.title = "MAKER AGE") + 
+## get chisqr gof from ggpiestats
+stat <- extract_subtitle( ggpiestats( data = dx, x = MAKER_AGE))
+cap <- expression(chi^2~indicates~null~hypothesis~of~even~distribution~between~levels~can~be~rejected)
+## display on ggbarstats
+S <- ggbarstats(dx, x = MAKER_AGE, y = STUDY) + 
     scale_fill_manual(values = my_palettes(name="lightblues", direction = "1")) +
-    theme_minimal() +
-    labs( title = "",  x = "", y="") + 
-    theme(aspect.ratio = 1)
+    theme_minimal() + labs(
+      title = "B0-0 | Distribution of MAKER_AGE is not equal across levels",
+      subtitle = stat, 
+      caption = cap
+    )
+    # labs( title = "",  x = "", y="") + 
+    # theme(aspect.ratio = 1)
 ##############################
+
 
 
   
 ## H
-## HALF BOXPLOT + DOTPLOT + MEAN
+## HALF EYE SLAB GGDIST
 ##############################
-H <-  df %>% 
+H <- df %>% 
   group_by(MAKER_AGE) %>% 
-  mutate(count = n(), m = mean(MAKER_CONF)) %>% 
-  ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_AGE), color = fct_rev(MAKER_AGE))) + 
-    geom_half_boxplot(side="r", alpha = 0.5, aes(fill=fct_rev(MAKER_AGE))) + 
-    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
-               vjust=-0.75, hjust = 1, aes( label=round(..y.., digits=0)))+
-    scale_color_manual(values = my_palettes(name="lightblues", direction = "-1"), 
-                       guide = guide_legend(reverse = TRUE)) + 
-    scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), 
-                      guide = guide_legend(reverse = TRUE)) + 
-    stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, 
-                        aes(fill = fct_rev(MAKER_AGE)) , color="black",  point_interval = "mean_qi")  +
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
-    geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+  mutate(count = n(), m = mean(AGE_CONF)) %>% 
+  ggplot(aes(y = AGE_CONF, x = fct_rev(MAKER_AGE), fill = fct_rev(MAKER_AGE))) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
             size = 3, nudge_x=0.35) + 
-  labs(y="Maker Age Confidence", x="") + 
+  labs(y="Maker ID Confidence", x="", title = "B0-0 | AGE CONFIDENCE by MAKER_AGE",   caption = "(blue indicates mean)") + 
   theme_minimal() + 
   easy_remove_legend()+
   coord_flip() 
 ##############################
   
 
-(p <- (S + H)) + plot_annotation(
-  title = "Maker AGE and Confidence",
-  # subtitle = "The value
-  # distribution of confidence scores is similar across values of Maker AGE",
-  caption = "(blue indicates mean)"
-)
 
+## B
+## JITTER BOXPLOT
+##############################
+B <- df %>% 
+  group_by(MAKER_AGE) %>% 
+  mutate(count = n(), m = mean(AGE_CONF)) %>% 
+  ggplot(aes(y = AGE_CONF, x = fct_rev(MAKER_AGE), color = fct_rev(MAKER_AGE))) + 
+  geom_boxplot() + 
+  geom_point(position = position_jitter(width=0.2)) + 
+  scale_color_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) + 
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  theme_minimal() + easy_remove_legend() + 
+  labs(title = "B0-0 | AGE CONFIDENCE by MAKER_AGE", x = "MAKER_AGE")
+
+
+S 
+H
+B
 ```
-The distribution of maker ages is distributed as we would expect if participants are answering the question with some sense of the maker's occupation in mind, and thus answering with the generations that are mostly likely of working age (gen X, millenial).  As with maker_id,  confidence scores are similar (both in mean and shape of distribution) across all levels of maker_age, indicating that in general, there is no maker age for which participants have less confidence.  
 
 ### MAKER GENDER
 
@@ -550,10 +618,11 @@ Take a moment to **imagine the person(s) responsible for creating the image**. 
 Participants were asked: **Please rate your confidence in this choice.** The response is stored as `GENDER_CONF` .
 
 
-```{r maker-gender-confidence-full}
+```{r maker-gender-confidence}
 
 #FILTER DATASET
-df <- df_full
+df <- df_b00
+
 
 
 ## D
@@ -561,48 +630,71 @@ df <- df_full
 ## GGSTATSPLOT
 ##############################
 #hack for consistent ordering of ggstats bar plot
-dx <- df %>% mutate( MAKER_AGE = fct_rev(MAKER_AGE) )
-S <-   ggbarstats( data = dx, x = MAKER_GENDER, y = STUDY,
-                   legend.title = "MAKER GENDER") + 
-    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1")) +
-    theme_minimal() +
-    labs( title = "",  x = "", y="") + 
-    theme(aspect.ratio = 1)
+# dx <- df %>% mutate( MAKER_GENDER = fct_rev(MAKER_GENDER) )
+## get chisqr gof from ggpiestats
+stat <- extract_subtitle( ggpiestats( data = df, x = MAKER_GENDER))
+cap <- expression(chi^2~indicates~null~hypothesis~of~even~distribution~between~levels~can~be~rejected)
+## display on ggbarstats
+S <- ggbarstats(df, x = MAKER_GENDER, y = STUDY) + 
+      scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1"), guide = guide_legend(reverse = TRUE)) +
+    theme_minimal() + labs(
+      title = "B0-0 | Distribution of MAKER_GENDER is not equal across levels",
+      subtitle = stat, 
+      caption = cap
+    )
 ##############################
 
+
+
+  
 ## H
-## HALF BOXPLOT + DOTPLOT + MEAN
+## HALF EYE SLAB GGDIST
 ##############################
-H <-  df %>% 
+H <- df %>% 
   group_by(MAKER_GENDER) %>% 
   mutate(count = n(), m = mean(GENDER_CONF)) %>% 
-  ggplot(aes(y = GENDER_CONF, x = fct_rev(MAKER_GENDER), color = fct_rev(MAKER_GENDER))) + 
-    geom_half_boxplot(side="r", alpha = 0.5, aes(fill=fct_rev(MAKER_GENDER))) + 
-    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
-               vjust=-0.75, hjust = 1, aes( label=round(..y.., digits=0)))+
-    scale_color_manual(values = my_palettes(name="smallgreens", direction = "-1"), 
-                       guide = guide_legend(reverse = TRUE)) + 
-    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), 
-                      guide = guide_legend(reverse = TRUE)) + 
-    stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, 
-                        aes(fill = fct_rev(MAKER_GENDER)) , color="black",  point_interval = "mean_qi")  +
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
-    geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+  ggplot(aes(y = GENDER_CONF, x = MAKER_GENDER, fill = MAKER_GENDER)) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+   scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
             size = 3, nudge_x=0.35) + 
-  labs(y="Maker Gender Confidence", x="") + 
+  labs(y="Maker ID Confidence", x="", title = "B0-0 | MAKER CONFIDENCE by MAKER_GENDER",   caption = "(blue indicates mean)") + 
   theme_minimal() + 
   easy_remove_legend()+
   coord_flip() 
 ##############################
   
 
-(p <- (S + H)) + plot_annotation(
-  title = "Maker GENDER and Confidence",
-  # subtitle = "The value
-  # distribution of confidence scores is similar across values of Maker AGE",
-  caption = "(blue indicates mean)"
-)
 
+## B
+## JITTER BOXPLOT
+##############################
+B <- df %>% 
+  group_by(MAKER_GENDER) %>% 
+  mutate(count = n(), m = mean(GENDER_CONF)) %>% 
+  ggplot(aes(y = GENDER_CONF, x = MAKER_GENDER, color = MAKER_GENDER)) + 
+  geom_boxplot() + 
+  geom_point(position = position_jitter(width=0.2)) + 
+  scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), guide = guide_legend(reverse = TRUE)) +
+
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  theme_minimal() + easy_remove_legend() + 
+  labs(title = "B0-0 | MAKER CONFIDENCE by MAKER_GENDER", x = "MAKER_GENDER")
+
+
+S 
+H
+B
 ```
 The distribution of maker genders is not evenly distributed between men and women as we might expect.  We think it is most likely that the 'male' category serves as a default value for the maker gender, in the absence of any particular feature of stimulus that viewers interpret as strongly feminine.  This hypothesis is grounded in the free response data, however it is only a hypothesis.   
 ### TOOL ID
@@ -619,6 +711,7 @@ Participants were asked: **Please rate your confidence in this choice.** The res
 
 #FILTER DATASET
 df <- df_tools %>% 
+  filter(STIMULUS == "B0-0") %>% 
   mutate(
     STUDY = ""
   )
@@ -628,51 +721,69 @@ df <- df_tools %>%
 ## MAKER IDENTIFICATION AGGREGATED (all)
 ## GGSTATSPLOT
 ##############################
-#hack for consistent ordering of ggstats bar plot
+stat <- extract_subtitle( ggpiestats( data = df, x = TOOL_ID))
+cap <- expression(chi^2~indicates~null~hypothesis~of~even~distribution~between~levels~can~be~rejected)
+## display on ggbarstats
 S <-   ggbarstats( data = df, x = TOOL_ID, y = STUDY,
                    legend.title = "TOOL ID") + 
-    scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
-    theme_minimal() +
-    labs( title = "",  x = "", y="") + 
-    theme(aspect.ratio = 1)
+    scale_fill_manual(values = my_palettes(name="tools", direction = "1"), guide = guide_legend(reverse = TRUE)) +
+      theme_minimal() + labs(
+      title = "B0-0 | Distribution of TOOL_ID is not equal across levels",
+      subtitle = stat, 
+      caption = cap
+    )
 ##############################
+    
 
 
 
 
 ## H
-## HALF BOXPLOT + DOTPLOT + MEAN
+## HALF EYE SLAB GGDIST
 ##############################
 H <-  df %>% 
   group_by(TOOL_ID) %>% 
   mutate(count = n(), m = mean(TOOL_CONF)) %>% 
-  ggplot(aes(y = TOOL_CONF, x = fct_rev(TOOL_ID), color = fct_rev(TOOL_ID))) + 
-    geom_half_boxplot(side="r", alpha = 0.5, aes(fill=fct_rev(TOOL_ID))) + 
-    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
-               vjust=-0.75, hjust = 1, aes( label=round(..y.., digits=0)))+
-    scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
-    scale_color_paletteer_d("awtools::a_palette", direction = 1)+
-    stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, 
-                        aes(fill = fct_rev(TOOL_ID)) , color="black",  point_interval = "mean_qi")  +
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
-    geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+  ggplot(aes(y = TOOL_CONF, x = TOOL_ID, fill = TOOL_ID)) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="tools", direction = "1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
             size = 3, nudge_x=0.35) + 
-  labs(y="Tool ID Confidence", x="") + 
+  labs(y="TOOL ID Confidence", x="", caption="(mean in blue) (median in red)",
+             title = "B0-0 | Distribution of TOOL CONFIDENCE by TOOL_ID ") + 
   theme_minimal() + 
   easy_remove_legend()+
   coord_flip() 
 ##############################
   
 
-(p <- (S + H)) + plot_annotation(
-  title = "TOOL ID and Confidence",
-  # subtitle = "The value
-  # distribution of confidence scores is similar across values of Maker AGE",
-  caption = "(blue indicates mean)"
-)
+## B
+## JITTER BOXPLOT
+##############################
+B <- df %>% 
+  group_by(TOOL_ID) %>% 
+  mutate(count = n(), m = mean(TOOL_CONF)) %>% 
+  ggplot(aes(y = TOOL_CONF, x =TOOL_ID, color = TOOL_ID)) + 
+  geom_boxplot() + 
+  geom_point(position = position_jitter(width=0.2)) + 
+  scale_color_manual(values = my_palettes(name="tools", direction = "1"), guide = guide_legend(reverse = TRUE)) +
+
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  theme_minimal() + easy_remove_legend() + 
+  labs(title = "B0-0 | TOOL CONFIDENCE by TOOL_ID", x = "TOOL_ID")
+
 
 ```
-We had no expectations with respect to the distribution of values in tool identification, but note that are roughly even across categories (exception of 'unknown' and 'programming'), and the confidence scores are similar.  
 
 
 ### ENCOUNTER CHOICE
@@ -682,19 +793,25 @@ options:  keep scrolling, pause and look at the image
 The response was saved as variable `ENCOUNTER` (select one)
 
 ```{r}
+
+df <- df_b00
 ## B
 ## ENCOUNTER  BY STIMULUS
 ## GGSTATSPLOT
-df_full %>% 
+## get chisqr gof from ggpiestats
+stat <- extract_subtitle( ggpiestats( data = df, x = ENCOUNTER))
+cap <- expression(chi^2~indicates~null~hypothesis~of~even~distribution~between~levels~can~be~rejected)
+df_b00 %>% 
   ggbarstats(  
             x = ENCOUNTER, y = STUDY,
             legend.title = "ENCOUNTER",
             results.subtitle = FALSE) + 
     scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))+
     theme_minimal() + 
-    labs( title = "ENCOUNTER Choice ", subtitle = "", x = "")
+    labs( title = "B0-0 | ENCOUNTER Choice ", x = "", 
+          subtitle = stat, caption = cap)
 ```
-Participants chose to 'engage' rather than 'scroll past' 59% of the time. 
+Participants chose to 'engage' rather than 'scroll past' 69% of the time. 
 
 ### ACTION CHOICE
 
@@ -707,322 +824,287 @@ The response was saved as variable `CHART_ACTION` (multi-select)
 ## ACTION  BY STIMULUS
 ## GGSTATSPLOT
 #hack for consistent ordering of ggstats bar plot
-df_actions %>% mutate(
+
+df <- df_actions %>% 
+  filter(STIMULUS=="B0-0") %>% 
+  mutate(
   CHART_ACTION = fct_rev(CHART_ACTION),
-  STUDY="") %>% 
+  STUDY="") 
+
+
+## get chisqr gof from ggpiestats
+stat <- extract_subtitle( ggpiestats( data = df, x = CHART_ACTION))
+cap <- expression(chi^2~indicates~null~hypothesis~of~even~distribution~between~levels~can~be~rejected)
+
+df %>% 
   ggbarstats( x = CHART_ACTION, y = STUDY,
             legend.title = "CHART ACTION",
             results.subtitle = FALSE) + 
     # scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
     scale_fill_manual(values = my_palettes(name="actions", direction = "1"))+
     theme_minimal() + 
-    labs( title = "ACTION Choice ", subtitle = "", x = "")
+    labs( title = "B0-0 | ACTION Choice ", subtitle = stat, x = "", caption = cap)
     
 ```
 A high proportion of participants answered 'nothing' chart action, which is not surprising given the social media context. I am surprised to see such a high proportion answering that they would seek further information! 
 
-### PLATFORM CHOICE
+## SEMANTIC DIFFERENTIALS
 
-Before starting the experimental blocks, participants were asked 
-**Please choose a social media platform to imagine you are engaging with during this study**
-options: Twitter/X, Tumblr, LinkedIn, Instagram, Facebook
-The response was saved as variable `PLATFORM` (select one)
-```{r}
-## B
-## PLATFORM  BY STIMULUS
-## GGSTATSPLOT
-#hack for consistent ordering of ggstats bar plot
-df_full %>% 
-  ggbarstats(  
-            x = PLATFORM, y = STUDY,
-            legend.title = "PLATFORM",
-            results.subtitle = FALSE) + 
-    scale_fill_manual(values = my_palettes(name="platforms", direction = "-1"))+
-    theme_minimal() + 
-    labs( title = "PLATFORM Choice ", subtitle = "", x = "")
-    
-```
-We had no expectations about the distribution of social media platform.
+Participants were also asked to rate certain characteristics of the
+chart, or its maker, along a **semantic differential scale**,
+implemented in Qualtrics as a continuous slider ranging from 0 -\> 100
+with biploar adjectives at the end of each scale. The slider defaulted
+to the center point (50), and the interface displayed the numeric value
+of the slider position as a tooltip while the element had focus. Note
+that on both touch and mouse devices participants could interact with
+the survey element as a slider (i.e. click and and drag, or touch and
+drag) *or* as a visual analogue scale (i.e. click or tap on position
+along the scale).
 
-### SEMANTIC DIFFERENTIALS
+### FULL SCALES
 
-#### Full Scales
+*The SD scores visualized here are in the same form as the participants'
+response scale (slider from 0-100).*
 
-_The SD scores visualized here are in the same form as the participants' resposne scale (slider from 0-100)._
+#### AGGREGATED 
 
-```{r ALL-Q-COLLAPSED-SCALED}
+##### boxplot
+```{r plot_boxplot_sds, fig.width=10, fig.height=14}
 
-##ONLY RENDER GRAPHS IF SET TO TRUE
-if(graph_render == TRUE){
-
-  
-#################### ALL QUESTIONS across ALL STIMULUS #############################################################
-
-  
   #### LIST OF BLOXPLOTS + JITTER #############################################################################
 
   # setup dataframe 
-  df <- df_graphs 
+  df <- df_b00
   
   #subset data cols 
   cols <- df %>% select( all_of(ref_sd_questions))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = FALSE, boxplot=TRUE))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = FALSE, boxplot=TRUE, labels=ref_labels))
   
   #aggregate q plots into one for stimulus 
   plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
    plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
    plot_annotation(
-     title = "ALL STIMULI",
-     subtitle =""
+     title = "B0-0 | MILLENIAL PINK PLANTS",
+     subtitle ="", caption = "(point is mean)"
    )
   
-  ggsave(plot = plot_master_questions, path="figs/_full_sample", filename =paste0("combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
+if(graph_save == TRUE){  
+  ggsave(plot = plot_master_questions, path="figs/level_b00/distributions", filename =paste0("b00","_box.png"), units = c("in"), width = 10, height = 14  )
+}
+
+print(plot_master_questions)
   
+```  
   
+##### ggdist halfeye
+```{r plot_halfeye_sds}
+
+
+
   #### GGDIST PLOT#############################################################################
   
   # setup dataframe 
-  df <- df_sd_questions_long %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value) 
+  df <- df_sd_questions_long %>% filter(STIMULUS == "B0-0") %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value) 
   d <- left_join( x = df, y = ref_labels, 
                   by = c("QUESTION" = "ref_sd_questions")) %>% 
         mutate(
-          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
-          QUESTION = factor(QUESTION, levels=ref_sd_questions))
+               category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions)) %>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
 
   # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
-  g <- ggplot(d, aes(y = fct_rev(QUESTION), x = value, fill=category)) +
-    stat_halfeye(scale=1, density="bounded", point_interval = "mean_qi") +
+  (g <- d %>%
+      ggplot(aes(y = fct_rev(QUESTION), x = value, fill=category)) +
+    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
+    
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
     scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
-    # stat_interval(side = "bottom", scale = 2, slab_linewidth = NA) +  
-    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
-                vjust=+2, hjust = 0.50, aes( label=round(..x.., digits=0)))+
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
     guides(
       y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
       y.sec = guide_axis_manual(labels = rev(ref_labels$right))
     ) +
-  cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 10, vjust=-2) +
-  labs (title = "ALL STIMULI", y = "") +
+  cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 8, vjust=-2) +
+  labs (title = "B0-0 | MILLENIAL PINK PLANTS", y = "", caption = "(point is median)") +
   theme_minimal() + easy_remove_legend()
- 
-  ggsave(plot = g, path="figs/_full_sample", filename =paste0("combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+)
+
+  if(graph_save == TRUE){ 
+  ggsave(plot = g, path="figs/level_b00/distributions", filename =paste0("b00","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+  }
   
+
+```
+
+##### density ridges
+```{r plot_ridglines_sds}
   
-  #### DENSITY RIDGES#############################################################################
+#### DENSITY RIDGES#############################################################################
   # setup dataframe 
-  df <- df_sd_questions_long %>% select(1:8, QUESTION, value)  
+  df <- df_sd_questions_long %>% filter(STIMULUS=="B0-0") %>% select(1:8, QUESTION, value)  
   d <- left_join( x = df, y = ref_labels, 
                   by = c("QUESTION" = "ref_sd_questions")) %>% 
         mutate(
           category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
-          QUESTION = factor(QUESTION, levels=ref_sd_questions))
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
   
   
-  x <-ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = category)) +
-    geom_density_ridges(scale = 0.9,quantile_lines = TRUE, alpha = 0.75) + 
+(x <-
+    ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = category)) +
+    geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.75, panel_scaling = TRUE) + 
     # scale_fill_manual(values = my_palettes(name="amy_gradient", direction = "1"))+ 
     scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+ 
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
     guides(
       y = guide_axis_manual(labels = rev(ref_labels$left)),
       y.sec = guide_axis_manual(labels = rev(ref_labels$right))
     ) +
-    labs(title = "ALL STIMULI", y = "") +
-    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 10, vjust=-2) + ##raw
+    labs (title = "B0-0 | MILLENIAL PINK PLANTS", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
     # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
     theme_minimal() + easy_remove_legend()
+)
 
-    ggsave(plot = x, path="figs/_full_sample", filename =paste0("combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
-  
-    
-    
-  #### GROUPED DENSITY RIDGES#############################################################################
-  # setup dataframe 
-  df <- df_sd_questions_long %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value)  
-  d <- left_join( x = df, y = ref_labels, 
-                  by = c("QUESTION" = "ref_sd_questions")) %>% 
-        mutate(
-          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
-          QUESTION = factor(QUESTION, levels=ref_sd_questions),
-          STIMULUS_CATEGORY = factor(STIMULUS_CATEGORY, levels = c("A","B","C","D","F")))
-  
-  
-  c <-ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill=STIMULUS_CATEGORY))+ 
-    geom_density_ridges(scale = 0.75, alpha = 0.5, panel_scaling = TRUE) +
-    facet_grid2(.~STIMULUS_CATEGORY)+
-    # geom_density_ridges(scale = 1, quantile_lines = TRUE, alpha = 0.25) 
-    guides(
-      y = guide_axis_manual(labels = rev(ref_labels$left)),
-      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
-    ) +
-    labs(title = "by STIMULUS CATEGORY", y = "") +
-    cowplot::draw_text(text = ref_sd_questions, x = 40, y= ref_sd_questions,size = 10, vjust=2) + ##raw
-    # # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
-    theme_minimal() + easy_remove_legend()
-
-    ggsave(plot = c, path="figs/_full_sample", filename =paste0("combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
-  
+if(graph_save == TRUE) {
+    ggsave(plot = x, path="figs/level_b00/distributions", filename =paste0("b00","_ridges.png"), units = c("in"), width = 10, height = 14  )
 }
 
 
-(p <- (g+x) /c)
-
-
-```
-
-
-
-```{r sample-cleanup}
-rm(df, df_full, p, S,H, B,g)
-```
-
-
-
-
-
-
-
-
-
-
-#### Absolute Values
-
-_Here the scale of the semantic differential questions have been collapsed, such that 0 is the midpoint of the scale (indicating uncertainty, or not strongly indicating either of the labelled traits) and both 100 and 0 are 50 (indicating a strong signal toward either of the labelled traits)._
-
-```{r ALL-Q-COLLAPSED-ABS}
-
-##ONLY RENDER GRAPHS IF SET TO TRUE
-if(graph_render == TRUE){
-
+```    
   
-#################### ALL QUESTIONS across ALL STIMULUS #############################################################
+
+### ABSOLUTE VALUES
+
+*Here the scale of the semantic differential questions have been
+collapsed, such that 0 is the midpoint of the scale (indicating
+uncertainty, or not strongly indicating either of the labelled traits)
+and both 100 and 0 are 50 (indicating a strong signal toward either of
+the labelled traits).*
+
+#### AGGREGATED 
+
+##### boxplot
+```{r ALL-Q-COLLAPSED-ABS, fig.width=10, fig.height=14}
 
   
   #### LIST OF BLOXPLOTS + JITTER #############################################################################
 
   # setup dataframe 
-  df <- df_graphs_abs 
+  df <- df_graphs_abs %>% filter(STIMULUS == "B0-0")
   
   #subset data cols 
   cols <- df %>% select( all_of(ref_sd_questions_abs))
-  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = FALSE, boxplot=TRUE))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = FALSE, boxplot=TRUE, labels = ref_labels_abs))
   
   #aggregate q plots into one for stimulus 
-  plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
    plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
    plot_annotation(
-     title = "ALL STIMULI",
-     subtitle =""
+     title = "B0-0 | MILLENIAL PINK PLANTS — SD (ABSOLUTE VALUE)",
+     subtitle ="", caption = "(point is mean)"
    )
+
   
-  ggsave(plot = plot_master_questions, path="figs/_full_sample", filename =paste0("ABS_combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
+if(graph_save == TRUE){
+  ggsave(plot = plot_master_questions, path="figs/level_b00/distributions", filename =paste0("ABS_b00","_box.png"), units = c("in"), width = 10, height = 14  )
+}
   
+  print(plot_master_questions)
+  
+```
+  
+##### ggdist halfeye  
+```{r plot_ggdist_sd_abs}
   
   #### GGDIST PLOT#############################################################################
   
   # setup dataframe 
-  df <- df_sd_questions_long_abs %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value) 
+  df <- df_sd_questions_long_abs %>% filter(STIMULUS == "B0-0") %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value) 
   d <- left_join( x = df, y = ref_labels_abs, 
                   by = c("QUESTION" = "ref_sd_questions_abs")) %>% 
         mutate(
           category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
-          QUESTION = factor(QUESTION, levels=ref_sd_questions))
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
 
   # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
-  g <- ggplot(d, aes(y = fct_rev(QUESTION), x = value, fill=category)) +
-    stat_halfeye(scale=1, density="bounded", point_interval = "mean_qi") +
+(  g <- ggplot(d, aes(y = fct_rev(QUESTION), x = value, fill=category)) +
+    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
     scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
-    # stat_interval(side = "bottom", scale = 2, slab_linewidth = NA) +  
-    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
-                vjust=+2, hjust = 0.50, aes( label=round(..x.., digits=0)))+
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
     guides(
-      y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
-      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+      y = guide_axis_manual(labels = rev(ref_labels_abs$left), title = ""),
+      y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
     ) +
-  cowplot::draw_text(text = ref_sd_questions, x = 45, y= ref_sd_questions_abs,size = 10, vjust=-2) +
-  labs (title = "ALL STIMULI", y = "") +
+  cowplot::draw_text(text = ref_sd_questions, x = 45, y= ref_sd_questions_abs,size = 8, vjust=-2) +
+  labs (title = "B0-0 | MILLENIAL PINK PLANTS — SD (ABSOLUTE VALUE)", y = "", caption = "(point is median)") +
   theme_minimal() + easy_remove_legend()
- 
-  ggsave(plot = g, path="figs/_full_sample", filename =paste0("ABS_combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+) 
+
+if(graph_save == TRUE){
+  ggsave(plot = g, path="figs/level_b00/distributions", filename =paste0("ABS_b00","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+}
   
+```
+
+
+##### density ridges
+```{r plot_ridges_sd_abs}
   
   #### DENSITY RIDGES#############################################################################
   # setup dataframe 
-  df <- df_sd_questions_long_abs %>% select(1:8, QUESTION, value)  
+  df <- df_sd_questions_long_abs %>% filter(STIMULUS=="B0-0") %>% select(1:8, QUESTION, value)  
   d <- left_join( x = df, y = ref_labels_abs, 
                   by = c("QUESTION" = "ref_sd_questions_abs")) %>% 
         mutate(
           category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
-          QUESTION = factor(QUESTION, levels=ref_sd_questions))
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
   
   
-  x <-ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = category)) +
+(  x <-ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = category)) +
     geom_density_ridges(scale = 0.9,quantile_lines = TRUE, alpha = 0.75) + 
     # scale_fill_manual(values = my_palettes(name="amy_gradient", direction = "1"))+ 
     scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+ 
-    guides(
-      y = guide_axis_manual(labels = rev(ref_labels$left)),
-      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
-    ) +
-    labs(title = "ALL STIMULI", y = "") +
-    cowplot::draw_text(text = ref_sd_questions, x = 45, y= ref_sd_questions_abs,size = 10, vjust=-3) + ##raw
-    # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
-    theme_minimal() + easy_remove_legend()
-
-    ggsave(plot = x, path="figs/_full_sample", filename =paste0("ABS_combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
-  
-    
-    
-  #### GROUPED DENSITY RIDGES#############################################################################
-  # setup dataframe 
-  df <- df_sd_questions_long_abs %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value)  
-  d <- left_join( x = df, y = ref_labels_abs, 
-                  by = c("QUESTION" = "ref_sd_questions_abs")) %>% 
-        mutate(
-          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
-          QUESTION = factor(QUESTION, levels=ref_sd_questions),
-          STIMULUS_CATEGORY = factor(STIMULUS_CATEGORY, levels = c("A","B","C","D","F")))
-  
-  
-  c <-ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill=STIMULUS_CATEGORY))+ 
-    geom_density_ridges(scale = 0.75, alpha = 0.5, panel_scaling = TRUE) +
-    facet_grid2(.~STIMULUS_CATEGORY)+
-    # geom_density_ridges(scale = 1, quantile_lines = TRUE, alpha = 0.25) 
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
     guides(
       y = guide_axis_manual(labels = rev(ref_labels_abs$left)),
       y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
     ) +
-    labs(title = "by STIMULUS CATEGORY", y = "") +
-    cowplot::draw_text(text = ref_sd_questions_abs, x = 20, y= ref_sd_questions_abs,size = 10, vjust=2) + ##raw
+    labs(title = "B0-0 | MILLENIAL PINK PLANTS — SD (ABSOLUTE VALUE)", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 45, y= ref_sd_questions_abs, size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
     theme_minimal() + easy_remove_legend()
+)
 
-    ggplot2::ggsave(plot = c, path="figs/_full_sample", filename =paste0("ABS_combined_by_category","_ridges.png"), units = c("in"), width = 10, height = 14  )
-  
+if(graph_save == TRUE){
+    ggsave(plot = x, path="figs/level_b00/distributions", filename =paste0("ABS_b00","_ridges.png"), units = c("in"), width = 10, height = 14  )
 }
+  
+```    
 
-
-(p <- (g+x) /c)
-
-
+```{r plot-sd-abs-cleanup}
+rm(df, dx, d, c,x,g,plot_master_questions, H, R,B,S)
 ```
 
 
-
-```{r sample-cleanup-abs}
-rm(df, df_full, p, S,H, B,g,c)
-```
-
-
-
-
-
-
-
-
-
-
-
-
+## pickup here
 ## CORRELATIONS
 
 
