@@ -59,7 +59,8 @@ library(paletteer) #more palettes
 library(lessR) ##very pretty donuts 
 library(ggsankey) ## ggplot2 sankey extension
 library(interactions) ##easier regression ixn plots.srlsy
-
+library(ggraph) # node link diagrams
+library(tidygraph) #node link diagrams 
 
 
 #MODELLING
@@ -1107,7 +1108,7 @@ rm(df, dx, d, c,x,g,plot_master_questions, H, R,B,S)
 ## CORRELATIONS
 
 
-### correlation matrices — semantic differential
+### FULL SCALE
 
 ```{r, correlation-matrices}
 
@@ -1119,13 +1120,13 @@ df <- df_b00 %>% select(
           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
           PID)
 
-print("FULL CORRELATION NO RANDOM EFFECT")
-## CALCULATE full correlations with no random effects
-c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
-(s <- c %>% summary(redundant = FALSE))
-plot(s, show_data="point") + labs(title = "Correlation Matrix",
-               subtitle="(full correlation; pearson method; Holm p-value adjustment)") + theme_minimal()
-
+# print("FULL CORRELATION NO RANDOM EFFECT")
+# ## CALCULATE full correlations with no random effects
+# c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
+# (s <- c %>% summary(redundant = FALSE))
+# plot(s, show_data="point") + labs(title = "Correlation Matrix",
+#                subtitle="(full correlation; pearson method; Holm p-value adjustment)") + theme_minimal()
+# 
 
 
 print("PARTIAL CORRELATION")
@@ -1142,7 +1143,7 @@ g <- plot(s, show_data = "point",   show_text = "label",
      stars=TRUE, show_legend=FALSE,
      show_statistic = FALSE, show_ci = FALSE) + 
      theme_minimal()+
-     labs(title = "Correlation Matrix — SD Questions", 
+     labs(title = "B0-0 | Partial Correlation Matrix", 
           subtitle="(partial correlation; pearson method; Holm p-value adjustment")
      # text = list(fontface = "italic")
 g
@@ -1164,40 +1165,83 @@ corrplot(m, method = 'circle', type = 'lower',
          tl.col = "black")
 
 
-
-
-
-
 ```
 This plots depicts the PARTIAL CORRELATION pairwise between variables (partial correlation factors out influence of other variables).  The resulting values are pearson moment-correlation coefficients ranging of -1 (direct negative) to +1 direct positive correlation.  These correlations are calculated on the full scale semantic differential questions (i.e. with the 0 - 100 range, where 1 and 100 are end points and 50 is the central point)
 
+#### node-link diagram
+```{r}
+###################PLOT GAUSSIAN GRAPH MODEL
+## get only significant correlations
+m <- c # the correlation matrix
+## default from easystats
+# plot(m)
 
 
-### correlation matrices — semantic differential — absolute values
+## 1 SIMPLY NODE NAMES
+m <- as_tibble(c) %>% 
+  mutate(
+    Parameter1 = str_replace_all(Parameter1, "MAKER_", "M_"),
+    Parameter1 = str_replace_all(Parameter1, "CHART_", "C_"),
+    Parameter2 = str_replace_all(Parameter2, "MAKER_", "M_"),
+    Parameter2 = str_replace_all(Parameter2, "CHART_", "C_")
+  ) 
 
-```{r, correlation-matrices—abs}
+## 2 SHOW ONLY SIGNIFICANT CORRELATIONS
+m <- m %>% 
+  filter(p <= 0.05)
+
+## 3 FORMAT AS GRAPH
+g <- as_tbl_graph(m)
 
 
-df <- df_graphs_abs %>% 
-  filter(STIMULUS== "B0-0") %>% 
+### Gaussian Graphical Models (GGMs)
+# Bhushan et al., 2019
+# https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2019.01050/full
+# ggraph(g, layout = 'stress') + 
+f <- 
+  ggraph(g, layout = 'stress') +
+  # ggraph(g, layout = 'linear', circular = TRUE) +
+  geom_edge_link(aes(colour =r, 
+                     edge_width = r,
+                     label = round(r,2))) +
+  geom_node_point( size = 5) + 
+  geom_node_label(size = 3,
+                 # vjust = +1,
+                 # hjust = 0.5,
+                 repel = TRUE,
+                  aes(label = name))  + 
+    scale_edge_color_gradient2(low = "red",
+    mid = "white",
+    high = "blue",
+    midpoint = 0,
+    space = "Lab",
+    # na.value = "grey50",
+    guide = "edge_colourbar",
+    aesthetics = "edge_colour") + 
+  theme_graph() + labs(title = "B0-0 | Significant Partial Correlations (full SD scale)")
+  
+
+f 
+```
+
+
+#### compare B1C node link diagram
+
+```{r}
+
+df <- df_graphs %>% 
+  filter(STIMULUS =="B1-3") %>% 
   select(
           MAKER_DESIGN, MAKER_DATA, 
           MAKER_POLITIC, MAKER_ARGUE,
           MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
-          PID)
-
-print("FULL CORRELATION NO RANDOM EFFECT")
-## CALCULATE full correlations with no random effects
-c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
-(s <- c %>% summary(redundant = FALSE))
-plot(s, show_data="point") + labs(title = "Correlation Matrix",
-               subtitle="(full correlation; pearson method; Holm p-value adjustment)") + theme_minimal()
+          PID) %>% droplevels()
 
 
 print("PARTIAL CORRELATION")
-#CALCULATE partial correlations 
-# no PID as random effect bc data are just B0-0
+#CALCULATE partial correlation
+## no random effect needed b/c data only includes B0-0
 ## (this isolates correlation pairwise factoring out other variables)
 c <- df %>% correlation(partial=TRUE)
 (s <- c %>% summary(redundant = FALSE ))
@@ -1209,11 +1253,11 @@ g <- plot(s, show_data = "point",   show_text = "label",
      stars=TRUE, show_legend=FALSE,
      show_statistic = FALSE, show_ci = FALSE) + 
      theme_minimal()+
-     labs(title = "Correlation Matrix — SD Questions — absolute values", 
-          subtitle="(partial correlation; pearson method; Holm p-value adjustment)")
+     labs(title = "B1-C | Partial Correlation Matrix", 
+          subtitle="(partial correlation; pearson method; Holm p-value adjustment")
      # text = list(fontface = "italic")
 g
-ggsave(g, scale =1, filename = "figs/level_b00/heatmaps/B00_partial_correlation_abs.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+ggsave(g, scale =1, filename = "figs/level_b00/heatmaps/B1C_partial_correlation.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
 
 #PLOT GAUSSIAN GRAPH MODEL
 # plot(c)
@@ -1233,19 +1277,441 @@ corrplot(m, method = 'circle', type = 'lower',
 
 
 
+###################PLOT GAUSSIAN GRAPH MODEL
+## get only significant correlations
+m <- c # the correlation matrix
+## default from easystats
+# plot(m)
 
+
+## 1 SIMPLY NODE NAMES
+m <- as_tibble(c) %>% 
+  mutate(
+    Parameter1 = str_replace_all(Parameter1, "MAKER_", "M_"),
+    Parameter1 = str_replace_all(Parameter1, "CHART_", "C_"),
+    Parameter2 = str_replace_all(Parameter2, "MAKER_", "M_"),
+    Parameter2 = str_replace_all(Parameter2, "CHART_", "C_")
+  ) 
+
+## 2 SHOW ONLY SIGNIFICANT CORRELATIONS
+m <- m %>% 
+  filter(p <= 0.05)
+
+## 3 FORMAT AS GRAPH
+g <- as_tbl_graph(m)
+
+
+### Gaussian Graphical Models (GGMs)
+# Bhushan et al., 2019
+# https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2019.01050/full
+# ggraph(g, layout = 'stress') + 
+f <- 
+  ggraph(g, layout = 'stress') +
+  # ggraph(g, layout = 'linear', circular = TRUE) +
+  geom_edge_link(aes(colour =r, 
+                     edge_width = r,
+                     label = round(r,2))) +
+  geom_node_point( size = 5) + 
+  geom_node_label(size = 3,
+                 # vjust = +1,
+                 # hjust = 0.5,
+                 repel = TRUE,
+                  aes(label = name))  + 
+    scale_edge_color_gradient2(low = "red",
+    mid = "white",
+    high = "blue",
+    midpoint = 0,
+    space = "Lab",
+    # na.value = "grey50",
+    guide = "edge_colourbar",
+    aesthetics = "edge_colour") + 
+  theme_graph() + labs(title = "B1-C | Significant Partial Correlations (full scale)")
+
+f 
 
 ```
 
 
-These plots depict the PARTIAL CORRELATION pairwise between variables (partial correlation factors out influence of other variables). The resulting values are pearson moment-correlation coefficients ranging of -1 (direct negative) to +1 direct positive correlation.  These correlations are calculated on the ABSOLUTE VALUE of the semantic differential questions (i.e. with the full scale folded in half, such that 50 now becomes 0, and the extrememe values (0, 100) become 50). The absolute value scale allows us to collapse for weak (near zero) vs. strong (near 50) signal in each variable. 
+
+
+
+### ABSOLUTE VALUES
+
+```{r, correlation-matrices—abs}
+
+
+df <- df_graphs_abs %>% 
+  filter(STIMULUS== "B0-0") %>% 
+  select(
+          MAKER_DESIGN, MAKER_DATA, 
+          MAKER_POLITIC, MAKER_ARGUE,
+          MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+          CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+          PID)
+
+print("FULL CORRELATION NO RANDOM EFFECT")
+## CALCULATE full correlations with no random effects
+c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
+(s <- c %>% summary(redundant = FALSE))
+plot(s, show_data="point") + labs(title = "Correlation Matrix — SD Questions — absolute values",
+               subtitle="(full correlation; pearson method; Holm p-value adjustment)") + theme_minimal()
+
+
+print("PARTIAL CORRELATION")
+#CALCULATE partial correlations 
+# no PID as random effect bc data are just B0-0
+## (this isolates correlation pairwise factoring out other variables)
+c <- df %>% correlation(partial=TRUE)
+(s <- c %>% summary(redundant = FALSE ))
+
+
+###### VIS WITH CORRELATION PACKAGE
+#SEE [correlation] PLOT
+g <- plot(s, show_data = "point",   show_text = "label",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     theme_minimal()+
+     labs(title = "B0-0 | Partial Correlation Matrix — SD Questions — absolute values", 
+          subtitle="(partial correlation; pearson method; Holm p-value adjustment)")
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/level_b00/heatmaps/B00_partial_correlation_abs.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+
+###### VIS WITH CORRPLOT <- -- customizable but can't save to file ARGH
+
+## GET THE MATRIX
+m <- as.matrix(c)
+
+
+## JUST CIRCLES
+corrplot(m, method = 'circle', type = 'lower',
+         order = 'original', diag = FALSE, addCoef.col = "#7A7A7A",
+         tl.col = "black")
+
+
+```
+
+These plots depict the PARTIAL CORRELATION pairwise between variables (partial correlation factors out influence of other variables). The resulting values are pearson moment-correlation coefficients ranging of -1 (direct negative) to +1 direct positive correlation.  These correlations are calculated on the ABSOLUTE VALUE of the semantic differential questions (i.e. with the full scale folded in half, such that 50 now becomes 0, and the extrememe values (0, 100) become 50). The absolute value scale allows us to collapse for weak (near zero) vs. strong (near 50) signal in each variable.
+
+#### node-link diagram
+```{r}
+###################PLOT GAUSSIAN GRAPH MODEL
+## get only significant correlations
+m <- c # the correlation matrix
+## default from easystats
+# plot(m)
+
+
+## 1 SIMPLY NODE NAMES
+m <- as_tibble(c) %>% 
+  mutate(
+    Parameter1 = str_replace_all(Parameter1, "MAKER_", "M_"),
+    Parameter1 = str_replace_all(Parameter1, "CHART_", "C_"),
+    Parameter2 = str_replace_all(Parameter2, "MAKER_", "M_"),
+    Parameter2 = str_replace_all(Parameter2, "CHART_", "C_")
+  ) 
+
+## 2 SHOW ONLY SIGNIFICANT CORRELATIONS
+m <- m %>% 
+  filter(p <= 0.05)
+
+## 3 FORMAT AS GRAPH
+g <- as_tbl_graph(m)
+
+
+### Gaussian Graphical Models (GGMs)
+# Bhushan et al., 2019
+# https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2019.01050/full
+# ggraph(g, layout = 'stress') + 
+f <- 
+  ggraph(g, layout = 'stress') +
+  # ggraph(g, layout = 'linear', circular = TRUE) +
+  geom_edge_link(aes(colour =r, 
+                     edge_width = r,
+                     label = round(r,2))) +
+  geom_node_point( size = 5) + 
+  geom_node_label(size = 3,
+                 # vjust = +1,
+                 # hjust = 0.5,
+                 repel = TRUE,
+                  aes(label = name))  + 
+    scale_edge_color_gradient2(low = "red",
+    mid = "white",
+    high = "blue",
+    midpoint = 0,
+    space = "Lab",
+    # na.value = "grey50",
+    guide = "edge_colourbar",
+    aesthetics = "edge_colour") + 
+  theme_graph() + labs(title = "B0-0 | Significant Partial Correlations (abs value)")
+  
+f
+
+```
 
 
 
 ## EXPLORATORY QUESTIONS
 
-- When participants identify the maker as an INDIVIDUAL, the following variables show a different pattern than the other identifications: MAKER_DESIGN, MAKER_DATA, CHART INTENT
-- interesting bimodal distribution on CHART INTENT for most identifications, except individuals and organizations 
+
+### ENCOUNTER ~ CATEGORY
+
+Are more figural (e.g. figures with more embellishments) graphs _more likely to be interacted with_ than less figural graphs? 
+To address this question, we explore the relationship between `STIMULUS_CATEGORY` and `ENCOUNTER` (whether they would likely scroll past and stop and look at the graph).  
+
+#### visualize 
+```{r hypo-category-encounter-vis}
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  filter(STIMULUS != "B0-0") %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, CHART_TRUST, PID) %>% 
+  mutate(
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY), #REVERSE FACTOR ORDER SO A IS REFERENCE
+    ENCOUNTER = fct_rev(ENCOUNTER) #REVERSE SO SCROLL IS REFERENCE
+    ## (only used if not filtering out B0-0)
+    ## RECODE #recode b00 graph as category D [bc it fits in that category]
+    # STIMULUS_CATEGORY = fct_recode(STIMULUS_CATEGORY, D="F") 
+  ) %>% droplevels()
+
+## CATEGORY
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = ENCOUNTER, y = STIMULUS_CATEGORY,
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) +
+    theme_minimal() +
+    labs( title = "ENCOUNTER by CATEGORY",  x = "", y="",
+          subtitle = "the more figural categories (C,D) have a higher proportion of engagement") +
+    theme(aspect.ratio = 1)
+##############################
+
+## BLOCK
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = ENCOUNTER, y = BLOCK,
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) +
+    theme_minimal() +
+    labs( title = "ENCOUNTER by BLOCK",  x = "", y="",
+          subtitle = "very little variance in proportion across blocks (as expected)") +
+    theme(aspect.ratio = 1)
+##############################
+
+
+
+# BLOCK / CATEGORY
+# GGSTATSPLOT
+##############################
+x <- grouped_ggbarstats( data = df, x = ENCOUNTER, y = BLOCK,   grouping.var=STIMULUS_CATEGORY,
+                    results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) + 
+    theme_minimal() +
+    # labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1) + easy_remove_legend()
+##############################
+
+(x[[1]] + scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) + labs(title = "CATEGORY A", subtitle = "some variance across category") + 
+x[[2]] + scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) + labs(title = "CATEGORY B", subtitle = "alot of variance across category")) / 
+(x[[3]] + scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) + labs(title = "CATEGORY C", subtitle = "alot of variance across category") +
+x[[4]] + scale_fill_manual(values = my_palettes(name="encounter", direction = "1")) + theme_ggstatsplot() + labs(title = "CATEGORY D", subtitle = "very little variance across category")) + plot_annotation(title = "ENCOUNTER by BLOCK and CATEGORY")
+
+
+
+```
+
+**INTERPRETATION**  _Here we see that when aggregated, it appears that more figural categories (C,D) have more engagement. However, when we visualize individual blocks (i.e. stimuli) within a particular category, we see a great deal of variance.  This indicates that features of a particular stimulus may be stronger predictors of engagement than the degree of embellishment.  
+
+
+#### model fit 
+
+Is _stimulus_ or _category_ a better predictor of engagement?  Here we fit a series of mixed effects logistic regression models, predicting `ENCOUNTER` (reference category = SCROLL) by `STIMULUS_CATEGORY` and `BLOCK` to determine if variance in encounter choice is best explained by the stimulus category (i.e. level of embellishment) or unique features of the stimulus (i.e. embellishment can be engaging or not engaging).
+
+Parameter estimate: intercept = Log Odds of (SCROLL) responses in REFERENCE (exponetiate for odds)
+EB1 = Log Odds of ODDS of SCROLL response in CONTROL condition
+Parameter estimate: 
+ = 
+ Log Odds (Log OR; change in odds for correct response in impasse (vs) control [log scale])
+ = ODDS RATIO of correct response in IMPASSE (vs) CONTROL
+Null hypothesis:
+ the odds for a correct response does not change, or decreases
+Alternative hypothesis: 
+ the odds of a correct response increases
+
+```{r hypo-category-encounter-fit}
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  filter(STIMULUS != "B0-0") %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, CHART_TRUST, PID) %>% 
+  mutate(
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY), #REVERSE FACTOR ORDER SO A IS REFERENCE
+    ENCOUNTER = fct_rev(ENCOUNTER) #REVERSE SO SCROLL IS REFERENCE
+    
+    ## (only used if not filtering out B0-0)
+    ## RECODE #recode b00 graph as category D [bc it fits in that category]
+    # STIMULUS_CATEGORY = fct_recode(STIMULUS_CATEGORY, D="F") 
+  ) %>% droplevels()
+
+
+
+################## BUILD MODELS #################
+
+# RANDOM INTERCEPT SUBJECT
+mm.rP <- glmer(ENCOUNTER ~ (1|PID), data = df,family = "binomial")
+
+
+# SUBJECT INTERCEPT | FIXED BLOCK 
+## should be non predictive
+print("ENCOUNTER ~ BLOCK + (1|PID)")
+mm.BrP <- glmer(ENCOUNTER ~ BLOCK + (1|PID), 
+                data = df,family = "binomial")
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, rank = TRUE)
+paste("AIC with fixed effect is lower than random intercept only model?", AIC(logLik(mm.rP)) > AIC(logLik(mm.BrP)) )
+test_lrt(mm.rP,mm.BrP) #same as anova(m0, m1, test = "Chi")
+paste("Likelihood Ratio test is significant? p = ",(test_lrt(mm.rP,mm.BrP))$p[2])
+print("A model with BLOCK is NOT a better fit than (random effect) participant alone")
+car::Anova(mm.BrP, type=2)
+print("BLOCK is NOT significant predictor in the model")
+print("[this is as expected. suggests that we were successful in randomizing stimuli across the blocks]")
+
+
+
+# SUBJECT INTERCEPT | FIXED CATEGORY 
+print("ENCOUNTER ~ CATEGORY + (1|PID)")
+mm.CrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY + (1|PID), 
+                data = df,family = "binomial")
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, mm.CrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.BrP,mm.CrP) #same as anova(m0, m1, test = "Chi")
+paste("A model with CATEGORY predicting ENCOUNTER is a better fit than a model with only BLOCK, however it is not a significantly better fit, as evaluated by a CHISQR btwn the models")
+car::Anova(mm.CrP, type = 3)
+print("CATEGORY is a significant predictor in this model")
+
+# SUBJECT INTERCEPT | FIXED CATEGORY + BLOCK
+print("ENCOUNTER ~ CATEGORY + BLOCK + (1|PID)")
+mm.C_BrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY + BLOCK + (1|PID), 
+                data = df,family = "binomial")
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, mm.CrP, mm.C_BrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.CrP,mm.C_BrP) #same as anova(m0, m1, test = "Chi")
+test_lrt(mm.CrP, mm.C_BrP)
+paste("A model with a linear combination of CATEGORY and BLOCK predicting ENCOUNTER is NOT better fit than a model with only CATEGORY.")
+car::Anova(mm.C_BrP, type = 3)
+print("CATEGORY is a significant predictor in this model, but BLOCK is not")
+
+
+# SUBJECT INTERCEPT | FIXED BLOCK * CATEGORY INTERACTION 
+print("ENCOUNTER ~ CATEGORY * BLOCK + (1|PID)")
+mm.CBrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY * BLOCK + (1|PID), 
+                data = df,family = "binomial",
+               control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+               optCtrl=list(maxfun=2e5)))
+# :: TEST fixed factor 
+compare_performance(mm.BrP, mm.CrP, mm.C_BrP, mm.CBrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.C_BrP, mm.CBrP)
+test_lrt(mm.C_BrP, mm.CBrP, verbose = TRUE) #same as anova(m0, m1, test = "Chi")
+paste("A model with an interaction of BLOCK * CATEGORY is a significantly better fit than a model with main effects only. (NOTE that block*category == stimulus. Here we fit the interaction so that we can portion variance between block and category, and compare the models as they will be nested)")
+car::Anova(mm.CBrP, type = 3)
+print("In this model, only the interaction is significant. Neither main effects are significant.")
+print("THIS SUGGESTS THAT ENCOUNTER IS BETTER PREDICTED BY THE UNIQUE STIMULUS THAN THE CATEGORY")
+
+
+
+## SANITY CHECK, MODEL WITH STIMULUS SHOULD MATCH VARIANCE EXPLAINED BY BLOCK*CATEGORY
+# SUBJECT INTERCEPT | FIXED STIMULUS 
+print("SANITY CHECK — MODEL BY STIMULUS")
+print("ENCOUNTER ~ STIMULUS + (1|PID)")
+mm.SrP <- glmer(ENCOUNTER ~ STIMULUS + (1|PID),
+                data = df,family = "binomial",
+               control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+                            optCtrl=list(maxfun=2e5)))
+## :: TEST fixed factor 
+compare_performance(mm.CBrP, mm.SrP, rank = TRUE)
+anova(mm.SrP, mm.CBrP)
+print ("SANITY CHECKED! STIMULUS MODEL SAME FIT AS BLOCK*CATEGORY")
+
+
+#### SET BEST MODEL
+m_best <- mm.CBrP
+
+```
+
+
+#### model describe
+
+```{r hypo-category-encounter-describe}
+
+############ DESCRIBE FINAL MODEL ###########
+summary(m_best)
+report(m_best)
+
+
+######### PRINT COEFFICIENTS 
+print("COEFFICIENT ESTIMATES — LOG ODDS")
+tidy(m_best)
+print("COEFFICIENT ESTIMATES — ODDS RATIOS")
+tidy(m_best, exponentiate=TRUE)
+
+``` 
+
+#### model vis
+```{r hypo-category-encounter-modelvis}
+
+############ VISUALIZE MODEL COEFFICIENTS 
+#SJPLOT | MODEL | ODDS RATIO
+#library(sjPlot)
+plot_model(m_best, type = "est",
+           vline.color = "red", 
+           show.intercept = TRUE, 
+           show.values = TRUE) + theme_minimal() + 
+  labs(title = "Model Predicted Odds Ratio for ENCOUNTER",
+       subtitle = "")
+
+
+
+############ VISUALIZE MODEL PREDICTIONS
+#SJPLOT | MODEL | PROBABILITIES
+plot_model(m_best, type = "int", mdrt.values = "meansd") + theme_minimal()
+
+plot_model(m_best, type="emm", 
+           terms = c("BLOCK"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means for BLOCK")
+
+plot_model(m_best, type="emm", 
+           terms = c("STIMULUS_CATEGORY"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means for CATEGORY")
+
+plot_model(m_best, type="emm", 
+           terms = c("BLOCK","STIMULUS_CATEGORY"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means for INTERACTION")
+
+
+
+## MANUAL PREDICTION INTERACTION PLOT [bc sjPlot cant facet argh]
+means <- estimate_means(m_best, at=c("BLOCK","STIMULUS_CATEGORY"), transform = "response",
+                        backend="emmeans")
+m <- as_tibble(means)
+
+## CUSTOM PREDICTIONS PLOT
+m %>% ggplot( aes(x = BLOCK, y = Probability, color=STIMULUS_CATEGORY)) +
+  geom_point() +
+  geom_linerange(aes(ymin = CI_low, ymax=CI_high)) + 
+  scale_y_continuous(limits = c(0,1))+
+  facet_wrap(~STIMULUS_CATEGORY) + 
+  theme_minimal() + easy_remove_legend() + 
+  labs(title = "MODEL PREDICTED Probability of ENGAGE (rather than scroll)")
+
+```
+
+
+
+
 
 
 ### MAKER ID & Maker DATA COMPETENCY
@@ -1616,15 +2082,8 @@ plot(contrasts, means) +
 ```
 
 
-# TODO B0 SUPERPOWER ANALYSIS
 
-## TODO MAKER
 
-## TODO TOOL
-
-## TODO BEHAVIOR
-
-## TODO SEMANTIC DIFFERENTIALS
 
 ## TODO DATA MODELLING
 
