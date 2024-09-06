@@ -297,6 +297,120 @@ plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) 
 
 ```
 
+
+
+#WIP SPARKLINES TABLE
+
+```{r sparktabletest}
+
+library(tinytable)
+
+
+
+################################# DENSITY NUMERICS 
+all_q <- c(ref_conf_questions, ref_sd_questions)
+df <- df_graphs %>% select(all_of(all_q))
+# plot_data <- list(df_graphs$MAKER_CONF, df_graphs$AGE_CONF, df_graphs$GENDER_CONF, df_graphs$TOOL_CONF)
+
+dat <- data.frame(
+  VARIABLE = all_q,
+  DISTRIBUTION=""
+)
+
+tt(dat) %>% 
+  plot_tt(j=2, fun = "histogram", data = df) %>% 
+  plot_tt(j=2, fun = "density", data = df) 
+  # plot_tt(j=4, fun = "bar", data = plot_data) 
+  # plot_tt(j=5, fun = "line", data = plot_data) %>% 
+  # style_tt(j = 2:3, align = "c")
+
+##################
+
+
+
+
+
+############ WORKING SPARKLINE CATEGORICAL STACKED BAR 
+#####################
+
+
+#### CUSTOM HORIZONTAL STACKED BARPLOT 
+g <- function(d, ...){
+  
+  p <- d$pal %>% unique
+  ggplot(d, aes(x="", fill=value)) + 
+    geom_bar(stat="count", position = "stack") + 
+    scale_fill_manual(values=my_colors[[p]]) +
+
+    # scale_fill_manual(values = my_palettes(name=as.char(pal), direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
+    coord_flip() + theme_void() + 
+    easy_remove_axes() + easy_remove_legend()
+}
+
+
+### CREATE CATEGORICAL DF LIST FOR TT
+id = df_graphs %>% select(MAKER_ID) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
+age = df_graphs %>% select(MAKER_AGE) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
+gender = df_graphs %>% select(MAKER_GENDER) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
+
+df_cat <- list()
+df_cat[["MAKER_ID"]] <- id
+df_cat[["MAKER_AGE"]] <- age
+df_cat[["MAKER_GENDER"]] <- gender
+
+
+tab <- data.frame(
+  VARIABLE = ref_cat_questions,
+  DISTRIBUTION = ""
+)
+
+
+tt(tab) %>%
+  plot_tt(j=2, fun=g, data = df_cat, height = 3)
+
+
+################################# COMBINED 
+
+## SETUP LIST OF NUMERIC DATAFRAMES 
+all_q <- c(ref_conf_questions, ref_sd_questions)
+df_num <- df_graphs %>% select(all_of(all_q))
+
+
+### CREATE LIST OF CATEGORICAL DATAFRAMES
+id = df_graphs %>% select(MAKER_ID) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
+age = df_graphs %>% select(MAKER_AGE) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
+gender = df_graphs %>% select(MAKER_GENDER) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
+
+df_cat <- list()
+df_cat[["MAKER_ID"]] <- id
+df_cat[["MAKER_AGE"]] <- age
+df_cat[["MAKER_GENDER"]] <- gender
+
+
+#### SETUP TABLE
+tab <- data.frame(
+  VARIABLE = c(ref_cat_questions, ref_conf_questions, ref_sd_questions),
+  DISTRIBUTION = ""
+)
+
+### RENDER TABLE
+tt(tab) %>% 
+  plot_tt(j=2, i= 1:3, fun=g, data = df_cat, height = 2, width=2) %>% 
+  plot_tt(j=2, i= 4:18, fun="density", data = df_num) %>% 
+  style_tt(j=2, align="c") 
+
+
+```
+
+
+
+
 # FULL SAMPLE ANALYSIS
 
 As we argue in our manuscript, we understand that an individual's
@@ -2314,6 +2428,62 @@ plot(contrasts, means) +
 
 wip code stash
 
+
+## sparkline table examples
+```{r}
+
+# library(tinytable)
+# 
+# 
+# ################################# CARS
+# plot_data <- list(mtcars$mpg, mtcars$hp, mtcars$qsec)
+# 
+# dat <- data.frame(
+#   Variables = c("mpg","hp","qsec"),
+#   Histogram="",
+#   Density="",
+#   Bar=""
+# )
+# 
+# tt(dat) %>% 
+#   plot_tt(j=2, fun = "histogram", data = plot_data) %>% 
+#   plot_tt(j=3, fun = "density", data = plot_data) %>% 
+#   plot_tt(j=4, fun = "bar", data = list(2,3,6))
+#   # plot_tt(j=5, fun = "line", data = plot_data) %>% 
+#   # style_tt(j = 2:3, align = "c")
+# 
+# #################################
+# 
+# 
+# 
+# ###################### GGPLOT CUSTOM GRAPH IN TABLE
+# 
+# 
+# penguins<-read.csv( "https://vincentarelbundock.github.io/Rdatasets/csv/palmerpenguins/penguins.csv", na.strings= "") |> na.omit() 
+# #splitdatabyspecies 
+# dat<-split(penguins,penguins$species) 
+# body<-lapply(dat,\(x)x$body_mass_g) 
+# flip<-lapply(dat,\(x)x$flipper_length_mm) 
+# #createnearlyemptytable 
+# tab<-data.frame( "Species" =names(dat), "Body Mass"= "", "FlipperLength" ="", "Body vs. Flipper"= "", check.names= FALSE ) 
+# 
+# #customggplot2functiontocreateinlineplot 
+# f<-function(d,...){ 
+#   ggplot(d,aes(x= flipper_length_mm,y=body_mass_g, color= sex)) + 
+#     geom_point(size= .2) + scale_x_continuous(expand=c(0,0))+  
+#     scale_y_continuous(expand=c(0,0)) + scale_color_manual(values=  c("#E69F00", "#56B4E9")) + theme_void() + theme(legend.position="none") 
+# } 
+# 
+# #`tinytable` calls 
+# 
+# tt(tab) |> 
+#   plot_tt(j=2,fun= "histogram",data = body, height= 2)|> 
+#   plot_tt(j=3,fun= "density", data= flip,height= 2) |> 
+#   plot_tt(j=4,fun= f, data= dat, height= 2)|> 
+#   style_tt(j= 2:4, align="c")
+
+#################################
+```
 
 ## half boxplot raincloud mean
 
