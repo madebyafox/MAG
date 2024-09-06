@@ -34,6 +34,8 @@ library(tidyverse) #all the things
 library(magrittr) #special pipes like %<>%
 library(summarytools) #data quality
 library(lubridate) #dealing with dates
+library(tinytable) ##sparkline tables 
+library(webshot2) ##saving sparkline tables
 
 #EDA
 library(qacBase)
@@ -299,80 +301,96 @@ plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) 
 
 
 
-#WIP SPARKLINES TABLE
+# SPARKLINES TABLE
 
 ```{r sparktabletest}
 
-library(tinytable)
+# library(tinytable)
+# library(webshot2)
 
-
-
-################################# DENSITY NUMERICS 
-all_q <- c(ref_conf_questions, ref_sd_questions)
-df <- df_graphs %>% select(all_of(all_q))
-# plot_data <- list(df_graphs$MAKER_CONF, df_graphs$AGE_CONF, df_graphs$GENDER_CONF, df_graphs$TOOL_CONF)
-
-dat <- data.frame(
-  VARIABLE = all_q,
-  DISTRIBUTION=""
-)
-
-tt(dat) %>% 
-  plot_tt(j=2, fun = "histogram", data = df) %>% 
-  plot_tt(j=2, fun = "density", data = df) 
-  # plot_tt(j=4, fun = "bar", data = plot_data) 
-  # plot_tt(j=5, fun = "line", data = plot_data) %>% 
-  # style_tt(j = 2:3, align = "c")
-
-##################
-
-
-
-
-
-############ WORKING SPARKLINE CATEGORICAL STACKED BAR 
-#####################
-
-
-#### CUSTOM HORIZONTAL STACKED BARPLOT 
-g <- function(d, ...){
-  
-  p <- d$pal %>% unique
-  ggplot(d, aes(x="", fill=value)) + 
-    geom_bar(stat="count", position = "stack") + 
-    scale_fill_manual(values=my_colors[[p]]) +
-
-    # scale_fill_manual(values = my_palettes(name=as.char(pal), direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
-    coord_flip() + theme_void() + 
-    easy_remove_axes() + easy_remove_legend()
-}
-
-
-### CREATE CATEGORICAL DF LIST FOR TT
-id = df_graphs %>% select(MAKER_ID) %>% 
-  pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
-age = df_graphs %>% select(MAKER_AGE) %>% 
-  pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
-gender = df_graphs %>% select(MAKER_GENDER) %>% 
-  pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
-
-df_cat <- list()
-df_cat[["MAKER_ID"]] <- id
-df_cat[["MAKER_AGE"]] <- age
-df_cat[["MAKER_GENDER"]] <- gender
-
-
-tab <- data.frame(
-  VARIABLE = ref_cat_questions,
-  DISTRIBUTION = ""
-)
-
-
-tt(tab) %>%
-  plot_tt(j=2, fun=g, data = df_cat, height = 3)
+# 
+# 
+# ################################# DENSITY NUMERICS 
+# all_q <- c(ref_conf_questions, ref_sd_questions)
+# df <- df_graphs %>% select(all_of(all_q))
+# # plot_data <- list(df_graphs$MAKER_CONF, df_graphs$AGE_CONF, df_graphs$GENDER_CONF, df_graphs$TOOL_CONF)
+# 
+# dat <- data.frame(
+#   VARIABLE = all_q,
+#   DISTRIBUTION=""
+# )
+# 
+# tt(dat) %>% 
+#   plot_tt(j=2, fun = "histogram", data = df) %>% 
+#   plot_tt(j=2, fun = "density", data = df) 
+#   # plot_tt(j=4, fun = "bar", data = plot_data) 
+#   # plot_tt(j=5, fun = "line", data = plot_data) %>% 
+#   # style_tt(j = 2:3, align = "c")
+# 
+# ##################
+# 
+# 
+# 
+# 
+# 
+# ############ WORKING SPARKLINE CATEGORICAL STACKED BAR 
+# #####################
+# 
+# 
+# #### CUSTOM HORIZONTAL STACKED BARPLOT 
+# g <- function(d, ...){
+#   
+#   p <- d$pal %>% unique
+#   ggplot(d, aes(x="", fill=value)) + 
+#     geom_bar(stat="count", position = "stack") + 
+#     scale_fill_manual(values=my_colors[[p]]) +
+# 
+#     # scale_fill_manual(values = my_palettes(name=as.char(pal), direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
+#     coord_flip() + theme_void() + 
+#     easy_remove_axes() + easy_remove_legend()
+# }
+# 
+# 
+# ### CREATE CATEGORICAL DF LIST FOR TT
+# id = df_graphs %>% select(MAKER_ID) %>% 
+#   pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
+# age = df_graphs %>% select(MAKER_AGE) %>% 
+#   pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
+# gender = df_graphs %>% select(MAKER_GENDER) %>% 
+#   pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
+# 
+# df_cat <- list()
+# df_cat[["MAKER_ID"]] <- id
+# df_cat[["MAKER_AGE"]] <- age
+# df_cat[["MAKER_GENDER"]] <- gender
+# 
+# 
+# tab <- data.frame(
+#   VARIABLE = ref_cat_questions,
+#   DISTRIBUTION = ""
+# )
+# 
+# 
+# tt(tab) %>%
+#   plot_tt(j=2, fun=g, data = df_cat, height = 3)
 
 
 ################################# COMBINED 
+
+
+#### CUSTOM HORIZONTAL STACKED BARPLOT
+g <- function(d, ...){
+
+  p <- d$pal %>% unique
+  ggplot(d, aes(x="", fill=value)) +
+    geom_bar(stat="count", position = "stack") +
+    scale_fill_manual(values=my_colors[[p]]) +
+
+    # scale_fill_manual(values = my_palettes(name=as.char(pal), direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
+    coord_flip() + theme_void() +
+    easy_remove_axes() + easy_remove_legend()
+}
+
 
 ## SETUP LIST OF NUMERIC DATAFRAMES 
 all_q <- c(ref_conf_questions, ref_sd_questions)
@@ -387,6 +405,16 @@ age = df_graphs %>% select(MAKER_AGE) %>%
 gender = df_graphs %>% select(MAKER_GENDER) %>% 
   pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
 
+
+### MEANS 
+m <- sapply(df_num, FUN=mean)
+m <- round(m,1)
+m <- paste0("M=",m)
+sd <- sapply(df_num, FUN=sd)
+sd <- round(sd,1)
+sd <- paste0("SD=",sd)
+stat <- paste0(m," ",sd)
+
 df_cat <- list()
 df_cat[["MAKER_ID"]] <- id
 df_cat[["MAKER_AGE"]] <- age
@@ -396,16 +424,20 @@ df_cat[["MAKER_GENDER"]] <- gender
 #### SETUP TABLE
 tab <- data.frame(
   VARIABLE = c(ref_cat_questions, ref_conf_questions, ref_sd_questions),
-  DISTRIBUTION = ""
+  DISTRIBUTION = "",
+  STATISTICS = c("","","",stat)
 )
 
 ### RENDER TABLE
-tt(tab) %>% 
-  plot_tt(j=2, i= 1:3, fun=g, data = df_cat, height = 2, width=2) %>% 
-  plot_tt(j=2, i= 4:18, fun="density", data = df_num) %>% 
-  style_tt(j=2, align="c") 
+t <- tt(tab, theme = "void") %>% 
+  plot_tt(j=2, i= 1:3, fun=g, data = df_cat, height = 1.5) %>% 
+  plot_tt(j=2, i= 4:18, fun="density", data = df_num, color="darkgrey") %>%
+  
+  style_tt(j=2, align="c", monospace = TRUE) 
 
-
+t
+save_tt(t, output="figs/tables/sparklines.png")
+save_tt(t, output="figs/tables/sparklines.tex")
 ```
 
 
