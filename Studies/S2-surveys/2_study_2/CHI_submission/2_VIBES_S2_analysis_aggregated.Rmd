@@ -75,12 +75,16 @@ library(lmerTest) #for CIs in glmer
 library(equatiomatic) ## extracting model formula
 library(latex2exp) ## extracting and printing model formula
 
+#STATISTICAL TESTS 
+library(kSamples) #AD K-SAMPLE TEST (for distribution comparison)
+library(rstatix) #FRIEDMAN'S TESTS and effect sizes 
+
 #CONFIG
 options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-graph_save = TRUE #set to true to generate all the SD graphs and save to folders 
+GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
@@ -364,6 +368,8 @@ df <- df_participants
 p.desc.duration <- psych::describe(df %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
 t.desc.duration <- psych::describe(df %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
 
+a.desc.duration <- psych::describe(df %>% pull(duration.min))
+
 ```
 
 PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times
@@ -376,10 +382,17 @@ ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes,
 with a mean response time of `r round(t.desc.duration$mean,2)` minutes,
 SD = `r (round(t.desc.duration$sd,2))`.
 
+
+Across the entire sample, (n = `r a.desc.duration$n` ) participant response times
+ranged from `r a.desc.duration$min` to `r a.desc.duration$max` minutes,
+with a mean response time of `r round(a.desc.duration$mean,2)` minutes,
+SD = `r (round(a.desc.duration$sd,2))`.
+
 ```{r demo-cleanup}
 rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.t, p_participants, t_participants)
 ```
 
+### Setup sample data frame
 ```{r setup-full-sample}
 
 #full stimulus-level data
@@ -462,6 +475,103 @@ tool id) are similar, with slightly lower confidence for the GENDER
 question. This tells us there is enough variance in response to each
 question for the measure to be meaningful, and so we will follow up by
 investigating confidence at the STIMULUS level.*
+
+### CONFIDENCE VARIANCE 
+
+```{r}
+
+
+
+
+## DATAFRAME WITH LONG FORM CONFIDENCE SCORES 
+df_conf_long <- df_graphs %>% 
+  select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
+    names_to = "QUESTION") 
+
+
+print("SD OF QUESTION CONFIDENCE")
+(q_conf <- df_conf_long %>% 
+  group_by(QUESTION) %>% 
+  summarize(
+    m = mean(value),
+    sd = sd(value)
+  ))
+
+print("SD AND RANGES OF PARTICIPANT CONFIDENCE SCORES BY QUESTION")
+## PARTICIPANT LOW VARIANCE
+## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
+(df_lowvar_q <- df_graphs %>% 
+  # filter(STIMULUS!="B0-0") %>% 
+  # filter(BLOCK %in% c("B1","B2")) %>% 
+  select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
+    names_to = "QUESTION") %>%
+  group_by(PID) %>% 
+  summarise(
+    count_pid = n(), #5 trials of each question
+    mean_pid = mean(value), 
+    min_pid = min(value),
+    max_pid = max(value),
+    range_pid = max_pid-min_pid, 
+    low_range_pid = ifelse(range_pid < 20, TRUE, FALSE),
+    sd_pid = sd(value),
+    low_sd_pid = ifelse(sd_pid < 10, TRUE, FALSE)) %>% 
+  summarise(
+    n = n(), #318p X 5 stimuli
+    n_pid = sum(count_pid),
+    n_low_range = sum((low_range_pid==TRUE)),
+    prop.low_range = n_low_range / n,
+    n_low_sd = sum((low_sd_pid==TRUE)),
+    prop.low_sd = n_low_sd / n
+  )) 
+
+
+print("SD AND RANGES OF PARTICIPANT CONFIDENCE SCORES")
+## PARTICIPANT - QUESTION LOW VARIANCE
+## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
+(df_lowvar_q <- df_graphs %>% 
+  # filter(STIMULUS!="B0-0") %>% 
+  # filter(BLOCK %in% c("B1","B2")) %>% 
+  select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
+    names_to = "QUESTION") %>%
+  group_by(PID, QUESTION) %>% 
+  summarise(
+    count_pidq = n(), #5 trials of each question
+    mean_pidq = mean(value), 
+    min_pidq = min(value),
+    max_pidq = max(value),
+    range_pidq = max_pidq-min_pidq, 
+    low_range_pidq = ifelse(range_pidq < 20, TRUE, FALSE),
+    sd_pidq = sd(value),
+    low_sd_pidq = ifelse(sd_pidq < 10, TRUE, FALSE)) %>% 
+  group_by(QUESTION) %>% 
+  summarise(
+    n = n(), #318p X 5 stimuli
+    n_pidq = sum(count_pidq),
+    n_low_range = sum((low_range_pidq==TRUE)),
+    prop.low_range = n_low_range / n,
+    n_low_sd = sum((low_sd_pidq==TRUE)),
+    prop.low_sd = n_low_sd / n
+  )) 
+
+
+
+
+
+
+```
+
+First looking at variance in confidence by question, we see that the proportion of participants with less than 10 in confidence scores (less than 20 points difference in range), is 21% for AGE, 21% for GENDER, 15% for MAKER and 22% for TOOL 
+
+
+Next, looking at variance in confidence by participant, we see that only 4 of the 218 participants (2%) had less than 20 point 
+
+
 
 ## MAKER ID
 
@@ -935,7 +1045,7 @@ response scale (slider from 0-100).*
      subtitle ="", caption = "(point is mean)"
    )
   
-if(graph_save == TRUE){  
+if(GRAPH_SAVE == TRUE){  
   ggsave(plot = plot_master_questions, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
 }
 
@@ -980,7 +1090,7 @@ print(plot_master_questions)
   theme_minimal() + easy_remove_legend()
 )
 
-  if(graph_save == TRUE){ 
+  if(GRAPH_SAVE == TRUE){ 
   ggsave(plot = g, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
   }
   
@@ -1022,13 +1132,15 @@ print(plot_master_questions)
     theme_minimal() + easy_remove_legend()
 )
 
-if(graph_save == TRUE) {
+if(GRAPH_SAVE == TRUE) {
     ggsave(plot = x, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
 }
 
 
 ```    
   
+
+
 
 ### ABSOLUTE VALUES
 
@@ -1062,7 +1174,7 @@ plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plo
    )
 
   
-if(graph_save == TRUE){
+if(GRAPH_SAVE == TRUE){
   ggsave(plot = plot_master_questions, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
 }
   
@@ -1102,7 +1214,7 @@ if(graph_save == TRUE){
   theme_minimal() + easy_remove_legend()
 ) 
 
-if(graph_save == TRUE){
+if(GRAPH_SAVE == TRUE){
   ggsave(plot = g, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
 }
   
@@ -1140,7 +1252,7 @@ if(graph_save == TRUE){
     theme_minimal() + easy_remove_legend()
 )
 
-if(graph_save == TRUE){
+if(GRAPH_SAVE == TRUE){
     ggsave(plot = x, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
 }
   
@@ -1372,7 +1484,7 @@ df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA,
     scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
     theme_minimal()
 )
-if(graph_save){
+if(GRAPH_SAVE){
 ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_id_corr_sd.png"), units = c("in"), width = 14, height = 10 )
 }
 
@@ -1405,7 +1517,7 @@ df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA,
     scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
     theme_minimal())
     
-if(graph_save){
+if(GRAPH_SAVE){
 ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_id_corr_abs.png"), units = c("in"), width = 14, height = 10 )
 }
 x
@@ -1428,7 +1540,7 @@ x
     scale_color_manual(values = my_palettes(name="lightblues", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal())
     
-if(graph_save){    
+if(GRAPH_SAVE){    
   ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_age_corr_sd.png"), units = c("in"), width = 14, height = 10 )
 }
 x  
@@ -1456,7 +1568,7 @@ x
     scale_color_manual(values = my_palettes(name="lightblues", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal())
     
-if(graph_save){
+if(GRAPH_SAVE){
   ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_age_corr_abs.png"), units = c("in"), width = 14, height = 10 )
 }
 x
@@ -1479,7 +1591,7 @@ x
     scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal() )
     
-    if(graph_save){
+    if(GRAPH_SAVE){
   ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_gender_corr_sd.png"), units = c("in"), width = 14, height = 10 )
   }
   x
@@ -1505,7 +1617,7 @@ x
     scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
     theme_minimal() )
 
-if(graph_save){
+if(GRAPH_SAVE){
   ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_gender_corr_abs.png"), units = c("in"), width = 14, height = 10 )
 }
   x
@@ -1528,7 +1640,7 @@ df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA,
     scale_color_manual(values = my_palettes(name="tools", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
     theme_minimal() )
   
-  if(graph_save){
+  if(GRAPH_SAVE){
   ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("tool_id_corr_sd.png"), units = c("in"), width = 14, height = 10 )
   }    
   x
@@ -1556,7 +1668,7 @@ df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA,
 (x <-   ggscatmat(df, columns = 1:11, color = "ENCOUNTER", alpha = 0.8) + 
     scale_color_manual(values = my_palettes(name="encounter", direction = "1"))+
     theme_minimal())
-if(graph_save){
+if(GRAPH_SAVE){
   ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("encounter_corr_sd.png"), units = c("in"), width = 14, height = 10 )
 }
   x
@@ -1586,7 +1698,7 @@ df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA,
     scale_color_manual(values = my_palettes(name="encounter", direction = "1"))+
     theme_minimal())
 
-if(graph_save){
+if(GRAPH_SAVE){
   ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("encounter_corr_abs.png"), units = c("in"), width = 14, height = 10 )
 }
   x
@@ -1610,7 +1722,7 @@ df <- df_actions %>% select(MAKER_DESIGN, MAKER_DATA,
 (x <- ggscatmat(df, columns = 1:11, color = "CHART_ACTION", alpha = 0.2) + 
     scale_color_manual(values = my_palettes(name="actions", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
     theme_minimal() )
-if(graph_save){
+if(GRAPH_SAVE){
 ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("chart_action_corr_sd.png"), units = c("in"), width = 14, height = 10  )
 }
 x
@@ -2572,6 +2684,122 @@ rownames(ref_labels_reordered) <- ref_sd_questions
 #                      alpha = 1) +
 #       theme_minimal()
 ```
+
+## AD and KS Tests Comparing of Distributions 
+
+Are the confidence distributions for each question _different_? Note that central tendency is not a good measure here, because we care a great deal about the shape of the distribution. KS Tests can be used to compare 2 empirical distributions (and AD tests more than 2) to against the null hypothesis that they were drawn from the same population. HOWEVER BOTH tests assume the variables are independent (i.e. not repeated measures or from the same sample) so it is not appropriate to use them to compare distributions of our survey vars 
+```{r}
+
+# df <- df_full
+
+## PAIRWISE KS-TESTS 
+# ks.test(df$MAKER_CONF, df$AGE_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+# 
+# ks.test(df$MAKER_CONF, df$GENDER_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+# 
+# ks.test(df$MAKER_CONF, df$TOOL_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+# 
+# 
+# ks.test(df$GENDER_CONF, df$AGE_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+# 
+# ks.test(df$GENDER_CONF, df$TOOL_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+# 
+# ks.test(df$AGE_CONF, df$TOOL_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+
+
+
+# 
+# 
+# ## kSamples
+# # library(kSamples)
+# ad.test( df$MAKER_CONF, df$AGE_CONF, df$GENDER_CONF, df$TOOL_CONF,
+#          method = "asymptotic")
+```
+
+## Friedman rank Sum test comparing distirbutions unreplicated blocked data 
+```{r}
+# 
+# # setup dataframe 
+# df <- df_graphs 
+# 
+# ## COMPARE POLITICS, ARGUE, SELFISH, ALIGNMENT 
+# 
+# 
+# ## CHART LIKE AND CHART BEAUTY  
+# df <- df_sd_questions_long %>% select(PID, QUESTION, STIMULUS, value) %>% 
+#   filter( QUESTION %in% c("CHART_LIKE", "CHART_BEAUTY")) %>% 
+#   group_by(QUESTION, PID) %>%   ## HAVE TO COLLAPSE ACROSS STIMULI TO RUN FREIDMAN TEST 
+#   summarise( 
+#     m_value=round(mean(value),0) #calc mean for showing in plots 
+# ) %>% droplevels()
+# 
+# df <- as.data.frame(df)
+# friedman.test( data = df, m_value ~ QUESTION | PID)
+# ## EFFECT SIZE 
+# friedman_effsize( data = df, m_value ~ QUESTION | PID)
+# 
+# 
+# ## CHART TRUST AND MAKER TRUST
+# df <- df_sd_questions_long %>% select(PID, QUESTION, STIMULUS, value) %>% 
+#   filter( QUESTION %in% c("CHART_TRUST", "MAKER_TRUST")) %>% 
+#   group_by(QUESTION, PID) %>%   ## HAVE TO COLLAPSE ACROSS STIMULI TO RUN FREIDMAN TEST 
+#   summarise( 
+#     m_value=round(mean(value),0) #calc mean for showing in plots 
+# ) %>% droplevels()
+# 
+# df <- as.data.frame(df)
+# friedman.test( data = df, m_value ~ QUESTION | PID)
+# ## EFFECT SIZE 
+# friedman_effsize( data = df, m_value ~ QUESTION | PID)
+# 
+# 
+# 
+# ## COMPARE POLITICS, ARGUE, SELFISH, ALIGNMENT 
+# df <- df_sd_questions_long %>% select(PID, QUESTION, STIMULUS, value) %>% 
+#   filter( QUESTION %in% c("MAKER_POLITIC", "MAKER_ARGUE", "MAKER_SELFISH", "MAKER_ALIGN")) %>% 
+#   group_by(QUESTION, PID) %>%   ## HAVE TO COLLAPSE ACROSS STIMULI TO RUN FREIDMAN TEST 
+#   summarise( 
+#     m_value=round(mean(value),0) #calc mean for showing in plots 
+# ) %>% droplevels()
+# 
+# df <- as.data.frame(df)
+# friedman.test( data = df, m_value ~ QUESTION | PID)
+# ## EFFECT SIZE 
+# friedman_effsize( data = df, m_value ~ QUESTION | PID)
+# 
+# 
+# 
+# 
+# #### SOMETHING WE EXPECT TO BE VERY DIFFERENT 
+# ## DESIGN COMPETENCY AND POLITICS 
+# df <- df_sd_questions_long %>% select(PID, QUESTION, STIMULUS, value) %>% 
+#   filter( QUESTION %in% c("MAKER_POLITIC", "MAKER_DESIGN")) %>% 
+#   group_by(QUESTION, PID) %>%   ## HAVE TO COLLAPSE ACROSS STIMULI TO RUN FREIDMAN TEST 
+#   summarise( 
+#     m_value=round(mean(value),0) #calc mean for showing in plots 
+# ) %>% droplevels()
+# 
+# df <- as.data.frame(df)
+# friedman_test( data = df, m_value ~ QUESTION | PID)
+# ## EFFECT SIZE 
+# friedman_effsize( data = df, m_value ~ QUESTION | PID)
+# 
+# gf_histogram(df, ~m_value) + facet_wrap(~QUESTION)
+
+```
+
 
 # RESOURCES
 
