@@ -1436,7 +1436,7 @@ for (s in stimuli){
 } ## end loop through stimuli
 
 ## SAVE LIST OF MATRICES TO RDS
-saveRDS(corr_matrices, file = "figs/level_stimulus/correlations/MODEL_partial_correlation_by_stimulus.RDS")
+saveRDS(corr_matrices_stimuli, file = "figs/level_stimulus/correlations/MODEL_partial_correlation_by_stimulus.RDS")
 
 
 ### CAN ACCESS ANY PARTICULAR STIMULUS'S MATRIX VIA 
