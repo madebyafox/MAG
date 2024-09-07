@@ -181,20 +181,23 @@ my_colors = list(
   blackred = c("black","red"),
   greys = c("#707070","#999999","#C2C2C2"),
   greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
-  smallgreens = c("#ADC69D","#567E39","#193E0A"),
+  smallgreens = c("#ADC69D","#567E39","#193E0A"), ## MALE FEMALE OTHER
   olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
   lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
   darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
   reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
   traffic = c("#CE98A2","#81A06D","yellow"),
   questions = c("#B17380","#3787D2", "#567E39", "#EE897F"),
-  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"),
-  encounter = c("#729B7D","#8E8E8E"),
-  actions = c("#2A363B","#039876ff","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
+  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"), #? ... design.....vis...... programming
+  encounter = c("#8E8E8E","#729B7D"), ##SCROLL ENGAGE
+  actions2 = c("#8E8E8E","#729B7D"),
+  actions4 = c("#8E8E8E", "#A3A3A3","#729B7D","#499678"),
+  actions3 = c("#8E8E8E","#99b898ff","#fdcea8ff"),
+  actions = c("#8E8E8E","#2A363B","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
+  
   platforms = c("#5D93EA","#FF70CD", "#3BD3F5", "#8B69B5","black"),
   amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
   my_favourite_colours = c("#702963", "#637029",    "#296370")
-                
 )
 
 ## function for using palettes
@@ -308,74 +311,6 @@ plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) 
 # library(tinytable)
 # library(webshot2)
 
-# 
-# 
-# ################################# DENSITY NUMERICS 
-# all_q <- c(ref_conf_questions, ref_sd_questions)
-# df <- df_graphs %>% select(all_of(all_q))
-# # plot_data <- list(df_graphs$MAKER_CONF, df_graphs$AGE_CONF, df_graphs$GENDER_CONF, df_graphs$TOOL_CONF)
-# 
-# dat <- data.frame(
-#   VARIABLE = all_q,
-#   DISTRIBUTION=""
-# )
-# 
-# tt(dat) %>% 
-#   plot_tt(j=2, fun = "histogram", data = df) %>% 
-#   plot_tt(j=2, fun = "density", data = df) 
-#   # plot_tt(j=4, fun = "bar", data = plot_data) 
-#   # plot_tt(j=5, fun = "line", data = plot_data) %>% 
-#   # style_tt(j = 2:3, align = "c")
-# 
-# ##################
-# 
-# 
-# 
-# 
-# 
-# ############ WORKING SPARKLINE CATEGORICAL STACKED BAR 
-# #####################
-# 
-# 
-# #### CUSTOM HORIZONTAL STACKED BARPLOT 
-# g <- function(d, ...){
-#   
-#   p <- d$pal %>% unique
-#   ggplot(d, aes(x="", fill=value)) + 
-#     geom_bar(stat="count", position = "stack") + 
-#     scale_fill_manual(values=my_colors[[p]]) +
-# 
-#     # scale_fill_manual(values = my_palettes(name=as.char(pal), direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
-#     coord_flip() + theme_void() + 
-#     easy_remove_axes() + easy_remove_legend()
-# }
-# 
-# 
-# ### CREATE CATEGORICAL DF LIST FOR TT
-# id = df_graphs %>% select(MAKER_ID) %>% 
-#   pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
-# age = df_graphs %>% select(MAKER_AGE) %>% 
-#   pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
-# gender = df_graphs %>% select(MAKER_GENDER) %>% 
-#   pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
-# 
-# df_cat <- list()
-# df_cat[["MAKER_ID"]] <- id
-# df_cat[["MAKER_AGE"]] <- age
-# df_cat[["MAKER_GENDER"]] <- gender
-# 
-# 
-# tab <- data.frame(
-#   VARIABLE = ref_cat_questions,
-#   DISTRIBUTION = ""
-# )
-# 
-# 
-# tt(tab) %>%
-#   plot_tt(j=2, fun=g, data = df_cat, height = 3)
-
-
-################################# COMBINED 
 
 
 #### CUSTOM HORIZONTAL STACKED BARPLOT
@@ -384,28 +319,18 @@ g <- function(d, ...){
   p <- d$pal %>% unique
   ggplot(d, aes(x="", fill=value)) +
     geom_bar(stat="count", position = "stack") +
-    scale_fill_manual(values=my_colors[[p]]) +
-
-    # scale_fill_manual(values = my_palettes(name=as.char(pal), direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
-    coord_flip() + theme_void() +
-    easy_remove_axes() + easy_remove_legend()
+    scale_fill_manual(values=my_colors[[p]]) + 
+    coord_flip() + theme_void() + easy_remove_axes() + easy_remove_legend()
 }
 
 
 ## SETUP LIST OF NUMERIC DATAFRAMES 
 all_q <- c(ref_conf_questions, ref_sd_questions)
+
+## SETUP NUMERIC DATAFRAME
 df_num <- df_graphs %>% select(all_of(all_q))
 
-
-### CREATE LIST OF CATEGORICAL DATAFRAMES
-id = df_graphs %>% select(MAKER_ID) %>% 
-  pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
-age = df_graphs %>% select(MAKER_AGE) %>% 
-  pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
-gender = df_graphs %>% select(MAKER_GENDER) %>% 
-  pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
-
-
+## CALC MEANS 
 ### MEANS 
 m <- sapply(df_num, FUN=mean)
 m <- round(m,1)
@@ -415,29 +340,87 @@ sd <- round(sd,1)
 sd <- paste0("SD=",sd)
 stat <- paste0(m," ",sd)
 
+
+### CREATE LIST OF CATEGORICAL DATAFRAMES
+id = df_graphs %>% select(MAKER_ID) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
+age = df_graphs %>% select(MAKER_AGE) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
+gender = df_graphs %>% select(MAKER_GENDER) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
+tools <- df_tools %>% select(TOOL_ID) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="tools") %>% as.data.frame()
+encounter = df_graphs %>% select(ENCOUNTER) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="encounter") %>% as.data.frame()
+action2 = df_actions %>% select(CHART_ACTION2) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="actions2") %>% as.data.frame()
+action4 = df_actions %>% select(CHART_ACTION4) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="actions4") %>% as.data.frame()
+
 df_cat <- list()
 df_cat[["MAKER_ID"]] <- id
 df_cat[["MAKER_AGE"]] <- age
 df_cat[["MAKER_GENDER"]] <- gender
+df_cat[["TOOL_ID"]] <- tools
+df_cat[["ENCOUNTER"]] <- encounter
+df_cat[["CHART_ACTION2"]] <- action2
+df_cat[["CHART_ACTION4"]] <- action4
+
+
+## CALC CAT PROPORTIONS 
+n <- nrow(id)
+m_id <- table(id) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100) %>% map_df(rev) #reverse reading order 
+stat_id <- paste0(m_id$value, "(", m_id$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(age)
+m_age <- table(age) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_age <- paste0(m_age$value, "(", m_age$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(gender)
+m_gender <- table(gender) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_gender <- paste0(m_age$value, "(", m_gender$prop,"%)")%>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(tools)
+m_tools <- table(tools) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_tools <- paste0(m_tools$value, "(", m_tools$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(encounter)
+m_encounter <- table(encounter) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_encounter <- paste0(m_encounter$value, "(", m_encounter$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(action2)
+m_action2 <- table(action2) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_action2 <- paste0(m_action2$value, "(", m_action2$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(action4)
+m_action4 <- table(action4) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_action4 <- paste0(m_action4$value, "(", m_action4$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+
+## SETUP QUESTIONS 
+questions <- c(ref_cat_questions, "TOOL_ID", "ENCOUNTER", "CHART_ACTION2", "CHART_ACTION4", ref_conf_questions, ref_sd_questions)
 
 
 #### SETUP TABLE
 tab <- data.frame(
-  VARIABLE = c(ref_cat_questions, ref_conf_questions, ref_sd_questions),
+  VARIABLE = questions,
   DISTRIBUTION = "",
-  STATISTICS = c("","","",stat)
+  STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
+    # c("","","","","","","",stat)
 )
 
 ### RENDER TABLE
-t <- tt(tab, theme = "void") %>% 
-  plot_tt(j=2, i= 1:3, fun=g, data = df_cat, height = 1.5) %>% 
-  plot_tt(j=2, i= 4:18, fun="density", data = df_num, color="darkgrey") %>%
-  
-  style_tt(j=2, align="c", monospace = TRUE) 
+t <- tinytable::tt(tab, theme = "void") %>% 
+  plot_tt(j=2, i= 1:7, fun=g, data = df_cat, height = 1.5) %>% 
+  plot_tt(j=2, i= 8:22, fun="density", data = df_num, color="darkgrey") %>% 
+  style_tt(j=2, align="c") 
 
 t
-save_tt(t, output="figs/tables/sparklines.png")
-save_tt(t, output="figs/tables/sparklines.tex")
+if(GRAPH_SAVE){
+  save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE)
+  save_tt(t, output="figs/tables/sparklines.tex", overwrite = TRUE)  
+}
+
 ```
 
 
@@ -909,7 +892,7 @@ df <- df_full
 ## GGSTATSPLOT
 ##############################
 #hack for consistent ordering of ggstats bar plot
-dx <- df %>% mutate( MAKER_AGE = fct_rev(MAKER_AGE) )
+dx <- df %>% mutate( MAKER_GENDER = fct_rev(MAKER_GENDER) )
 S <-   ggbarstats( data = dx, x = MAKER_GENDER, y = STUDY,
                    legend.title = "MAKER GENDER") + 
     scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1")) +
@@ -924,14 +907,14 @@ S <-   ggbarstats( data = dx, x = MAKER_GENDER, y = STUDY,
 ##############################
 H <- df %>% 
   group_by(MAKER_GENDER) %>% 
-  mutate(count = n(), m = mean(GENDER_CONF)) %>% 
+  mutate(count = n(), m = mean(GENDER_CONF), MAKER_GENDER = fct_rev(MAKER_GENDER)) %>% 
   ggplot(aes(y = GENDER_CONF, x = MAKER_GENDER, fill = MAKER_GENDER)) + 
   stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
   ## MEAN
   stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
                vjust=2.5, hjust = .5, aes( label=round(..y.., digits=0)))+
   stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
-  scale_fill_manual(values = my_palettes(name="greens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
   geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
             size = 3, nudge_x=0.35) + 
   labs(y="Maker GENDER Confidence", x="") + 
@@ -1000,7 +983,7 @@ df <- df_tools %>%
 #hack for consistent ordering of ggstats bar plot
 S <-   ggbarstats( data = df, x = TOOL_ID, y = STUDY,
                    legend.title = "TOOL ID") + 
-    scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
+    scale_fill_manual(values = my_palettes(name="tools", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
     theme_minimal() +
     labs( title = "",  x = "", y="") + 
     theme(aspect.ratio = 1)
@@ -1109,6 +1092,85 @@ df_actions %>% mutate(
     theme_minimal() + 
     labs( title = "ACTION Choice ", subtitle = "", x = "")
     
+
+
+#FILTER DATASET
+df <- df_actions
+
+
+
+### FULL ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION = fct_rev(CHART_ACTION) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION, y = STIMULUS,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION by STIMULUS",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregate/distributions/categoricals", filename =paste0("CAT_ACTION.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+
+
+### FULL ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION4 = fct_rev(CHART_ACTION4) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION4, y = STIMULUS,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions4", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION [4] by STIMULUS",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregate/distributions/categoricals", filename =paste0("CAT_ACTION4.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+
+### FULL ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION3 = fct_rev(CHART_ACTION3) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION3, y = STIMULUS,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions3", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION [3] by STIMULUS",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregate/distributions/categoricals", filename =paste0("CAT_ACTION3.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+
+### FULL ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION2 = fct_rev(CHART_ACTION2) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION2, y = STIMULUS,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions2", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION [2] by STIMULUS",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregate/distributions/categoricals", filename =paste0("CAT_ACTION2.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
 ```
 
 **INTERPRETATION** *A high proportion of participants answered 'nothing'
