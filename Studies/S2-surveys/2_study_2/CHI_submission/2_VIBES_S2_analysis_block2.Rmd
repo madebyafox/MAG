@@ -1,5 +1,5 @@
 ---
-title: "VIBES STUDY 2 REPORTING—BLOCK2"
+title: "VIBES STUDY 2 ANALYSIS — BLOCK2"
 author: "ANONYMIZED"
 date: "2024-08-07"
 output:
@@ -72,7 +72,7 @@ options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-graph_save = TRUE #set to true to generate all the SD graphs and save to folders 
+GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
@@ -151,20 +151,23 @@ my_colors = list(
   blackred = c("black","red"),
   greys = c("#707070","#999999","#C2C2C2"),
   greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
-  smallgreens = c("#ADC69D","#567E39","#193E0A"),
+  smallgreens = c("#ADC69D","#567E39","#193E0A"), ## MALE FEMALE OTHER
   olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
   lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
   darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
   reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
   traffic = c("#CE98A2","#81A06D","yellow"),
   questions = c("#B17380","#3787D2", "#567E39", "#EE897F"),
-  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"),
-  encounter = c("#729B7D","#8E8E8E"),
-  actions = c("#2A363B","#039876ff","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
+  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"), #? ... design.....vis...... programming
+  encounter = c("#8E8E8E","#729B7D"), ##SCROLL ENGAGE
+  actions2 = c("#8E8E8E","#729B7D"),
+  actions4 = c("#8E8E8E", "#A3A3A3","#729B7D","#499678"),
+  actions3 = c("#8E8E8E","#99b898ff","#fdcea8ff"),
+  actions = c("#8E8E8E","#2A363B","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
+  
   platforms = c("#5D93EA","#FF70CD", "#3BD3F5", "#8B69B5","black"),
   amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
   my_favourite_colours = c("#702963", "#637029",    "#296370")
-                
 )
 
 ## function for using palettes
@@ -270,6 +273,7 @@ plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) 
 ```
 
 
+
 # BLOCK 2 ANALYSIS
 
 In the interest of space, for the manuscript we report analysis of one stimulus block (stimulus block == 2; pictured in the teaser image), rather than analysis of each of the six blocks. Each block contains for images, one of each "abstraction category" ranging from [1] *most abstract* (at left) to [4] *most figural* (at right). Within each block we selected visualizations such that there was diversity in: (1) chart type (2) source (i.e. where the graphic actually came from), and (3) what we as authors perceived to be aesthetic "vibe", (i.e) a diversity of what we subjectively judged to be sophisticated and unsophisticated, aesthetically pleasing, not pleasing, etc. The goal in structuring stimulus blocks was to offer each participant a set of visualizations that varied in multiple ways.
@@ -369,6 +373,7 @@ SD = `r (round(t.desc.duration$sd,2))`.
 rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.t, p_participants, t_participants)
 ```
 
+### Setup Dataframe
 ```{r block2_setup}
 
 #block 2 data only
@@ -954,9 +959,9 @@ C <- ggplot(df, aes( x = (MAKER_AGE), y = AGE_CONF, color = (MAKER_AGE))) +
    title = "MAKER AGE & CONFIDENCE" ,
    subtitle = '',
    caption = ''))
-
-
 ```
+
+
 
 *Inspecting Maker AGE Confidence by Maker AGE category, there does not appear to be any systematic relationship between the category of Maker AGE a participant chooses for a stimulus, and their confidence in that choice (i.e. It is not the case that identifications of `MAKER(AGE) = MILLENIAL` , for example, are made with greater or less confidence than identifications of `MAKER(AGE) = BOOMER`. Statistical tests of independence (between confidence and maker age) are ill-advised because the number of observations of each maker age vary greatly between stimuli.*
 
@@ -1662,7 +1667,7 @@ for (s in stimuli){
    
   
  
-if(graph_save){
+if(GRAPH_SAVE){
   ggsave(plot = x, path="figs/level_block2/distributions", filename =paste0(s,"_box.png"), units = c("in"), width = 10, height = 14  )
 }
   
@@ -1717,7 +1722,7 @@ for (s in stimuli){
   theme_minimal() + easy_remove_legend()
 )
 
-  if(graph_save == TRUE){ 
+  if(GRAPH_SAVE == TRUE){ 
   ggsave(plot = g, path="figs/level_block2/distributions", filename =paste0(s,"_ggdist.png"), units = c("in"), width = 10, height = 14  )
   }
 
@@ -1778,7 +1783,7 @@ for (s in stimuli){
     theme_minimal() + easy_remove_legend()
 )
 
-if(graph_save == TRUE) {
+if(GRAPH_SAVE == TRUE) {
     ggsave(plot = x, path="figs/level_block2/distributions", filename =paste0(s,"_ridges.png"), units = c("in"), width = 10, height = 14  )
 }
 
@@ -1820,7 +1825,7 @@ for (s in stimuli){
   print(paste0(title, " | ", c))
   
   ##ONLY SAVE IF RENDER GRAPHS IF SET TO TRUE
-  if(graph_save == TRUE){
+  if(GRAPH_SAVE == TRUE){
   # CREATE A CHART TO SACE  
   lessR::PieChart(value, data = df, pdf_file = paste0("figs/level_block2/donuts/",s," ",c),
          fill = palettes[a], quiet=TRUE,

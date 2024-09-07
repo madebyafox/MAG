@@ -1944,6 +1944,323 @@ x
 
 **Interesting patterns to explore further** - unfollow/block across all!
 
+
+# !!!! TOP PRIORITY HYPOTHESIS TESTING  !!! 
+
+ TRUST, BEAUTY, INTENT
+
+ - Beauty !== Trust, 
+ 2. Some individual visualizations have higher confidence, and some have lower (indexical richness), 
+ 3. Beauty + Trust = engagement, but Beauty + Untrust = less engagement
+(SEE ENCOUNTER MODELLING IN CATEGORY LEVEL FILE )
+
+
+## PREDICTING TRUST 
+
+What predicts TRUST? Recent work in psychology suggests that beauty predicts trust. However, from our free response data, we think that some aesthetically pleasing images are interpreted as persuasive and thus less trustworthy.  On this basis, we predict that there will be a significant interaction between BEAUTY and INTENT
+
+
+#### visualize 
+```{r hypo-trust-beauty_intent-}
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  filter(STIMULUS != "B0-0") %>% 
+  select(PID, STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, CHART_TRUST, CHART_BEAUTY, CHART_INTENT) %>% 
+  mutate(
+    
+    ## (only used if not filtering out B0-0)
+    ## RECODE #recode b00 graph as category D [bc it fits in that category]
+    # STIMULUS_CATEGORY = fct_recode(STIMULUS_CATEGORY, D="F") 
+  ) %>% droplevels()
+
+
+df %>% ggplot(aes(x=CHART_BEAUTY, y=CHART_TRUST, color = CHART_INTENT)) +
+  geom_point() + 
+  stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") + 
+  labs(title = "CHART TRUST BY BEAUTY & INTENT") + 
+  theme_minimal()
+  
+df %>% ggplot(aes(x=CHART_INTENT, y=CHART_TRUST, color = CHART_BEAUTY)) +
+  geom_point() + 
+  stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") + 
+  labs(title = "CHART TRUST BY INTENT & BEAUTY")+ 
+  theme_minimal()
+
+
+```
+
+
+
+#### PICKUP HERE model fit 
+
+Is BEAUTY or INTENT a better predictor of TRUST?  Here we fit a series of linear mixed effects models, predicting `CHART_TRUST` by `CHART_BEAUTY` and `CHART_INTENT` 
+
+
+
+
+```{r hypo-trust_beauty_intent-fit}
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  # filter(STIMULUS != "B0-0") %>% 
+  select(PID, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_ID, STIMULUS_CATEGORY, MAKER_DATA) %>% 
+  mutate(
+    TRUST_Z = datawizard::standardise(CHART_TRUST),
+    BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
+    INTENT_Z = datawizard::standardise(CHART_INTENT),
+    r_MAKER_DATA = datawizard::reverse(MAKER_DATA), # reverse b/c 0 = professional, 100=layperson
+    r_DATA_Z = datawizard::standardise(r_MAKER_DATA)
+  ) %>% 
+  droplevels()
+
+
+
+################## BUILD MODELS #################
+
+# RANDOM INTERCEPT SUBJECT
+mm.rP <- lmer(CHART_TRUST ~ (1|PID), data = df)
+print("random effect only")
+summary(mm.rP)
+
+
+## BEAUTY MAIN EFFECT
+# SUBJECT INTERCEPT | FIXED BEAUTY 
+print("TRUSTS ~ BEAUTY + (1|PID)")
+mm.BrP <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1|PID), data = df)
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, rank = TRUE)
+paste("AIC with fixed effect is lower than random intercept only model?", AIC(logLik(mm.rP)) > AIC(logLik(mm.BrP)) )
+test_lrt(mm.rP,mm.BrP) #same as anova(m0, m1, test = "Chi")
+paste("Likelihood Ratio test is significant? p = ",(test_lrt(mm.rP,mm.BrP))$p[2])
+print("A model with BEAUTY IS a better fit than (random effect) participant alone")
+car::Anova(mm.BrP, type=2)
+print("BEAUTY IS a significant predictor in the model")
+summary(mm.BrP)
+
+
+## INTENT MAIN EFFECT 
+# SUBJECT INTERCEPT | FIXED BEAUTY 
+print("TRUSTS ~ INTENT + (1|PID)")
+mm.IrP <- lmer(CHART_TRUST ~ CHART_INTENT + (1|PID), data = df)
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, mm.IrP, rank = TRUE)
+paste("AIC with INTENT is lower than BEAUTY model?", AIC(logLik(mm.BrP)) > AIC(logLik(mm.IrP)) )
+anova(mm.BrP, mm.IrP, test = "Chi") #same as anova(m0, m1, test = "Chi")
+print("A model with INTENT IS a better fit than model with BEAUTY")
+car::Anova(mm.IrP, type=2)
+print("BEAUTY IS a significant predictor in the model")
+summary(mm.IrP)
+
+
+## BEAUTY AND INTENT MAIN EFFECTS 
+# SUBJECT INTERCEPT | BEAUTY + INTENT
+print("TRUST ~ INTENT + BEAUTY + (1|PID)")
+mm.IBrP <- lmer(CHART_TRUST ~ CHART_INTENT + CHART_BEAUTY + (1|PID), data = df)
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, mm.IrP, mm.IBrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.IrP,mm.IBrP, mm.BrP) #same as anova(m0, m1, test = "Chi")
+test_lrt(mm.IrP, mm.IBrP)
+test_lrt(mm.BrP, mm.IBrP)
+paste("A model with a linear combination of BEAUTY and INTENT predicting TRUST is a significantly better fit than either fixed effect alone.")
+car::Anova(mm.IBrP, type = 2)
+summary(mm.IBrP)
+print("CATEGORY is a significant predictor in this model, but BLOCK is not")
+
+
+## BEAUTY INTENT INTERACTION
+# SUBJECT INTERCEPT | INTENT * BEAUTY 
+print("TRUST ~ INTENT * BEAUTY + (1|PID)")
+mm.IBXrP <- lmer(CHART_TRUST ~ CHART_INTENT * CHART_BEAUTY + (1|PID), 
+                data = df) 
+               # control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+               # optCtrl=list(maxfun=2e5)))
+# :: TEST fixed factor 
+compare_performance(mm.IBXrP, mm.IBrP, mm.IrP, mm.BrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.IBXrP, mm.IBrP)
+test_lrt(mm.IBrP, mm.IBXrP, verbose = TRUE) #same as anova(m0, m1, test = "Chi")
+paste("A model with an interaction is significantly better fit")
+car::Anova(mm.IBXrP, type = 3)
+print("In this model, both the main effects and interaction are significant")
+
+
+
+
+#############VERSION WITH ZSCORED VARS 
+## BEAUTY INTENT INTERACTION
+# SUBJECT INTERCEPT | INTENT * BEAUTY 
+print("TRUST ~ INTENT * BEAUTY + (1|PID)")
+mm.ZIBXrP <- lmer(TRUST_Z ~ INTENT_Z * BEAUTY_Z + (1|PID), 
+                data = df) 
+               # control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+               # optCtrl=list(maxfun=2e5)))
+# :: TEST fixed factor 
+compare_performance(mm.IBXrP, mm.ZIBXrP, rank = TRUE) ## should be the same
+##anova instead of LRT b/c models are not nested 
+car::Anova(mm.ZIBXrP, type = 3)
+summary(mm.ZIBXrP)
+
+
+
+## SET BEST 
+m_best <- mm.ZIBXrP
+f <- "(ZSCORED) TRUST ~ INTENT * BEAUTY"
+
+
+############ PARTIAL CORRELATION SANITY CHECK 
+
+# print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
+# #CALCULATE partial correlations with PID as random effect
+# ## (this isolates correlation pairwise factoring out other variables)
+# c <- df %>% correlation(partial=TRUE,multilevel = TRUE)
+# (s <- c %>% summary(redundant = FALSE ))
+
+
+# ###### VIS WITH CORRELATION PACKAGE
+# #SEE [correlation] PLOT
+# g <- plot(s, show_data = "point",   show_text = "label",
+#      stars=TRUE, show_legend=FALSE,
+#      show_statistic = FALSE, show_ci = FALSE) + 
+#      theme_minimal()+
+#      labs(title = "All Stimuli | Correlation Matrix — SD Questions", 
+#           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
+#      # text = list(fontface = "italic")
+# g
+# ggsave(g, scale =1, filename = "figs/level_aggregated/models/partial_correlation_mmIBXrP.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+
+
+
+
+```
+
+
+
+
+
+
+#### model describe
+
+```{r hypo-trust_beauty_intent}
+
+############ DESCRIBE FINAL MODEL ###########
+summary(m_best)
+report(m_best)
+
+
+######### PRINT COEFFICIENTS 
+# print("COEFFICIENT ESTIMATES — LOG ODDS")
+# tidy(m_best)
+# print("COEFFICIENT ESTIMATES — ODDS RATIOS")
+# tidy(m_best, exponentiate=TRUE)
+
+``` 
+
+#### model vis
+```{r hypo-category-encounter-modelvis}
+
+############ VISUALIZE MODEL COEFFICIENTS 
+#SJPLOT | MODEL | ODDS RATIO
+#library(sjPlot)
+plot_model(mm.ZIBXrP, type = "est",
+           vline.color = "red", 
+           show.intercept = TRUE, 
+           show.values = TRUE) + theme_minimal()  + 
+  labs(title = "Model Coefficients",
+       subtitle = "")
+
+
+
+############ VISUALIZE MODEL PREDICTIONS
+#SJPLOT | MODEL | PROBABILITIES
+plot_model(m_best, type = "int", mdrt.values = "meansd") + theme_minimal()
+
+
+plot_model(m_best, type="emm", 
+           terms = c("BEAUTY_Z"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means for BEAUTY")
+
+plot_model(m_best, type="emm", 
+           terms = c("INTENT_Z"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means for INTENT")
+
+plot_model(m_best, type="emm", 
+           terms = c("BEAUTY_Z","INTENT_Z"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means for INTERACTION")
+
+plot_model(m_best, type="emm", 
+           terms = c("INTENT_Z", "BEAUTY_Z"), ci.lvl = 0.95) + theme_minimal() + 
+  labs(title = "Estimated Marginal Means for INTERACTION")
+
+
+
+## CONTINUOUS INTERACTIONS 
+result <- estimate_expectation(m_best, data = "grid")
+plot(result) + theme_minimal()
+
+result <- estimate_expectation(m_alt, data = "grid")
+plot(result) + theme_minimal()
+
+
+result <- estimate_prediction(m_best, data = "grid")
+plot(result) + theme_minimal()
+
+
+
+
+
+##EXAMPLES NOT WORKING EITHER
+# slopes <- estimate_slopes(m_best, trend = "INTENT_Z", by = "BEAUTY_Z")
+# plot(slopes)
+
+
+# model <- lm(mpg ~ hp * wt, data = mtcars)
+# slopes <- estimate_slopes(model, trend = "hp", by = "wt")
+# plot(slopes)
+
+
+
+
+## TRY ADDING MAKER ID 
+
+
+mm.icat = update(m_best, .~. *MAKER_ID)
+compare_performance(m_best, mm.icat, mm.idata, rank = TRUE)
+car::Anova(mm.icat, type=3)
+plot_model(mm.icat, type = "int", mdrt.values = "meansd")
+
+mm.idata = update(m_best, .~. *r_DATA_Z)
+compare_performance(m_best, mm.icat, mm.idata, rank = TRUE)
+car::Anova(mm.idata, type=3)
+plot_model(mm.idata, type = "int", mdrt.values = "meansd")
+
+
+
+# plot_model(mm.ZIBXrP, type = "est",vline.color = "red", show.intercept = TRUE, show.values = TRUE) + theme_minimal()  + 
+#   labs(title = "Model Coefficients", subtitle = "")
+# plot_model(mm.cat, type = "est",vline.color = "red", show.intercept = TRUE, show.values = TRUE) + theme_minimal()  + 
+#   labs(title = "Model Coefficients", subtitle = "")
+# plot_model(mm.cat, type = "emm", terms=c("MAKER_ID" , "INTENT_Z","BEAUTY_Z"))
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
 # EXPLORATORY QUESTIONS
 
 -   When participants identify the maker as an INDIVIDUAL, the following
@@ -1951,6 +2268,9 @@ x
     MAKER_DESIGN, MAKER_DATA, CHART INTENT
 -   interesting bimodal distribution on CHART INTENT for most
     identifications, except individuals and organizations
+    
+    
+    
     
     
     
