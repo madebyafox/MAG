@@ -206,7 +206,7 @@ saveRDS(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.rds")
 
 order_maker = c("individual","organization","education","business","news","political")
 order_age = c("boomer", "gen-x","millennial","gen-z")
-order_gender = c("Male","Female","Other" )
+order_gender = c("Other","Female","Male" )
 order_encounter = c("scroll", "engage")
 order_tools= c("?","design_basic","design_advanced","viz_basic","viz_advanced","programming")
 order_actions = c("nothing","unfollow/block","comment","share","share w/ comment","seek information")
