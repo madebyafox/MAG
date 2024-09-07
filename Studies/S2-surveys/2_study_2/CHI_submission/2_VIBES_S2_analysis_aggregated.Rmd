@@ -596,6 +596,9 @@ R <- df %>%
   easy_remove_legend()
 
 (B+R)
+
+if(GRAPH_SAVE){ggsave(plot = (B+R), path="figs/level_aggregated/distributions", filename =paste0("all_confidence.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
 ```
 
 **INTERPRETATION** *Aggregated across all participants and all stimuli,
@@ -776,6 +779,9 @@ H <- df %>%
   caption = "(blue indicates mean)"
 )
 
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_maker_id.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
+
 ```
 
 **INTERPRETATION** *The distribution of maker types is remarkably
@@ -859,6 +865,8 @@ H <- df %>%
   caption = "(blue indicates mean)"
 )
 
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_maker_age.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 ```
 
 **INTERPRETATION** *The distribution of maker ages is distributed as we
@@ -931,6 +939,9 @@ H <- df %>%
   # distribution of confidence scores is similar across values of Maker AGE",
   caption = "(blue indicates mean)"
 )
+
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_maker_gender.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 
 ```
 
@@ -1006,7 +1017,7 @@ H <-  df %>%
   scale_fill_manual(values = my_palettes(name="tools", direction = "1"), guide = guide_legend(reverse = TRUE)) +
   geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
             size = 3, nudge_x=0.35) + 
-  labs(y="TOOL ID Confidence", x="", caption="(mean in blue) (median in red)") + 
+  labs(y="TOOL ID Confidence", x="") + 
   theme_minimal() + 
   easy_remove_legend()+
   coord_flip() 
@@ -1019,7 +1030,10 @@ H <-  df %>%
   # distribution of confidence scores is similar across values of Maker AGE",
   caption = "(blue indicates mean)"
 )
-H
+
+
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_tool_id.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 
 ```
 
@@ -1041,7 +1055,7 @@ response was saved as variable `ENCOUNTER`
 ## B
 ## ENCOUNTER  BY STIMULUS
 ## GGSTATSPLOT
-df_full %>% 
+(p <- df_full %>% 
   ggbarstats(  
             x = ENCOUNTER, y = STUDY,
             legend.title = "ENCOUNTER",
@@ -1049,6 +1063,9 @@ df_full %>%
     scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))+
     theme_minimal() + 
     labs( title = "ENCOUNTER Choice ", subtitle = "", x = "")
+)
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_encounter.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 ```
 
 **INTERPRETATION** *In roughly 10% more trials (participant + stimulus),
@@ -1077,22 +1094,6 @@ options: (select all that apply). The response was saved as variable
 -   NOTHING—just keep scrolling
 
 ```{r}
-## B
-## ACTION  BY STIMULUS
-## GGSTATSPLOT
-#hack for consistent ordering of ggstats bar plot
-df_actions %>% mutate(
-  CHART_ACTION = fct_rev(CHART_ACTION),
-  STUDY="") %>% 
-  ggbarstats( x = CHART_ACTION, y = STUDY,
-            legend.title = "CHART ACTION",
-            results.subtitle = FALSE) + 
-    # scale_fill_paletteer_d("awtools::a_palette", direction = 1)+
-    scale_fill_manual(values = my_palettes(name="actions", direction = "1"))+
-    theme_minimal() + 
-    labs( title = "ACTION Choice ", subtitle = "", x = "")
-    
-
 
 #FILTER DATASET
 df <- df_actions
@@ -1114,7 +1115,7 @@ S <-   ggbarstats( data = dx, x = CHART_ACTION, y = STIMULUS,
     theme(aspect.ratio = 1)
 ##############################
 
-if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregate/distributions/categoricals", filename =paste0("CAT_ACTION.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 S
 
 
@@ -1133,7 +1134,7 @@ S <-   ggbarstats( data = dx, x = CHART_ACTION4, y = STIMULUS,
     theme(aspect.ratio = 1)
 ##############################
 
-if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregate/distributions/categoricals", filename =paste0("CAT_ACTION4.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action4.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 S
 
 ### FULL ACTION
@@ -1151,7 +1152,7 @@ S <-   ggbarstats( data = dx, x = CHART_ACTION3, y = STIMULUS,
     theme(aspect.ratio = 1)
 ##############################
 
-if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregate/distributions/categoricals", filename =paste0("CAT_ACTION3.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action3.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 S
 
 ### FULL ACTION
@@ -1169,7 +1170,7 @@ S <-   ggbarstats( data = dx, x = CHART_ACTION2, y = STIMULUS,
     theme(aspect.ratio = 1)
 ##############################
 
-if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregate/distributions/categoricals", filename =paste0("CAT_ACTION2.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action2.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 S
 ```
 
@@ -1199,7 +1200,7 @@ options: (select one). The response was saved as variable `PLATFORM`
 ## PLATFORM  BY STIMULUS
 ## GGSTATSPLOT
 #hack for consistent ordering of ggstats bar plot
-df_full %>% 
+(p <- df_full %>% 
   ggbarstats(  
             x = PLATFORM, y = STUDY,
             legend.title = "PLATFORM",
@@ -1207,6 +1208,9 @@ df_full %>%
     scale_fill_manual(values = my_palettes(name="platforms", direction = "-1"))+
     theme_minimal() + 
     labs( title = "PLATFORM Choice ", subtitle = "", x = "")
+)
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_platform_choice.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
     
 ```
 
