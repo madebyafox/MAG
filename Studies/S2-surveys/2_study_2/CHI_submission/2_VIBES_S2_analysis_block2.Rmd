@@ -438,26 +438,96 @@ df <- df_b2  %>% select(PID, Distribution, STIMULUS, MAKER_CONF, AGE_CONF, GENDE
   easy_remove_legend()
 )
 
+# ## ORIGINAL GGDIST
+#   # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+#   ggplot(df, aes(y = fct_rev(QUESTION), x = CONFIDENCE, fill = QUESTION)) +
+#     stat_halfeye(scale=1, density="bounded", point_interval = "mean_qi", alpha = 0.5) +
+#     scale_fill_manual(values = my_palettes(name="questions", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+#     # stat_interval(side = "bottom", scale = 2, slab_linewidth = NA) +  
+#     stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
+#                 vjust=+2, hjust = 0.50, aes( label=round(..x.., digits=0)))+
+#     stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+#     facet_grid(.~STIMULUS) + 
+#   labs (title = "BLOCK 2 CONFIDENCE BY STIMULUS & QUESTION", y = "") +
+#   theme_minimal() + easy_remove_legend()
+#  
 
+  
+
+  
   # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
-  ggplot(df, aes(y = fct_rev(STIMULUS), x = CONFIDENCE, fill = QUESTION)) +
-    stat_halfeye(scale=1, density="bounded", point_interval = "mean_qi", alpha = 0.5) +
-    scale_fill_manual(values = my_palettes(name="questions", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
-    # stat_interval(side = "bottom", scale = 2, slab_linewidth = NA) +  
-    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold",
+g <-   ggplot(df, aes(y = fct_rev(QUESTION), x = CONFIDENCE)) +
+    stat_halfeye(scale=0.6, density="bounded", point_interval = "median_qi", normalize="xy", alpha = 0.5) +
+    stat_summary(fun=median, geom="text", colour="black",  fontface = "bold",
                 vjust=+2, hjust = 0.50, aes( label=round(..x.., digits=0)))+
-    stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
-    facet_grid(.~QUESTION) + 
+    stat_summary(fun="median", geom="point", size=2.2, color="black", fill="black") +
+    facet_grid(.~STIMULUS) + 
   labs (title = "BLOCK 2 CONFIDENCE BY STIMULUS & QUESTION", y = "") +
   theme_minimal() + easy_remove_legend()
  
 
-B
-R
   
+    
+
+if(GRAPH_SAVE == TRUE){
+  ggsave(plot = g, path="figs/level_block2/distributions", filename =paste0("CONFIDENCE","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+  }
 
 ```
+```{r}
 
+#DEFINE BLOCK 2 STIMULI
+stimuli <- c("B2-1" ,"B2-2", "B2-3", "B2-4")
+
+
+## LOOP THROUGH EACH STIMULUS IN LIST
+i = 0
+
+for (s in stimuli){
+  i = i+1
+  
+  # setup titles 
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+
+  # setup dataframe
+  
+  df <- df_b2  %>% 
+    filter(STIMULUS==s) %>% 
+    select(STIMULUS, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c(MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF),
+    names_to = "QUESTION",
+    values_to = "CONFIDENCE"
+  ) %>% 
+  mutate(
+    QUESTION = factor(QUESTION, levels=c("MAKER_CONF","AGE_CONF","GENDER_CONF","TOOL_CONF"  ) )
+  ) %>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(CONFIDENCE)) ## calc median for printing on graph
+
+
+  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+  (g <- df %>%
+      ggplot(aes(y = fct_rev(QUESTION), x = CONFIDENCE )) +
+    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
+    
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+  labs (title = title, y = "", caption = "(point is median)") +
+  theme_minimal() + easy_remove_legend()
+)
+
+  if(GRAPH_SAVE == TRUE){ 
+  ggsave(plot = g, path="figs/level_block2/distributions", filename =paste0("CONFIDENCE_",s,"_ggdist.png"), units = c("in"), width = 10, height = 14  )
+  }
+
+  
+} ## END LOOP 
+
+```
 
 ## MAKER QUESTIONS
 
@@ -1729,6 +1799,9 @@ for (s in stimuli){
   
 } ## END LOOP 
 ```
+
+
+
 
 
 ##### density ridges
