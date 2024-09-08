@@ -303,8 +303,8 @@ plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) 
 ```
 
 
-
-# SPARKLINES TABLE
+# AD HOCS
+## SPARKLINES TABLE
 
 ```{r sparktabletest}
 
@@ -378,7 +378,7 @@ stat_age <- paste0(m_age$value, "(", m_age$prop,"%)") %>%  unlist() %>% paste0(c
 
 n <- nrow(gender)
 m_gender <- table(gender) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
-stat_gender <- paste0(m_age$value, "(", m_gender$prop,"%)")%>%  unlist() %>% paste0(collapse=''," ")
+stat_gender <- paste0(m_gender$value, "(", m_gender$prop,"%)")%>%  unlist() %>% paste0(collapse=''," ")
 
 n <- nrow(tools)
 m_tools <- table(tools) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
@@ -422,6 +422,8 @@ if(GRAPH_SAVE){
 }
 
 ```
+
+
 
 
 
@@ -622,16 +624,16 @@ df_conf_long <- df_graphs %>%
     cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
     names_to = "QUESTION") 
 
+# 
+# print("QUESTION LEVEL CONFIDENCE (ALL P, ALL S)")
+# (q_conf <- df_conf_long %>% 
+#   group_by(QUESTION) %>% 
+#   summarize(
+#     m = mean(value),
+#     sd = sd(value)
+#   ))
 
-print("SD OF QUESTION CONFIDENCE")
-(q_conf <- df_conf_long %>% 
-  group_by(QUESTION) %>% 
-  summarize(
-    m = mean(value),
-    sd = sd(value)
-  ))
-
-print("SD AND RANGES OF PARTICIPANT CONFIDENCE SCORES BY QUESTION")
+print("SD AND RANGES OF PARTICIPANT CONFIDENCE [ALL STIMULI]")
 ## PARTICIPANT LOW VARIANCE
 ## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
 (df_lowvar_q <- df_graphs %>% 
@@ -661,48 +663,64 @@ print("SD AND RANGES OF PARTICIPANT CONFIDENCE SCORES BY QUESTION")
   )) 
 
 
-print("SD AND RANGES OF PARTICIPANT CONFIDENCE SCORES")
-## PARTICIPANT - QUESTION LOW VARIANCE
+# print("SD AND RANGES OF PARTICIPANT CONFIDENCE SCORES BY QUESTION")
+# ## PARTICIPANT - QUESTION LOW VARIANCE
+# ## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
+# (df_lowvar_q <- df_graphs %>% 
+#   # filter(STIMULUS!="B0-0") %>% 
+#   # filter(BLOCK %in% c("B1","B2")) %>% 
+#   select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+#   pivot_longer(
+#     cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
+#     names_to = "QUESTION") %>%
+#   group_by(PID, QUESTION) %>% 
+#   summarise(
+#     count_pidq = n(), #5 trials of each question
+#     mean_pidq = mean(value), 
+#     min_pidq = min(value),
+#     max_pidq = max(value),
+#     range_pidq = max_pidq-min_pidq, 
+#     low_range_pidq = ifelse(range_pidq < 20, TRUE, FALSE),
+#     sd_pidq = sd(value),
+#     low_sd_pidq = ifelse(sd_pidq < 10, TRUE, FALSE)) %>% 
+#   group_by(QUESTION) %>% 
+#   summarise(
+#     n = n(), #318p X 5 stimuli
+#     n_pidq = sum(count_pidq),
+#     n_low_range = sum((low_range_pidq==TRUE)),
+#     prop.low_range = n_low_range / n,
+#     n_low_sd = sum((low_sd_pidq==TRUE)),
+#     prop.low_sd = n_low_sd / n
+#   )) 
+
+
+
+### participants with lowest 
+## PARTICIPANT LOW VARIANCE
 ## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
-(df_lowvar_q <- df_graphs %>% 
+((df_low <- df_graphs %>% 
   # filter(STIMULUS!="B0-0") %>% 
   # filter(BLOCK %in% c("B1","B2")) %>% 
-  select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  select(PID, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
   pivot_longer(
     cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
-    names_to = "QUESTION") %>%
-  group_by(PID, QUESTION) %>% 
+    names_to = "QUESTION") %>% 
+  group_by(PID) %>% 
   summarise(
-    count_pidq = n(), #5 trials of each question
-    mean_pidq = mean(value), 
-    min_pidq = min(value),
-    max_pidq = max(value),
-    range_pidq = max_pidq-min_pidq, 
-    low_range_pidq = ifelse(range_pidq < 20, TRUE, FALSE),
-    sd_pidq = sd(value),
-    low_sd_pidq = ifelse(sd_pidq < 10, TRUE, FALSE)) %>% 
-  group_by(QUESTION) %>% 
-  summarise(
-    n = n(), #318p X 5 stimuli
-    n_pidq = sum(count_pidq),
-    n_low_range = sum((low_range_pidq==TRUE)),
-    prop.low_range = n_low_range / n,
-    n_low_sd = sum((low_sd_pidq==TRUE)),
-    prop.low_sd = n_low_sd / n
-  )) 
-
-
-
-
-
+    pid = unique(PID),
+    count_pid = n(), #5 trials of each question
+    mean_pid = mean(value), 
+    min_pid = min(value),
+    max_pid = max(value),
+    range_pid = max_pid-min_pid, 
+    low_range_pid = ifelse(range_pid < 20, TRUE, FALSE),
+    sd_pid = sd(value),
+    low_sd_pid = ifelse(sd_pid < 10, TRUE, FALSE)) ))
 
 ```
 
-First looking at variance in confidence by question, we see that the proportion of participants with less than 10 in confidence scores (less than 20 points difference in range), is 21% for AGE, 21% for GENDER, 15% for MAKER and 22% for TOOL 
 
-
-Next, looking at variance in confidence by participant, we see that only 4 of the 218 participants (2%) had less than 20 point 
-
+Looking at confidence scores by participant aggregating over all stimuli and all questions, we see that 39/318 (12%) participants had less SD of less than 10 points (on 100 point scale) in confidence.  
 
 
 ## MAKER ID
@@ -1478,6 +1496,7 @@ rm(df, c,x,g,plot_master_questions)
 
 ### FULL SCALE
 
+
 ```{r, correlation-matrices}
 
 
@@ -1488,14 +1507,26 @@ df <- df_graphs %>% select(
           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
           PID)
 
-# print("FULL CORRELATION NO RANDOM EFFECT")
-# ## CALCULATE full correlations with no random effects
-# c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
-# (s <- c %>% summary(redundant = FALSE))
-# plot(s, show_data="point") + labs(title = "Correlation Matrix",
-#                subtitle="(full correlation; pearson method; Holm p-value adjustment)") + theme_minimal()
+print("FULL CORRELATION WITH RANDOM EFFECT")
+## CALCULATE full correlations with random effects
+c <- df %>%  correlation(partial=FALSE, include_factors=FALSE, multilevel=TRUE)
+(s <- c %>% summary(redundant = FALSE))
+plot(s, show_data="point") + labs(title = "Correlation Matrix",
+               subtitle="(full correlation; pearson method; Holm p-value adjustment; PID random effect)") + theme_minimal()
 
+g <- plot(s, show_data = "point",   show_text = "label",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     theme_minimal()+
+     labs(title = "All Stimuli | Correlation Matrix — SD Questions", 
+          subtitle="(full correlation; pearson method; Holm p-value adjustment; PID random effect)") + theme_minimal()
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/full_correlation_all.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
 
+d <- iris  # Load the traditional iris dataset into an object called df (for dataframe)
+cor_results <- cor.test(d$Sepal.Length, d$Petal.Length)  #
+report(cor_results)
 
 print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
 #CALCULATE partial correlations with PID as random effect
@@ -2158,6 +2189,45 @@ report(m_best)
 
 ``` 
 
+
+#### check rescaling
+```{r}
+
+## rescale all vars to be -1 to 0 to 1
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  # filter(STIMULUS != "B0-0") %>% 
+  select(PID, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_ID, STIMULUS_CATEGORY, MAKER_DATA) %>% 
+  mutate(
+    TRUST_Z = datawizard::standardise(CHART_TRUST),
+    BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
+    INTENT_Z = datawizard::standardise(CHART_INTENT),
+    r_MAKER_DATA = datawizard::reverse(MAKER_DATA), # reverse b/c 0 = professional, 100=layperson
+    r_DATA_Z = datawizard::standardise(r_MAKER_DATA),
+    
+    TRUST_S = datawizard::rescale(CHART_TRUST, to=c(-1,1)),
+    BEAUTY_S = datawizard::rescale(CHART_BEAUTY, to=c(-1,1)),
+    INTENT_S = datawizard::rescale(CHART_INTENT, to=c(-1,1)),
+    DATA_S = datawizard::rescale(MAKER_DATA, to=c(-1,1)),
+    r_DATA_S = datawizard::reverse(DATA_S), # reverse b/c 0 = professional, 100=layperson
+    
+    TRUST_SZ = datawizard::standardise(TRUST_S, to=c(-1,1))
+    
+  ) %>% 
+  droplevels()
+
+
+
+gf_histogram(df, ~CHART_TRUST)
+gf_histogram(df, ~TRUST_S)
+gf_histogram(df, ~TRUST_Z)
+gf_histogram(df, ~TRUST_SZ)
+             
+
+
+
+```
+
 #### model vis
 ```{r hypo-category-encounter-modelvis}
 
@@ -2224,6 +2294,24 @@ plot(result) + theme_minimal()
 
 
 ## TRY ADDING MAKER ID 
+
+mm.beauty <- lmer(TRUST_Z ~ BEAUTY_Z + (1|PID), data = df)
+mm.intent <- lmer(TRUST_Z ~ INTENT_Z + (1|PID), data = df)
+mm.makerbeauty <- lmer(TRUST_Z ~ BEAUTY_Z*MAKER_ID + (1|PID), data = df)
+
+
+
+plot_model(mm.beauty, type = "eff", terms = "BEAUTY_Z")
+plot_model(mm.intent, type = "eff", terms = "INTENT_Z")
+
+plot_model(mm.makerbeauty, type = "int")
+
+
+
+  plot_model(m_best, type = "int")
+
+
+plot_model(m_best, type = "int", mdrt.values = "all")
 
 
 mm.icat = update(m_best, .~. *MAKER_ID)
