@@ -1156,6 +1156,190 @@ corrplot(m, method = 'circle', type = 'lower',
 
 # EXPLORATORY QUESTIONS
 
+### CHART ACTION ~ CATEGORY
+#### visualize
+
+
+```{r}
+df <- df_actions %>% 
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, CHART_ACTION, CHART_LIKE, PID) %>% 
+  mutate(
+CHART_ACTION = fct_rev(CHART_ACTION),
+STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
+  ) %>% filter(STIMULUS != "B0-0")
+
+
+# m <- glm(df)
+
+
+## CATEGORY
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = CHART_ACTION, y = STIMULUS_CATEGORY,
+        results.subtitle = FALSE) + 
+scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
+theme_minimal() +
+# labs( title = "",  x = "", y="") + 
+theme(aspect.ratio = 1)
+##############################
+
+## BLOCK
+## GGSTATSPLOT
+##############################
+ggbarstats( data = df, x = CHART_ACTION, y = BLOCK,
+        results.subtitle = FALSE) + 
+scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
+theme_minimal() +
+# labs( title = "",  x = "", y="") + 
+theme(aspect.ratio = 1)
+##############################
+
+
+## CATEGORY / BLOCK
+# GGSTATSPLOT
+##############################
+grouped_ggbarstats( data = df, x = CHART_ACTION, y = STIMULUS_CATEGORY,   grouping.var=BLOCK,
+                results.subtitle = FALSE,
+                ggplot.component = scale_fill_manual(values = my_palettes(name="actions", direction = "1"))) + 
+theme_minimal() +
+# labs( title = "",  x = "", y="") + 
+theme(aspect.ratio = 1)
+##############################
+
+
+# BLOCK / CATEGORY
+# GGSTATSPLOT
+##############################
+grouped_ggbarstats( data = df, x = CHART_ACTION, y = BLOCK,   grouping.var=STIMULUS_CATEGORY,
+                results.subtitle = FALSE,
+                ggplot.component = scale_fill_manual(values = my_palettes(name="actions", direction = "1"))) + 
+theme_minimal() +
+# labs( title = "",  x = "", y="") + 
+theme(aspect.ratio = 1)
+##############################
+
+# STIMULUS
+# GGSTATSPLOT
+# TODO STACKED BAR BY ACTION
+
+
+
+
+
+
+
+
+```
+
+    
+    
+
+
+
+
+
+#### model 
+
+
+##### DATA SETUP
+```{r }
+
+df <- df_actions %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  filter(STIMULUS != "B0-0") %>%
+  select(CHART_ACTION, CHART_ACTION2, CHART_ACTION3, CHART_ACTION4, STIMULUS, STIMULUS_CATEGORY, BLOCK, MAKER_ID, CHART_LIKE, CHART_TRUST, CHART_BEAUTY, MAKER_DESIGN, MAKER_ALIGN, CHART_INTENT, MAKER_TRUST, MAKER_DATA, MAKER_DESIGN, MAKER_ARGUE, MAKER_POLITIC, MAKER_SELF, PID) %>% 
+  mutate(
+    STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY), #REVERSE FACTOR ORDER SO A IS REFERENCE
+    ALIGN_Z = datawizard::standardise(MAKER_ALIGN),
+    TRUST_Z = datawizard::standardise(CHART_TRUST),
+    BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
+    LIKE_Z = datawizard::standardise(CHART_LIKE),
+    INTENT_Z = datawizard::standardise(CHART_INTENT),
+    MAKERTRUST_Z = datawizard::standardise(MAKER_TRUST),
+    DESIGN_Z = datawizard::standardise(MAKER_DESIGN),
+    DATA_Z = datawizard::standardise(MAKER_DATA),
+    ARGUE_Z = datawizard::standardise(MAKER_ARGUE),
+    SELF_Z = datawizard::standardise(MAKER_SELF),
+    ABS_POLITIC = datawizard::standardize(abs(MAKER_POLITIC - 50)) #standardize after halfving scale 
+  ) %>% 
+  droplevels()
+    
+  
+    ## (only used if NOT filtering out B0-0)
+    ## RECODE #recode b00 graph as category D [bc it fits in that category]
+    # STIMULUS_CATEGORY = fct_recode(STIMULUS_CATEGORY, D="F") 
+  
+
+```
+
+
+##### (WIP) CHART ACTION ~ ?
+
+```{r}
+
+## reference level is nothing, 
+
+################## ENCOUNTER ~ CATEGORY + LIKE #################
+f <-  "ACTION ~ ?? (1|PID)"
+mm <- glmer(CHART_ACTION2 ~ LIKE_Z + STIMULUS_CATEGORY * INTENT_Z + (1|PID), 
+                data = df,family = "binomial", 
+                 control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+               optCtrl=list(maxfun=2e5)))
+car::Anova(mm, type = 2)
+summary(mm)
+performance(mm)
+
+m <- mm
+f <- f
+## REPORT 
+# report(m)
+
+## PLOT COEF
+plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
+  labs(subtitle = f) + theme_minimal()
+
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "INTENT_Z")) + 
+  labs(subtitle = f) + theme_minimal()
+
+plot_model(m, type = "pred", terms = c("LIKE_Z", "ABS_POLITIC", "STIMULUS_CATEGORY")) + 
+  labs(subtitle = f) + theme_minimal()
+
+plot_model(m, type = "pred", terms = c("ABS_POLITIC", "STIMULUS_CATEGORY","LIKE_Z")) + 
+  labs(subtitle = f) + theme_minimal()
+## IN PAPER
+tab_model(m)
+```
+CATEGORY, LIKE, POLITICS ABS
+
+
+```{r}
+################## BUILD MODELS #################
+
+# # RANDOM INTERCEPT SUBJECT
+# mm.rP <- glmer(ENCOUNTER ~ (1|PID), data = df,family = "binomial")
+
+
+# # SUBJECT INTERCEPT | FIXED BLOCK 
+# ## should be non predictive
+# print("ENCOUNTER ~ BLOCK + (1|PID)")
+# mm.BrP <- glmer(ENCOUNTER ~ BLOCK + (1|PID), 
+#                 data = df,family = "binomial")
+# # :: TEST fixed factor 
+# compare_performance(mm.rP, mm.BrP, rank = TRUE)
+# paste("AIC with fixed effect is lower than random intercept only model?", AIC(logLik(mm.rP)) > AIC(logLik(mm.BrP)) )
+# test_lrt(mm.rP,mm.BrP) #same as anova(m0, m1, test = "Chi")
+# paste("Likelihood Ratio test is significant? p = ",(test_lrt(mm.rP,mm.BrP))$p[2])
+# print("A model with BLOCK is NOT a better fit than (random effect) participant alone")
+# car::Anova(mm.BrP, type=2)
+# print("BLOCK is NOT significant predictor in the model")
+# print("[this is as expected. suggests that we were successful in randomizing stimuli across the blocks]")
+```
+
+
+
+
 
 ### ENCOUNTER ~ CATEGORY
 
@@ -1241,106 +1425,456 @@ Null hypothesis:
 Alternative hypothesis: 
  the odds of a correct response increases
 
+##### DATA SETUP
 ```{r hypo-category-encounter-fit}
 
 df <- df_graphs %>%
   ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
-  filter(STIMULUS != "B0-0") %>% 
-  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, CHART_TRUST, PID) %>% 
+  filter(STIMULUS != "B0-0") %>%
+  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, MAKER_ID, MAKER_GENDER, MAKER_AGE, ENCOUNTER, CHART_LIKE, CHART_TRUST, CHART_BEAUTY, MAKER_DESIGN, MAKER_ALIGN, CHART_INTENT, MAKER_TRUST, MAKER_DATA, MAKER_DESIGN, MAKER_ARGUE, MAKER_POLITIC, MAKER_SELF, PID) %>% 
   mutate(
     STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY), #REVERSE FACTOR ORDER SO A IS REFERENCE
-    ENCOUNTER = fct_rev(ENCOUNTER) #REVERSE SO SCROLL IS REFERENCE
+    ALIGN_Z = datawizard::standardise(MAKER_ALIGN),
+    TRUST_Z = datawizard::standardise(CHART_TRUST),
+    BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
+    LIKE_Z = datawizard::standardise(CHART_LIKE),
+    INTENT_Z = datawizard::standardise(CHART_INTENT),
+    MAKERTRUST_Z = datawizard::standardise(MAKER_TRUST),
+    DESIGN_Z = datawizard::standardise(MAKER_DESIGN),
+    DATA_Z = datawizard::standardise(MAKER_DATA),
+    ARGUE_Z = datawizard::standardise(MAKER_ARGUE),
+    SELF_Z = datawizard::standardise(MAKER_SELF),
+    ABS_POLITIC = datawizard::standardize(abs(MAKER_POLITIC - 50)) #standardize after halfving scale 
+  ) %>% 
+  droplevels()
     
-    ## (only used if not filtering out B0-0)
+  
+    ## (only used if NOT filtering out B0-0)
     ## RECODE #recode b00 graph as category D [bc it fits in that category]
     # STIMULUS_CATEGORY = fct_recode(STIMULUS_CATEGORY, D="F") 
-  ) %>% droplevels()
+  
 
+```
 
-
+```{r}
 ################## BUILD MODELS #################
 
-# RANDOM INTERCEPT SUBJECT
-mm.rP <- glmer(ENCOUNTER ~ (1|PID), data = df,family = "binomial")
+# # RANDOM INTERCEPT SUBJECT
+# mm.rP <- glmer(ENCOUNTER ~ (1|PID), data = df,family = "binomial")
 
 
-# SUBJECT INTERCEPT | FIXED BLOCK 
-## should be non predictive
-print("ENCOUNTER ~ BLOCK + (1|PID)")
-mm.BrP <- glmer(ENCOUNTER ~ BLOCK + (1|PID), 
-                data = df,family = "binomial")
-# :: TEST fixed factor 
-compare_performance(mm.rP, mm.BrP, rank = TRUE)
-paste("AIC with fixed effect is lower than random intercept only model?", AIC(logLik(mm.rP)) > AIC(logLik(mm.BrP)) )
-test_lrt(mm.rP,mm.BrP) #same as anova(m0, m1, test = "Chi")
-paste("Likelihood Ratio test is significant? p = ",(test_lrt(mm.rP,mm.BrP))$p[2])
-print("A model with BLOCK is NOT a better fit than (random effect) participant alone")
-car::Anova(mm.BrP, type=2)
-print("BLOCK is NOT significant predictor in the model")
-print("[this is as expected. suggests that we were successful in randomizing stimuli across the blocks]")
+# # SUBJECT INTERCEPT | FIXED BLOCK 
+# ## should be non predictive
+# print("ENCOUNTER ~ BLOCK + (1|PID)")
+# mm.BrP <- glmer(ENCOUNTER ~ BLOCK + (1|PID), 
+#                 data = df,family = "binomial")
+# # :: TEST fixed factor 
+# compare_performance(mm.rP, mm.BrP, rank = TRUE)
+# paste("AIC with fixed effect is lower than random intercept only model?", AIC(logLik(mm.rP)) > AIC(logLik(mm.BrP)) )
+# test_lrt(mm.rP,mm.BrP) #same as anova(m0, m1, test = "Chi")
+# paste("Likelihood Ratio test is significant? p = ",(test_lrt(mm.rP,mm.BrP))$p[2])
+# print("A model with BLOCK is NOT a better fit than (random effect) participant alone")
+# car::Anova(mm.BrP, type=2)
+# print("BLOCK is NOT significant predictor in the model")
+# print("[this is as expected. suggests that we were successful in randomizing stimuli across the blocks]")
+```
+
+##### ENCOUNTER ~ CATEOGRY
+```{r}
+
+### REFERENCE LEVEL OF ENCOUNTER (0 == ENGAGE)
+### STIMULUS CATEGORY A B C D
 
 
-
-# SUBJECT INTERCEPT | FIXED CATEGORY 
-print("ENCOUNTER ~ CATEGORY + (1|PID)")
+################## ENCOUNTER ~ CATEGORY #################
+f.CrP <-  "ENCOUNTER ~ STIMULUS_CATEGORY + (1|PID)"
 mm.CrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY + (1|PID), 
                 data = df,family = "binomial")
-# :: TEST fixed factor 
-compare_performance(mm.rP, mm.BrP, mm.CrP, rank = TRUE)
-##anova instead of LRT b/c models are not nested 
-anova(mm.BrP,mm.CrP) #same as anova(m0, m1, test = "Chi")
-paste("A model with CATEGORY predicting ENCOUNTER is a better fit than a model with only BLOCK, however it is not a significantly better fit, as evaluated by a CHISQR btwn the models")
-car::Anova(mm.CrP, type = 3)
-print("CATEGORY is a significant predictor in this model")
+car::Anova(mm.CrP, type = 2)
+summary(mm.CrP)
+performance(mm.CrP)
 
-# SUBJECT INTERCEPT | FIXED CATEGORY + BLOCK
-print("ENCOUNTER ~ CATEGORY + BLOCK + (1|PID)")
-mm.C_BrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY + BLOCK + (1|PID), 
+m <- mm.CrP
+f <- f.CrP
+## REPORT 
+# report(m)
+
+## PLOT COEF
+plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
+  labs(subtitle = f) + theme_minimal()
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = "STIMULUS_CATEGORY") + 
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+# tab_model(m)
+
+```
+
+EMBELLISHMENT CATEGORY is significant predictor, predicts 5% variance in ENCOUNTER choice, with only categories C,D significantly different. 
+
+
+
+##### ENCOUNTER ~ BEAUTY
+```{r}
+
+################## ENCOUNTER ~ BEAUTY #################
+f.BrP <-  "ENCOUNTER ~ BEAUTY + (1|PID)"
+mm.BrP <- glmer(ENCOUNTER ~ BEAUTY_Z + (1|PID), 
                 data = df,family = "binomial")
-# :: TEST fixed factor 
-compare_performance(mm.rP, mm.BrP, mm.CrP, mm.C_BrP, rank = TRUE)
-##anova instead of LRT b/c models are not nested 
-anova(mm.CrP,mm.C_BrP) #same as anova(m0, m1, test = "Chi")
-test_lrt(mm.CrP, mm.C_BrP)
-paste("A model with a linear combination of CATEGORY and BLOCK predicting ENCOUNTER is NOT better fit than a model with only CATEGORY.")
-car::Anova(mm.C_BrP, type = 3)
-print("CATEGORY is a significant predictor in this model, but BLOCK is not")
+car::Anova(mm.BrP, type = 2)
+summary(mm.BrP)
+performance(mm.BrP)
+
+m <- mm.BrP
+f <- f.BrP
+## REPORT 
+# report(mm.CrP)
+
+## PLOT COEF
+plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
+  labs(subtitle = f) + theme_minimal()
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = "BEAUTY_Z") + 
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+# tab_model(mm.I)
 
 
-# SUBJECT INTERCEPT | FIXED BLOCK * CATEGORY INTERACTION 
-print("ENCOUNTER ~ CATEGORY * BLOCK + (1|PID)")
-mm.CBrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY * BLOCK + (1|PID), 
+```
+BEAUTY is significant predictor, predicts 19% variance in ENCOUNTER choice. Beauty increases probability of scroll, 2.5X the odds for 1 SD in increase in beauty
+
+
+
+##### ENCOUNTER ~ LIKE
+```{r}
+
+################## ENCOUNTER ~ LIKE #################
+f.LrP <-  "ENCOUNTER ~ LIKE + (1|PID)"
+mm.LrP <- glmer(ENCOUNTER ~ LIKE_Z + (1|PID), 
+                data = df,family = "binomial")
+car::Anova(mm.LrP, type = 2)
+summary(mm.LrP)
+performance(mm.LrP)
+
+m <- mm.LrP
+f <- f.LrP
+## REPORT 
+# report(m)
+
+## PLOT COEF
+plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
+  labs(subtitle = f) + theme_minimal()
+
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = "LIKE_Z") +
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+# tab_model(mm.I)
+
+
+```
+LIKE is significant predictor, accounts 25% variance , 2.9X ODDS INCREASE ON LIKE
+
+
+
+##### compare
+```{r}
+
+compare_performance(mm.CrP, mm.BrP, mm.LrP, rank = TRUE)
+anova(mm.CrP, mm.BrP, mm.LrP)
+
+```
+
+
+##### ENCOUNTER ~ CATEGORY + BEAUTY
+
+```{r}
+
+################## ENCOUNTER ~ CATEGORY + BEAUTY #################
+f.BCrP <-  "ENCOUNTER ~ BEAUTY + CATEGORY+ (1|PID)"
+mm.BCrP <- glmer(ENCOUNTER ~ BEAUTY_Z + STIMULUS_CATEGORY + (1|PID), 
+                data = df,family = "binomial")
+car::Anova(mm.BCrP, type = 2)
+summary(mm.BCrP)
+performance(mm.BCrP)
+
+m <- mm.BCrP
+f <- f.BCrP
+## REPORT 
+# report(m)
+
+## PLOT COEF
+plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
+  labs(subtitle = f) + theme_minimal()
+
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "BEAUTY_Z")) + 
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+# tab_model(mm.I)
+
+
+```
+sig main effects , explains 22% variance 
+
+##### (BEST) ENCOUNTER ~ CATEGORY + LIKE
+
+```{r}
+
+################## ENCOUNTER ~ CATEGORY + LIKE #################
+f.LCrP <-  "ENCOUNTER ~ LIKE + CATEGORY+ (1|PID)"
+mm.LCrP <- glmer(ENCOUNTER ~ LIKE_Z + STIMULUS_CATEGORY + (1|PID), 
+                data = df,family = "binomial")
+car::Anova(mm.LCrP, type = 2)
+summary(mm.LCrP)
+performance(mm.LCrP)
+
+m <- mm.LCrP
+f <- f.LCrP
+## REPORT 
+# report(m)
+
+## PLOT COEF
+plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
+  labs(subtitle = f) + theme_minimal()
+
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z")) + 
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+tab_model(m)
+```
+Linear combination of LIKE and CATEGORY predicts 28.7% variance, significant like, sig on categories C and D, 3X odds increase on like, ~2.3 - 2.5 on B and C
+
+##### compare
+```{r}
+### compare
+compare_performance(mm.LCrP, mm.BCrP, rank = TRUE)
+anova(mm.BrP, mm.LCrP, mm.BCrP)
+
+```
+Like + category is better than beauty + category
+
+
+##### fish
+
+```{r}
+#BLOCK, MAKER_ID, MAKER_GENDER, MAKER_AGE, ENCOUNTER, CHART_LIKE, CHART_TRUST, CHART_BEAUTY, MAKER_DESIGN, MAKER_ALIGN, CHART_INTENT, MAKER_DATA, MAKER_DESIGN, PID
+################## ENCOUNTER ~ CATEGORY * LIKE #################
+# f.LxCrP <-  "ENCOUNTER ~ LIKE + CATEGORY + (1|PID)"
+mm <- glmer(ENCOUNTER ~ LIKE_Z + STIMULUS_CATEGORY + MAKER_ID + (1|PID), 
                 data = df,family = "binomial",
-               control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+             control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
                optCtrl=list(maxfun=2e5)))
-# :: TEST fixed factor 
-compare_performance(mm.BrP, mm.CrP, mm.C_BrP, mm.CBrP, rank = TRUE)
-##anova instead of LRT b/c models are not nested 
-anova(mm.C_BrP, mm.CBrP)
-test_lrt(mm.C_BrP, mm.CBrP, verbose = TRUE) #same as anova(m0, m1, test = "Chi")
-paste("A model with an interaction of BLOCK * CATEGORY is a significantly better fit than a model with main effects only. (NOTE that block*category == stimulus. Here we fit the interaction so that we can portion variance between block and category, and compare the models as they will be nested)")
-car::Anova(mm.CBrP, type = 3)
-print("In this model, only the interaction is significant. Neither main effects are significant.")
-print("THIS SUGGESTS THAT ENCOUNTER IS BETTER PREDICTED BY THE UNIQUE STIMULUS THAN THE CATEGORY")
+car::Anova(mm, type = 2)
+summary(mm)
+performance(mm)
+
+m <- mm
+f <- mm
+
+### compare
+# compare_performance(mm.CrP, mm.LrP, mm.LCrP, mm.LxCrP, rank = TRUE)
+# anova(mm.LCrP, mm.LxCrP)
+
+
+## REPORT 
+# report(m)
+
+## PLOT COEF
+plot_model(mm, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) #+
+  labs(subtitle = f) + theme_minimal()
+
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "MAKER_ID"))
+plot_model(m, type = "pred", terms = c("LIKE_Z", "STIMULUS_CATEGORY", "MAKER_ID"))
+##+ 
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+tab_model(mm)
+
+
+```
+best fitting model contained encounter ~ like + category + maker_id, explained 30% variance, 3 sig predictors 
 
 
 
-## SANITY CHECK, MODEL WITH STIMULUS SHOULD MATCH VARIANCE EXPLAINED BY BLOCK*CATEGORY
-# SUBJECT INTERCEPT | FIXED STIMULUS 
-print("SANITY CHECK — MODEL BY STIMULUS")
-print("ENCOUNTER ~ STIMULUS + (1|PID)")
-mm.SrP <- glmer(ENCOUNTER ~ STIMULUS + (1|PID),
-                data = df,family = "binomial",
-               control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
-                            optCtrl=list(maxfun=2e5)))
-## :: TEST fixed factor 
-compare_performance(mm.CBrP, mm.SrP, rank = TRUE)
-anova(mm.SrP, mm.CBrP)
-print ("SANITY CHECKED! STIMULUS MODEL SAME FIT AS BLOCK*CATEGORY")
+
+##### (no) ENCOUNTER ~ CATEGORY X LIKE
+
+```{r}
+
+################## ENCOUNTER ~ CATEGORY * LIKE #################
+f.LxCrP <-  "ENCOUNTER ~ LIKE * CATEGORY + (1|PID)"
+mm.LxCrP <- glmer(ENCOUNTER ~ LIKE_Z * STIMULUS_CATEGORY + (1|PID), 
+                data = df,family = "binomial")
+car::Anova(mm.LxCrP, type = 2)
+summary(mm.LxCrP)
+performance(mm.LxCrP)
+
+m <- mm.LxCrP
+f <- f.LxCrP
+
+### compare
+# compare_performance(mm.CrP, mm.LrP, mm.LCrP, mm.LxCrP, rank = TRUE)
+# anova(mm.LCrP, mm.LxCrP)
 
 
-#### SET BEST MODEL
-m_best <- mm.CBrP
+## REPORT 
+# report(m)
+
+## PLOT COEF
+plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
+  labs(subtitle = f) + theme_minimal()
+
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z")) + 
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+# tab_model(mm.I)
+
+
+```
+main effects but interaction is not significant and interaction is not a better fit 
+
+##### ENCOUNTER ~ CATEGORY + LIKE + TRUST
+
+```{r}
+
+################## ENCOUNTER ~ CATEGORY + LIKE + TRUST #################
+f.TLCrP <-  "ENCOUNTER ~ LIKE + CATEGORY + TRUST (1|PID)"
+mm.TLCrP <- glmer(ENCOUNTER ~ LIKE_Z + TRUST_Z + STIMULUS_CATEGORY + (1|PID), 
+                data = df,family = "binomial")
+car::Anova(mm.TLCrP, type = 2)
+summary(mm.TLCrP)
+performance(mm.TLCrP)
+
+m <- mm.TLCrP
+f <- f.TLCrP
+## REPORT 
+# report(m)
+
+
+## PLOT COEF
+plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
+  labs(subtitle = f) + theme_minimal()
+
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "TRUST_Z")) + 
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+# tab_model(mm.I)
+
+compare_performance(mm.TLCrP, mm.LCrP, mm.ALCrP, rank = TRUE)
+anova(mm.TLCrP, mm.LCrP, mm.ALCrP)
+```
+trust not sig, model not better 
+
+##### (no) ENCOUNTER ~ CATEGORY + LIKE + ALIGN
+
+```{r}
+
+################## ENCOUNTER ~ CATEGORY + LIKE + ALIGN #################
+f.ALCrP <-  "ENCOUNTER ~ LIKE + CATEGORY + ALIGN (1|PID)"
+mm.ALCrP <- glmer(ENCOUNTER ~ LIKE_Z + ALIGN_Z + STIMULUS_CATEGORY + (1|PID), 
+                data = df,family = "binomial")
+car::Anova(mm.ALCrP, type = 2)
+summary(mm.ALCrP)
+performance(mm.ALCrP)
+
+m <- mm.ALCrP
+f <- f.ALCrP
+## REPORT 
+# report(m)
+
+
+## PLOT COEF
+plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
+  labs(subtitle = f) + theme_minimal()
+
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "ALIGN_Z")) + 
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+# tab_model(mm.I)
+
+compare_performance(mm.LCrP, mm.ALCrP, rank = TRUE)
+anova(mm.LCrP, mm.ALCrP)
+```
+
+
+
+
+
+##### block * category <-- stimulus
+```{r}
+# 
+# # SUBJECT INTERCEPT | FIXED CATEGORY + BLOCK
+# print("ENCOUNTER ~ CATEGORY + BLOCK + (1|PID)")
+# mm.C_BrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY + BLOCK + (1|PID), 
+#                 data = df,family = "binomial")
+# # :: TEST fixed factor 
+# compare_performance(mm.rP, mm.BrP, mm.CrP, mm.C_BrP, rank = TRUE)
+# ##anova instead of LRT b/c models are not nested 
+# anova(mm.CrP,mm.C_BrP) #same as anova(m0, m1, test = "Chi")
+# test_lrt(mm.CrP, mm.C_BrP)
+# paste("A model with a linear combination of CATEGORY and BLOCK predicting ENCOUNTER is NOT better fit than a model with only CATEGORY.")
+# car::Anova(mm.C_BrP, type = 3)
+# print("CATEGORY is a significant predictor in this model, but BLOCK is not")
+# 
+# 
+# # SUBJECT INTERCEPT | FIXED BLOCK * CATEGORY INTERACTION 
+# print("ENCOUNTER ~ CATEGORY * BLOCK + (1|PID)")
+# mm.CBrP <- glmer(ENCOUNTER ~ STIMULUS_CATEGORY * BLOCK + (1|PID), 
+#                 data = df,family = "binomial",
+#                control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+#                optCtrl=list(maxfun=2e5)))
+# # :: TEST fixed factor 
+# compare_performance(mm.BrP, mm.CrP, mm.C_BrP, mm.CBrP, rank = TRUE)
+# ##anova instead of LRT b/c models are not nested 
+# anova(mm.C_BrP, mm.CBrP)
+# test_lrt(mm.C_BrP, mm.CBrP, verbose = TRUE) #same as anova(m0, m1, test = "Chi")
+# paste("A model with an interaction of BLOCK * CATEGORY is a significantly better fit than a model with main effects only. (NOTE that block*category == stimulus. Here we fit the interaction so that we can portion variance between block and category, and compare the models as they will be nested)")
+# car::Anova(mm.CBrP, type = 3)
+# print("In this model, only the interaction is significant. Neither main effects are significant.")
+# print("THIS SUGGESTS THAT ENCOUNTER IS BETTER PREDICTED BY THE UNIQUE STIMULUS THAN THE CATEGORY")
+# 
+# 
+# 
+# ## SANITY CHECK, MODEL WITH STIMULUS SHOULD MATCH VARIANCE EXPLAINED BY BLOCK*CATEGORY
+# # SUBJECT INTERCEPT | FIXED STIMULUS 
+# print("SANITY CHECK — MODEL BY STIMULUS")
+# print("ENCOUNTER ~ STIMULUS + (1|PID)")
+# mm.SrP <- glmer(ENCOUNTER ~ STIMULUS + (1|PID),
+#                 data = df,family = "binomial",
+#                control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+#                             optCtrl=list(maxfun=2e5)))
+# ## :: TEST fixed factor 
+# compare_performance(mm.CBrP, mm.SrP, rank = TRUE)
+# anova(mm.SrP, mm.CBrP)
+# print ("SANITY CHECKED! STIMULUS MODEL SAME FIT AS BLOCK*CATEGORY")
+# 
+# 
+# #### SET BEST MODEL
+# m_best <- mm.CBrP
 
 ```
 
@@ -1395,7 +1929,7 @@ plot_model(m_best, type="emm",
 
 
 
-## MANUAL PREDICTION INTERACTION PLOT [bc sjPlot cant facet argh]
+## MANUAL PREDICTION INTERACTION PLOT [bc stupid sjPlot cant facet argh]
 means <- estimate_means(m_best, at=c("BLOCK","STIMULUS_CATEGORY"), transform = "response",
                         backend="emmeans")
 m <- as_tibble(means)
@@ -1647,79 +2181,6 @@ m %>% ggplot( aes(x = CHART_LIKE_Z, y = Probability, color=STIMULUS_CATEGORY, fi
        caption = "ENCONTER ~ CHART_LIKE_Z + CATEGORY * BLOCK + (1|PID")
 
 ```
-
-
-### CHART ACTION ~ CATEGORY
-### PICKUP HERE 
-
-
-```{r}
-df <- df_actions %>% 
-  select(STIMULUS, STIMULUS_CATEGORY, BLOCK, CHART_ACTION, CHART_LIKE, PID) %>% 
-  mutate(
-CHART_ACTION = fct_rev(CHART_ACTION),
-STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY),
-  ) %>% filter(STIMULUS != "B0-0")
-
-
-# m <- glm(df)
-
-
-## CATEGORY
-## GGSTATSPLOT
-##############################
-ggbarstats( data = df, x = CHART_ACTION, y = STIMULUS_CATEGORY,
-        results.subtitle = FALSE) + 
-scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
-theme_minimal() +
-# labs( title = "",  x = "", y="") + 
-theme(aspect.ratio = 1)
-##############################
-
-## BLOCK
-## GGSTATSPLOT
-##############################
-ggbarstats( data = df, x = CHART_ACTION, y = BLOCK,
-        results.subtitle = FALSE) + 
-scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
-theme_minimal() +
-# labs( title = "",  x = "", y="") + 
-theme(aspect.ratio = 1)
-##############################
-
-
-## CATEGORY / BLOCK
-# GGSTATSPLOT
-##############################
-grouped_ggbarstats( data = df, x = CHART_ACTION, y = STIMULUS_CATEGORY,   grouping.var=BLOCK,
-                results.subtitle = FALSE,
-                ggplot.component = scale_fill_manual(values = my_palettes(name="actions", direction = "1"))) + 
-theme_minimal() +
-# labs( title = "",  x = "", y="") + 
-theme(aspect.ratio = 1)
-##############################
-
-
-# BLOCK / CATEGORY
-# GGSTATSPLOT
-##############################
-grouped_ggbarstats( data = df, x = CHART_ACTION, y = BLOCK,   grouping.var=STIMULUS_CATEGORY,
-                results.subtitle = FALSE,
-                ggplot.component = scale_fill_manual(values = my_palettes(name="actions", direction = "1"))) + 
-theme_minimal() +
-# labs( title = "",  x = "", y="") + 
-theme(aspect.ratio = 1)
-##############################
-
-# STIMULUS
-# GGSTATSPLOT
-# TODO STACKED BAR BY ACTION
-
-```
-
-    
-    
-
 
 
 ### WIP DATA AND DESIGN BY CATEGORY and BLOCK

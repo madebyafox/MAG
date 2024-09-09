@@ -2015,7 +2015,6 @@ x
 
 # !!!! TOP PRIORITY HYPOTHESIS TESTING  !!! 
 
- TRUST, BEAUTY, INTENT
 
  DONE - Beauty !== Trust, 
  2. Some individual visualizations have higher confidence, and some have lower (indexical richness), 
@@ -2150,7 +2149,7 @@ plot_model(mm.I, type = "pred", terms = "INTENT_Z") +
   labs(subtitle = f.I) + theme_minimal()
 
 ## IN PAPER
-
+tab_model(mm.I)
 
 ```
 
