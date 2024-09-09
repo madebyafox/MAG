@@ -1281,7 +1281,7 @@ df <- df_actions %>%
 
 ################## ENCOUNTER ~ CATEGORY + LIKE #################
 f <-  "ACTION ~ ?? (1|PID)"
-mm <- glmer(CHART_ACTION2 ~ LIKE_Z + STIMULUS_CATEGORY * INTENT_Z + (1|PID), 
+mm <- glmer(CHART_ACTION2 ~ STIMULUS_CATEGORY + LIKE_Z + ABS_POLITIC + (1|PID), 
                 data = df,family = "binomial", 
                  control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
                optCtrl=list(maxfun=2e5)))
@@ -1300,7 +1300,7 @@ plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.val
 
 
 ## PLOT PRED
-plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "INTENT_Z")) + 
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "ABS_POLITIC")) + 
   labs(subtitle = f) + theme_minimal()
 
 plot_model(m, type = "pred", terms = c("LIKE_Z", "ABS_POLITIC", "STIMULUS_CATEGORY")) + 
