@@ -1500,21 +1500,36 @@ rm(df, c,x,g,plot_master_questions)
 ```{r, correlation-matrices}
 
 
-df <- df_graphs %>% select(
-          MAKER_DESIGN, MAKER_DATA, 
-          MAKER_POLITIC, MAKER_ARGUE,
-          MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
-          CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
-          PID)
+df <- df_graphs %>% 
+  mutate(
+    M_DESIGN =  datawizard::standardize(MAKER_DESIGN)  , 
+    M_DATA =  datawizard::standardize(MAKER_DATA)  , 
+    M_POLITIC =  datawizard::standardize(MAKER_POLITIC)  , 
+    M_ARGUE =  datawizard::standardize(MAKER_ARGUE)  ,
+    M_SELF =  datawizard::standardize(MAKER_SELF)  , 
+    M_ALIGN =  datawizard::standardize(MAKER_ALIGN)  , 
+    M_TRUST =  datawizard::standardize(MAKER_TRUST)  , 
+    C_TRUST =  datawizard::standardize(CHART_TRUST)  , 
+    C_INTENT =  datawizard::standardize(CHART_INTENT)  , 
+    C_LIKE =  datawizard::standardize(CHART_LIKE)  , 
+    C_BEAUTY =  datawizard::standardize(CHART_BEAUTY)  
+  ) %>% select(
+    M_DESIGN, M_DATA, M_POLITIC, M_ARGUE, M_SELF, M_ALIGN, M_TRUST, C_TRUST, C_INTENT, C_LIKE, C_BEAUTY,  PID
+  )
 
+
+######################### FULL CORRELATION #########################
 print("FULL CORRELATION WITH RANDOM EFFECT")
 ## CALCULATE full correlations with random effects
 c <- df %>%  correlation(partial=FALSE, include_factors=FALSE, multilevel=TRUE)
+# cor_sort(c) ## for the tiles one
 (s <- c %>% summary(redundant = FALSE))
-plot(s, show_data="point") + labs(title = "Correlation Matrix",
-               subtitle="(full correlation; pearson method; Holm p-value adjustment; PID random effect)") + theme_minimal()
 
-g <- plot(s, show_data = "point",   show_text = "label",
+
+###### VIS WITH CORRELATION PACKAGE
+#SEE [correlation] PLOT
+g <- plot(s,    show_text = "label",
+          show_data = "point",
      stars=TRUE, show_legend=FALSE,
      show_statistic = FALSE, show_ci = FALSE) + 
      theme_minimal()+
@@ -1522,22 +1537,22 @@ g <- plot(s, show_data = "point",   show_text = "label",
           subtitle="(full correlation; pearson method; Holm p-value adjustment; PID random effect)") + theme_minimal()
      # text = list(fontface = "italic")
 g
-ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/full_correlation_all.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/full_correlation_all_POINTS.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
 
-d <- iris  # Load the traditional iris dataset into an object called df (for dataframe)
-cor_results <- cor.test(d$Sepal.Length, d$Petal.Length)  #
-report(cor_results)
 
+######################### FULL CORRELATION #########################
 print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
 #CALCULATE partial correlations with PID as random effect
 ## (this isolates correlation pairwise factoring out other variables)
 c <- df %>% correlation(partial=TRUE,multilevel = TRUE)
+# cor_sort(c) ## for the tiles one
 (s <- c %>% summary(redundant = FALSE ))
 
 
 ###### VIS WITH CORRELATION PACKAGE
 #SEE [correlation] PLOT
-g <- plot(s, show_data = "point",   show_text = "label",
+g <- plot(s, show_text = "label",
+          show_data = "point",
      stars=TRUE, show_legend=FALSE,
      show_statistic = FALSE, show_ci = FALSE) + 
      theme_minimal()+
@@ -1545,27 +1560,20 @@ g <- plot(s, show_data = "point",   show_text = "label",
           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
      # text = list(fontface = "italic")
 g
-ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/partial_correlation_all.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
-
-#PLOT GAUSSIAN GRAPH MODEL
-# plot(c)
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/partial_correlation_all_POINTS.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
 
 
 ###### VIS WITH CORRPLOT <- -- customizable but can't save to file ARGH
-
-## GET THE MATRIX
-m <- as.matrix(c)
-
-
-## JUST CIRCLES
-corrplot(m, method = 'circle', type = 'lower',
-         order = 'original', diag = FALSE, addCoef.col = "#7A7A7A",
-         tl.col = "black")
-
-
-
-
-
+# 
+# ## GET THE MATRIX
+# m <- as.matrix(c)
+# 
+#
+# ## JUST CIRCLES
+# corrplot(m, method = 'circle', type = 'lower',
+#          order = 'original', diag = FALSE, addCoef.col = "#7A7A7A",
+#          tl.col = "black")
+##############################################################################
 
 ```
 
@@ -1642,39 +1650,68 @@ f
 ```{r, correlation-matrices—abs}
 
 
-df <- df_graphs_abs %>% select(
-          MAKER_DESIGN, MAKER_DATA, 
-          MAKER_POLITIC, MAKER_ARGUE,
-          MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
-          CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
-          PID)
+df <- df_graphs_abs %>% 
+  mutate(
+    M_DESIGN =  datawizard::standardize(MAKER_DESIGN)  , 
+    M_DATA =  datawizard::standardize(MAKER_DATA)  , 
+    M_POLITIC =  datawizard::standardize(MAKER_POLITIC)  , 
+    M_ARGUE =  datawizard::standardize(MAKER_ARGUE)  ,
+    M_SELF =  datawizard::standardize(MAKER_SELF)  , 
+    M_ALIGN =  datawizard::standardize(MAKER_ALIGN)  , 
+    M_TRUST =  datawizard::standardize(MAKER_TRUST)  , 
+    C_TRUST =  datawizard::standardize(CHART_TRUST)  , 
+    C_INTENT =  datawizard::standardize(CHART_INTENT)  , 
+    C_LIKE =  datawizard::standardize(CHART_LIKE)  , 
+    C_BEAUTY =  datawizard::standardize(CHART_BEAUTY)  
+  ) %>% select(
+    M_DESIGN, M_DATA, M_POLITIC, M_ARGUE, M_SELF, M_ALIGN, M_TRUST, C_TRUST, C_INTENT, C_LIKE, C_BEAUTY,  PID
+  )
+
+
+######################### FULL CORRELATION #########################
 
 print("FULL CORRELATION NO RANDOM EFFECT")
 ## CALCULATE full correlations with no random effects
-c <- df %>%  correlation(partial=FALSE, include_factors=FALSE)
+c <- df %>%  correlation(partial=FALSE, multilevel=TRUE)
+# cor_sort(c) ## for the tiles one
 (s <- c %>% summary(redundant = FALSE))
-plot(s, show_data="point") + labs(title = "Correlation Matrix",
-               subtitle="(full correlation; pearson method; Holm p-value adjustment)") + theme_minimal()
+
+g <- plot(s,    show_text = "label",
+          # show_data = "point",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     theme_minimal()+
+     labs(title = "All Stimuli | Correlation Matrix — SD Questions — ABSOLUTE VALUES", 
+          subtitle="(full correlation; pearson method; Holm p-value adjustment; PID random effect)") + theme_minimal()
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/ABS_full_correlation_all_POINTS.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+
+
+######################### PARTIAL CORRELATION #########################
 
 
 print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
 #CALCULATE partial correlations with PID as random effect
 ## (this isolates correlation pairwise factoring out other variables)
 c <- df %>% correlation(partial=TRUE, multilevel = TRUE)
+# cor_sort(c) ## for the tiles one
 (s <- c %>% summary(redundant = FALSE ))
 
 
 ###### VIS WITH CORRELATION PACKAGE
 #SEE [correlation] PLOT
-g <- plot(s, show_data = "point",   show_text = "label",
+g <- plot(s, show_text = "label",
+          # show_data = "point",
      stars=TRUE, show_legend=FALSE,
      show_statistic = FALSE, show_ci = FALSE) + 
      theme_minimal()+
-     labs(title = "All Stimuli | Correlation Matrix — SD Questions — absolute values", 
+     labs(title = "All Stimuli | Correlation Matrix — SD Questions — ABSOLUTE VALUES", 
           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
      # text = list(fontface = "italic")
 g
-ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/partial_correlation_abs.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/ABS_partial_correlation_all_POINTS.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
 
 #PLOT GAUSSIAN GRAPH MODEL
 # plot(c)
@@ -1980,7 +2017,7 @@ x
 
  TRUST, BEAUTY, INTENT
 
- - Beauty !== Trust, 
+ DONE - Beauty !== Trust, 
  2. Some individual visualizations have higher confidence, and some have lower (indexical richness), 
  3. Beauty + Trust = engagement, but Beauty + Untrust = less engagement
 (SEE ENCOUNTER MODELLING IN CATEGORY LEVEL FILE )
@@ -1996,8 +2033,8 @@ What predicts TRUST? Recent work in psychology suggests that beauty predicts tru
 
 df <- df_graphs %>%
   ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
-  filter(STIMULUS != "B0-0") %>% 
-  select(PID, STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_LIKE, CHART_TRUST, CHART_BEAUTY, CHART_INTENT) %>% 
+  # filter(STIMULUS != "B0-0") %>%
+  select(PID, STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_TRUST, MAKER_DATA, MAKER_ID) %>% 
   mutate(
     
     ## (only used if not filtering out B0-0)
@@ -2009,12 +2046,28 @@ df <- df_graphs %>%
 df %>% ggplot(aes(x=CHART_BEAUTY, y=CHART_TRUST, color = CHART_INTENT)) +
   geom_point() + 
   stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") + 
+  facet_wrap(~MAKER_ID)+
   labs(title = "CHART TRUST BY BEAUTY & INTENT") + 
   theme_minimal()
   
 df %>% ggplot(aes(x=CHART_INTENT, y=CHART_TRUST, color = CHART_BEAUTY)) +
   geom_point() + 
+  facet_wrap(~MAKER_ID)+
   stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") + 
+  labs(title = "CHART TRUST BY INTENT & BEAUTY")+ 
+  theme_minimal()
+
+df %>% ggplot(aes(x=MAKER_DATA, y=CHART_TRUST, color = CHART_BEAUTY)) +
+  geom_point() + 
+  facet_wrap(~MAKER_ID)+
+  stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") + 
+  labs(title = "CHART TRUST BY INTENT & BEAUTY")+ 
+  theme_minimal()
+
+df %>% ggplot(aes(x=MAKER_ID, y=CHART_TRUST, color = CHART_BEAUTY)) +
+  # geom_point() + 
+  geom_boxplot() + geom_point(position=position_jitter(width = 0.2))+
+  # stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") + 
   labs(title = "CHART TRUST BY INTENT & BEAUTY")+ 
   theme_minimal()
 
@@ -2023,53 +2076,343 @@ df %>% ggplot(aes(x=CHART_INTENT, y=CHART_TRUST, color = CHART_BEAUTY)) +
 
 
 
-#### PICKUP HERE model fit 
+
+
+#### MODEL
 
 Is BEAUTY or INTENT a better predictor of TRUST?  Here we fit a series of linear mixed effects models, predicting `CHART_TRUST` by `CHART_BEAUTY` and `CHART_INTENT` 
 
 
 
-
+##### SETUP DATA
 ```{r hypo-trust_beauty_intent-fit}
 
 df <- df_graphs %>%
   ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
   # filter(STIMULUS != "B0-0") %>% 
-  select(PID, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_ID, STIMULUS_CATEGORY, MAKER_DATA) %>% 
+  select(PID, STIMULUS,STIMULUS_CATEGORY, MAKER_ID, MAKER_TRUST, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_DATA) %>% 
   mutate(
     TRUST_Z = datawizard::standardise(CHART_TRUST),
     BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
     INTENT_Z = datawizard::standardise(CHART_INTENT),
+    DATA_Z = datawizard::standardise(MAKER_DATA),
     r_MAKER_DATA = datawizard::reverse(MAKER_DATA), # reverse b/c 0 = professional, 100=layperson
     r_DATA_Z = datawizard::standardise(r_MAKER_DATA)
   ) %>% 
   droplevels()
 
-
-
 ################## BUILD MODELS #################
 
-# RANDOM INTERCEPT SUBJECT
-mm.rP <- lmer(CHART_TRUST ~ (1|PID), data = df)
-print("random effect only")
-summary(mm.rP)
+# # RANDOM INTERCEPT SUBJECT
+# mm.rP <- lmer(CHART_TRUST ~ (1|PID), data = df)
+# print("random effect only")
+# summary(mm.rP)
+```
 
-
-## BEAUTY MAIN EFFECT
-# SUBJECT INTERCEPT | FIXED BEAUTY 
+##### TRUST ~ BEAUTY 
+```{r}
+################## TRUST ~ BEAUTY #################
+f.B <-  "TRUST ~ BEAUTY + (1|PID)"
 print("TRUSTS ~ BEAUTY + (1|PID)")
-mm.BrP <- lmer(CHART_TRUST ~ CHART_BEAUTY + (1|PID), data = df)
-# :: TEST fixed factor 
-compare_performance(mm.rP, mm.BrP, rank = TRUE)
-paste("AIC with fixed effect is lower than random intercept only model?", AIC(logLik(mm.rP)) > AIC(logLik(mm.BrP)) )
-test_lrt(mm.rP,mm.BrP) #same as anova(m0, m1, test = "Chi")
-paste("Likelihood Ratio test is significant? p = ",(test_lrt(mm.rP,mm.BrP))$p[2])
-print("A model with BEAUTY IS a better fit than (random effect) participant alone")
-car::Anova(mm.BrP, type=2)
-print("BEAUTY IS a significant predictor in the model")
-summary(mm.BrP)
+mm.B <- lmer(TRUST_Z ~ BEAUTY_Z + (1|PID), data = df)
+car::Anova(mm.B, type=2)
+summary(mm.B)
+performance(mm.B)
+## REPORT 
+# report(mm.B)
+
+## PLOT 
+plot_model(mm.B, type = "eff", terms = "BEAUTY_Z") + 
+  labs(subtitle = f.B) + theme_minimal()
 
 
+## IN PAPER
+
+```
+
+
+##### TRUST ~ INTENT 
+```{r}
+
+
+################## TRUST ~ INTEN #################
+f.I <-  "TRUST ~ INTENT + (1|PID)"
+mm.I <- lmer(TRUST_Z ~ INTENT_Z + (1|PID), data = df)
+car::Anova(mm.I, type=2)
+summary(mm.I)
+performance(mm.I)
+
+## REPORT 
+# report(mm.I)
+
+## PLOT 
+plot_model(mm.I, type = "pred", terms = "INTENT_Z") + 
+  labs(subtitle = f.I) + theme_minimal()
+
+## IN PAPER
+
+
+```
+
+
+
+##### TRUST ~ DATA !!COMPETING!!
+```{r}
+
+
+################## TRUST ~ DATA #################
+f.D <-  "TRUST ~ DATA + (1|PID)"
+mm.D <- lmer(TRUST_Z ~ DATA_Z + (1|PID), data = df)
+car::Anova(mm.D, type=2)
+summary(mm.D)
+performance(mm.D)
+
+## REPORT 
+# report(mm.I)
+
+## PLOT 
+plot_model(mm.D, type = "pred", terms = "DATA_Z") + 
+  labs(subtitle = f.D) + theme_minimal()
+
+
+```
+
+##### compare 
+```{r}
+
+compare_performance(mm.B, mm.I, mm.D, mm.M, rank = TRUE)
+anova(mm.B, mm.I, mm.D)
+print("INTENT MODEL IS BETTER BUT NOT SIGNIFIANTLY BETTER THAN BEAUTY")
+```
+
+
+
+##### TRUST ~ BEAUTY X INTENT 
+```{r}
+
+
+## ADD IXN EFFECT 
+################## TRUST ~ BEAUTY X INTENT  #################
+f.BxI <-  "TRUST ~ BEAUTY X INTENT + (1|PID)"
+print("TRUST ~ BEAUTY X INTENT + (1|PID)")
+mm.BxI <- lmer(TRUST_Z ~ INTENT_Z * BEAUTY_Z +  (1|PID), data = df, REML=FALSE)
+compare_performance(mm.BxI, mm.B, mm.I, rank = TRUE)
+anova(mm.BxI, mm.B, mm.I)
+# anova(mm.BxM, mm.BM)
+print ("ADDING interaction BEAUTY * INTENT IMPROVES MODEL FIT  ")
+car::Anova(mm.BxI, type=3)
+summary(mm.BxI)
+
+
+## REPORT 
+# report(mm.BxI)
+
+## PLOT 
+
+## IN THE PAPER 
+plot_model(mm.BxI, type = "int", terms = c("BEAUTY_Z", "INTENT_Z"), mdrt.values = "all") + 
+  labs(subtitle = f.BxI) + theme_minimal()
+
+plot_model(mm.BxI, type = "pred", terms = c("BEAUTY_Z", "INTENT_Z")) + 
+  labs(subtitle = f.BxI) + theme_minimal()
+
+# means <- estimate_means(mm.BxI, at=c("BEAUTY_Z", "INTENT_Z"))
+# contrasts <- estimate_contrasts(mm.BxI, c( "INTENT_Z", "BEAUTY_Z"), method="pairwise")
+# plot(means, contrasts)  #+  facet_wrap(~intent_Z) + labs(subtitle = f.BxI) + theme_minimal()
+
+
+### IN THE PAPER 
+tab_model(mm.BxI)
+
+m <- mm.BxI
+```
+
+
+
+
+
+
+
+##### BEST TRUST ~ BEAUTY X INTENT + DATA *** BEST MODEL *** 
+```{r}
+
+
+################## TRUST ~ BEAUTY X INTENT  #################
+f.BxID <-  "TRUST ~ BEAUTY X INTENT+DATA + (1|PID)"
+print("TRUST ~ BEAUTY X INTENT + DATA + (1|PID)")
+mm.BxID <- lmer(TRUST_Z ~ INTENT_Z * BEAUTY_Z + DATA_Z + (1|PID), data = df, REML=FALSE)
+compare_performance(mm.BxI, mm.BxID, rank = TRUE)
+anova(mm.BxI, mm.BxID)
+# anova(mm.BxM, mm.BM)
+car::Anova(mm.BxID, type=3)
+summary(mm.BxID)
+
+
+## REPORT 
+# report(mm.BxI)
+
+## PLOT 
+
+## IN THE PAPER 
+plot_model(mm.BxID, type = "int", terms = c("BEAUTY_Z", "INTENT_Z", "DATA_Z"), mdrt.values = "all") + 
+  labs(subtitle = f.BxID) + theme_minimal()
+
+plot_model(mm.BxID, type = "pred", terms = c("INTENT_Z", "BEAUTY_Z", "DATA_Z")) + 
+  labs(subtitle = f.BxID) + theme_minimal()
+
+## IN THE PAPER 
+tab_model(mm.BxID)
+
+# means <- estimate_means(mm.BxI, at=c("BEAUTY_Z", "INTENT_Z"))
+# contrasts <- estimate_contrasts(mm.BxI, c( "INTENT_Z", "BEAUTY_Z"), method="pairwise")
+# plot(means, contrasts)  #+  facet_wrap(~intent_Z) + labs(subtitle = f.BxI) + theme_minimal()
+
+tab_model(mm.BxID)
+anova(mm.B, mm.I, mm.D, mm.BxID)
+
+
+```
+### not using 
+
+##### TRUST ~ MAKER_ID
+```{r}
+
+# 
+# ################## TRUST ~ MAKER #################
+# f.M <-  "TRUST ~ MAKER + (1|PID)"
+# mm.M <- lmer(TRUST_Z ~ MAKER_ID + (1|PID), data = df)
+# car::Anova(mm.M, type=2)
+# summary(mm.M)
+# performance(mm.M)
+# ## REPORT 
+# # report(mm.M)
+# 
+# ## PLOT 
+# plot_model(mm.M, type = "pred", terms = "MAKER_ID") + 
+#   labs(subtitle = f.M) + theme_minimal()
+
+```
+
+
+##### TRUST ~ BEAUTY X MAKER_ID
+```{r}
+
+# 
+# ## ADD IXN EFFECT 
+# ################## TRUST ~ BEAUTY X MAKER_ID  #################
+# f.BxM <-  "TRUST ~ BEAUTY X MAKER_ID + (1|PID)"
+# print("TRUST ~ BEAUTY X MAKER_ID + (1|PID)")
+# mm.BxM <- lmer(TRUST_Z ~ MAKER_ID * BEAUTY_Z +  (1|PID), data = df)
+# compare_performance(mm.BxM, mm.BM, rank = TRUE)
+# test_lrt(mm.BxM, mm.BM)
+# # anova(mm.BxM, mm.BM)
+# print ("ADDING interaction MAKER ID IMPROVES MODEL FIT ")
+# car::Anova(mm.BxM, type=3)
+# summary(mm.BxM)
+# 
+# 
+# ## REPORT 
+# report(mm.BxM)
+# 
+# ## PLOT 
+# plot_model(mm.BxM, type = "int", terms = c("BEAUTY_Z", "MAKER_ID"), mdrt.values = "all") + 
+#   labs(subtitle = f.BxM) + theme_minimal()
+# 
+# plot_model(mm.BXM, type = "pred", terms = c("BEAUTY_Z", "MAKER_ID")) + 
+#   labs(subtitle = f.BM) + theme_minimal()
+# 
+# means <- estimate_means(mm.BM, at=c("BEAUTY_Z", "MAKER_ID"))
+# contrasts <- estimate_contrasts(mm.BM, c( "MAKER_ID"),method="pairwise")
+# plot(contrasts, means) + facet_wrap("MAKER_ID") + labs(subtitle = f.BxM) + theme_minimal()
+
+```
+
+
+
+
+
+
+
+
+##### TRUST ~ BEAUTY X MAKER_ID
+```{r}
+
+# 
+# ## ADD IXN EFFECT 
+# ################## TRUST ~ BEAUTY X MAKER_ID  #################
+# f.BxM <-  "TRUST ~ BEAUTY X MAKER_ID + (1|PID)"
+# print("TRUST ~ BEAUTY X MAKER_ID + (1|PID)")
+# mm.BxM <- lmer(TRUST_Z ~ MAKER_ID * BEAUTY_Z +  (1|PID), data = df)
+# compare_performance(mm.BxM, mm.BM, rank = TRUE)
+# test_lrt(mm.BxM, mm.BM)
+# # anova(mm.BxM, mm.BM)
+# print ("ADDING interaction MAKER ID IMPROVES MODEL FIT ")
+# car::Anova(mm.BxM, type=3)
+# summary(mm.BxM)
+# 
+# 
+# ## REPORT 
+# report(mm.BxM)
+# 
+# ## PLOT 
+# plot_model(mm.BxM, type = "int", terms = c("BEAUTY_Z", "MAKER_ID"), mdrt.values = "all") + 
+#   labs(subtitle = f.BxM) + theme_minimal()
+# 
+# plot_model(mm.BXM, type = "pred", terms = c("BEAUTY_Z", "MAKER_ID")) + 
+#   labs(subtitle = f.BM) + theme_minimal()
+# 
+# means <- estimate_means(mm.BM, at=c("BEAUTY_Z", "MAKER_ID"))
+# contrasts <- estimate_contrasts(mm.BM, c( "MAKER_ID"),method="pairwise")
+# plot(contrasts, means) + facet_wrap("MAKER_ID") + labs(subtitle = f.BxM) + theme_minimal()
+
+```
+
+##### TRUST ~ BEAUTY X MAKER_ID X INTENT
+```{r}
+
+
+# ## ADD IXN EFFECT 
+# ################## TRUST ~ BEAUTY X MAKER_ID  #################
+# f.BxMxI <-  "TRUST ~ BEAUTY X MAKER_ID X INTENT+ (1|PID)"
+# print("TRUST ~ BEAUTY X MAKER_ID X INTENT + (1|PID)")
+# mm.BxMxI <- lmer(TRUST_Z ~ MAKER_ID * BEAUTY_Z* INTENT_Z +  (1|PID), data = df)
+# compare_performance(mm.BxMxI, mm.BxM, rank = TRUE)
+# test_lrt(mm.BxMxI, mm.BxM)
+# # anova(mm.BxM, mm.BM)
+# car::Anova(mm.BxMxI, type=3)
+# summary(mm.BxMxI)
+# 
+# 
+# ## REPORT 
+# report(mm.BxMxI)
+# 
+# ## PLOT 
+# plot_model(mm.BxMxI, type = "int", mdrt.values = "all")
+# 
+# plot_model(mm.BxMxI, type = "pred", terms = c("BEAUTY_Z", "MAKER_ID", "INTENT_Z"))  
+#   
+# # 
+# # means <- estimate_means(mm.BM, at=c("BEAUTY_Z", "MAKER_ID"))
+# # contrasts <- estimate_contrasts(mm.BM, c( "MAKER_ID"),method="pairwise")
+# # plot(contrasts, means) + facet_wrap("MAKER_ID") + labs(subtitle = f.BxM) + theme_minimal()
+# 
+# compare_performance(mm.BxI, mm.BxMxI, rank = TRUE)
+# anova(mm.BxI, mm.BxMxI)
+# 
+# 
+# 
+# 
+# 
+
+
+
+
+```
+
+
+
+
+```{r}
 ## INTENT MAIN EFFECT 
 # SUBJECT INTERCEPT | FIXED BEAUTY 
 print("TRUSTS ~ INTENT + (1|PID)")
@@ -2192,37 +2535,37 @@ report(m_best)
 
 #### check rescaling
 ```{r}
-
-## rescale all vars to be -1 to 0 to 1
-df <- df_graphs %>%
-  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
-  # filter(STIMULUS != "B0-0") %>% 
-  select(PID, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_ID, STIMULUS_CATEGORY, MAKER_DATA) %>% 
-  mutate(
-    TRUST_Z = datawizard::standardise(CHART_TRUST),
-    BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
-    INTENT_Z = datawizard::standardise(CHART_INTENT),
-    r_MAKER_DATA = datawizard::reverse(MAKER_DATA), # reverse b/c 0 = professional, 100=layperson
-    r_DATA_Z = datawizard::standardise(r_MAKER_DATA),
-    
-    TRUST_S = datawizard::rescale(CHART_TRUST, to=c(-1,1)),
-    BEAUTY_S = datawizard::rescale(CHART_BEAUTY, to=c(-1,1)),
-    INTENT_S = datawizard::rescale(CHART_INTENT, to=c(-1,1)),
-    DATA_S = datawizard::rescale(MAKER_DATA, to=c(-1,1)),
-    r_DATA_S = datawizard::reverse(DATA_S), # reverse b/c 0 = professional, 100=layperson
-    
-    TRUST_SZ = datawizard::standardise(TRUST_S, to=c(-1,1))
-    
-  ) %>% 
-  droplevels()
-
-
-
-gf_histogram(df, ~CHART_TRUST)
-gf_histogram(df, ~TRUST_S)
-gf_histogram(df, ~TRUST_Z)
-gf_histogram(df, ~TRUST_SZ)
-             
+# 
+# ## rescale all vars to be -1 to 0 to 1
+# df <- df_graphs %>%
+#   ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+#   # filter(STIMULUS != "B0-0") %>% 
+#   select(PID, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_ID, STIMULUS_CATEGORY, MAKER_DATA) %>% 
+#   mutate(
+#     TRUST_Z = datawizard::standardise(CHART_TRUST),
+#     BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
+#     INTENT_Z = datawizard::standardise(CHART_INTENT),
+#     r_MAKER_DATA = datawizard::reverse(MAKER_DATA), # reverse b/c 0 = professional, 100=layperson
+#     r_DATA_Z = datawizard::standardise(r_MAKER_DATA),
+#     
+#     TRUST_S = datawizard::rescale(CHART_TRUST, to=c(-1,1)),
+#     BEAUTY_S = datawizard::rescale(CHART_BEAUTY, to=c(-1,1)),
+#     INTENT_S = datawizard::rescale(CHART_INTENT, to=c(-1,1)),
+#     DATA_S = datawizard::rescale(MAKER_DATA, to=c(-1,1)),
+#     r_DATA_S = datawizard::reverse(DATA_S), # reverse b/c 0 = professional, 100=layperson
+#     
+#     TRUST_SZ = datawizard::standardise(TRUST_S, to=c(-1,1))
+#     
+#   ) %>% 
+#   droplevels()
+# 
+# 
+# 
+# gf_histogram(df, ~CHART_TRUST)
+# gf_histogram(df, ~TRUST_S)
+# gf_histogram(df, ~TRUST_Z)
+# gf_histogram(df, ~TRUST_SZ)
+#              
 
 
 
@@ -2230,111 +2573,111 @@ gf_histogram(df, ~TRUST_SZ)
 
 #### model vis
 ```{r hypo-category-encounter-modelvis}
-
-############ VISUALIZE MODEL COEFFICIENTS 
-#SJPLOT | MODEL | ODDS RATIO
-#library(sjPlot)
-plot_model(mm.ZIBXrP, type = "est",
-           vline.color = "red", 
-           show.intercept = TRUE, 
-           show.values = TRUE) + theme_minimal()  + 
-  labs(title = "Model Coefficients",
-       subtitle = "")
-
-
-
-############ VISUALIZE MODEL PREDICTIONS
-#SJPLOT | MODEL | PROBABILITIES
-plot_model(m_best, type = "int", mdrt.values = "meansd") + theme_minimal()
-
-
-plot_model(m_best, type="emm", 
-           terms = c("BEAUTY_Z"), ci.lvl = 0.95) + theme_minimal() + 
-  labs(title = "Estimated Marginal Means for BEAUTY")
-
-plot_model(m_best, type="emm", 
-           terms = c("INTENT_Z"), ci.lvl = 0.95) + theme_minimal() + 
-  labs(title = "Estimated Marginal Means for INTENT")
-
-plot_model(m_best, type="emm", 
-           terms = c("BEAUTY_Z","INTENT_Z"), ci.lvl = 0.95) + theme_minimal() + 
-  labs(title = "Estimated Marginal Means for INTERACTION")
-
-plot_model(m_best, type="emm", 
-           terms = c("INTENT_Z", "BEAUTY_Z"), ci.lvl = 0.95) + theme_minimal() + 
-  labs(title = "Estimated Marginal Means for INTERACTION")
-
-
-
-## CONTINUOUS INTERACTIONS 
-result <- estimate_expectation(m_best, data = "grid")
-plot(result) + theme_minimal()
-
-result <- estimate_expectation(m_alt, data = "grid")
-plot(result) + theme_minimal()
-
-
-result <- estimate_prediction(m_best, data = "grid")
-plot(result) + theme_minimal()
-
-
-
-
-
-##EXAMPLES NOT WORKING EITHER
-# slopes <- estimate_slopes(m_best, trend = "INTENT_Z", by = "BEAUTY_Z")
-# plot(slopes)
-
-
-# model <- lm(mpg ~ hp * wt, data = mtcars)
-# slopes <- estimate_slopes(model, trend = "hp", by = "wt")
-# plot(slopes)
-
-
-
-
-## TRY ADDING MAKER ID 
-
-mm.beauty <- lmer(TRUST_Z ~ BEAUTY_Z + (1|PID), data = df)
-mm.intent <- lmer(TRUST_Z ~ INTENT_Z + (1|PID), data = df)
-mm.makerbeauty <- lmer(TRUST_Z ~ BEAUTY_Z*MAKER_ID + (1|PID), data = df)
-
-
-
-plot_model(mm.beauty, type = "eff", terms = "BEAUTY_Z")
-plot_model(mm.intent, type = "eff", terms = "INTENT_Z")
-
-plot_model(mm.makerbeauty, type = "int")
-
-
-
-  plot_model(m_best, type = "int")
-
-
-plot_model(m_best, type = "int", mdrt.values = "all")
-
-
-mm.icat = update(m_best, .~. *MAKER_ID)
-compare_performance(m_best, mm.icat, mm.idata, rank = TRUE)
-car::Anova(mm.icat, type=3)
-plot_model(mm.icat, type = "int", mdrt.values = "meansd")
-
-mm.idata = update(m_best, .~. *r_DATA_Z)
-compare_performance(m_best, mm.icat, mm.idata, rank = TRUE)
-car::Anova(mm.idata, type=3)
-plot_model(mm.idata, type = "int", mdrt.values = "meansd")
-
-
-
-# plot_model(mm.ZIBXrP, type = "est",vline.color = "red", show.intercept = TRUE, show.values = TRUE) + theme_minimal()  + 
-#   labs(title = "Model Coefficients", subtitle = "")
-# plot_model(mm.cat, type = "est",vline.color = "red", show.intercept = TRUE, show.values = TRUE) + theme_minimal()  + 
-#   labs(title = "Model Coefficients", subtitle = "")
-# plot_model(mm.cat, type = "emm", terms=c("MAKER_ID" , "INTENT_Z","BEAUTY_Z"))
-
-
-
-
+# 
+# ############ VISUALIZE MODEL COEFFICIENTS 
+# #SJPLOT | MODEL | ODDS RATIO
+# #library(sjPlot)
+# plot_model(mm.ZIBXrP, type = "est",
+#            vline.color = "red", 
+#            show.intercept = TRUE, 
+#            show.values = TRUE) + theme_minimal()  + 
+#   labs(title = "Model Coefficients",
+#        subtitle = "")
+# 
+# 
+# 
+# ############ VISUALIZE MODEL PREDICTIONS
+# #SJPLOT | MODEL | PROBABILITIES
+# plot_model(m_best, type = "int", mdrt.values = "meansd") + theme_minimal()
+# 
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("BEAUTY_Z"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for BEAUTY")
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("INTENT_Z"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for INTENT")
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("BEAUTY_Z","INTENT_Z"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for INTERACTION")
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("INTENT_Z", "BEAUTY_Z"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for INTERACTION")
+# 
+# 
+# 
+# ## CONTINUOUS INTERACTIONS 
+# result <- estimate_expectation(m_best, data = "grid")
+# plot(result) + theme_minimal()
+# 
+# result <- estimate_expectation(m_alt, data = "grid")
+# plot(result) + theme_minimal()
+# 
+# 
+# result <- estimate_prediction(m_best, data = "grid")
+# plot(result) + theme_minimal()
+# 
+# 
+# 
+# 
+# 
+# ##EXAMPLES NOT WORKING EITHER
+# # slopes <- estimate_slopes(m_best, trend = "INTENT_Z", by = "BEAUTY_Z")
+# # plot(slopes)
+# 
+# 
+# # model <- lm(mpg ~ hp * wt, data = mtcars)
+# # slopes <- estimate_slopes(model, trend = "hp", by = "wt")
+# # plot(slopes)
+# 
+# 
+# 
+# 
+# ## TRY ADDING MAKER ID 
+# 
+# mm.beauty <- lmer(TRUST_Z ~ BEAUTY_Z + (1|PID), data = df)
+# mm.intent <- lmer(TRUST_Z ~ INTENT_Z + (1|PID), data = df)
+# mm.makerbeauty <- lmer(TRUST_Z ~ BEAUTY_Z*MAKER_ID + (1|PID), data = df)
+# 
+# 
+# 
+# plot_model(mm.beauty, type = "eff", terms = "BEAUTY_Z")
+# plot_model(mm.intent, type = "eff", terms = "INTENT_Z")
+# 
+# plot_model(mm.makerbeauty, type = "int")
+# 
+# 
+# 
+#   plot_model(m_best, type = "int")
+# 
+# 
+# plot_model(m_best, type = "int", mdrt.values = "all")
+# 
+# 
+# mm.icat = update(m_best, .~. *MAKER_ID)
+# compare_performance(m_best, mm.icat, mm.idata, rank = TRUE)
+# car::Anova(mm.icat, type=3)
+# plot_model(mm.icat, type = "int", mdrt.values = "meansd")
+# 
+# mm.idata = update(m_best, .~. *r_DATA_Z)
+# compare_performance(m_best, mm.icat, mm.idata, rank = TRUE)
+# car::Anova(mm.idata, type=3)
+# plot_model(mm.idata, type = "int", mdrt.values = "meansd")
+# 
+# 
+# 
+# # plot_model(mm.ZIBXrP, type = "est",vline.color = "red", show.intercept = TRUE, show.values = TRUE) + theme_minimal()  + 
+# #   labs(title = "Model Coefficients", subtitle = "")
+# # plot_model(mm.cat, type = "est",vline.color = "red", show.intercept = TRUE, show.values = TRUE) + theme_minimal()  + 
+# #   labs(title = "Model Coefficients", subtitle = "")
+# # plot_model(mm.cat, type = "emm", terms=c("MAKER_ID" , "INTENT_Z","BEAUTY_Z"))
+# 
+# 
+# 
+# 
 
 
 ```
