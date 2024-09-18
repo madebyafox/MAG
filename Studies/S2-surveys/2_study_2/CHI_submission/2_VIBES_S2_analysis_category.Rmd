@@ -820,6 +820,26 @@ df_cat %>%
 ```
 
 
+
+### AD HOC EXPLORE ENCOUNTER
+```{r}
+
+
+
+df_cat %>% 
+ggbivariate(outcome = "ENCOUNTER", explanatory = ref_conf_questions)
+
+df_cat %>% 
+ggbivariate(outcome = "ENCOUNTER", explanatory = ref_cat_questions)
+
+df_cat %>% 
+ggbivariate(outcome = "ENCOUNTER", explanatory = ref_sd_questions)
+
+
+```
+
+
+
 ## ACTION CHOICE
 
 The last question participants were asked in each stimulus block was:
@@ -1666,13 +1686,15 @@ anova(mm.BrP, mm.LCrP, mm.BCrP)
 Like + category is better than beauty + category
 
 
-##### fish
 
+#### maximal kinda
+Since the encounter choice occurred at first exposure to the stimulus we limited our comparisons to the types of social attribution we thought most psychologically-plausible to impact early cognitive processes like attention allocation: \code{MAKER-DESIGN}, \code{CHART-INTENT}, measures we thought most likely to impact a volitional choice including: \code{MAKER-TRUST} and \code{MAKER_DATA}, as well as measures shown in prior work to affect attention via visual salience, including: \code{CHART-BEAUTY} and \code{CHART-LIKE} ~\cite{harrisonInfographicAestheticsDesigning2015}, and degree of embellishment via \code{Category} \cite{alebriEmbellishmentsRevisitedPerceptions2024}. T
 ```{r}
 #BLOCK, MAKER_ID, MAKER_GENDER, MAKER_AGE, ENCOUNTER, CHART_LIKE, CHART_TRUST, CHART_BEAUTY, MAKER_DESIGN, MAKER_ALIGN, CHART_INTENT, MAKER_DATA, MAKER_DESIGN, PID
 ################## ENCOUNTER ~ CATEGORY * LIKE #################
 # f.LxCrP <-  "ENCOUNTER ~ LIKE + CATEGORY + (1|PID)"
-mm <- glmer(ENCOUNTER ~ LIKE_Z + STIMULUS_CATEGORY + MAKER_ID + (1|PID), 
+# mm <- glmer(ENCOUNTER ~ LIKE_Z + STIMULUS_CATEGORY + MAKER_ID +  MAKER_GENDER + MAKER_AGE + TRUST_Z + BEAUTY_Z + INTENT_Z + DESIGN_Z + DATA_Z + ALIGN_Z  + ARGUE_Z + SELF_Z + (1|PID), 
+mm <- glmer(ENCOUNTER ~ DESIGN_Z + INTENT_Z + MAKERTRUST_Z + DATA_Z +  BEAUTY_Z + LIKE_Z + STIMULUS_CATEGORY + (1|PID), 
                 data = df,family = "binomial",
              control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
                optCtrl=list(maxfun=2e5)))
@@ -1699,6 +1721,53 @@ plot_model(mm, type = "est", vline.color = "red", show.intercept = TRUE, show.va
 ## PLOT PRED
 plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "MAKER_ID"))
 plot_model(m, type = "pred", terms = c("LIKE_Z", "STIMULUS_CATEGORY", "MAKER_ID"))
+plot_model(m, type = "pred", terms = c("LIKE_Z", "STIMULUS_CATEGORY", "MAKER_ID", " MAKER_AGE"))
+
+##+ 
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+tab_model(mm)
+
+
+```
+
+##### fish
+
+```{r}
+#BLOCK, MAKER_ID, MAKER_GENDER, MAKER_AGE, ENCOUNTER, CHART_LIKE, CHART_TRUST, CHART_BEAUTY, MAKER_DESIGN, MAKER_ALIGN, CHART_INTENT, MAKER_DATA, MAKER_DESIGN, PID
+################## ENCOUNTER ~ CATEGORY * LIKE #################
+# f.LxCrP <-  "ENCOUNTER ~ LIKE + CATEGORY + (1|PID)"
+# mm <- glmer(ENCOUNTER ~ LIKE_Z + STIMULUS_CATEGORY + MAKER_ID +  MAKER_GENDER + MAKER_AGE + TRUST_Z + BEAUTY_Z + INTENT_Z + DESIGN_Z + DATA_Z + ALIGN_Z  + ARGUE_Z + SELF_Z + (1|PID), 
+mm <- glmer(ENCOUNTER ~ LIKE_Z + STIMULUS_CATEGORY + MAKER_ID +  MAKER_AGE + (1|PID), 
+                data = df,family = "binomial",
+             control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+               optCtrl=list(maxfun=2e5)))
+car::Anova(mm, type = 2)
+summary(mm)
+performance(mm)
+
+m <- mm
+f <- mm
+
+### compare
+# compare_performance(mm.CrP, mm.LrP, mm.LCrP, mm.LxCrP, rank = TRUE)
+# anova(mm.LCrP, mm.LxCrP)
+
+
+## REPORT 
+# report(m)
+
+## PLOT COEF
+plot_model(mm, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) #+
+  labs(subtitle = f) + theme_minimal()
+
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "MAKER_ID"))
+plot_model(m, type = "pred", terms = c("LIKE_Z", "STIMULUS_CATEGORY", "MAKER_ID"))
+plot_model(m, type = "pred", terms = c("LIKE_Z", "STIMULUS_CATEGORY", "MAKER_ID", " MAKER_AGE"))
+
 ##+ 
   labs(subtitle = f) + theme_minimal()
 
@@ -1708,6 +1777,7 @@ tab_model(mm)
 
 ```
 best fitting model contained encounter ~ like + category + maker_id, explained 30% variance, 3 sig predictors 
+A MODEL adding maker age explains 33% variance 
 
 
 

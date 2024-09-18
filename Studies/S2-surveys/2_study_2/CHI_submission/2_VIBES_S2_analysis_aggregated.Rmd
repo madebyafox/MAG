@@ -172,6 +172,23 @@ df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") 
 
 ```{r setup-pallettes}
 
+
+# Custom ggplot theme to make pretty plots
+# Get the font at https://fonts.google.com/specimen/Barlow+Semi+Condensed
+theme_clean <- function() {
+  theme_minimal(base_family = "Barlow Semi Condensed") +
+    theme(panel.grid.minor = element_blank(),
+          plot.title = element_text(family = "BarlowSemiCondensed-Bold"),
+          axis.title = element_text(family = "BarlowSemiCondensed-Medium"),
+          strip.text = element_text(family = "BarlowSemiCondensed-Bold",
+                                    size = rel(1), hjust = 0),
+          strip.background = element_rect(fill = "grey80", color = NA))
+}
+
+set_theme(base = theme_clean())
+
+
+
 ############## SETUP Colour Palettes
 #https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
 
@@ -595,7 +612,7 @@ R <- df %>%
     stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
   theme_minimal() + 
   labs(title = "Confidence by Survey Question", y = "QUESTION", caption =" (mean in blue)") + 
-  easy_remove_legend()
+  easy_remove_legend() 
 
 (B+R)
 
@@ -2175,13 +2192,33 @@ plot_model(mm.D, type = "pred", terms = "DATA_Z") +
 
 
 ```
+##### TRUST ~ MAKER_ID
+```{r}
+
+
+################## TRUST ~ MAKER #################
+f.M <-  "TRUST ~ MAKER + (1|PID)"
+mm.M <- lmer(TRUST_Z ~ MAKER_ID + (1|PID), data = df)
+car::Anova(mm.M, type=2)
+summary(mm.M)
+performance(mm.M)
+## REPORT
+# report(mm.M)
+
+## PLOT
+plot_model(mm.M, type = "pred", terms = "MAKER_ID") +
+  labs(subtitle = f.M) + theme_minimal()
+
+```
+
+
 
 ##### compare 
 ```{r}
 
-compare_performance(mm.B, mm.I, mm.D, mm.M, rank = TRUE)
+compare_performance(mm.B, mm.I, mm.D, rank = TRUE)
 anova(mm.B, mm.I, mm.D)
-print("INTENT MODEL IS BETTER BUT NOT SIGNIFIANTLY BETTER THAN BEAUTY")
+
 ```
 
 
@@ -2270,28 +2307,9 @@ tab_model(mm.BxID)
 anova(mm.B, mm.I, mm.D, mm.BxID)
 
 
+
 ```
 ### not using 
-
-##### TRUST ~ MAKER_ID
-```{r}
-
-# 
-# ################## TRUST ~ MAKER #################
-# f.M <-  "TRUST ~ MAKER + (1|PID)"
-# mm.M <- lmer(TRUST_Z ~ MAKER_ID + (1|PID), data = df)
-# car::Anova(mm.M, type=2)
-# summary(mm.M)
-# performance(mm.M)
-# ## REPORT 
-# # report(mm.M)
-# 
-# ## PLOT 
-# plot_model(mm.M, type = "pred", terms = "MAKER_ID") + 
-#   labs(subtitle = f.M) + theme_minimal()
-
-```
-
 
 ##### TRUST ~ BEAUTY X MAKER_ID
 ```{r}

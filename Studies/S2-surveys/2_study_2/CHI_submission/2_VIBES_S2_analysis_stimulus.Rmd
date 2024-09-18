@@ -280,7 +280,7 @@ plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) 
 
 #DEFINE STIMULI
 df <- df_graphs
-stimuli <- c("B2-1", "B2-2", "B2-3", "B4-4")
+stimuli <- c("B2-1", "B2-2", "B2-3", "B2-4")
 
 
 ## LOOP THROUGH EACH STIMULUS IN LIST
@@ -310,22 +310,22 @@ for (s in stimuli){
     stat_halfeye(scale=0.6, density="bounded", point_interval = "median_qi", normalize="xy", alpha=0.75) +
     
     ## MEDIAN
-    stat_summary(fun=median, geom="text", fontface = "bold", size= 3,
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 6,
                 vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
-    stat_summary(fun=median, geom="point", size=2) +
+    stat_summary(fun=median, geom="point", size=4) +
     scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
     scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
     guides(
       y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
       y.sec = guide_axis_manual(labels = rev(ref_labels$right))
     ) +
-  cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-4) +
+  # cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-4) +
   labs (title = title, y = "", caption = "(point is median)") +
   theme_clean() + easy_remove_legend() 
 )
 
   if(GRAPH_SAVE == TRUE){ 
-    ggsave(plot = g, path="figs/PAPER", filename =paste0(s,"_ggdist.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff')
+    ggsave(plot = g, path="figs/PAPER", filename =paste0(s,"_ggdist_NOQ.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff')
   }
     
   
