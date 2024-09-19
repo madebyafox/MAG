@@ -41,7 +41,7 @@ from Study 2 reported in CHI submission #5584.
 
 # SETUP 
 
-## Import Packages
+### Import Packages
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -109,7 +109,7 @@ GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders
 
 ```
 
-## Setup Graphing
+### Setup Graphing
 
 ```{r setup-pallettes}
 
@@ -261,7 +261,7 @@ plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) 
 ```
 
 
-## Import References
+### Import References
 ```{r import-refs, message=FALSE, warning = FALSE}
 
 ############## IMPORT REFERENCE FILES
@@ -284,7 +284,7 @@ ref_blocks <- c(1,2,3,4,5,6)
 
 ```
 
-## Import Data
+### Import Data
 
 ```{r import-data, message=FALSE, warning = FALSE}
 
@@ -336,14 +336,12 @@ Across the entire sample, responses from (n = `r a.desc.duration$n` ) participan
 with a mean response time of `r round(a.desc.duration$mean,0)` minutes,
 SD = `r (round(a.desc.duration$sd,0))`.
 
-```{r demo-response-time-cleanup}
+```{r demo-cleanup}
 rm(df, a.desc.duration)
 ```
 
 
 ## (5.1.4) Participants
-
-### Sample Demographics
 
 ```{r demo-sample-size}
 
@@ -393,7 +391,111 @@ rm(df, df.p, desc.gender.p, p_participants, df.t, desc.gender.t, t_participants)
 ```
 
 
+## (5.1.4) Participants per Block
+
+**As Reported in Section 5.1.4 Participants, there were ~ 53 participants per stimulus block**
+
+```{r participant-block}
+
+df <- df_participants
+table(df$Assigned.Block)
+# cols = c("Block", "n")
+# %>% kable(col.names = cols)
+
+```
+
+
+
+
 ## (FIG 5) — Distribution for each Survey Question 
+
+**As Reported in Figure 5, descriptive statistics for in-scope survey questions.** 
+
+```{r sparktable}
+
+# # library(tinytable)
+# # library(webshot2)
+
+#### CUSTOM HORIZONTAL STACKED BARPLOT
+g <- function(d, ...){
+
+  p <- d$pal %>% unique
+  ggplot(d, aes(x="", fill=value)) +
+    geom_bar(stat="count", position = "stack") +
+    scale_fill_manual(values=my_colors[[p]]) +
+    coord_flip() + theme_void() + easy_remove_axes() + easy_remove_legend()
+}
+
+
+## SETUP LIST OF NUMERIC DATAFRAMES
+all_q <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", ref_sd_questions)
+
+# ## SETUP NUMERIC DATAFRAME
+df_num <- df_graphs %>% select(all_of(all_q))
+
+## CALC MEANS
+### MEANS
+m <- sapply(df_num, FUN=mean)
+m <- round(m,1)
+m <- paste0("M=",m)
+sd <- sapply(df_num, FUN=sd)
+sd <- round(sd,1)
+sd <- paste0("SD=",sd)
+stat <- paste0(m," ",sd)
+
+
+### CREATE LIST OF CATEGORICAL DATAFRAMES
+id = df_graphs %>% select(MAKER_ID) %>%
+  pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
+age = df_graphs %>% select(MAKER_AGE) %>%
+  pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
+gender = df_graphs %>% select(MAKER_GENDER) %>%
+  pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
+
+df_cat <- list()
+df_cat[["MAKER_ID"]] <- id
+df_cat[["MAKER_AGE"]] <- age
+df_cat[["MAKER_GENDER"]] <- gender
+
+## CALC CAT PROPORTIONS
+n <- nrow(id)
+m_id <- table(id) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100) %>% map_df(rev) #reverse reading order
+stat_id <- paste0(m_id$value, "(", m_id$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(age)
+m_age <- table(age) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_age <- paste0(m_age$value, "(", m_age$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(gender)
+m_gender <- table(gender) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_gender <- paste0(m_gender$value, "(", m_gender$prop,"%)")%>%  unlist() %>% paste0(collapse=''," ")
+
+## SETUP QUESTIONS
+questions <- c(ref_cat_questions, "MAKER_CONF", "AGE_CONF", "GENDER_CONF", ref_sd_questions) 
+
+
+#### SETUP TABLE
+tab <- data.frame(
+  VARIABLE = questions,
+  DISTRIBUTION = "",
+  STATISTICS = c(stat_id, stat_age, stat_gender, stat)
+)
+
+### RENDER TABLE
+t <- tinytable::tt(tab, theme = "void") %>%
+  plot_tt(j=2, i= 1:3, fun=g, data = df_cat, height = 1.5) %>%
+  plot_tt(j=2, i= 4:17, fun="density", data = df_num, color="darkgrey") %>%
+  style_tt(j=2, align="c")
+
+t
+if(GRAPH_SAVE){
+  save_tt(t, output="figs/CHI/fig_5_descriptives.png", overwrite = TRUE)
+}
+```
+
+
+
+
 ## (FIG 6) — Exploratory Factor Analysis
 
 
