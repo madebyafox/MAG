@@ -2308,6 +2308,21 @@ anova(mm.B, mm.I, mm.D, mm.BxID)
 
 
 
+
+p <- plot_model(mm.BxID, type = "pred", terms = c("INTENT_Z", "BEAUTY_Z", "DATA_Z")) + 
+  labs(subtitle = f.BxID) + theme_minimal()
+
+
+
+ ggsave(p, scale =1, filename = "figs/PAPER/mmBxID.svg", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+ t <- tab_model(mm.BxID)
+# ggsave(t, scale =1, filename = "figs/PAPER/mmBxID_table.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+# first save table to html file
+tab_model(mm.BxID, file = "figs/PAPER/mmBxID_table.html")
+
+# then take this html file and make .png file
+webshot("figs/PAPER/mmBxID_table.html", "figs/PAPER/mmBxID_table.svg")
 ```
 ### not using 
 
