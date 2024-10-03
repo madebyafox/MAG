@@ -96,7 +96,7 @@ options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders (note this will overwrite existing graphs)
+GRAPH_SAVE = FALSE #set to true to generate all the SD graphs and save to folders (note this will overwrite existing graphs)
 
 ```
 
@@ -236,16 +236,9 @@ ref_blocks <- c(1,2,3,4,5,6)
 ```{r import-data, message=FALSE, warning = FALSE}
 
 ############## IMPORT DATA FILES
-df_participants <- read_csv("data/input/df_participants.csv") #1 row per participant — demographic
-df_graphs <- read_csv("data/input/df_graphs.csv") #only categorical and numeric questions
-df_sd_questions_long <- read_csv("data/input/df_sd_questions_long.csv") # only sd questions LONG
-
-
-
-df_graphs <- df_graphs %>% mutate(
-  STIMULUS = factor(STIMULUS),
-  BLOCK = factor(BLOCK)
-)
+df_participants <- readRDS("data/input/df_participants.rds") #1 row per participant — demographic
+df_graphs <- readRDS("data/input/df_graphs.rds") #only categorical and numeric questions
+df_sd_questions_long <- readRDS("data/input/df_sd_questions_long.rds") # only sd questions LONG
 
 ```
 
@@ -303,7 +296,7 @@ were recruited from US-located English speaking users of TUMBLR (n =
 `r t_participants`) and PROLIFIC (n = `r p_participants`).
 
 `r p_participants` individuals from PROLIFIC participated in Study 2, (
-`r round(desc.gender.p['Female'],2)*100`% Female,# 
+`r round(desc.gender.p["Female"],2)*100`% Female,# 
 `r round(desc.gender.p["Male"],2)*100`% Male,
 `r round(desc.gender.p["Non-binary / third gender"],2)*100`%
 Non-binary, `r round(desc.gender.p["Prefer not to say"],2)*100` %
@@ -335,9 +328,6 @@ participants per stimulus block**
 
 df <- df_participants
 table(df$Assigned.Block)
-# cols = c("Block", "n")
-# %>% kable(col.names = cols)
-
 ```
 
 ## (FIG 5) Survey Question Distributions
@@ -592,7 +582,7 @@ p <- plot_model(mm.B, type = "pred", terms = "BEAUTY_Z") +  theme_minimal()
 
 A model predicting `CHART-TRUST` by `CHART_BEAUTY` explains 30% variance
 in `CHART_TRUST`, with 22% variance explained by a significant main
-effect of `CHART_BEAUTY` ($t(1586) = 21.59, p <
+effect of `CHART_BEAUTY` ($t(1554) = 21.59, p <
 .001$). The model coefficient indicates that for every 1 standard
 deviation increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average
 by 0.47 SD.
@@ -602,7 +592,7 @@ judged to be more attractive are also judged as more trustworthy.**
 
 #### M2 \| TRUST \~ BEAUTY + INTENT
 
-Here we fit add a main effect term `CHART_INTENT` as a predictor to the
+Here we add a main effect term `CHART_INTENT` as a predictor to the
 previous model and compare fit with Model 1, to determine whether a
 social attribution (in this case inference about the chart's intent) is
 also predictive of `CHART_TRUST`.
@@ -640,14 +630,14 @@ A model predicting `CHART-TRUST` by a linear combination of
 `CHART_TRUST`, with 41% variance explained by fixed effects alone:
 
 1.  A significant main effect of `CHART_BEAUTY`
-    ($t(1531) = 22.04, p <.001$), and
+    ($t(1532) = 22.04, p <.001$), and
 
 2.  A significant main effect of `CHART_INTENT`
-    ($t(1580) = -22.83, p <.001$).
+    ($t(1581) = -22.83, p <.001$).
 
     The model coefficients indicates that for every 1 standard deviation
     increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
-    0.47 SD (more beauty corresponds to more trust). For every 1
+    0.42 SD (more beauty corresponds to more trust). For every 1
     standard deviation increase in `CHART_INTENT`, (where LOW values
     correspond to intent to INFORM and high values correspond to intent
     to PERSUADE) `CHART-TRUST` decreases by 0.44 SD (more persuasive
@@ -655,7 +645,7 @@ A model predicting `CHART-TRUST` by a linear combination of
 
 Further, model comparisons indicate that MODEL 2 (including
 `CHART_INTENT`) is a significantly better fit to the data
-($\chi^2(1)=448 , p < 0.001$) than MODEL 1 including `CHART_BEAUTY` alone. 
+($\chi^2(1) = 448 , p < 0.001$) than MODEL 1 including `CHART_BEAUTY` alone. 
 
 **Model 2 supports our claim that social attributions (in this case, an
 inference about the communicative intent of the chart) *also* predict
@@ -666,8 +656,8 @@ trustworthy.**
 #### M3 \| TRUST \~ BEAUTY X INTENT
 
 Here we fit a model with `CHART_INTENT` as an **interaction** with
-`CHART_BEAUTY` and compare with the previous model to determine whether
-the social attribution of `CHART_INTENT` **moderates** the effect of
+`CHART_BEAUTY`, and compare with the previous model (with the simple linear combination of the two predictors) 
+to determine whether simply affecting `CHART_TRUST`, the social attribution of `CHART_INTENT` **moderates** the effect of
 `CHART_BEAUTY` on `CHART_TRUST`.
 
 -   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
@@ -683,7 +673,7 @@ the social attribution of `CHART_INTENT` **moderates** the effect of
 f.BxI <-  "TRUST ~ BEAUTY X INTENT + (1|PID)"
 mm.BxI <- lmer(TRUST_Z ~ BEAUTY_Z * INTENT_Z + (1|PID), data = df)
 summary(mm.BxI)
-car::Anova(mm.BxI, type=2)
+car::Anova(mm.BxI, type=3)  #type 3 tests for interaction model
 
 ################## COMPARE MODEL
 compare_performance(mm.BxI, mm.BI, rank = TRUE)
@@ -703,17 +693,17 @@ A model predicting `CHART-TRUST` by a linear **interaction** of
 `CHART_TRUST`, with 42% variance explained by fixed effects alone:
 
 1.  A significant main effect of `CHART_BEAUTY`
-    ($t(1526) = 22.07, p <.001$)
+    ($\chi^2(1) = 487, p <.001$)
 
 2.  A significant main effect of `CHART_INTENT`
-    ($t(1581) = -22.4, p <.001$)
+    ($\chi^2(1) = 486, p <.001$)
 
 3.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
-    ($t(1559) = 7.01, p <.001$).
+    ($\chi^2(1) = 49, p <.001$)
 
     The model coefficients indicates that for every 1 standard deviation
     increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
-    0.47 SD (more beauty corresponds to more trust). For every 1
+    0.41 SD (more beauty corresponds to more trust). For every 1
     standard deviation increase in `CHART_INTENT`, (where LOW values
     correspond to intent to INFORM and high values correspond to intent
     to PERSUADE) `CHART-TRUST` decreases on average by 0.42 SD (more
@@ -731,7 +721,7 @@ significantly better fit to the data ($\chi^2(1)=48.5 , p < 0.001$).
 
 **Model 3 supports our claim that social attributions (in this case, an
 inference about the communicative intent of the chart) *also* predict
-beauty, and infact can change (moderate) the effect of beauty on
+beauty, and in fact can change (moderate) the effect of beauty on
 trust.**
 
 #### M4 \| TRUST \~ BEAUTY X INTENT + MAKER_DATA
@@ -756,7 +746,7 @@ chart's maker affect assesments of the chart's trustworthiness.
 f.BxID <-  "TRUST ~ BEAUTY X INTENT + DATA (1|PID)"
 mm.BxID <- lmer(TRUST_Z ~ BEAUTY_Z * INTENT_Z + DATA_Z + (1|PID), data = df)
 summary(mm.BxID)
-car::Anova(mm.BxID, type=2)
+car::Anova(mm.BxID, type=3) #type 3 tests for interaction model
 
 ################## COMPARE MODEL
 compare_performance(mm.BxID, mm.BxI, rank = TRUE)
@@ -783,43 +773,45 @@ A model predicting `CHART-TRUST` by a linear **interaction** of
 variance explained by fixed effects alone:
 
 1.  A significant main effect of `CHART_BEAUTY`
-    ($t(1520) = 20.72, p <.001$),
+    ($\chi^2(1) = 429, p <.001$)
 
 2.  A significant main effect of `CHART_INTENT`
-    ($t(1580) = -18.81, p <.001$),
+    ($\chi^2(1) = 354, p <.001$)
 
 3.  A significant main effect of `MAKER_DATA`
-    ($t(1564) = -9.56, p <.001$),
+    ($\chi^2(1) = 91, p <.001$)
 
 4.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
-    ($t(1556) = 6.63, p <.001$).
+    ($\chi^2(1) = 44, p <.001$)
 
     The model coefficients indicates that for every 1 standard deviation
     increase in `MAKER_DATA`, `CHART-TRUST` decreases on average by
-    0.19 SD (more layperson corresponds to less trust).For every 1 standard deviation
+    0.19 SD (less expertise/more layperson corresponds to lower trust). For every 1 standard deviation
     increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
     0.38 SD (more beauty corresponds to more trust). For every 1
     standard deviation increase in `CHART_INTENT`, (where LOW values
     correspond to intent to INFORM and high values correspond to intent
-    to PERSUADE) `CHART-TRUST` decreases on average by 0.37 SD (more
-    persuasive corresponds to less trust). The significant interaction
-    term indicates the difference in slope between the two main effects,
+    to PERSUADE) `CHART-TRUST` decreases on average by 0.37 SD (
+    persuasive corresponds to less trust; informative corresponds to more trust). The significant interaction
+    term indicates the difference in slope between the main effects for `CHART_BEAUTY` and `CHART_INTENT`,
     that is to say, that the effect of `CHART_BEAUTY` on `CHART_TRUST`
     is **moderated** such that the effect of `CHART_BEAUTY` is
     *minimized* when `CHART_INTENT` is attributed as more informative
-    (lower values of chart_intent) than persuasive (higher values of
+    (lower values on chart_intent) than persuasive (higher values on
     chart_intent)
 
 Further, model comparisons indicate that MODEL 4 (adding a simple main effect of `MAKER_DATA`) is a
-significantly better fit to the data than the prio model ($\chi^2(1)=89.1 , p < 0.001$) than MODEL 3 without the `MAKER_DATA` fixed effect. 
+significantly better fit to the data than MODEL 3 without the `MAKER_DATA` fixed effect ($\chi^2(1)=89.1 , p < 0.001$) . 
 
 **Model 4 supports our claim that social attributions (in this case, _both_ an
 inference about the communicative intent of the chart and inference about the data analysis skill of the maker) *also* predict
-beauty, and infact can change (in the case of intent, moderate) the effect of beauty on
+beauty, and in fact can change (in the case of intent, moderate) the effect of beauty on
 trust.**
 
 
 #### (FIG 9) Predicting Trust
+
+**Here we produce the visualization and model parameters table reported in Figure 9.**
 
 ```{r best-fit-model}
 
