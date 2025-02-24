@@ -1,0 +1,3870 @@
+---
+title: "VIBES STUDY 2 ANALYSIS — AGGREGATED DATA"
+author: "ANONYMIZED"
+date: "2024-08-07"
+output:
+  html_document:
+    theme: flatly
+    code_folding: hide
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    toc_depth: 6
+  pdf_document:
+    toc: yes
+    toc_depth: '5'
+always_allow_html: yes
+font-family: DejaVu Sans
+mainfont: DejaVu Sans
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(psych) #describe()
+library(tidyverse) #all the things
+library(magrittr) #special pipes like %<>%
+library(summarytools) #data quality
+library(lubridate) #dealing with dates
+library(tinytable) ##sparkline tables 
+library(webshot2) ##saving sparkline tables
+
+#EDA
+library(qacBase)
+
+#VIZ
+library(kableExtra) #printing tables
+library(ggformula) #regression syntax viz
+# library(vcd) #mosaic plots
+# library(vcdExtra) #mosaic plot helpers
+library(ggstatsplot) #dummies
+library(gghalves) #half boxplots 
+library(GGally) #extends ggplot for EDA 
+library(corrplot) #sophisticated correlation plots
+library(ggeasy) #easy labelling
+library(ggh4x) #guides [dual axes]
+library(patchwork) #multi-plot layout
+library(ggdist) #raincloud plots and other distributionals
+library(ggridges) #ridge plots
+library(viridis) #color palettes
+library(RColorBrewer) #color palettes
+library(plotly) # interactive graphs
+library(paletteer) #more palettes
+library(lessR) ##very pretty donuts 
+library(ggsankey) ## ggplot2 sankey extension
+library(interactions) ##easier regression ixn plots.srlsy
+library(ggraph) ## node link diagrams
+library(tidygraph)
+
+
+
+#MODELLING
+library(jtools) #Social Science regression utilities
+library(easystats) #modelling helpers
+library(see)
+library(sjPlot)
+library(lme4)
+library(lmerTest) #for CIs in glmer
+# library(mixed) ## utilities for glmers 
+library(equatiomatic) ## extracting model formula
+library(latex2exp) ## extracting and printing model formula
+
+#STATISTICAL TESTS 
+library(kSamples) #AD K-SAMPLE TEST (for distribution comparison)
+library(rstatix) #FRIEDMAN'S TESTS and effect sizes 
+
+#CONFIG
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+n_blocks = 6
+
+## IMPORTANT 
+GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
+
+```
+
+In VISUALIZATION VIBES project Study 2, participants completed an
+*attitutde eliciation* survey, asking questions about their attitude
+toward (5) stimulus images (data visualizations). Each participant was
+randomly assigned to one of 6 stimulus blocks, each containing 1 image
+from each of (4) pseudo-categories (ranging from most abstract to most
+figural). Each participant started by responding to questions for a
+single 'common' stimulus (that is thus super-powered as it was seen by
+all participants). Two participant recruitment pools were used:
+Prolific, with a smaller set of participants recruited from Tumblr (to
+replicate and compare survey results to Study 1 interviews with
+participants sourced from Tumblr).
+
+This notebook contains code to replicate quantitative analysis of data
+from Study 2 reported in the CHI submission. Note that due to limited
+space, we were unable to report results for *all* stimulus blocks, and
+all possible analyses. A separate set of R notebooks are included in the
+supplementary materials that document analysis of the other blocks not
+reported here.
+
+**This notebook includes analysis and exploration of the full data set
+(i.e. data aggregated over all stimuli).**
+
+# SETUP
+
+*We start by importing data files previously wrangled in
+`0_VIBES_S2_wrangling.Rmd`.*
+
+## Import Data
+
+```{r import-refs, message=FALSE, warning = FALSE}
+
+############## IMPORT REFERENCE FILES
+ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
+ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
+ref_labels <- readRDS("data/input/REFERENCE/ref_labels.rds")
+ref_labels_abs <- readRDS("data/input/REFERENCE/ref_labels_abs.rds")
+
+############## SETUP Graph Labels
+ref_stim_id <- levels(ref_stimuli$ID)
+ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
+ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
+ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
+ref_sd_questions <- rownames(ref_labels)
+ref_sd_questions_abs <- rownames(ref_labels_abs)
+  
+
+# ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
+ref_blocks <- c(1,2,3,4,5,6)
+
+```
+
+```{r import-data, message=FALSE, warning = FALSE}
+
+############## IMPORT DATA FILES
+# df_data <- readRDS("data/output/df_data.rds") #1 row per participant — WIDE
+df_participants <- readRDS("data/output/df_participants.rds") #1 row per participant — demographic
+df_questions <- readRDS("data/output/df_questions.rds") #1 row per question — LONG
+df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds") # only sd questions WIDE
+
+
+df_tools <- readRDS("data/output/df_tools.rds") #multiselect format for tools Question
+df_actions <- readRDS("data/output/df_actions.rds") # multiselect format for action Question
+# # df_graphs_full <- readRDS("data/output/df_graphs_full.rds") #includes free response data
+
+df_graphs <- readRDS("data/output/df_graphs.rds") #only categorical and numeric questions
+df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds") # only sd questions LONG
+
+### DATA FILES WITH (VARIABLE-WISE) Z-SCORED SEMANTIC DIFFERENTIAL QS 
+df_graphs_z <- readRDS("data/output/df_graphs_z.rds") #only categorical and numeric questions
+df_sd_questions_long_z <- readRDS("data/output/df_sd_questions_long_z.rds") # only sd questions LONG
+
+
+### DATA FILES WITH ABSOLUTE VALUE SEMANTIC DIFFERENTIAL QS 
+df_graphs_abs <- readRDS("data/output/df_graphs_abs.rds") #only categorical and numeric questions
+df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") # only sd questions LONG
+
+```
+
+## Set up Graphing
+
+```{r setup-pallettes}
+
+
+# Custom ggplot theme to make pretty plots
+# Get the font at https://fonts.google.com/specimen/Barlow+Semi+Condensed
+theme_clean <- function() {
+  theme_minimal(base_family = "Barlow Semi Condensed") +
+    theme(panel.grid.minor = element_blank(),
+          plot.title = element_text(family = "BarlowSemiCondensed-Bold"),
+          axis.title = element_text(family = "BarlowSemiCondensed-Medium"),
+          strip.text = element_text(family = "BarlowSemiCondensed-Bold",
+                                    size = rel(1), hjust = 0),
+          strip.background = element_rect(fill = "grey80", color = NA))
+}
+
+set_theme(base = theme_clean())
+
+
+
+############## SETUP Colour Palettes
+#https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
+
+## list of color pallettes
+my_colors = list(
+  politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
+  blackred = c("black","red"),
+  greys = c("#707070","#999999","#C2C2C2"),
+  greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
+  smallgreens = c("#ADC69D","#567E39","#193E0A"), ## MALE FEMALE OTHER
+  olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
+  lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
+  darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
+  reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
+  traffic = c("#CE98A2","#81A06D","yellow"),
+  questions = c("#B17380","#3787D2", "#567E39", "#EE897F"),
+  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"), #? ... design.....vis...... programming
+  encounter = c("#8E8E8E","#729B7D"), ##SCROLL ENGAGE
+  actions2 = c("#8E8E8E","#729B7D"),
+  actions4 = c("#8E8E8E", "#A3A3A3","#729B7D","#499678"),
+  actions3 = c("#8E8E8E","#99b898ff","#fdcea8ff"),
+  actions = c("#8E8E8E","#2A363B","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
+  
+  platforms = c("#5D93EA","#FF70CD", "#3BD3F5", "#8B69B5","black"),
+  amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
+  my_favourite_colours = c("#702963", "#637029",    "#296370")
+)
+
+## function for using palettes
+my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete","continuous"), direction = c("1","-1")) {
+  palette = all_palettes[[name]]
+  if (missing(n)) {
+    n = length(palette)
+  }
+  type = match.arg(type)
+  out = switch(type,
+               continuous = grDevices::colorRampPalette(palette)(n),
+               discrete = palette[1:n]
+  )
+  out = switch(direction,
+               "1" = out,
+               "-1" = palette[n:1])
+  structure(out, name = name, class = "palette")
+}
+
+```
+
+```{r SD-GRAPHING-FUNCTIONS}
+
+
+############## RETURNS SD STACKED AND COLORED BY BY X
+## LOOP STYLE
+multi_sd <- function (data, left, right, x, y, color) {
+
+  # g <- ggplot(df, aes(y = .data[[x]], x = {{y}}, color = {{color}}))+
+  g <- ggplot(data, aes(y = .data[[x]], x = .data[[y]], color = .data[[color]]))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) +
+    
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() +
+  guides(
+    y = guide_axis_manual(labels = left),
+    y.sec = guide_axis_manual(labels = right)
+  ) + theme_minimal()
+
+  return(g)
+}
+
+
+############## RETURNS SINGLE SD 
+## LOOP STYLE
+single_sd <- function (data, left, right, x) {
+
+  g <- ggplot(data, aes(y = {{x}}, x = ""))+
+  geom_boxplot(width = 0.5) +
+  geom_jitter(width = 0.1, alpha=0.5) +
+  scale_y_continuous(limits=c(-1,101)) +
+  labs(x="", y="") +
+  coord_flip() +
+  guides(
+    y = guide_axis_manual(labels = left),
+    y.sec = guide_axis_manual(labels = right)
+  ) + theme_minimal()
+
+  return(g)
+}
+
+
+# ######## RETURNS SINGLE SD
+# ##  APPLY STYLE
+plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) {
+
+  ggplot(data, aes(y = .data[[column]], x="")) +
+    {if(boxplot) geom_boxplot(width = 0.5) } +
+    geom_jitter(width = 0.1, alpha=0.2, {if(facet) aes(color=.data[[facet_by]])}) +
+    {if(mean)
+      stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue")
+      } +
+    {if(mean)
+      ## assumes data has been passed in with mean column at m
+      # stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
+      #            vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0)))
+      stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
+                 vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0)))
+      } +
+
+    {if(facet) facet_grid(.data[[facet_by]] ~ .)} +
+    # scale_y_continuous(limits=c(-1,101)) +
+    labs(x="", y="") +
+    coord_flip()  +
+    {if(type == "S")
+      guides(
+        y = guide_axis_manual(labels = labels[column,"left"]),
+        y.sec = guide_axis_manual(labels = labels[column,"right"])
+      )} +
+    {if(type == "Q")
+      guides(
+        y = guide_axis_manual(labels = labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = labels[q,"right"])
+      )} +
+  theme_minimal()  +
+     labs (
+       caption = column
+     ) + easy_remove_legend()
+}
+
+```
+
+
+# AD HOCS
+## SPARKLINES TABLE
+
+```{r sparktabletest}
+
+# library(tinytable)
+# library(webshot2)
+
+
+
+#### CUSTOM HORIZONTAL STACKED BARPLOT
+g <- function(d, ...){
+
+  p <- d$pal %>% unique
+  ggplot(d, aes(x="", fill=value)) +
+    geom_bar(stat="count", position = "stack") +
+    scale_fill_manual(values=my_colors[[p]]) + 
+    coord_flip() + theme_void() + easy_remove_axes() + easy_remove_legend()
+}
+
+
+## SETUP LIST OF NUMERIC DATAFRAMES 
+all_q <- c(ref_conf_questions, ref_sd_questions)
+
+## SETUP NUMERIC DATAFRAME
+df_num <- df_graphs %>% select(all_of(all_q))
+
+## CALC MEANS 
+### MEANS 
+m <- sapply(df_num, FUN=mean)
+m <- round(m,1)
+m <- paste0("M=",m)
+sd <- sapply(df_num, FUN=sd)
+sd <- round(sd,1)
+sd <- paste0("SD=",sd)
+stat <- paste0(m," ",sd)
+
+
+### CREATE LIST OF CATEGORICAL DATAFRAMES
+id = df_graphs %>% select(MAKER_ID) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
+age = df_graphs %>% select(MAKER_AGE) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
+gender = df_graphs %>% select(MAKER_GENDER) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
+tools <- df_tools %>% select(TOOL_ID) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="tools") %>% as.data.frame()
+encounter = df_graphs %>% select(ENCOUNTER) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="encounter") %>% as.data.frame()
+action2 = df_actions %>% select(CHART_ACTION2) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="actions2") %>% as.data.frame()
+action4 = df_actions %>% select(CHART_ACTION4) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="actions4") %>% as.data.frame()
+
+df_cat <- list()
+df_cat[["MAKER_ID"]] <- id
+df_cat[["MAKER_AGE"]] <- age
+df_cat[["MAKER_GENDER"]] <- gender
+df_cat[["TOOL_ID"]] <- tools
+df_cat[["ENCOUNTER"]] <- encounter
+df_cat[["CHART_ACTION2"]] <- action2
+df_cat[["CHART_ACTION4"]] <- action4
+
+
+## CALC CAT PROPORTIONS 
+n <- nrow(id)
+m_id <- table(id) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100) %>% map_df(rev) #reverse reading order 
+stat_id <- paste0(m_id$value, "(", m_id$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(age)
+m_age <- table(age) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_age <- paste0(m_age$value, "(", m_age$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(gender)
+m_gender <- table(gender) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_gender <- paste0(m_gender$value, "(", m_gender$prop,"%)")%>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(tools)
+m_tools <- table(tools) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_tools <- paste0(m_tools$value, "(", m_tools$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(encounter)
+m_encounter <- table(encounter) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_encounter <- paste0(m_encounter$value, "(", m_encounter$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(action2)
+m_action2 <- table(action2) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_action2 <- paste0(m_action2$value, "(", m_action2$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(action4)
+m_action4 <- table(action4) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_action4 <- paste0(m_action4$value, "(", m_action4$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+
+## SETUP QUESTIONS 
+questions <- c(ref_cat_questions, "TOOL_ID", "ENCOUNTER", "CHART_ACTION2", "CHART_ACTION4", ref_conf_questions, ref_sd_questions)
+
+
+#### SETUP TABLE
+tab <- data.frame(
+  VARIABLE = questions,
+  DISTRIBUTION = "",
+  STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
+    # c("","","","","","","",stat)
+)
+
+### RENDER TABLE
+t <- tinytable::tt(tab, theme = "void") %>% 
+  plot_tt(j=2, i= 1:7, fun=g, data = df_cat, height = 1.5) %>% 
+  plot_tt(j=2, i= 8:22, fun="density", data = df_num, color="darkgrey") %>% 
+  style_tt(j=2, align="c") 
+
+t
+if(GRAPH_SAVE){
+  save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE)
+  save_tt(t, output="figs/tables/sparklines.tex", overwrite = TRUE)  
+}
+
+```
+
+
+
+
+
+
+# FULL SAMPLE ANALYSIS
+
+As we argue in our manuscript, we understand that an individual's
+response to a visualization (both inferences about data, as well as any
+other behaviours) will *vary* based on properties of: (1) the
+visualization, (2) the data, (3) the individual, and (4) the situational
+context. Thus, our survey is *not* designed to uncover *consistencies*
+in behaviour, but rather, explore the nature of *variance* in behaviour
+as a function of the individual and visualization.
+
+(n = `r nrow(df_participants)` ) survey respondents answered questions
+about some subset of the stimuli, (common stimulus B0-0 and 4 additional
+images defined as a block), yielding (o = `r nrow(df_graphs)`)
+stimulus-level observations.
+
+## SAMPLE
+
+### Sample Demographics
+
+```{r sample-size}
+
+df <- df_participants
+
+## FOR DESCRIPTIVES PARAGRAPH
+# #PROLIFIC
+df.p <- df %>% filter(Distribution == "PROLIFIC")
+desc.gender.p <- table(df.p$D_gender) %>% prop.table()
+names(desc.gender.p) <- levels(df.p$D_gender)
+p_participants <- nrow(df.p)
+
+# #TUMBLR
+df.t <- df %>% filter(Distribution == "TUMBLR")
+desc.gender.t <- table(df.t$D_gender) %>% prop.table()
+names(desc.gender.t) <- levels(df.t$D_gender)
+t_participants <- nrow(df.t)
+
+
+```
+
+For study 2, a total of `r p_participants + t_participants` participants
+were recruited from US-located English speaking users of TUMBLR (n =
+`r t_participants`) and PROLIFIC (n = `r p_participants`).
+
+`r p_participants` individuals from PROLIFIC participated in Study 2, (
+`r round(desc.gender.p[["Female"]],2)*100`% Female,
+`r round(desc.gender.p[["Male"]],2)*100`% Male,
+`r round(desc.gender.p[["Non-binary / third gender"]],2)*100`%
+Non-binary,
+`r (round((desc.gender.p[["Prefer not to say"]] + desc.gender.p[["Prefer to self-describe"]]),2)) * 100`%
+Other).
+
+`r t_participants` individuals from Tumblr participated in Study 2, (
+`r round(desc.gender.t[["Female"]],2)*100`% Female,
+`r round(desc.gender.t[["Male"]],2)*100`% Male,
+`r round(desc.gender.t[["Non-binary / third gender"]],2)*100`%
+Non-binary,
+`r (round((desc.gender.t[["Prefer not to say"]] + desc.gender.t[["Prefer to self-describe"]]),2)) * 100`%
+Other). Note that a higher proportion of participants recruited from
+TUMBLR report identities other than cis-gender Female and cis-gender
+Male.
+
+### Study Response Time
+
+```{r demo-response-time}
+
+df <- df_participants
+
+## for descriptives paragraph
+p.desc.duration <- psych::describe(df %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
+t.desc.duration <- psych::describe(df %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
+
+a.desc.duration <- psych::describe(df %>% pull(duration.min))
+
+```
+
+PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times
+ranged from `r p.desc.duration$min` to `r p.desc.duration$max` minutes,
+with a mean response time of `r round(p.desc.duration$mean,2)` minutes,
+SD = `r (round(p.desc.duration$sd,2))`.
+
+TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times
+ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes,
+with a mean response time of `r round(t.desc.duration$mean,2)` minutes,
+SD = `r (round(t.desc.duration$sd,2))`.
+
+
+Across the entire sample, (n = `r a.desc.duration$n` ) participant response times
+ranged from `r a.desc.duration$min` to `r a.desc.duration$max` minutes,
+with a mean response time of `r round(a.desc.duration$mean,2)` minutes,
+SD = `r (round(a.desc.duration$sd,2))`.
+
+```{r demo-cleanup}
+rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.t, p_participants, t_participants)
+```
+
+### Setup sample data frame
+```{r setup-full-sample}
+
+#full stimulus-level data
+df_full <- df_graphs %>% 
+  mutate(
+    STUDY = "" #dummy variable for univariate visualizations
+  )
+# %>%
+#   mutate(MAKER_ID = fct_rev(MAKER_ID))
+
+```
+
+## CONFIDENCE
+
+When asking participants to identify the type, age and gender of the
+maker of a visualization, we also asked participants to indicate their
+confidence in these choices.
+
+**Across all participants and all stimuli, are these (categorical)
+questions answered with the same degree of confidence?**
+
+Here we examine both the central tendency (mean) and shape of the
+distribution for each confidence variable.
+
+```{r compare-confidence}
+
+df <- df_full %>% select(PID, Distribution, STIMULUS,MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c(MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF),
+    names_to = "QUESTION",
+    values_to = "CONFIDENCE"
+  ) %>% 
+  mutate(
+    QUESTION = factor(QUESTION, levels=c("MAKER_CONF","AGE_CONF","GENDER_CONF","TOOL_CONF"  ) )
+  ) %>% 
+  group_by(QUESTION) %>% 
+  mutate(
+    m=round(mean(CONFIDENCE),0) #calc mean for showing in plots 
+  )
+
+
+## B
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## BOXPLOT W/ JITTER
+B <- df %>% 
+  ggplot(aes(x=QUESTION, y= CONFIDENCE)) + 
+  geom_boxplot(width = 0.5) + 
+  geom_jitter(alpha = 0.25, position=position_dodge2(width = 0.25)) + 
+  ## MEAN
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size=3,
+                 vjust=+0.5, hjust = -1.5, aes( label=round(m, digits=0)))+
+    stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
+  theme_minimal() + 
+  labs(title = "Confidence by Survey Question", caption = "(mean in blue)")
+
+
+## R
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## RIDGEPLOT W/ INTERVAL MEAN
+R <- df %>% 
+  ggplot(aes(x=CONFIDENCE, y=fct_rev(QUESTION), fill=fct_rev(QUESTION))) + 
+    geom_density_ridges(scale = 0.65, alpha = 0.75, quantile_lines = TRUE) +
+    scale_x_continuous(limits = c(0,100))+
+    scale_fill_manual(values = my_palettes(name="questions", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  ## MEAN
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size=3,
+                vjust=+2.5, hjust = 0.50, aes( label=round(m, digits=0)))+
+    stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
+  theme_minimal() + 
+  labs(title = "Confidence by Survey Question", y = "QUESTION", caption =" (mean in blue)") + 
+  easy_remove_legend() 
+
+(B+R)
+
+if(GRAPH_SAVE){ggsave(plot = (B+R), path="figs/level_aggregated/distributions", filename =paste0("all_confidence.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
+```
+
+**INTERPRETATION** *Aggregated across all participants and all stimuli,
+the average confidence scores for each question (maker id, age, gender,
+tool id) are similar, with slightly lower confidence for the GENDER
+question. This tells us there is enough variance in response to each
+question for the measure to be meaningful, and so we will follow up by
+investigating confidence at the STIMULUS level.*
+
+### CONFIDENCE VARIANCE 
+
+```{r}
+
+
+
+
+## DATAFRAME WITH LONG FORM CONFIDENCE SCORES 
+df_conf_long <- df_graphs %>% 
+  select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
+    names_to = "QUESTION") 
+
+# 
+# print("QUESTION LEVEL CONFIDENCE (ALL P, ALL S)")
+# (q_conf <- df_conf_long %>% 
+#   group_by(QUESTION) %>% 
+#   summarize(
+#     m = mean(value),
+#     sd = sd(value)
+#   ))
+
+print("SD AND RANGES OF PARTICIPANT CONFIDENCE [ALL STIMULI]")
+## PARTICIPANT LOW VARIANCE
+## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
+(df_lowvar_q <- df_graphs %>% 
+  # filter(STIMULUS!="B0-0") %>% 
+  # filter(BLOCK %in% c("B1","B2")) %>% 
+  select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
+    names_to = "QUESTION") %>%
+  group_by(PID) %>% 
+  summarise(
+    count_pid = n(), #5 trials of each question
+    mean_pid = mean(value), 
+    min_pid = min(value),
+    max_pid = max(value),
+    range_pid = max_pid-min_pid, 
+    low_range_pid = ifelse(range_pid < 20, TRUE, FALSE),
+    sd_pid = sd(value),
+    low_sd_pid = ifelse(sd_pid < 10, TRUE, FALSE)) %>% 
+  summarise(
+    n = n(), #318p X 5 stimuli
+    n_pid = sum(count_pid),
+    n_low_range = sum((low_range_pid==TRUE)),
+    prop.low_range = n_low_range / n,
+    n_low_sd = sum((low_sd_pid==TRUE)),
+    prop.low_sd = n_low_sd / n
+  )) 
+
+
+# print("SD AND RANGES OF PARTICIPANT CONFIDENCE SCORES BY QUESTION")
+# ## PARTICIPANT - QUESTION LOW VARIANCE
+# ## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
+# (df_lowvar_q <- df_graphs %>% 
+#   # filter(STIMULUS!="B0-0") %>% 
+#   # filter(BLOCK %in% c("B1","B2")) %>% 
+#   select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+#   pivot_longer(
+#     cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
+#     names_to = "QUESTION") %>%
+#   group_by(PID, QUESTION) %>% 
+#   summarise(
+#     count_pidq = n(), #5 trials of each question
+#     mean_pidq = mean(value), 
+#     min_pidq = min(value),
+#     max_pidq = max(value),
+#     range_pidq = max_pidq-min_pidq, 
+#     low_range_pidq = ifelse(range_pidq < 20, TRUE, FALSE),
+#     sd_pidq = sd(value),
+#     low_sd_pidq = ifelse(sd_pidq < 10, TRUE, FALSE)) %>% 
+#   group_by(QUESTION) %>% 
+#   summarise(
+#     n = n(), #318p X 5 stimuli
+#     n_pidq = sum(count_pidq),
+#     n_low_range = sum((low_range_pidq==TRUE)),
+#     prop.low_range = n_low_range / n,
+#     n_low_sd = sum((low_sd_pidq==TRUE)),
+#     prop.low_sd = n_low_sd / n
+#   )) 
+
+
+
+### participants with lowest 
+## PARTICIPANT LOW VARIANCE
+## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
+((df_low <- df_graphs %>% 
+  # filter(STIMULUS!="B0-0") %>% 
+  # filter(BLOCK %in% c("B1","B2")) %>% 
+  select(PID, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
+    names_to = "QUESTION") %>% 
+  group_by(PID) %>% 
+  summarise(
+    pid = unique(PID),
+    count_pid = n(), #5 trials of each question
+    mean_pid = mean(value), 
+    min_pid = min(value),
+    max_pid = max(value),
+    range_pid = max_pid-min_pid, 
+    low_range_pid = ifelse(range_pid < 20, TRUE, FALSE),
+    sd_pid = sd(value),
+    low_sd_pid = ifelse(sd_pid < 10, TRUE, FALSE)) ))
+
+```
+
+
+Looking at confidence scores by participant aggregating over all stimuli and all questions, we see that 39/318 (12%) participants had less SD of less than 10 points (on 100 point scale) in confidence.  
+
+
+## MAKER ID
+
+Participants were asked:
+
+**Who do you think is most likely responsible for having this image
+created?\
+***options:* (select one). The response is stored as `MAKER_ID`
+
+-   business or corporation
+
+-   journalist or news outlet
+
+-   educational or academic institution
+
+-   government or political organization
+
+-   other organization
+
+-   an individual]\
+
+Participants were also asked: **Please rate your confidence in this
+choice.** The response is stored as `MAKER_CONF` .
+
+```{r maker-id-confidence-full}
+
+#FILTER DATASET
+df <- df_full
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_ID = fct_rev(MAKER_ID) )
+S <-   ggbarstats( data = dx, x = MAKER_ID, y = STUDY,
+                   legend.title = "MAKER ID") + 
+    scale_fill_manual(values = my_palettes(name="reds", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+  
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <- df %>% 
+  group_by(MAKER_ID) %>% 
+  mutate(count = n(), m = mean(MAKER_CONF)) %>% 
+  ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_ID), fill = fct_rev(MAKER_ID))) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker ID Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "Maker ID and Confidence",
+  # subtitle = "the categories of MAKER ID were chosen in similar proportion, 
+  # and both the mean (in blue) and shape of distribution of confidence scores is similar across values of Maker ID",
+  caption = "(blue indicates mean)"
+)
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_maker_id.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
+
+```
+
+**INTERPRETATION** *The distribution of maker types is remarkably
+consitent across levels of the `MAKER_ID` variable, with the exception
+of 'organization'. Howerver, as 4 of the 6 categories are specific kinds
+of organizatations, this is not surprising. The believe this
+distribution is likely a function of the diversity of stimuli we
+selected. We will address this hypothesis in block-level analysis,
+asking whether their is variance in the distribution of `MAKER_ID`
+between stimuli. Notably, the confidence scores are similar (both in
+mean and shape of distribution) regardless of the `MAKER_ID`, indicating
+that in general, there is no particular maker identification for which
+participants have less confidence.*
+
+## MAKER AGE
+
+Participants were asked: **Take a moment to imagine the person(s)
+responsible for creating the image. What generation are they most likely
+from?\
+***options: (select one)* The response was saved as `MAKER_AGE`
+
+-   *boomers (60+ years old)*
+
+-   *Generation X (44-59 years old)*
+
+-   *Millennials (28-43 years old)*
+
+-   *Generation Z (12 - 27 years old]*
+
+Participants were asked: **Please rate your confidence in this choice.**
+The response is stored as `AGE_CONF` .
+
+```{r maker-age-confidence-full}
+
+#FILTER DATASET
+df <- df_full
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_AGE = fct_rev(MAKER_AGE) )
+S <-   ggbarstats( data = dx, x = MAKER_AGE, y = STUDY,
+                   legend.title = "MAKER AGE") + 
+    scale_fill_manual(values = my_palettes(name="lightblues", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+  
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <- df %>% 
+  group_by(MAKER_AGE) %>% 
+  mutate(count = n(), m = mean(AGE_CONF)) %>% 
+  ggplot(aes(y = AGE_CONF, x = fct_rev(MAKER_AGE), fill = fct_rev(MAKER_AGE))) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker AGE Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+
+
+(p <- (S + H)) + plot_annotation(
+  title = "Maker AGE and Confidence",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_maker_age.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+```
+
+**INTERPRETATION** *The distribution of maker ages is distributed as we
+would expect if participants are answering the question with some sense
+of the maker's occupation in mind, thus answering with generations that
+are mostly likely of working age (gen X, millennial). As with
+`MAKER_ID`, confidence scores are similar (both in mean and shape of
+distribution) across all levels of `MAKER_AGE`, indicating that in
+general, there is no `MAKER_AGE` for which participants have less
+confidence.*
+
+## MAKER GENDER
+
+Participants were asked: **Take a moment to imagine the person(s)
+responsible for creating the image. What gender do they most likely
+identify with?\
+***options: [female / male / other ] (select one).* Responses were
+stored as `MAKER_GENDER.`
+
+Participants were asked: **Please rate your confidence in this choice.**
+The response is stored as `GENDER_CONF` .
+
+```{r maker-gender-confidence-full}
+
+#FILTER DATASET
+df <- df_full
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_GENDER = fct_rev(MAKER_GENDER) )
+S <-   ggbarstats( data = dx, x = MAKER_GENDER, y = STUDY,
+                   legend.title = "MAKER GENDER") + 
+    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+  
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <- df %>% 
+  group_by(MAKER_GENDER) %>% 
+  mutate(count = n(), m = mean(GENDER_CONF), MAKER_GENDER = fct_rev(MAKER_GENDER)) %>% 
+  ggplot(aes(y = GENDER_CONF, x = MAKER_GENDER, fill = MAKER_GENDER)) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker GENDER Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "Maker GENDER and Confidence",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_maker_gender.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
+```
+
+**INTERPRETATION:** *The distribution of maker genders is not evenly
+distributed between men and women as we might expect. We suspect it is
+most likely that the 'male' category serves as a default value for the
+maker gender, in the absence of any particular feature of stimulus that
+viewers interpret as strongly feminine. This hypothesis is grounded in
+the free response data, where respondents tend to explicitly describe
+gender in the presence of a design feature consistent with modern
+western stereotypes (such us pink indicating feminine, or aggressive
+indicating masculine).\
+*
+
+## TOOL ID
+
+Participants were asked: **What tools do you think were most likely used
+to create this image?\
+***options: (select all that apply).* The response was saved as variable
+`TOOL_ID` (multi-select)
+
+-   basic graphic design software (e.g. Canva, or similar)
+
+-   advanced graphic design software (e.g. Adobe Illustrator, Figma, or
+    similar)
+
+-   data visualization software (e.g. Tableau, PowerBI, or similar)
+
+-   general purpose software (e.g. MS Word/Excel, Google Sheets, or
+    similar)
+
+-   programming language (e.g. R, python, javascript, or similar)
+
+Participants were asked: **Please rate your confidence in this choice.**
+The response is stored as `TOOL_CONF` .
+
+```{r maker-tool-confidence-full}
+
+#FILTER DATASET
+df <- df_tools %>% 
+  mutate(
+    STUDY = ""
+  )
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (all)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+S <-   ggbarstats( data = df, x = TOOL_ID, y = STUDY,
+                   legend.title = "TOOL ID") + 
+    scale_fill_manual(values = my_palettes(name="tools", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <-  df %>% 
+  group_by(TOOL_ID) %>% 
+  mutate(count = n(), m = mean(TOOL_CONF)) %>% 
+  ggplot(aes(y = TOOL_CONF, x = TOOL_ID, fill = TOOL_ID)) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(..y.., digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="tools", direction = "1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="TOOL ID Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "TOOL ID and Confidence",
+  # subtitle = "The value
+  # distribution of confidence scores is similar across values of Maker AGE",
+  caption = "(blue indicates mean)"
+)
+
+
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_tool_id.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
+```
+
+**INTERPRETATION** *We had no expectations with respect to the
+distribution of values in tool identification, but note that are roughly
+even across categories (exception of 'unknown' and 'programming'), and
+the confidence scores are similar.*
+
+## ENCOUNTER CHOICE
+
+The first question each participant saw in each stimulus block was: **As
+you're scrolling through your feed, you see this image. What would you
+do?**
+
+options: keep scrolling, pause and look at the image. (select one) The
+response was saved as variable `ENCOUNTER`
+
+```{r}
+## B
+## ENCOUNTER  BY STIMULUS
+## GGSTATSPLOT
+(p <- df_full %>% 
+  ggbarstats(  
+            x = ENCOUNTER, y = STUDY,
+            legend.title = "ENCOUNTER",
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))+
+    theme_minimal() + 
+    labs( title = "ENCOUNTER Choice ", subtitle = "", x = "")
+)
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_encounter.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+```
+
+**INTERPRETATION** *In roughly 10% more trials (participant + stimulus),
+participants indicated they would likely engage with the image* *rather
+than scroll past it.*
+
+## ACTION CHOICE
+
+The last question participants were asked in each stimulus block was:
+**Imagine you encounter the following image while scrolling. Which of
+the following are you most likely to do?**
+
+options: (select all that apply). The response was saved as variable
+`CHART_ACTION`
+
+-   post a comment
+
+-   share/repost
+
+-   share/repost WITH comment
+
+-   look up more information about the topic or source
+
+-   unfollow/block the source
+
+-   NOTHING—just keep scrolling
+
+```{r}
+
+#FILTER DATASET
+df <- df_actions
+
+
+
+### FULL ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION = fct_rev(CHART_ACTION) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION, y = STIMULUS,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION by STIMULUS",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+
+
+### FULL ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION4 = fct_rev(CHART_ACTION4) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION4, y = STIMULUS,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions4", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION [4] by STIMULUS",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action4.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+
+### FULL ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION3 = fct_rev(CHART_ACTION3) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION3, y = STIMULUS,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions3", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION [3] by STIMULUS",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action3.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+
+### FULL ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION2 = fct_rev(CHART_ACTION2) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION2, y = STIMULUS,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions2", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION [2] by STIMULUS",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action2.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+```
+
+**INTERPRETATION** *A high proportion of participants answered 'nothing'
+chart action, which is not surprising given the social media context. I
+am surprised to see such a high proportion answering that they would
+seek further information!*
+
+## PLATFORM CHOICE
+
+Before starting the experimental blocks, participants were asked:
+**Please choose a social media platform to imagine you are engaging with
+during this study**
+
+options: (select one). The response was saved as variable `PLATFORM`
+
+-   Twitter/X, Tumblr
+
+-   LinkedIn
+
+-   Instagram
+
+-   Facebook
+
+```{r}
+## B
+## PLATFORM  BY STIMULUS
+## GGSTATSPLOT
+#hack for consistent ordering of ggstats bar plot
+(p <- df_full %>% 
+  ggbarstats(  
+            x = PLATFORM, y = STUDY,
+            legend.title = "PLATFORM",
+            results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="platforms", direction = "-1"))+
+    theme_minimal() + 
+    labs( title = "PLATFORM Choice ", subtitle = "", x = "")
+)
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_platform_choice.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+    
+```
+
+**INTERPRETATION** *We had no expectations about the distribution of
+social media platform.*
+
+## SEMANTIC DIFFERENTIALS
+
+Participants were also asked to rate certain characteristics of the
+chart, or its maker, along a **semantic differential scale**,
+implemented in Qualtrics as a continuous slider ranging from 0 -\> 100
+with biploar adjectives at the end of each scale. The slider defaulted
+to the center point (50), and the interface displayed the numeric value
+of the slider position as a tooltip while the element had focus. Note
+that on both touch and mouse devices participants could interact with
+the survey element as a slider (i.e. click and and drag, or touch and
+drag) *or* as a visual analogue scale (i.e. click or tap on position
+along the scale).
+
+### FULL SCALES
+
+*The SD scores visualized here are in the same form as the participants'
+response scale (slider from 0-100).*
+
+#### AGGREGATED 
+
+##### boxplot
+```{r plot_boxplot_sds, fig.width=10, fig.height=14}
+
+  #### LIST OF BLOXPLOTS + JITTER #############################################################################
+
+  # setup dataframe 
+  df <- df_graphs 
+  
+  #subset data cols 
+  cols <- df %>% select( all_of(ref_sd_questions))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = FALSE, boxplot=TRUE, labels=ref_labels))
+  
+  #aggregate q plots into one for stimulus 
+  plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
+   plot_annotation(
+     title = "ALL STIMULI",
+     subtitle ="", caption = "(point is mean)"
+   )
+  
+if(GRAPH_SAVE == TRUE){  
+  ggsave(plot = plot_master_questions, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
+}
+
+print(plot_master_questions)
+  
+```  
+  
+##### ggdist halfeye
+```{r plot_halfeye_sds}
+
+
+
+  #### GGDIST PLOT#############################################################################
+  
+  # setup dataframe 
+  df <- df_sd_questions_long %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value) 
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+               category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions)) %>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+
+  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+  (g <- d %>%
+      ggplot(aes(y = fct_rev(QUESTION), x = value, fill=category)) +
+    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
+    
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+  cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 8, vjust=-2) +
+  labs (title = "ALL STIMULI", y = "", caption = "(point is median)") +
+  theme_minimal() + easy_remove_legend()
+)
+
+  if(GRAPH_SAVE == TRUE){ 
+  ggsave(plot = g, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+  }
+  
+
+```
+
+##### density ridges
+```{r plot_ridglines_sds}
+  
+#### DENSITY RIDGES#############################################################################
+  # setup dataframe 
+  df <- df_sd_questions_long %>% select(1:8, QUESTION, value)  
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+  
+(x <-
+    ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = category)) +
+    geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.75, panel_scaling = TRUE) + 
+    # scale_fill_manual(values = my_palettes(name="amy_gradient", direction = "1"))+ 
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+ 
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+    labs (title = "ALL STIMULI", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
+    theme_minimal() + easy_remove_legend()
+)
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
+}
+
+
+```    
+  
+
+
+
+### ABSOLUTE VALUES
+
+*Here the scale of the semantic differential questions have been
+collapsed, such that 0 is the midpoint of the scale (indicating
+uncertainty, or not strongly indicating either of the labelled traits)
+and both 100 and 0 are 50 (indicating a strong signal toward either of
+the labelled traits).*
+
+#### AGGREGATED 
+
+##### boxplot
+```{r ALL-Q-COLLAPSED-ABS, fig.width=10, fig.height=14}
+
+  
+  #### LIST OF BLOXPLOTS + JITTER #############################################################################
+
+  # setup dataframe 
+  df <- df_graphs_abs 
+  
+  #subset data cols 
+  cols <- df %>% select( all_of(ref_sd_questions_abs))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = FALSE, boxplot=TRUE, labels = ref_labels_abs))
+  
+  #aggregate q plots into one for stimulus 
+plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
+   plot_annotation(
+     title = "ALL STIMULI — SD (ABSOLUTE VALUE)",
+     subtitle ="", caption = "(point is mean)"
+   )
+
+  
+if(GRAPH_SAVE == TRUE){
+  ggsave(plot = plot_master_questions, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli","_box.png"), units = c("in"), width = 10, height = 14  )
+}
+  
+  print(plot_master_questions)
+  
+```
+  
+##### ggdist halfeye  
+```{r plot_ggdist_sd_abs}
+  
+  #### GGDIST PLOT#############################################################################
+  
+  # setup dataframe 
+  df <- df_sd_questions_long_abs %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value) 
+  d <- left_join( x = df, y = ref_labels_abs, 
+                  by = c("QUESTION" = "ref_sd_questions_abs")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+
+  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+(  g <- ggplot(d, aes(y = fct_rev(QUESTION), x = value, fill=category)) +
+    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels_abs$left), title = ""),
+      y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
+    ) +
+  cowplot::draw_text(text = ref_sd_questions, x = 45, y= ref_sd_questions_abs,size = 8, vjust=-2) +
+  labs (title = "ALL STIMULI — SD (ABSOLUTE VALUE)", y = "", caption = "(point is median)") +
+  theme_minimal() + easy_remove_legend()
+) 
+
+if(GRAPH_SAVE == TRUE){
+  ggsave(plot = g, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+}
+  
+```
+
+
+##### density ridges
+```{r plot_ridges_sd_abs}
+  
+  #### DENSITY RIDGES#############################################################################
+  # setup dataframe 
+  df <- df_sd_questions_long_abs %>% select(1:8, QUESTION, value)  
+  d <- left_join( x = df, y = ref_labels_abs, 
+                  by = c("QUESTION" = "ref_sd_questions_abs")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+  
+(  x <-ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = category)) +
+    geom_density_ridges(scale = 0.9,quantile_lines = TRUE, alpha = 0.75) + 
+    # scale_fill_manual(values = my_palettes(name="amy_gradient", direction = "1"))+ 
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+ 
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels_abs$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
+    ) +
+    labs(title = "ALL STIMULI — SD (ABSOLUTE VALUE)", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 45, y= ref_sd_questions_abs, size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    theme_minimal() + easy_remove_legend()
+)
+
+if(GRAPH_SAVE == TRUE){
+    ggsave(plot = x, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli","_ridges.png"), units = c("in"), width = 10, height = 14  )
+}
+  
+```    
+
+```{r plot-sd-abs-cleanup}
+rm(df, c,x,g,plot_master_questions)
+```
+
+## CORRELATIONS
+
+### FULL SCALE
+
+
+```{r, correlation-matrices}
+
+
+df <- df_graphs %>% 
+  mutate(
+    M_DESIGN =  datawizard::standardize(MAKER_DESIGN)  , 
+    M_DATA =  datawizard::standardize(MAKER_DATA)  , 
+    M_POLITIC =  datawizard::standardize(MAKER_POLITIC)  , 
+    M_ARGUE =  datawizard::standardize(MAKER_ARGUE)  ,
+    M_SELF =  datawizard::standardize(MAKER_SELF)  , 
+    M_ALIGN =  datawizard::standardize(MAKER_ALIGN)  , 
+    M_TRUST =  datawizard::standardize(MAKER_TRUST)  , 
+    C_TRUST =  datawizard::standardize(CHART_TRUST)  , 
+    C_INTENT =  datawizard::standardize(CHART_INTENT)  , 
+    C_LIKE =  datawizard::standardize(CHART_LIKE)  , 
+    C_BEAUTY =  datawizard::standardize(CHART_BEAUTY)  
+  ) %>% select(
+    M_DESIGN, M_DATA, M_POLITIC, M_ARGUE, M_SELF, M_ALIGN, M_TRUST, C_TRUST, C_INTENT, C_LIKE, C_BEAUTY,  PID
+  )
+
+
+######################### FULL CORRELATION #########################
+print("FULL CORRELATION WITH RANDOM EFFECT")
+## CALCULATE full correlations with random effects
+c <- df %>%  correlation(partial=FALSE, include_factors=FALSE, multilevel=TRUE)
+# cor_sort(c) ## for the tiles one
+(s <- c %>% summary(redundant = FALSE))
+
+
+###### VIS WITH CORRELATION PACKAGE
+#SEE [correlation] PLOT
+g <- plot(s,    show_text = "label",
+          show_data = "point",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     theme_minimal()+
+     labs(title = "All Stimuli | Correlation Matrix — SD Questions", 
+          subtitle="(full correlation; pearson method; Holm p-value adjustment; PID random effect)") + theme_minimal()
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/full_correlation_all_POINTS.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+
+######################### FULL CORRELATION #########################
+print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
+#CALCULATE partial correlations with PID as random effect
+## (this isolates correlation pairwise factoring out other variables)
+c <- df %>% correlation(partial=TRUE,multilevel = TRUE)
+# cor_sort(c) ## for the tiles one
+(s <- c %>% summary(redundant = FALSE ))
+
+
+###### VIS WITH CORRELATION PACKAGE
+#SEE [correlation] PLOT
+g <- plot(s, show_text = "label",
+          show_data = "point",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     theme_minimal()+
+     labs(title = "All Stimuli | Correlation Matrix — SD Questions", 
+          subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/partial_correlation_all_POINTS.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+
+###### VIS WITH CORRPLOT <- -- customizable but can't save to file ARGH
+# 
+# ## GET THE MATRIX
+# m <- as.matrix(c)
+# 
+#
+# ## JUST CIRCLES
+# corrplot(m, method = 'circle', type = 'lower',
+#          order = 'original', diag = FALSE, addCoef.col = "#7A7A7A",
+#          tl.col = "black")
+##############################################################################
+
+```
+
+These plots depict the PARTIAL CORRELATION pairwise between variables
+(partial correlation factors out influence of other variables), with
+participant ID as a random effect. The resulting values are pearson
+moment-correlation coefficients ranging of -1 (direct negative) to +1
+direct positive correlation. These correlations are calculated on the
+full scale semantic differential questions (i.e. with the 0 - 100 range,
+where 1 and 100 are end points and 50 is the central point)
+
+#### node-link diagram
+```{r}
+###################PLOT GAUSSIAN GRAPH MODEL
+## get only significant correlations
+m <- c # the correlation matrix
+## default from easystats
+# plot(m)
+
+
+## 1 SIMPLY NODE NAMES
+m <- as_tibble(c) %>% 
+  mutate(
+    Parameter1 = str_replace_all(Parameter1, "MAKER_", "M_"),
+    Parameter1 = str_replace_all(Parameter1, "CHART_", "C_"),
+    Parameter2 = str_replace_all(Parameter2, "MAKER_", "M_"),
+    Parameter2 = str_replace_all(Parameter2, "CHART_", "C_")
+  ) 
+
+## 2 SHOW ONLY SIGNIFICANT CORRELATIONS
+m <- m %>% 
+  filter(p <= 0.05)
+
+## 3 FORMAT AS GRAPH
+g <- as_tbl_graph(m)
+
+
+### Gaussian Graphical Models (GGMs)
+# Bhushan et al., 2019
+# https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2019.01050/full
+
+f <- 
+  ggraph(g, layout = 'stress') +
+  # ggraph(g, layout = 'linear', circular = TRUE) +
+  geom_edge_link(aes(colour =r, 
+                     edge_width = r,
+                     label = round(r,2))) +
+  geom_node_point( size = 5) + 
+  geom_node_label(size = 3,
+                 # vjust = +1,
+                 # hjust = 0.5,
+                 repel = TRUE,
+                  aes(label = name))  + 
+    scale_edge_color_gradient2(low = "red",
+    mid = "white",
+    high = "blue",
+    midpoint = 0,
+    space = "Lab",
+    # na.value = "grey50",
+    guide = "edge_colourbar",
+    aesthetics = "edge_colour") + 
+    theme_graph() + labs(title = "All Stimuli | Significant Partial Correlations (full SD scale)")
+  
+
+f 
+  
+
+
+```
+
+
+### ABSOLUTE VALUES
+
+```{r, correlation-matrices—abs}
+
+
+df <- df_graphs_abs %>% 
+  mutate(
+    M_DESIGN =  datawizard::standardize(MAKER_DESIGN)  , 
+    M_DATA =  datawizard::standardize(MAKER_DATA)  , 
+    M_POLITIC =  datawizard::standardize(MAKER_POLITIC)  , 
+    M_ARGUE =  datawizard::standardize(MAKER_ARGUE)  ,
+    M_SELF =  datawizard::standardize(MAKER_SELF)  , 
+    M_ALIGN =  datawizard::standardize(MAKER_ALIGN)  , 
+    M_TRUST =  datawizard::standardize(MAKER_TRUST)  , 
+    C_TRUST =  datawizard::standardize(CHART_TRUST)  , 
+    C_INTENT =  datawizard::standardize(CHART_INTENT)  , 
+    C_LIKE =  datawizard::standardize(CHART_LIKE)  , 
+    C_BEAUTY =  datawizard::standardize(CHART_BEAUTY)  
+  ) %>% select(
+    M_DESIGN, M_DATA, M_POLITIC, M_ARGUE, M_SELF, M_ALIGN, M_TRUST, C_TRUST, C_INTENT, C_LIKE, C_BEAUTY,  PID
+  )
+
+
+######################### FULL CORRELATION #########################
+
+print("FULL CORRELATION NO RANDOM EFFECT")
+## CALCULATE full correlations with no random effects
+c <- df %>%  correlation(partial=FALSE, multilevel=TRUE)
+# cor_sort(c) ## for the tiles one
+(s <- c %>% summary(redundant = FALSE))
+
+g <- plot(s,    show_text = "label",
+          # show_data = "point",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     theme_minimal()+
+     labs(title = "All Stimuli | Correlation Matrix — SD Questions — ABSOLUTE VALUES", 
+          subtitle="(full correlation; pearson method; Holm p-value adjustment; PID random effect)") + theme_minimal()
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/ABS_full_correlation_all_POINTS.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+
+
+######################### PARTIAL CORRELATION #########################
+
+
+print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
+#CALCULATE partial correlations with PID as random effect
+## (this isolates correlation pairwise factoring out other variables)
+c <- df %>% correlation(partial=TRUE, multilevel = TRUE)
+# cor_sort(c) ## for the tiles one
+(s <- c %>% summary(redundant = FALSE ))
+
+
+###### VIS WITH CORRELATION PACKAGE
+#SEE [correlation] PLOT
+g <- plot(s, show_text = "label",
+          # show_data = "point",
+     stars=TRUE, show_legend=FALSE,
+     show_statistic = FALSE, show_ci = FALSE) + 
+     theme_minimal()+
+     labs(title = "All Stimuli | Correlation Matrix — SD Questions — ABSOLUTE VALUES", 
+          subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
+     # text = list(fontface = "italic")
+g
+ggsave(g, scale =1, filename = "figs/level_aggregated/heatmaps/ABS_partial_correlation_all_POINTS.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+#PLOT GAUSSIAN GRAPH MODEL
+# plot(c)
+
+
+###### VIS WITH CORRPLOT <- -- customizable but can't save to file ARGH
+
+## GET THE MATRIX
+m <- as.matrix(c)
+
+
+## JUST CIRCLES
+corrplot(m, method = 'circle', type = 'lower',
+         order = 'original', diag = FALSE, addCoef.col = "#7A7A7A",
+         tl.col = "black")
+
+```
+
+**INTERPRETATION** *These plots depict the PARTIAL CORRELATION pairwise between variables
+(partial correlation factors out influence of other variables), with
+participant ID as a random effect. The resulting values are pearson
+moment-correlation coefficients ranging of -1 (direct negative) to +1
+direct positive correlation. These correlations are calculated on the
+ABSOLUTE VALUE of the semantic differential questions (i.e. with the
+full scale folded in half, such that 50 now becomes 0, and the extrememe
+values (0, 100) become 50). The absolute value scale allows us to
+collapse for weak (near zero) vs. strong (near 50) signal in each
+variable.*
+
+### correlation matrices — by category levels
+
+*Here we explore the distribution of each SD variable (e.g. MAKER TRUST)
+by the different values of each categorical variable (e.g. MAKER ID).
+Patterns of interest are noted, which we explore further in the section
+**exploratory questions**.*
+
+##### MAKER ID X SD
+
+```{r, maker_id-sds}
+
+
+df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
+
+## CORRELATION MATRIX SPLIT BY MAKER ID  
+(x <-   ggscatmat(df, columns = 1:11, color = "MAKER_ID", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
+    theme_minimal()
+)
+if(GRAPH_SAVE){
+ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_id_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+}
+
+x
+
+
+```
+
+**Interesting patterns to explore further**
+
+-   When participants identify the maker as an INDIVIDUAL, the following
+    variables show a different pattern than the other identifications:
+    MAKER_DESIGN, MAKER_DATA, CHART INTENT
+-   interesting bimodal distribution on CHART INTENT for most
+    identifications, except individuals and organizations
+
+##### MAKER ID X SD (abs)
+
+```{r, maker_id-sds-abs}
+
+
+df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
+
+## CORRELATION MATRIX SPLIT BY MAKER ID  
+(x <-   ggscatmat(df, columns = 1:11, color = "MAKER_ID", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
+    theme_minimal())
+    
+if(GRAPH_SAVE){
+ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_id_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+}
+x
+
+```
+
+##### MAKER AGE X SD
+
+```{r, maker_age-sds}
+
+
+  df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
+  
+  ## CORRELATION MATRIX SPLIT BY MAKER AGE  
+  (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_AGE", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="lightblues", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    theme_minimal())
+    
+if(GRAPH_SAVE){    
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_age_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+}
+x  
+
+```
+
+**Interesting patterns to explore further**
+
+-   maker_design, chart_like, chart_beauty for BOOMER vs. others
+-   maker_data for gen Z vs others
+
+##### MAKER AGE X SD (abs)
+
+```{r, maker_age-sds-abs}
+
+  
+  df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
+
+  ## CORRELATION MATRIX SPLIT BY MAKER AGE  
+  (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_AGE", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="lightblues", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    theme_minimal())
+    
+if(GRAPH_SAVE){
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_age_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+}
+x
+
+```
+
+##### MAKER GENDER X SD
+
+```{r, maker_gender-sds}
+
+  
+  df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
+  
+  ## CORRELATION MATRIX SPLIT BY MAKER GENDER  
+  (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_GENDER", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    theme_minimal() )
+    
+    if(GRAPH_SAVE){
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_gender_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+  }
+  x
+
+```
+
+**Interesting patterns to explore further** - maker-data for FEMALE
+
+##### MAKER GENDER X SD (abs)
+
+```{r, maker_gender-sds-abs}
+
+  
+  df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                           PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                           MAKER_ID, MAKER_AGE, MAKER_GENDER)
+
+  
+  ## CORRELATION MATRIX SPLIT BY MAKER GENDER  
+  (x <-   ggscatmat(df, columns = 1:11, color = "MAKER_GENDER", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="smallgreens", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    theme_minimal() )
+
+if(GRAPH_SAVE){
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("maker_gender_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+}
+  x
+
+```
+
+##### TOOL ID X SD
+
+```{r, tool-id-sds}
+
+  
+df <- df_tools %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                    TOOL_ID) 
+  
+  ## CORRELATION MATRIX SPLIT BY TOOL ID
+ (x <-  ggscatmat(df, columns = 1:11, color = "TOOL_ID", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="tools", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
+    theme_minimal() )
+  
+  if(GRAPH_SAVE){
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("tool_id_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+  }    
+  x
+
+```
+
+**Interesting patterns to explore further** - maker data for
+design-basic, interesting pattern - look closer at chart beauty -
+interesting pattern across values on chart intent
+
+##### ENCOUNTER X SD
+
+```{r, encounter-sds}
+
+  
+
+df <- df_graphs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                    ENCOUNTER) %>% 
+    mutate(ENCOUNTER = fct_rev(ENCOUNTER))
+
+## CORRELATION MATRIX SPLIT BY ENCOUNTER
+(x <-   ggscatmat(df, columns = 1:11, color = "ENCOUNTER", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="encounter", direction = "1"))+
+    theme_minimal())
+if(GRAPH_SAVE){
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("encounter_corr_sd.png"), units = c("in"), width = 14, height = 10 )
+}
+  x
+  
+  
+```
+
+**Interesting patterns to explore further** — no difference at ALL in
+maker data - interesting! - chart beauty very diff - chart intent
+intersting bimodal
+
+##### ENCOUNTER X SD (abs)
+
+```{r, encounter-sds-abs}
+
+  
+
+df <- df_graphs_abs %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                    ENCOUNTER) %>% 
+    mutate(ENCOUNTER = fct_rev(ENCOUNTER))
+
+## CORRELATION MATRIX SPLIT BY ENCOUNTER
+(x <-   ggscatmat(df, columns = 1:11, color = "ENCOUNTER", alpha = 0.8) + 
+    scale_color_manual(values = my_palettes(name="encounter", direction = "1"))+
+    theme_minimal())
+
+if(GRAPH_SAVE){
+  ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("encounter_corr_abs.png"), units = c("in"), width = 14, height = 10 )
+}
+  x
+  
+  
+```
+
+##### CHART ACTION X SD
+
+```{r, chart-action-sds}
+
+  
+
+df <- df_actions %>% select(MAKER_DESIGN, MAKER_DATA, 
+                           MAKER_POLITIC, MAKER_ARGUE, MAKER_SELF, MAKER_ALIGN, MAKER_TRUST, 
+                           CHART_TRUST, CHART_INTENT, CHART_LIKE, CHART_BEAUTY, 
+                    PID, STIMULUS, BLOCK, STIMULUS_CATEGORY, 
+                    CHART_ACTION) 
+  
+  ## CORRELATION MATRIX SPLIT BY CHART ACTION
+(x <- ggscatmat(df, columns = 1:11, color = "CHART_ACTION", alpha = 0.2) + 
+    scale_color_manual(values = my_palettes(name="actions", direction = "1"), name = "",  guide = guide_legend(reverse = TRUE)) +
+    theme_minimal() )
+if(GRAPH_SAVE){
+ggsave(plot = x, path="figs/level_aggregated/pairplots", filename =paste0("chart_action_corr_sd.png"), units = c("in"), width = 14, height = 10  )
+}
+x
+
+
+```
+
+**Interesting patterns to explore further** - unfollow/block across all!
+
+
+# !!!! TOP PRIORITY HYPOTHESIS TESTING  !!! 
+
+
+ DONE - Beauty !== Trust, 
+ 2. Some individual visualizations have higher confidence, and some have lower (indexical richness), 
+ 3. Beauty + Trust = engagement, but Beauty + Untrust = less engagement
+(SEE ENCOUNTER MODELLING IN CATEGORY LEVEL FILE )
+
+
+## PREDICTING TRUST 
+
+What predicts TRUST? Recent work in psychology suggests that beauty predicts trust. However, from our free response data, we think that some aesthetically pleasing images are interpreted as persuasive and thus less trustworthy.  On this basis, we predict that there will be a significant interaction between BEAUTY and INTENT
+
+
+#### visualize 
+```{r hypo-trust-beauty_intent-}
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  # filter(STIMULUS != "B0-0") %>%
+  select(PID, STIMULUS, STIMULUS_CATEGORY, BLOCK, ENCOUNTER, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_TRUST, MAKER_DATA, MAKER_ID) %>% 
+  mutate(
+    
+    ## (only used if not filtering out B0-0)
+    ## RECODE #recode b00 graph as category D [bc it fits in that category]
+    # STIMULUS_CATEGORY = fct_recode(STIMULUS_CATEGORY, D="F") 
+  ) %>% droplevels()
+
+
+df %>% ggplot(aes(x=CHART_BEAUTY, y=CHART_TRUST, color = CHART_INTENT)) +
+  geom_point() + 
+  stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") + 
+  facet_wrap(~MAKER_ID)+
+  labs(title = "CHART TRUST BY BEAUTY & INTENT") + 
+  theme_minimal()
+  
+df %>% ggplot(aes(x=CHART_INTENT, y=CHART_TRUST, color = CHART_BEAUTY)) +
+  geom_point() + 
+  facet_wrap(~MAKER_ID)+
+  stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") + 
+  labs(title = "CHART TRUST BY INTENT & BEAUTY")+ 
+  theme_minimal()
+
+df %>% ggplot(aes(x=MAKER_DATA, y=CHART_TRUST, color = CHART_BEAUTY)) +
+  geom_point() + 
+  facet_wrap(~MAKER_ID)+
+  stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") + 
+  labs(title = "CHART TRUST BY INTENT & BEAUTY")+ 
+  theme_minimal()
+
+df %>% ggplot(aes(x=MAKER_ID, y=CHART_TRUST, color = CHART_BEAUTY)) +
+  # geom_point() + 
+  geom_boxplot() + geom_point(position=position_jitter(width = 0.2))+
+  # stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") + 
+  labs(title = "CHART TRUST BY INTENT & BEAUTY")+ 
+  theme_minimal()
+
+
+```
+
+
+
+
+
+#### MODEL
+
+Is BEAUTY or INTENT a better predictor of TRUST?  Here we fit a series of linear mixed effects models, predicting `CHART_TRUST` by `CHART_BEAUTY` and `CHART_INTENT` 
+
+
+
+##### SETUP DATA
+```{r hypo-trust_beauty_intent-fit}
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  # filter(STIMULUS != "B0-0") %>% 
+  select(PID, STIMULUS,STIMULUS_CATEGORY, MAKER_ID, MAKER_TRUST, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_DATA) %>% 
+  mutate(
+    TRUST_Z = datawizard::standardise(CHART_TRUST),
+    BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
+    INTENT_Z = datawizard::standardise(CHART_INTENT),
+    DATA_Z = datawizard::standardise(MAKER_DATA),
+    r_MAKER_DATA = datawizard::reverse(MAKER_DATA), # reverse b/c 0 = professional, 100=layperson
+    r_DATA_Z = datawizard::standardise(r_MAKER_DATA)
+  ) %>% 
+  droplevels()
+
+################## BUILD MODELS #################
+
+# # RANDOM INTERCEPT SUBJECT
+# mm.rP <- lmer(CHART_TRUST ~ (1|PID), data = df)
+# print("random effect only")
+# summary(mm.rP)
+```
+
+##### TRUST ~ BEAUTY 
+```{r}
+################## TRUST ~ BEAUTY #################
+f.B <-  "TRUST ~ BEAUTY + (1|PID)"
+print("TRUSTS ~ BEAUTY + (1|PID)")
+mm.B <- lmer(TRUST_Z ~ BEAUTY_Z + (1|PID), data = df)
+car::Anova(mm.B, type=2)
+summary(mm.B)
+performance(mm.B)
+## REPORT 
+# report(mm.B)
+
+## PLOT 
+plot_model(mm.B, type = "eff", terms = "BEAUTY_Z") + 
+  labs(subtitle = f.B) + theme_minimal()
+
+
+## IN PAPER
+
+```
+
+
+##### TRUST ~ INTENT 
+```{r}
+
+
+################## TRUST ~ INTEN #################
+f.I <-  "TRUST ~ INTENT + (1|PID)"
+mm.I <- lmer(TRUST_Z ~ INTENT_Z + (1|PID), data = df)
+car::Anova(mm.I, type=2)
+summary(mm.I)
+performance(mm.I)
+
+## REPORT 
+# report(mm.I)
+
+## PLOT 
+plot_model(mm.I, type = "pred", terms = "INTENT_Z") + 
+  labs(subtitle = f.I) + theme_minimal()
+
+## IN PAPER
+tab_model(mm.I)
+
+```
+
+
+
+##### TRUST ~ DATA !!COMPETING!!
+```{r}
+
+
+################## TRUST ~ DATA #################
+f.D <-  "TRUST ~ DATA + (1|PID)"
+mm.D <- lmer(TRUST_Z ~ DATA_Z + (1|PID), data = df)
+car::Anova(mm.D, type=2)
+summary(mm.D)
+performance(mm.D)
+
+## REPORT 
+# report(mm.I)
+
+## PLOT 
+plot_model(mm.D, type = "pred", terms = "DATA_Z") + 
+  labs(subtitle = f.D) + theme_minimal()
+
+
+```
+##### TRUST ~ MAKER_ID
+```{r}
+
+
+################## TRUST ~ MAKER #################
+f.M <-  "TRUST ~ MAKER + (1|PID)"
+mm.M <- lmer(TRUST_Z ~ MAKER_ID + (1|PID), data = df)
+car::Anova(mm.M, type=2)
+summary(mm.M)
+performance(mm.M)
+## REPORT
+# report(mm.M)
+
+## PLOT
+plot_model(mm.M, type = "pred", terms = "MAKER_ID") +
+  labs(subtitle = f.M) + theme_minimal()
+
+```
+
+
+
+##### compare 
+```{r}
+
+compare_performance(mm.B, mm.I, mm.D, rank = TRUE)
+anova(mm.B, mm.I, mm.D)
+
+```
+
+
+
+##### TRUST ~ BEAUTY X INTENT 
+```{r}
+
+
+## ADD IXN EFFECT 
+################## TRUST ~ BEAUTY X INTENT  #################
+f.BxI <-  "TRUST ~ BEAUTY X INTENT + (1|PID)"
+print("TRUST ~ BEAUTY X INTENT + (1|PID)")
+mm.BxI <- lmer(TRUST_Z ~ INTENT_Z * BEAUTY_Z +  (1|PID), data = df, REML=FALSE)
+compare_performance(mm.BxI, mm.B, mm.I, rank = TRUE)
+anova(mm.BxI, mm.B, mm.I)
+# anova(mm.BxM, mm.BM)
+print ("ADDING interaction BEAUTY * INTENT IMPROVES MODEL FIT  ")
+car::Anova(mm.BxI, type=3)
+summary(mm.BxI)
+
+
+## REPORT 
+# report(mm.BxI)
+
+## PLOT 
+
+## IN THE PAPER 
+plot_model(mm.BxI, type = "int", terms = c("BEAUTY_Z", "INTENT_Z"), mdrt.values = "all") + 
+  labs(subtitle = f.BxI) + theme_minimal()
+
+plot_model(mm.BxI, type = "pred", terms = c("BEAUTY_Z", "INTENT_Z")) + 
+  labs(subtitle = f.BxI) + theme_minimal()
+
+# means <- estimate_means(mm.BxI, at=c("BEAUTY_Z", "INTENT_Z"))
+# contrasts <- estimate_contrasts(mm.BxI, c( "INTENT_Z", "BEAUTY_Z"), method="pairwise")
+# plot(means, contrasts)  #+  facet_wrap(~intent_Z) + labs(subtitle = f.BxI) + theme_minimal()
+
+
+### IN THE PAPER 
+tab_model(mm.BxI)
+
+m <- mm.BxI
+```
+
+
+
+
+
+
+
+##### BEST TRUST ~ BEAUTY X INTENT + DATA *** BEST MODEL *** 
+```{r}
+
+
+################## TRUST ~ BEAUTY X INTENT  #################
+f.BxID <-  "TRUST ~ BEAUTY X INTENT+DATA + (1|PID)"
+print("TRUST ~ BEAUTY X INTENT + DATA + (1|PID)")
+mm.BxID <- lmer(TRUST_Z ~ INTENT_Z * BEAUTY_Z + DATA_Z + (1|PID), data = df, REML=FALSE)
+compare_performance(mm.BxI, mm.BxID, rank = TRUE)
+anova(mm.BxI, mm.BxID)
+# anova(mm.BxM, mm.BM)
+car::Anova(mm.BxID, type=3)
+summary(mm.BxID)
+
+
+## REPORT 
+# report(mm.BxI)
+
+## PLOT 
+
+## IN THE PAPER 
+plot_model(mm.BxID, type = "int", terms = c("BEAUTY_Z", "INTENT_Z", "DATA_Z"), mdrt.values = "all") + 
+  labs(subtitle = f.BxID) + theme_minimal()
+
+plot_model(mm.BxID, type = "pred", terms = c("INTENT_Z", "BEAUTY_Z", "DATA_Z")) + 
+  labs(subtitle = f.BxID) + theme_minimal()
+
+## IN THE PAPER 
+tab_model(mm.BxID)
+
+# means <- estimate_means(mm.BxI, at=c("BEAUTY_Z", "INTENT_Z"))
+# contrasts <- estimate_contrasts(mm.BxI, c( "INTENT_Z", "BEAUTY_Z"), method="pairwise")
+# plot(means, contrasts)  #+  facet_wrap(~intent_Z) + labs(subtitle = f.BxI) + theme_minimal()
+
+tab_model(mm.BxID)
+anova(mm.B, mm.I, mm.D, mm.BxID)
+
+
+
+
+p <- plot_model(mm.BxID, type = "pred", terms = c("INTENT_Z", "BEAUTY_Z", "DATA_Z")) + 
+  labs(subtitle = f.BxID) + theme_minimal()
+
+
+
+ ggsave(p, scale =1, filename = "figs/PAPER/mmBxID.svg", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+ t <- tab_model(mm.BxID)
+# ggsave(t, scale =1, filename = "figs/PAPER/mmBxID_table.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+# first save table to html file
+tab_model(mm.BxID, file = "figs/PAPER/mmBxID_table.html")
+
+# then take this html file and make .png file
+webshot("figs/PAPER/mmBxID_table.html", "figs/PAPER/mmBxID_table.svg")
+```
+### not using 
+
+##### TRUST ~ BEAUTY X MAKER_ID
+```{r}
+
+# 
+# ## ADD IXN EFFECT 
+# ################## TRUST ~ BEAUTY X MAKER_ID  #################
+# f.BxM <-  "TRUST ~ BEAUTY X MAKER_ID + (1|PID)"
+# print("TRUST ~ BEAUTY X MAKER_ID + (1|PID)")
+# mm.BxM <- lmer(TRUST_Z ~ MAKER_ID * BEAUTY_Z +  (1|PID), data = df)
+# compare_performance(mm.BxM, mm.BM, rank = TRUE)
+# test_lrt(mm.BxM, mm.BM)
+# # anova(mm.BxM, mm.BM)
+# print ("ADDING interaction MAKER ID IMPROVES MODEL FIT ")
+# car::Anova(mm.BxM, type=3)
+# summary(mm.BxM)
+# 
+# 
+# ## REPORT 
+# report(mm.BxM)
+# 
+# ## PLOT 
+# plot_model(mm.BxM, type = "int", terms = c("BEAUTY_Z", "MAKER_ID"), mdrt.values = "all") + 
+#   labs(subtitle = f.BxM) + theme_minimal()
+# 
+# plot_model(mm.BXM, type = "pred", terms = c("BEAUTY_Z", "MAKER_ID")) + 
+#   labs(subtitle = f.BM) + theme_minimal()
+# 
+# means <- estimate_means(mm.BM, at=c("BEAUTY_Z", "MAKER_ID"))
+# contrasts <- estimate_contrasts(mm.BM, c( "MAKER_ID"),method="pairwise")
+# plot(contrasts, means) + facet_wrap("MAKER_ID") + labs(subtitle = f.BxM) + theme_minimal()
+
+```
+
+
+
+
+
+
+
+
+##### TRUST ~ BEAUTY X MAKER_ID
+```{r}
+
+# 
+# ## ADD IXN EFFECT 
+# ################## TRUST ~ BEAUTY X MAKER_ID  #################
+# f.BxM <-  "TRUST ~ BEAUTY X MAKER_ID + (1|PID)"
+# print("TRUST ~ BEAUTY X MAKER_ID + (1|PID)")
+# mm.BxM <- lmer(TRUST_Z ~ MAKER_ID * BEAUTY_Z +  (1|PID), data = df)
+# compare_performance(mm.BxM, mm.BM, rank = TRUE)
+# test_lrt(mm.BxM, mm.BM)
+# # anova(mm.BxM, mm.BM)
+# print ("ADDING interaction MAKER ID IMPROVES MODEL FIT ")
+# car::Anova(mm.BxM, type=3)
+# summary(mm.BxM)
+# 
+# 
+# ## REPORT 
+# report(mm.BxM)
+# 
+# ## PLOT 
+# plot_model(mm.BxM, type = "int", terms = c("BEAUTY_Z", "MAKER_ID"), mdrt.values = "all") + 
+#   labs(subtitle = f.BxM) + theme_minimal()
+# 
+# plot_model(mm.BXM, type = "pred", terms = c("BEAUTY_Z", "MAKER_ID")) + 
+#   labs(subtitle = f.BM) + theme_minimal()
+# 
+# means <- estimate_means(mm.BM, at=c("BEAUTY_Z", "MAKER_ID"))
+# contrasts <- estimate_contrasts(mm.BM, c( "MAKER_ID"),method="pairwise")
+# plot(contrasts, means) + facet_wrap("MAKER_ID") + labs(subtitle = f.BxM) + theme_minimal()
+
+```
+
+##### TRUST ~ BEAUTY X MAKER_ID X INTENT
+```{r}
+
+
+# ## ADD IXN EFFECT 
+# ################## TRUST ~ BEAUTY X MAKER_ID  #################
+# f.BxMxI <-  "TRUST ~ BEAUTY X MAKER_ID X INTENT+ (1|PID)"
+# print("TRUST ~ BEAUTY X MAKER_ID X INTENT + (1|PID)")
+# mm.BxMxI <- lmer(TRUST_Z ~ MAKER_ID * BEAUTY_Z* INTENT_Z +  (1|PID), data = df)
+# compare_performance(mm.BxMxI, mm.BxM, rank = TRUE)
+# test_lrt(mm.BxMxI, mm.BxM)
+# # anova(mm.BxM, mm.BM)
+# car::Anova(mm.BxMxI, type=3)
+# summary(mm.BxMxI)
+# 
+# 
+# ## REPORT 
+# report(mm.BxMxI)
+# 
+# ## PLOT 
+# plot_model(mm.BxMxI, type = "int", mdrt.values = "all")
+# 
+# plot_model(mm.BxMxI, type = "pred", terms = c("BEAUTY_Z", "MAKER_ID", "INTENT_Z"))  
+#   
+# # 
+# # means <- estimate_means(mm.BM, at=c("BEAUTY_Z", "MAKER_ID"))
+# # contrasts <- estimate_contrasts(mm.BM, c( "MAKER_ID"),method="pairwise")
+# # plot(contrasts, means) + facet_wrap("MAKER_ID") + labs(subtitle = f.BxM) + theme_minimal()
+# 
+# compare_performance(mm.BxI, mm.BxMxI, rank = TRUE)
+# anova(mm.BxI, mm.BxMxI)
+# 
+# 
+# 
+# 
+# 
+
+
+
+
+```
+
+
+
+
+```{r}
+## INTENT MAIN EFFECT 
+# SUBJECT INTERCEPT | FIXED BEAUTY 
+print("TRUSTS ~ INTENT + (1|PID)")
+mm.IrP <- lmer(CHART_TRUST ~ CHART_INTENT + (1|PID), data = df)
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, mm.IrP, rank = TRUE)
+paste("AIC with INTENT is lower than BEAUTY model?", AIC(logLik(mm.BrP)) > AIC(logLik(mm.IrP)) )
+anova(mm.BrP, mm.IrP, test = "Chi") #same as anova(m0, m1, test = "Chi")
+print("A model with INTENT IS a better fit than model with BEAUTY")
+car::Anova(mm.IrP, type=2)
+print("BEAUTY IS a significant predictor in the model")
+summary(mm.IrP)
+
+
+## BEAUTY AND INTENT MAIN EFFECTS 
+# SUBJECT INTERCEPT | BEAUTY + INTENT
+print("TRUST ~ INTENT + BEAUTY + (1|PID)")
+mm.IBrP <- lmer(CHART_TRUST ~ CHART_INTENT + CHART_BEAUTY + (1|PID), data = df)
+# :: TEST fixed factor 
+compare_performance(mm.rP, mm.BrP, mm.IrP, mm.IBrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.IrP,mm.IBrP, mm.BrP) #same as anova(m0, m1, test = "Chi")
+test_lrt(mm.IrP, mm.IBrP)
+test_lrt(mm.BrP, mm.IBrP)
+paste("A model with a linear combination of BEAUTY and INTENT predicting TRUST is a significantly better fit than either fixed effect alone.")
+car::Anova(mm.IBrP, type = 2)
+summary(mm.IBrP)
+print("CATEGORY is a significant predictor in this model, but BLOCK is not")
+
+
+## BEAUTY INTENT INTERACTION
+# SUBJECT INTERCEPT | INTENT * BEAUTY 
+print("TRUST ~ INTENT * BEAUTY + (1|PID)")
+mm.IBXrP <- lmer(CHART_TRUST ~ CHART_INTENT * CHART_BEAUTY + (1|PID), 
+                data = df) 
+               # control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+               # optCtrl=list(maxfun=2e5)))
+# :: TEST fixed factor 
+compare_performance(mm.IBXrP, mm.IBrP, mm.IrP, mm.BrP, rank = TRUE)
+##anova instead of LRT b/c models are not nested 
+anova(mm.IBXrP, mm.IBrP)
+test_lrt(mm.IBrP, mm.IBXrP, verbose = TRUE) #same as anova(m0, m1, test = "Chi")
+paste("A model with an interaction is significantly better fit")
+car::Anova(mm.IBXrP, type = 3)
+print("In this model, both the main effects and interaction are significant")
+
+
+
+
+#############VERSION WITH ZSCORED VARS 
+## BEAUTY INTENT INTERACTION
+# SUBJECT INTERCEPT | INTENT * BEAUTY 
+print("TRUST ~ INTENT * BEAUTY + (1|PID)")
+mm.ZIBXrP <- lmer(TRUST_Z ~ INTENT_Z * BEAUTY_Z + (1|PID), 
+                data = df) 
+               # control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+               # optCtrl=list(maxfun=2e5)))
+# :: TEST fixed factor 
+compare_performance(mm.IBXrP, mm.ZIBXrP, rank = TRUE) ## should be the same
+##anova instead of LRT b/c models are not nested 
+car::Anova(mm.ZIBXrP, type = 3)
+summary(mm.ZIBXrP)
+
+
+
+## SET BEST 
+m_best <- mm.ZIBXrP
+f <- "(ZSCORED) TRUST ~ INTENT * BEAUTY"
+
+
+############ PARTIAL CORRELATION SANITY CHECK 
+
+# print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
+# #CALCULATE partial correlations with PID as random effect
+# ## (this isolates correlation pairwise factoring out other variables)
+# c <- df %>% correlation(partial=TRUE,multilevel = TRUE)
+# (s <- c %>% summary(redundant = FALSE ))
+
+
+# ###### VIS WITH CORRELATION PACKAGE
+# #SEE [correlation] PLOT
+# g <- plot(s, show_data = "point",   show_text = "label",
+#      stars=TRUE, show_legend=FALSE,
+#      show_statistic = FALSE, show_ci = FALSE) + 
+#      theme_minimal()+
+#      labs(title = "All Stimuli | Correlation Matrix — SD Questions", 
+#           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
+#      # text = list(fontface = "italic")
+# g
+# ggsave(g, scale =1, filename = "figs/level_aggregated/models/partial_correlation_mmIBXrP.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+
+
+
+
+
+```
+
+
+
+
+
+
+#### model describe
+
+```{r hypo-trust_beauty_intent}
+
+############ DESCRIBE FINAL MODEL ###########
+summary(m_best)
+report(m_best)
+
+
+######### PRINT COEFFICIENTS 
+# print("COEFFICIENT ESTIMATES — LOG ODDS")
+# tidy(m_best)
+# print("COEFFICIENT ESTIMATES — ODDS RATIOS")
+# tidy(m_best, exponentiate=TRUE)
+
+``` 
+
+
+#### check rescaling
+```{r}
+# 
+# ## rescale all vars to be -1 to 0 to 1
+# df <- df_graphs %>%
+#   ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+#   # filter(STIMULUS != "B0-0") %>% 
+#   select(PID, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_ID, STIMULUS_CATEGORY, MAKER_DATA) %>% 
+#   mutate(
+#     TRUST_Z = datawizard::standardise(CHART_TRUST),
+#     BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
+#     INTENT_Z = datawizard::standardise(CHART_INTENT),
+#     r_MAKER_DATA = datawizard::reverse(MAKER_DATA), # reverse b/c 0 = professional, 100=layperson
+#     r_DATA_Z = datawizard::standardise(r_MAKER_DATA),
+#     
+#     TRUST_S = datawizard::rescale(CHART_TRUST, to=c(-1,1)),
+#     BEAUTY_S = datawizard::rescale(CHART_BEAUTY, to=c(-1,1)),
+#     INTENT_S = datawizard::rescale(CHART_INTENT, to=c(-1,1)),
+#     DATA_S = datawizard::rescale(MAKER_DATA, to=c(-1,1)),
+#     r_DATA_S = datawizard::reverse(DATA_S), # reverse b/c 0 = professional, 100=layperson
+#     
+#     TRUST_SZ = datawizard::standardise(TRUST_S, to=c(-1,1))
+#     
+#   ) %>% 
+#   droplevels()
+# 
+# 
+# 
+# gf_histogram(df, ~CHART_TRUST)
+# gf_histogram(df, ~TRUST_S)
+# gf_histogram(df, ~TRUST_Z)
+# gf_histogram(df, ~TRUST_SZ)
+#              
+
+
+
+```
+
+#### model vis
+```{r hypo-category-encounter-modelvis}
+# 
+# ############ VISUALIZE MODEL COEFFICIENTS 
+# #SJPLOT | MODEL | ODDS RATIO
+# #library(sjPlot)
+# plot_model(mm.ZIBXrP, type = "est",
+#            vline.color = "red", 
+#            show.intercept = TRUE, 
+#            show.values = TRUE) + theme_minimal()  + 
+#   labs(title = "Model Coefficients",
+#        subtitle = "")
+# 
+# 
+# 
+# ############ VISUALIZE MODEL PREDICTIONS
+# #SJPLOT | MODEL | PROBABILITIES
+# plot_model(m_best, type = "int", mdrt.values = "meansd") + theme_minimal()
+# 
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("BEAUTY_Z"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for BEAUTY")
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("INTENT_Z"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for INTENT")
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("BEAUTY_Z","INTENT_Z"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for INTERACTION")
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("INTENT_Z", "BEAUTY_Z"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for INTERACTION")
+# 
+# 
+# 
+# ## CONTINUOUS INTERACTIONS 
+# result <- estimate_expectation(m_best, data = "grid")
+# plot(result) + theme_minimal()
+# 
+# result <- estimate_expectation(m_alt, data = "grid")
+# plot(result) + theme_minimal()
+# 
+# 
+# result <- estimate_prediction(m_best, data = "grid")
+# plot(result) + theme_minimal()
+# 
+# 
+# 
+# 
+# 
+# ##EXAMPLES NOT WORKING EITHER
+# # slopes <- estimate_slopes(m_best, trend = "INTENT_Z", by = "BEAUTY_Z")
+# # plot(slopes)
+# 
+# 
+# # model <- lm(mpg ~ hp * wt, data = mtcars)
+# # slopes <- estimate_slopes(model, trend = "hp", by = "wt")
+# # plot(slopes)
+# 
+# 
+# 
+# 
+# ## TRY ADDING MAKER ID 
+# 
+# mm.beauty <- lmer(TRUST_Z ~ BEAUTY_Z + (1|PID), data = df)
+# mm.intent <- lmer(TRUST_Z ~ INTENT_Z + (1|PID), data = df)
+# mm.makerbeauty <- lmer(TRUST_Z ~ BEAUTY_Z*MAKER_ID + (1|PID), data = df)
+# 
+# 
+# 
+# plot_model(mm.beauty, type = "eff", terms = "BEAUTY_Z")
+# plot_model(mm.intent, type = "eff", terms = "INTENT_Z")
+# 
+# plot_model(mm.makerbeauty, type = "int")
+# 
+# 
+# 
+#   plot_model(m_best, type = "int")
+# 
+# 
+# plot_model(m_best, type = "int", mdrt.values = "all")
+# 
+# 
+# mm.icat = update(m_best, .~. *MAKER_ID)
+# compare_performance(m_best, mm.icat, mm.idata, rank = TRUE)
+# car::Anova(mm.icat, type=3)
+# plot_model(mm.icat, type = "int", mdrt.values = "meansd")
+# 
+# mm.idata = update(m_best, .~. *r_DATA_Z)
+# compare_performance(m_best, mm.icat, mm.idata, rank = TRUE)
+# car::Anova(mm.idata, type=3)
+# plot_model(mm.idata, type = "int", mdrt.values = "meansd")
+# 
+# 
+# 
+# # plot_model(mm.ZIBXrP, type = "est",vline.color = "red", show.intercept = TRUE, show.values = TRUE) + theme_minimal()  + 
+# #   labs(title = "Model Coefficients", subtitle = "")
+# # plot_model(mm.cat, type = "est",vline.color = "red", show.intercept = TRUE, show.values = TRUE) + theme_minimal()  + 
+# #   labs(title = "Model Coefficients", subtitle = "")
+# # plot_model(mm.cat, type = "emm", terms=c("MAKER_ID" , "INTENT_Z","BEAUTY_Z"))
+# 
+# 
+# 
+# 
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+# EXPLORATORY QUESTIONS
+
+-   When participants identify the maker as an INDIVIDUAL, the following
+    variables show a different pattern than the other identifications:
+    MAKER_DESIGN, MAKER_DATA, CHART INTENT
+-   interesting bimodal distribution on CHART INTENT for most
+    identifications, except individuals and organizations
+    
+    
+    
+    
+    
+    
+### TOOL ID & DATA COMPETENCY    
+    
+```{r vis-tool-id-data, warning=FALSE}
+
+df <- df_tools
+
+## Does DATA COMPETENCY  depend on TOOL ID?
+##RIDGEPLOT w/ MEAN 
+
+answers <- levels(df$TOOL_ID)
+left <- rep(ref_labels['MAKER_DATA','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_DATA','right'],  length(levels(df$MAKER_ID)))
+
+df %>% 
+    group_by(TOOL_ID) %>% 
+    mutate(
+      md=median(MAKER_DATA),
+      m=mean(MAKER_DATA),
+      count = n()
+    ) %>% droplevels() %>% 
+  ggplot(aes(y = TOOL_ID, x= MAKER_DATA, fill = TOOL_ID)) + 
+  # scale_x_continuous(limits = c(0,100))+
+  # geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) +
+  stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="groups") +
+  stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "median_qi") +
+  ##MEDIAN
+  stat_summary(fun=median, geom="text", colour="red",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(md, digits=0)))+
+  stat_summary(fun=median, geom="point", shape=20, size=3, color="red", fill="red") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(m, digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="tools", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+  geom_text(aes(label= paste0("n=",count) ,  y = TOOL_ID, x = 5), color = "black",size = 3, nudge_y = 0.3) +
+  cowplot::draw_text(text = toupper(answers), x = 80, y= answers, size = 10, vjust=-2, hjust=0) +
+  labs (title = "DATA COMPETENCY by TOOL ID", y = "", x = "MAKER DATA COMPETENCY", caption="(mean in blue) (median in red)") +
+  theme_minimal() + easy_remove_legend()
+
+```    
+
+
+
+#### TODO PICKUP HERE model 
+
+
+
+
+```{r}
+# 
+# df <- df_tools %>% 
+#   mutate(
+#     ## reverse order of MAKER_DATA, because scale ranged from 0=expert to 100=layperson
+#     ## we want the reverse 
+#     ## chose NOT to z-score data, bc we want the data in terms of the original scale 
+#     r_MAKER_DATA = reverse_scale(MAKER_DATA),
+#     STIMULUS_CATEGORY = fct_rev(STIMULUS_CATEGORY)
+#   ) %>% filter(STIMULUS!="B0-0")
+# 
+# ## SET CONTRASTS
+# # contrasts(df$MAKER_ID) <-car::contr.Treatment(levels(df$MAKER_ID)) # intercept first group mean; coeff dif from first
+# 
+# ## DEFINE MODEL
+# lm5 <-lmer(r_MAKER_DATA ~ TOOL_ID + STIMULUS_CATEGORY*BLOCK +  (1|PID) , data=df)
+# 
+# # ## PRINT MODEL 
+# # (m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
+# 
+# ## DESCRIBE MODEL
+# summary(lm5)
+# anova(lm5)
+# performance(m1)
+# report(m1)
+# 
+# ## PLOT MODEL COEFFICIENTS
+# coefs <- model_parameters(m1)
+# plot_model(m1, type = "est",
+#         # show.intercept = TRUE,
+#         show.values = TRUE,
+#         value.offset = .25,
+#         show.p = TRUE
+# ) + theme_minimal() + labs(caption=f)
+# 
+# 
+# ## PLOT MODEL PREDICTIONS
+# means <- estimate_means(m1, at = c("TOOL_ID"))
+# 
+# # sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
+# #     theme_minimal() + labs(caption=f)
+# 
+# # plot(means) + theme_minimal() + labs(caption=f) +
+# # geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
+# #           color="blue", position = position_nudge(x=0.25)) 
+# 
+# 
+# ## PLOT MODEL PREDICTIONS with CONTRASTS
+# 
+# ## contrasts
+# # black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
+# (contrasts <- estimate_contrasts(m1, contrast="TOOL_ID", method="pairwise"))
+# plot(contrasts, means) + 
+#     geom_text(aes(x=means$TOOL_ID, y=means$Mean, label=round(means$Mean,2)), color="blue", position = position_nudge(x=0.25)) + 
+#   theme_minimal() + labs(caption =f, y="predicted MAKER DATA COMPETENCY \n (0=layperson, 100=expert)")
+# 
+# ##prediced data 
+# plot_model(m1, type = "eff", terms = "TOOL_ID", show.p = TRUE,
+#            show.values = TRUE, auto.label = TRUE)
+
+```
+
+```{r}
+# <!-- ### JK DO QUANTILE REGRESSION AT THE MEDIAN  -->
+# <!-- library(qrLMM) -->
+# 
+# 
+# 
+# <!-- ## tau is the quantile on which to run the model  -->
+# <!-- m2 <-df %>% QRLMM(  -->
+# <!--               y = r_MAKER_DATA,  -->
+# <!--           r_MAKER_DATA ~ TOOL_ID,  -->
+# <!--            random = ~ 1, -->
+# <!--            group = PID, -->
+# <!--            data=df, tau = 0.5) -->
+# 
+# 
+# 
+# <!-- summary(m2) -->
+# <!-- plot_model(m1) -->
+
+```
+
+
+
+
+
+### MAKER ID & Maker DATA COMPETENCY
+
+```{r vis-maker-id-data, warning=FALSE}
+
+df <- df_graphs 
+
+## Does MAKER_DATA  depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_DATA','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_DATA','right'],  length(levels(df$MAKER_ID)))
+
+df %>% 
+    group_by(MAKER_ID) %>% 
+    mutate(
+      md=median(MAKER_DATA),
+      m=mean(MAKER_DATA),
+      count = n()
+    ) %>% 
+  ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_DATA, fill = fct_rev(MAKER_ID))) + 
+  scale_x_continuous(limits = c(0,100))+
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  ##MEDIAN
+  stat_summary(fun=median, geom="text", colour="red",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(md, digits=0)))+
+  stat_summary(fun=median, geom="point", shape=20, size=3, color="red", fill="red") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(m, digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 100), color = "black",size = 3, nudge_y = 0.25) + 
+  cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
+  labs (title = "DATA COMPETENCY by MAKER ID", y = "", x = "MAKER DATA COMPETENCY", caption="(mean in blue) (median in red)") +
+  theme_minimal() + easy_remove_legend()
+
+```
+
+#### (YES) model
+
+```{r model-maker-id-data}
+
+### LINEAR MIXED EFFECTS MODEL ##################
+
+df <- df_graphs 
+
+## SET CONTRASTS
+contrasts(df$MAKER_ID) <-car::contr.Treatment(levels(df$MAKER_ID)) # intercept first group mean; coeff dif from first
+
+## DEFINE MODEL
+f <- "MAKER_DATA ~ MAKER_ID + (1|PID) + (1|STIMULUS)"
+m1 <-lmer(MAKER_DATA ~ MAKER_ID + (1|PID) + (1|STIMULUS), data=df)
+
+## PRINT MODEL 
+(m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
+
+## DESCRIBE MODEL
+summary(m1)
+anova(m1)
+performance(m1)
+report(m1)
+
+## PLOT MODEL COEFFICIENTS
+coefs <- model_parameters(m1)
+plot_model(m1, type = "est",
+        show.intercept = TRUE,
+        show.values = TRUE,
+        value.offset = .25,
+        show.p = TRUE
+) + theme_minimal() + labs(caption=f)
+
+
+## PLOT MODEL PREDICTIONS
+means <- estimate_means(m1, at = c("MAKER_ID"))
+
+# sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
+#     theme_minimal() + labs(caption=f)
+
+# plot(means) + theme_minimal() + labs(caption=f) +
+# geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
+#           color="blue", position = position_nudge(x=0.25)) 
+
+
+## PLOT MODEL PREDICTIONS with CONTRASTS
+
+## contrasts
+# black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
+(contrasts <- estimate_contrasts(m1, contrast="MAKER_ID", method="pairwise"))
+plot(contrasts, means) + 
+    geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption = f)
+
+```
+
+### Maker ID & Maker DESIGN COMPETENCY
+
+```{r}
+
+df <- df_graphs
+
+## Does MAKER_DESIGN  depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_DESIGN','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_DESIGN','right'],  length(levels(df$MAKER_ID)))
+
+df %>% 
+  group_by(MAKER_ID) %>% 
+  mutate(
+    count = n(), 
+    m = mean(MAKER_DESIGN),
+    md = median(MAKER_DESIGN)
+    ) %>% 
+  ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_DESIGN, fill = fct_rev(MAKER_ID))) + 
+  scale_x_continuous(limits = c(0,100))+
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  ##MEDIAN
+  stat_summary(fun=median, geom="text", colour="red",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(md, digits=0)))+
+  stat_summary(fun=median, geom="point", shape=20, size=3, color="red", fill="red") +
+  ##MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(m, digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 100), color = "black",size = 3, nudge_y = 0.25) + 
+  cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
+  labs (title = "DESIGN COMPETENCY by MAKER ID", y = "", x = "MAKER DESIGN COMPETENCY", caption="(mean in blue) (median in red)") +
+  theme_minimal() + easy_remove_legend()
+
+```
+
+#### (YES) model
+
+```{r model-maker-id-design}
+
+### LINEAR MIXED EFFECTS MODEL ##################
+
+df <- df_graphs 
+
+## DEFINE MODEL
+f <- "MAKER_DESIGN ~ MAKER_ID + (1|PID) + (1|STIMULUS)"
+m1 <-lmer(MAKER_DESIGN ~ MAKER_ID + (1|PID) + (1|STIMULUS), data=df)
+
+## PRINT MODEL 
+(m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
+
+## DESCRIBE MODEL
+summary(m1)
+anova(m1)
+performance(m1)
+report(m1)
+
+## PLOT MODEL COEFFICIENTS
+coefs <- model_parameters(m1)
+plot_model(m1, type = "est",
+        show.intercept = TRUE,
+        show.values = TRUE,
+        show.p = TRUE
+) + theme_minimal() + labs(caption=f)
+
+
+## PLOT MODEL PREDICTIONS
+means <- estimate_means(m1, at = c("MAKER_ID"))
+
+# sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
+#     theme_minimal() + labs(caption=f)
+
+# plot(means) + theme_minimal() + labs(caption=f) +
+# geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
+#           color="blue", position = position_nudge(x=0.25)) 
+
+
+## PLOT MODEL PREDICTIONS with CONTRASTS
+
+## contrasts
+# black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
+(contrasts <- estimate_contrasts(m1, contrast="MAKER_ID", method="pairwise"))
+plot(contrasts, means) + 
+    geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption = f)
+
+```
+
+-   maker_design, chart_like, chart_beauty for BOOMER vs. others
+
+-   maker_data for gen Z vs others
+
+-   maker-data for FEMALE
+
+-   maker data for design-basic, interesting pattern
+
+-   look closer at chart beauty
+
+-   interesting pattern across values on chart intent
+
+— no difference at ALL in maker data - interesting! - chart beauty very
+diff - chart intent intersting bimodal
+
+### Maker ID & Maker POLITICS
+
+\*\*Is there an association between MAKER ID and MAKER POLITICS? We
+hypothesize that when the MAKER ID is identified as POLITICAL, the MAKER
+POLITICS score will be more strongly associated with either ends of the
+semantic differential scale (ie. left leaning or right leaning). We
+expect this to not be the case with the other MAKER ID values.
+
+To test this hypothesis, we will model MAKER_ID as a predictor of
+MAKER_POLITICS_ABS (the absolute value of the collapsed maker politics
+sd scale), where 0 = the midpoint of the original scale, and 50 = both
+the 0 and 100 pts of the original scale
+
+```{r, message=FALSE}
+
+df <- df_graphs_abs
+
+## Does MAKER POLITICS depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels_abs['MAKER_POLITIC','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels_abs['MAKER_POLITIC','right'],  length(levels(df$MAKER_ID)))
+
+df %>% 
+  group_by(MAKER_ID) %>% 
+  mutate(
+    count = n(),
+    m = mean(MAKER_POLITIC),
+    md = median(MAKER_POLITIC)
+  ) %>% 
+  ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_POLITIC, fill = fct_rev(MAKER_ID))) + 
+  scale_x_continuous(limits = c(0,50))+
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  ##MEDIAN
+  stat_summary(fun=median, geom="text", colour="red",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(md, digits=0)))+
+  stat_summary(fun=median, geom="point", shape=20, size=3, color="red", fill="red") +
+  ##MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(m, digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 50), color = "black",size = 3, nudge_y = 0.25) + 
+  cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
+  labs (title = "POLITICS (absolute value) by MAKER ID", y = "", x = "MAKER POLITICS", caption="(mean in blue) (median in red)") +
+  theme_minimal() + easy_remove_legend()
+
+```
+
+Once the MAKER_POLITICS score has been collapsed to the SD scale, we see
+that our hypothesis is likely false, as the mean (absolute value)
+maker_politics scores are nearly the same for individual, organization
+and politics, with only news, education and business being slighly more
+neutral.
+
+#### (NO) model
+
+```{r model-maker-id-politics}
+
+### LINEAR MIXED EFFECTS MODEL ##################
+
+df <- df_graphs_abs
+
+## DEFINE MODEL
+f <- "MAKER_POLITIC ~ MAKER_ID + (1|PID) + (1|STIMULUS)"
+m1 <-lmer(MAKER_POLITIC ~ MAKER_ID + (1|PID) + (1|STIMULUS), data=df)
+
+## PRINT MODEL 
+(m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
+
+## DESCRIBE MODEL
+summary(m1)
+anova(m1)
+performance(m1)
+report(m1)
+
+## PLOT MODEL COEFFICIENTS
+coefs <- model_parameters(m1)
+plot_model(m1, type = "est",
+        show.intercept = TRUE,
+        show.values = TRUE,
+        show.p = TRUE
+) + theme_minimal() + labs(caption=f)
+
+
+## PLOT MODEL PREDICTIONS
+means <- estimate_means(m1, at = c("MAKER_ID"))
+
+# sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
+#     theme_minimal() + labs(caption=f)
+
+# plot(means) + theme_minimal() + labs(caption=f) +
+# geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
+#           color="blue", position = position_nudge(x=0.25)) 
+
+
+## PLOT MODEL PREDICTIONS with CONTRASTS
+
+## contrasts
+# black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
+(contrasts <- estimate_contrasts(m1, contrast="MAKER_ID", method="pairwise"))
+plot(contrasts, means) + 
+    geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption = f)
+
+```
+
+The results of the model confirm our suspicion that our hypothesis is
+not supported by the data. MAKER_ID is not a strong predictor of
+MAKER_POLITICS (absolute value). Post-hoc contrasts demonstrate that the
+mean values of some levels are significantly different (e.g individual
+v. education, organization v. education, education v. political) however
+the overall model does not indicate a good fit.
+
+### Maker ID & Maker TRUST
+
+\*\*Do people indicate higher TRUST in artifacts they attribute to
+EDUCATION type makers?
+
+```{r}
+
+df <- df_graphs
+
+## Does MAKER_TRUST  depend on MAKER ID?
+##RIDGEPLOT w/ MEAN 
+
+answers <- levels(df$MAKER_ID)
+left <- rep(ref_labels['MAKER_TRUST','left'],  length(levels(df$MAKER_ID)))
+right <- rep(ref_labels['MAKER_TRUST','right'],  length(levels(df$MAKER_ID)))
+
+df %>% 
+  group_by(MAKER_ID) %>% 
+  mutate(
+    count = n(), 
+    m=mean(MAKER_TRUST),
+    md=median(MAKER_TRUST)
+    ) %>% 
+  ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_TRUST, fill = fct_rev(MAKER_ID))) + 
+  scale_x_continuous(limits = c(0,100))+
+  geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+  stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  ##MEDIAN
+  stat_summary(fun=median, geom="text", colour="red",  fontface = "bold", size = 2.5,
+               vjust=+2, hjust = 0, aes( label=round(md, digits=0)))+
+  stat_summary(fun=median, geom="point", shape=20, size=3, color="red", fill="red") +
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2.5, 
+               vjust=+2, hjust = 0, aes( label=round(m, digits=0)))+
+  stat_summary(fun="mean", geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+  guides(
+      y = guide_axis_manual(labels = left, title = ""),
+      y.sec = guide_axis_manual(labels = right)
+    ) +
+  geom_text(aes(label= paste0("n=",count) ,  y = MAKER_ID, x = 100), color = "black",size = 3, nudge_y = 0.25) + 
+  cowplot::draw_text(text = toupper(answers), x = 0, y= answers, size = 10, vjust=-2, hjust=0) + 
+  labs (title = "MAKER TRUST  by MAKER ID", y = "", x = "MAKER TRUST", caption="(mean in blue) (median in red)") +
+  theme_minimal() + easy_remove_legend()
+
+```
+
+#### (YES) model
+
+```{r model-maker-id-trust}
+
+### LINEAR MIXED EFFECTS MODEL ##################
+
+df <- df_graphs 
+
+## DEFINE MODEL
+f <- "MAKER_TRUST ~ MAKER_ID + (1|PID) + (1|STIMULUS)"
+m1 <-lmer(MAKER_TRUST ~ MAKER_ID + (1|PID) + (1|STIMULUS), data=df)
+
+## PRINT MODEL 
+(m_eq <- extract_eq(m1, use_coef = TRUE, ital_vars = TRUE, coef_digits = 1, wrap = TRUE, intercept = "beta"))
+
+## DESCRIBE MODEL
+summary(m1)
+anova(m1)
+performance(m1)
+report(m1)
+
+## PLOT MODEL COEFFICIENTS
+coefs <- model_parameters(m1)
+plot_model(m1, type = "est",
+        show.intercept = TRUE,
+        show.values = TRUE,
+        show.p = TRUE
+) + theme_minimal() + labs(caption=f)
+
+
+## PLOT MODEL PREDICTIONS
+means <- estimate_means(m1, at = c("MAKER_ID"))
+
+# sjPlot::plot_model(m1, type = "pred", terms = c("MAKER_ID")) +
+#     theme_minimal() + labs(caption=f)
+
+# plot(means) + theme_minimal() + labs(caption=f) +
+# geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), 
+#           color="blue", position = position_nudge(x=0.25)) 
+
+
+## PLOT MODEL PREDICTIONS with CONTRASTS
+
+## contrasts
+# black = estimated means and CI range; grey = CI range of the difference (as compared to the point estimate).  
+(contrasts <- estimate_contrasts(m1, contrast="MAKER_ID", method="pairwise"))
+plot(contrasts, means) + 
+    geom_text(aes(x=means$MAKER_ID, y=means$Mean, label=round(means$Mean,1)), color="blue", position = position_nudge(x=0.25)) + 
+  theme_minimal() + labs(caption = f)
+
+```
+
+# STASH
+
+wip code stash
+
+
+## sparkline table examples
+```{r}
+
+# library(tinytable)
+# 
+# 
+# ################################# CARS
+# plot_data <- list(mtcars$mpg, mtcars$hp, mtcars$qsec)
+# 
+# dat <- data.frame(
+#   Variables = c("mpg","hp","qsec"),
+#   Histogram="",
+#   Density="",
+#   Bar=""
+# )
+# 
+# tt(dat) %>% 
+#   plot_tt(j=2, fun = "histogram", data = plot_data) %>% 
+#   plot_tt(j=3, fun = "density", data = plot_data) %>% 
+#   plot_tt(j=4, fun = "bar", data = list(2,3,6))
+#   # plot_tt(j=5, fun = "line", data = plot_data) %>% 
+#   # style_tt(j = 2:3, align = "c")
+# 
+# #################################
+# 
+# 
+# 
+# ###################### GGPLOT CUSTOM GRAPH IN TABLE
+# 
+# 
+# penguins<-read.csv( "https://vincentarelbundock.github.io/Rdatasets/csv/palmerpenguins/penguins.csv", na.strings= "") |> na.omit() 
+# #splitdatabyspecies 
+# dat<-split(penguins,penguins$species) 
+# body<-lapply(dat,\(x)x$body_mass_g) 
+# flip<-lapply(dat,\(x)x$flipper_length_mm) 
+# #createnearlyemptytable 
+# tab<-data.frame( "Species" =names(dat), "Body Mass"= "", "FlipperLength" ="", "Body vs. Flipper"= "", check.names= FALSE ) 
+# 
+# #customggplot2functiontocreateinlineplot 
+# f<-function(d,...){ 
+#   ggplot(d,aes(x= flipper_length_mm,y=body_mass_g, color= sex)) + 
+#     geom_point(size= .2) + scale_x_continuous(expand=c(0,0))+  
+#     scale_y_continuous(expand=c(0,0)) + scale_color_manual(values=  c("#E69F00", "#56B4E9")) + theme_void() + theme(legend.position="none") 
+# } 
+# 
+# #`tinytable` calls 
+# 
+# tt(tab) |> 
+#   plot_tt(j=2,fun= "histogram",data = body, height= 2)|> 
+#   plot_tt(j=3,fun= "density", data= flip,height= 2) |> 
+#   plot_tt(j=4,fun= f, data= dat, height= 2)|> 
+#   style_tt(j= 2:4, align="c")
+
+#################################
+```
+
+## half boxplot raincloud mean
+
+```{r}
+# ## HALF BOXPLOT + DOTPLOT + MEAN
+# ##############################
+# H <-  df %>% 
+#   group_by(MAKER_AGE) %>% 
+#   mutate(count = n(), m = mean(MAKER_CONF)) %>% 
+#   ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_AGE), color = fct_rev(MAKER_AGE))) + 
+#     geom_half_boxplot(side="r", alpha = 0.5, aes(fill=fct_rev(MAKER_AGE))) + 
+#     stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+#                vjust=-0.75, hjust = 1, aes( label=round(..y.., digits=0)))+
+#     scale_color_manual(values = my_palettes(name="lightblues", direction = "-1"), 
+#                        guide = guide_legend(reverse = TRUE)) + 
+#     scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), 
+#                       guide = guide_legend(reverse = TRUE)) + 
+#     stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, 
+#                         aes(fill = fct_rev(MAKER_AGE)) , color="black",  point_interval = "mean_qi")  +
+#     stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+#     geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+#             size = 3, nudge_x=0.35) + 
+#   labs(y="Maker Age Confidence", x="") + 
+#   theme_minimal() + 
+#   easy_remove_legend()+
+#   coord_flip() 
+# ##############################
+#   
+
+```
+
+## wip confidence modelling
+
+```{r}
+# 
+# ## [test-frame] Are the confidence scores significantly different for different questions?
+# ## [model-frame] Does QUESTION predict CONFIDENCE, accounting for random variance in SUBJECT and STIMULUS?
+# 
+# 
+# ## MIXED model with random variance only at subject (not stimulus)
+# mm1 <- lmer( CONFIDENCE ~ QUESTION + (1|PID), data = df)
+# # summary(mm1)
+# # plot(check_model(mm1))
+# # pm <- model_parameters(mm1)
+# # plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION + (1|PID)")
+# # performance(mm1)
+# # report(mm1)
+# 
+# 
+# ## MIXED model with random variance only at subject AND stimulus
+# mm2 <- lmer( CONFIDENCE ~ QUESTION + (1|PID) + (1|STIMULUS), data = df)
+# # summary(mm2)
+# # plot(check_model(mm2))
+# # pm <- model_parameters(mm2)
+# # plot_model(mm2)
+# # plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION + (1|PID) + (1|STIMULUS)")
+# # performance(mm2)
+# # report(mm2)
+# 
+# 
+# ## MIXED model with random slope for question by person and random intercept by stimulus
+# mm3 <- lmer( CONFIDENCE ~ QUESTION +  (1 + QUESTION | PID) + (1|STIMULUS), data = df)
+# # summary(mm3)
+# # plot(check_model(mm3))
+# # pm <- model_parameters(mm3)
+# # plot(pm, show_labels = TRUE, show_intercept = TRUE) + labs(title = "CONFIDENCE ~ QUESTION +   (1 + QUESTION | PID) + (1|STIMULUS)")
+# # performance(mm3)
+# # report(mm3)
+# 
+# 
+# ## MIXED model with STIMULUS as FIXED effect and random intercept by person
+# mm4 <- lmer( CONFIDENCE ~ QUESTION + STIMULUS +  (1 | PID), data = df)
+# # summary(mm4)
+# # plot(check_model(mm4))
+# # pm <- model_parameters(mm4)
+# # plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ QUESTION + STIMULUS +  (1 | PID)")
+# # performance(mm4)
+# # report(mm4)
+# 
+# ## MIXED model with STIMULUS * QUESTION interaction and random intercept by person
+# mm5 <- lmer( CONFIDENCE ~ QUESTION * STIMULUS +  (1 | PID), data = df)
+# # summary(mm5)
+# # plot(check_model(mm5))
+# # pm <- model_parameters(mm5)
+# # plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ QUESTION * STIMULUS +  (1 | PID)")
+# # performance(mm5)
+# # report(mm5)
+# 
+# 
+# ## MIXED model with STIMULUS * QUESTION interaction and random intercept by person
+# mmx <- lmer( CONFIDENCE ~ STIMULUS  +  (1 | PID) + (1 | QUESTION), data = df)
+# # summary(mmx)
+# # plot(check_model(mmx))
+# # pm <- model_parameters(mmx)
+# # plot(pm, show_labels = TRUE, show_intercept = FALSE) + labs(title = "CONFIDENCE ~ STIMULUS  +  (1 | PID) + (1 | QUESTION)")
+# # performance(mmx)
+# # report(mmx)
+# 
+# 
+# ### COMPARE MODELS
+# # compare_parameters(mm1,mm2,mm3, mm4, mm5, mmx)
+# compare_performance(mm1,mm2,mm3, mm4, mm5, mmx, rank = TRUE )
+# ## model 3 is the best fit, and is appropriate to the design of the study
+# summary(mm3)
+# report(mm3)
+# # plot_model(mm3, terms = c("QUESTION", "STIMULUS"), type = "diag")
+# 
+# # # ## repeated measures aov
+# # print("Repeated Measures ANOVA")
+# # ex1 <- aov(CONFIDENCE~QUESTION+Error(PID), data=df)
+# # summary(ex1)
+# # report(ex1)
+# 
+
+
+
+
+```
+
+## correlation plot code
+
+```{r}
+# ## SHADED CIRCLES
+# corrplot(m, method = 'circle', type = 'lower', 
+#          order = 'AOE', diag = FALSE,
+#          insig='blank',
+#          tl.col = "black")
+# 
+# 
+# ## SHADED NUMBERS
+# corrplot(m,  order = 'AOE', method = "number", 
+#          diag = FALSE, type = "lower",
+#          insig='blank',
+#          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+#          addCoef.col = '#595D60',
+#          tl.pos = "ld", tl.col = "#595D60")
+#          
+# 
+# ## SHADED SQUARED + COEFFS
+# corrplot(m,  order = 'AOE', method = "circle", 
+#          diag = FALSE, type = "lower",
+#          insig='blank', sig.level = 0.05,
+#          # insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05),
+#          addCoef.col = '#595D60',
+#          tl.pos = "ld", tl.col = "#595D60")
+#          
+
+```
+
+## flip some sds
+
+```{r}
+
+
+
+############## SETUP FOR FLIPPING SCALES ON SOME QUESTIONS TO MAKE THEM MORE READABLE
+ref_sd_reordered <- c("MAKER_DATA","MAKER_DESIGN", 
+                    "CHART_BEAUTY", "CHART_LIKE", 
+                    "MAKER_POLITIC","MAKER_ARGUE", "MAKER_SELF", "CHART_INTENT",
+                    "MAKER_ALIGN","MAKER_TRUST",
+                    "CHART_TRUST")
+
+left_reordered <- c("layperson","layperson", 
+                    "NOT at all","NOT at all",
+                    "left-leaning",
+                    "diplomatic",
+                    "altruistic",
+                    "inform",    
+                    "DOES share", 
+                    "untrustworthy",
+                    "untrustworthy")
+right_reordered <- c("professional","professional",
+                     "very much", "very much",          
+                     "right-leaning",
+                     "confrontational",
+                     "selfish", 
+                     "persuade",
+                     "does NOT share", 
+                     "trustworthy",
+                     "trusthworthy")
+
+ref_labels_reordered <- as.data.frame(cbind(left_reordered,right_reordered))
+rownames(ref_labels_reordered) <- ref_sd_questions
+
+
+
+
+```
+
+## correlation matrix
+
+```{r}
+## GGALLY correlation heatmap
+# ggcorr(df,
+#        label = TRUE,  geom = "tile",
+#        nbreaks = 5, layout.exp = 2,   
+#        # label_round = 2,
+#        angle = -0, hjust = 0.8, vjust = 1, size = 2.5,
+#        low = "#D88585",mid = "white", high= "#6DA0D6") +
+#        easy_remove_legend() + 
+#   labs(title = "Correlation between SD measures", subtitle = ("pairwise; Pearson correlations"))
+```
+
+## ridgeplot with interval and mean
+
+```{r}
+
+# ## Does MAKER_TRUST  depend on MAKER ID?
+# ##RIDGEPLOT w/ MEAN 
+# answers <- levels(df$MAKER_ID)
+# left <- rep(ref_labels['MAKER_TRUST','left'],  length(levels(df$MAKER_ID)))
+# right <- rep(ref_labels['MAKER_TRUST','right'],  length(levels(df$MAKER_ID)))
+# df %>% ggplot(aes(y = fct_rev(MAKER_ID), x= MAKER_TRUST, fill = fct_rev(MAKER_ID))) + 
+#   geom_density_ridges(scale = 0.55,quantile_lines = TRUE, alpha = 0.75) + 
+#   stat_dotsinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+#   stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", 
+#                vjust=+2, hjust = 0, aes( label=round(..x.., digits=0)))+
+#     stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue") +
+#   scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+#     guides(
+#       y = guide_axis_manual(labels = left, title = ""),
+#       y.sec = guide_axis_manual(labels = right)
+#     ) +
+#    cowplot::draw_text(text = toupper(answers), x = 10, y= answers,size = 10, vjust=-2) + 
+#   labs (title = "MAKER TRUST by MAKER ID", y = "", x = "MAKER TRUST", caption="(mean in blue)") +
+#   theme_minimal() + easy_remove_legend()
+
+
+```
+
+## lessR donuts
+
+```{r b2_donuts}
+##good for seeing the color schemes 
+# #### DEFINE SET 
+# stimulus  = "B2-1"
+# df <- df_graphs %>% filter(STIMULUS == stimulus)
+# 
+# #### GENERATE GRAPHS
+# 
+#   #MAKER_ID-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "reds",
+#          main = paste0(stimulus, " MAKER ID")) + theme_minimal()
+# 
+# 
+# #MAKER_GENDER-DONUT
+# PieChart(MAKER_GENDER, data = df,
+#        fill = "blues",
+#        main = paste0(stimulus, " MAKER GENDER")) + theme_minimal()
+# 
+# 
+# #MAKER_AGE-DONUT
+# PieChart(MAKER_AGE, data = df,
+#        fill = "olives",
+#        main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+# 
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "rusts",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "olives",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "greens",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "emeralds",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "turquoises",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "aquas",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-MAKER_ID
+#   PieChart(MAKER_ID, data = df,
+#          fill = "purples",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "magentas",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "violets",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+#   
+#   #MAKER_AGE-DONUT
+#   PieChart(MAKER_ID, data = df,
+#          fill = "grays",
+#          main = paste0(stimulus, " MAKER AGE")) + theme_minimal()
+# "reds"	h	0
+# "rusts"	h	30
+# "browns"	h	60
+# "olives"	h	90
+# "greens"	h	120
+# "emeralds"	h	150
+# "turquoises"	h	180
+# "aquas"	h	210
+# "blues"	h	240
+# "purples"	h	270
+# "violets"	h	300
+# "magentas"	h	330
+# "grays"
+
+```
+
+## ggplot donuts
+
+```{r}
+#   df <- df_graphs %>% filter(STIMULUS== s)
+# #### CATEGORICAL DONUT PLOTS
+#   #subset data cols 
+#   cols <- df %>% select( all_of(ref_cat_questions))
+#   
+#   ggplot( df, aes( x = STIMULUS, fill = MAKER_ID)) +
+#   geom_bar( position = "stack", width=1) +
+#   coord_radial(theta = "y", start = 0, inner.radius = 0.5, expand=FALSE) +
+#   scale_fill_manual(values = my_palettes(name="reds", direction = "1"), name = "",  guide = guide_legend(reverse = FALSE)) +   
+#   labs( title = paste0(s, " MAKER ID")) +
+#   theme_minimal()
+#   
+#   
+```
+
+## Alluvial Plots
+
+```{r}
+## EXAMPLE ALLUVIAL PLOT USING GGALUVIAL  (instead of GGSANKEY)
+# https://corybrunson.github.io/ggalluvial/articles/ggalluvial.html
+
+# #FILTER FOR BLOCK 2 STIM AND RESHAPE FOR SANKEY
+# ds <- df_graphs %>% 
+#   filter(str_detect(STIMULUS, "B2")) %>% 
+#   select(STIMULUS, MAKER_ID, PID) %>% 
+#   mutate(
+#     MAKER_ID = fct_relevel(MAKER_ID, 
+#               c("business","education","individual", "news","organization", "political" ))
+#   )
+# 
+# ds %>% 
+#   ggplot(aes( x = STIMULUS,
+#               stratum = MAKER_ID,
+#               label = MAKER_ID,
+#               alluvium = PID)) +
+#       stat_alluvium(aes(fill = MAKER_ID),
+#                     width = 0,
+#                     alpha = 1,
+#                     geom = "flow")+
+#       geom_stratum(width = 0.2, aes(fill= MAKER_ID))+
+#       # geom_text(stat = "stratum", size = 5, angle = 90)+
+#       scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE,
+#                      alpha = 1) +
+#       theme_minimal()
+```
+
+## AD and KS Tests Comparing of Distributions 
+
+Are the confidence distributions for each question _different_? Note that central tendency is not a good measure here, because we care a great deal about the shape of the distribution. KS Tests can be used to compare 2 empirical distributions (and AD tests more than 2) to against the null hypothesis that they were drawn from the same population. HOWEVER BOTH tests assume the variables are independent (i.e. not repeated measures or from the same sample) so it is not appropriate to use them to compare distributions of our survey vars 
+```{r}
+
+# df <- df_full
+
+## PAIRWISE KS-TESTS 
+# ks.test(df$MAKER_CONF, df$AGE_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+# 
+# ks.test(df$MAKER_CONF, df$GENDER_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+# 
+# ks.test(df$MAKER_CONF, df$TOOL_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+# 
+# 
+# ks.test(df$GENDER_CONF, df$AGE_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+# 
+# ks.test(df$GENDER_CONF, df$TOOL_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+# 
+# ks.test(df$AGE_CONF, df$TOOL_CONF,
+#         alternative="two.sided",
+#         simulate.p.value = TRUE )
+
+
+
+# 
+# 
+# ## kSamples
+# # library(kSamples)
+# ad.test( df$MAKER_CONF, df$AGE_CONF, df$GENDER_CONF, df$TOOL_CONF,
+#          method = "asymptotic")
+```
+
+## Friedman rank Sum test comparing distirbutions unreplicated blocked data 
+```{r}
+# 
+# # setup dataframe 
+# df <- df_graphs 
+# 
+# ## COMPARE POLITICS, ARGUE, SELFISH, ALIGNMENT 
+# 
+# 
+# ## CHART LIKE AND CHART BEAUTY  
+# df <- df_sd_questions_long %>% select(PID, QUESTION, STIMULUS, value) %>% 
+#   filter( QUESTION %in% c("CHART_LIKE", "CHART_BEAUTY")) %>% 
+#   group_by(QUESTION, PID) %>%   ## HAVE TO COLLAPSE ACROSS STIMULI TO RUN FREIDMAN TEST 
+#   summarise( 
+#     m_value=round(mean(value),0) #calc mean for showing in plots 
+# ) %>% droplevels()
+# 
+# df <- as.data.frame(df)
+# friedman.test( data = df, m_value ~ QUESTION | PID)
+# ## EFFECT SIZE 
+# friedman_effsize( data = df, m_value ~ QUESTION | PID)
+# 
+# 
+# ## CHART TRUST AND MAKER TRUST
+# df <- df_sd_questions_long %>% select(PID, QUESTION, STIMULUS, value) %>% 
+#   filter( QUESTION %in% c("CHART_TRUST", "MAKER_TRUST")) %>% 
+#   group_by(QUESTION, PID) %>%   ## HAVE TO COLLAPSE ACROSS STIMULI TO RUN FREIDMAN TEST 
+#   summarise( 
+#     m_value=round(mean(value),0) #calc mean for showing in plots 
+# ) %>% droplevels()
+# 
+# df <- as.data.frame(df)
+# friedman.test( data = df, m_value ~ QUESTION | PID)
+# ## EFFECT SIZE 
+# friedman_effsize( data = df, m_value ~ QUESTION | PID)
+# 
+# 
+# 
+# ## COMPARE POLITICS, ARGUE, SELFISH, ALIGNMENT 
+# df <- df_sd_questions_long %>% select(PID, QUESTION, STIMULUS, value) %>% 
+#   filter( QUESTION %in% c("MAKER_POLITIC", "MAKER_ARGUE", "MAKER_SELFISH", "MAKER_ALIGN")) %>% 
+#   group_by(QUESTION, PID) %>%   ## HAVE TO COLLAPSE ACROSS STIMULI TO RUN FREIDMAN TEST 
+#   summarise( 
+#     m_value=round(mean(value),0) #calc mean for showing in plots 
+# ) %>% droplevels()
+# 
+# df <- as.data.frame(df)
+# friedman.test( data = df, m_value ~ QUESTION | PID)
+# ## EFFECT SIZE 
+# friedman_effsize( data = df, m_value ~ QUESTION | PID)
+# 
+# 
+# 
+# 
+# #### SOMETHING WE EXPECT TO BE VERY DIFFERENT 
+# ## DESIGN COMPETENCY AND POLITICS 
+# df <- df_sd_questions_long %>% select(PID, QUESTION, STIMULUS, value) %>% 
+#   filter( QUESTION %in% c("MAKER_POLITIC", "MAKER_DESIGN")) %>% 
+#   group_by(QUESTION, PID) %>%   ## HAVE TO COLLAPSE ACROSS STIMULI TO RUN FREIDMAN TEST 
+#   summarise( 
+#     m_value=round(mean(value),0) #calc mean for showing in plots 
+# ) %>% droplevels()
+# 
+# df <- as.data.frame(df)
+# friedman_test( data = df, m_value ~ QUESTION | PID)
+# ## EFFECT SIZE 
+# friedman_effsize( data = df, m_value ~ QUESTION | PID)
+# 
+# gf_histogram(df, ~m_value) + facet_wrap(~QUESTION)
+
+```
+
+
+# RESOURCES
+
+-   custom color palettes:
+    <https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/>
+-   lessR donuts <https://r-charts.com/part-whole/donut-chart/>
+-   GGSANKEY <https://github.com/davidsjoberg/ggsankey>
+-   GGALLUVIAL
+    <https://corybrunson.github.io/ggalluvial/articles/ggalluvial.html>
+-   variable standardization [variable (vs) participant]
+    :<https://cran.r-project.org/web/packages/datawizard/vignettes/standardize_data.html>
+-   contrasts:
+-   UCLA:<https://stats.oarc.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables>
+-   <https://phillipalday.com/stats/lazy-contrasts.html>
+-   level naming with contrasts :<https://rpubs.com/bbolker/5335>
+-   ggdist slab normaliztion https://mjskay.github.io/ggdist/articles/thickness.html
+- visualizing regression models visreg https://pbreheny.github.io/visreg/index.html
