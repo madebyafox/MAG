@@ -1,0 +1,213 @@
+.JFEScope .Skin .q-slider .statement-container{
+    padding-top: 0px;
+    padding-bottom: 0px
+    }
+    
+    #sticky_vid {
+       position: sticky;
+        top: 0px;
+        z-index: 10;
+        width: 100%;
+        background-color: white;
+    }
+     
+    /*hack for all images b/c can't apply center class in some cases blerg*/
+    img {
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      width: 75%;
+    }
+    
+    .center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      width: 75%;
+    }
+    
+    /*COMMON*/
+    [id = 'QID349'] { display: none;}
+    [id = 'QID351'] { display: none; }
+    [id = 'QID353'] { display: none; }
+    [id = 'QID355'] { display: none; }
+    [id = 'QID358'] { display: none; }
+    [id = 'QID374'] { display: none; }
+    [id = 'QID378'] { display: none; }
+    
+    /*BLOCK 1*/
+    [id = '1_QID430'] { display: none;}
+    [id = '1_QID432'] { display: none;}
+    [id = '1_QID434'] { display: none;}
+    [id = '1_QID437'] { display: none;}
+    [id = '1_QID453'] { display: none;}
+    [id = '1_QID457'] { display: none;}
+    
+    [id = '2_QID430'] { display: none;}
+    [id = '2_QID432'] { display: none;}
+    [id = '2_QID434'] { display: none;}
+    [id = '2_QID437'] { display: none;}
+    [id = '2_QID453'] { display: none;}
+    [id = '2_QID457'] { display: none;}
+    
+    [id = '3_QID430'] { display: none;}
+    [id = '3_QID432'] { display: none;}
+    [id = '3_QID434'] { display: none;}
+    [id = '3_QID437'] { display: none;}
+    [id = '3_QID453'] { display: none;}
+    [id = '3_QID457'] { display: none;}
+    
+    [id = '4_QID430'] { display: none;}
+    [id = '4_QID432'] { display: none;}
+    [id = '4_QID434'] { display: none;}
+    [id = '4_QID437'] { display: none;}
+    [id = '4_QID453'] { display: none;}
+    [id = '4_QID457'] { display: none;}
+    
+    
+    /*BLOCK 2*/
+    [id = '1_QID391'] { display: none;}
+    [id = '1_QID393'] { display: none;}
+    [id = '1_QID395'] { display: none;}
+    [id = '1_QID398'] { display: none;}
+    [id = '1_QID414'] { display: none;}
+    [id = '1_QID418'] { display: none;}
+    
+    [id = '2_QID391'] { display: none;}
+    [id = '2_QID393'] { display: none;}
+    [id = '2_QID395'] { display: none;}
+    [id = '2_QID398'] { display: none;}
+    [id = '2_QID414'] { display: none;}
+    [id = '2_QID418'] { display: none;}
+    
+    [id = '3_QID391'] { display: none;}
+    [id = '3_QID393'] { display: none;}
+    [id = '3_QID395'] { display: none;}
+    [id = '3_QID398'] { display: none;}
+    [id = '3_QID414'] { display: none;}
+    [id = '3_QID418'] { display: none;}
+    
+    [id = '4_QID391'] { display: none;}
+    [id = '4_QID393'] { display: none;}
+    [id = '4_QID395'] { display: none;}
+    [id = '4_QID398'] { display: none;}
+    [id = '4_QID414'] { display: none;}
+    [id = '4_QID418'] { display: none;}
+    
+    
+    /*BLOCK 3*/
+    [id = '1_QID469'] { display: none;}
+    [id = '1_QID471'] { display: none;}
+    [id = '1_QID473'] { display: none;}
+    [id = '1_QID476'] { display: none;}
+    [id = '1_QID492'] { display: none;}
+    [id = '1_QID496'] { display: none;}
+    
+    [id = '2_QID469'] { display: none;}
+    [id = '2_QID471'] { display: none;}
+    [id = '2_QID473'] { display: none;}
+    [id = '2_QID476'] { display: none;}
+    [id = '2_QID492'] { display: none;}
+    [id = '2_QID496'] { display: none;}
+    
+    [id = '3_QID469'] { display: none;}
+    [id = '3_QID471'] { display: none;}
+    [id = '3_QID473'] { display: none;}
+    [id = '3_QID476'] { display: none;}
+    [id = '3_QID492'] { display: none;}
+    [id = '3_QID496'] { display: none;}
+    
+    [id = '4_QID469'] { display: none;}
+    [id = '4_QID471'] { display: none;}
+    [id = '4_QID473'] { display: none;}
+    [id = '4_QID476'] { display: none;}
+    [id = '4_QID492'] { display: none;}
+    [id = '4_QID496'] { display: none;}
+    
+    
+    /*BLOCK 4*/
+    [id = '1_QID508'] { display: none;}
+    [id = '1_QID510'] { display: none;}
+    [id = '1_QID512'] { display: none;}
+    [id = '1_QID515'] { display: none;}
+    [id = '1_QID531'] { display: none;}
+    [id = '1_QID535'] { display: none;}
+    
+    [id = '2_QID508'] { display: none;}
+    [id = '2_QID510'] { display: none;}
+    [id = '2_QID512'] { display: none;}
+    [id = '2_QID515'] { display: none;}
+    [id = '2_QID531'] { display: none;}
+    [id = '2_QID535'] { display: none;}
+    
+    [id = '3_QID508'] { display: none;}
+    [id = '3_QID510'] { display: none;}
+    [id = '3_QID512'] { display: none;}
+    [id = '3_QID515'] { display: none;}
+    [id = '3_QID531'] { display: none;}
+    [id = '3_QID535'] { display: none;}
+    
+    [id = '4_QID508'] { display: none;}
+    [id = '4_QID510'] { display: none;}
+    [id = '4_QID512'] { display: none;}
+    [id = '4_QID515'] { display: none;}
+    [id = '4_QID531'] { display: none;}
+    [id = '4_QID535'] { display: none;}
+    
+    /*BLOCK 5*/
+    [id = '1_QID686'] { display: none;}
+    [id = '1_QID688'] { display: none;}
+    [id = '1_QID690'] { display: none;}
+    [id = '1_QID693'] { display: none;}
+    [id = '1_QID709'] { display: none;}
+    [id = '1_QID713'] { display: none;}
+    
+    [id = '2_QID686'] { display: none;}
+    [id = '2_QID688'] { display: none;}
+    [id = '2_QID690'] { display: none;}
+    [id = '2_QID693'] { display: none;}
+    [id = '2_QID709'] { display: none;}
+    [id = '2_QID713'] { display: none;}
+    
+    [id = '3_QID686'] { display: none;}
+    [id = '3_QID688'] { display: none;}
+    [id = '3_QID690'] { display: none;}
+    [id = '3_QID693'] { display: none;}
+    [id = '3_QID709'] { display: none;}
+    [id = '3_QID713'] { display: none;}
+    
+    [id = '4_QID686'] { display: none;}
+    [id = '4_QID688'] { display: none;}
+    [id = '4_QID690'] { display: none;}
+    [id = '4_QID693'] { display: none;}
+    [id = '4_QID709'] { display: none;}
+    [id = '4_QID713'] { display: none;}
+    
+    /*BLOCK 6*/
+    [id = '1_QID722'] { display: none; }
+    [id = '1_QID724'] { display: none; }
+    [id = '1_QID726'] { display: none; }
+    [id = '1_QID729'] { display: none; }
+    [id = '1_QID745'] { display: none; }
+    [id = '1_QID749'] { display: none; }
+    
+    [id = '2_QID722'] { display: none; }
+    [id = '2_QID724'] { display: none; }
+    [id = '2_QID726'] { display: none; }
+    [id = '2_QID729'] { display: none; }
+    [id = '2_QID745'] { display: none; }
+    [id = '2_QID749'] { display: none; }
+    
+    [id = '3_QID722'] { display: none; }
+    [id = '3_QID724'] { display: none; }
+    [id = '3_QID726'] { display: none; }
+    [id = '3_QID729'] { display: none; }
+    [id = '3_QID745'] { display: none; }
+    [id = '3_QID749'] { display: none; }
+    
+    [id = '4_QID722'] { display: none; }
+    [id = '4_QID724'] { display: none; }
+    [id = '4_QID726'] { display: none; }
+    [id = '4_QID729'] { display: none; }
+    [id = '4_QID745'] { display: none; }
+    [id = '4_QID749'] { display: none; }
