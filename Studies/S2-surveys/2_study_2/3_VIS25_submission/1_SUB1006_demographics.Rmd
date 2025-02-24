@@ -1,0 +1,1004 @@
+---
+title: "SUBMISSION 1006 — DEMOGRAPHICS"
+author: "ANONYMIZED"
+date: "2025-02-24"
+output:
+  html_document:
+    theme: flatly
+    code_folding: hide
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    toc_depth: 5
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+always_allow_html: yes
+font-family: DejaVu Sans
+mainfont: DejaVu Sans
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(psych) #describe()
+library(tidyverse) #all the things
+library(magrittr) #special pipes like %<>%
+library(summarytools) #data quality
+library(lubridate) #dealing with dates
+
+#EDA
+library(qacBase)
+
+#VIZ
+library(kableExtra) #printing tables
+library(ggformula) #regression syntax viz
+# library(vcd) #mosaic plots
+# library(vcdExtra) #mosaic plot helpers
+library(ggstatsplot) #dummies
+library(GGally) #extends ggplot for EDA 
+library(ggeasy) #easy labelling
+library(ggh4x) #guides [dual axes]
+library(patchwork) #multi-plot layout
+library(ggdist) #raincloud plots and other distributionals
+library(ggridges) #ridge plots
+library(viridis) #color palettes
+library(RColorBrewer) #color palettes
+library(plotly) # interactive graphs
+library(paletteer) #more palettes
+library(lessR) ##easy donuts 
+
+#CONFIG
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+n_blocks = 6
+
+## IMPORTANT 
+graph_render = TRUE #set to true to generate all the SD graphs and save to folders 
+
+```
+
+*This notebook contains code to characterize the distribution of demographic (response) variables in the SUBMISSION 1006 Study(survey). It relies upon data wrangling performed in `0_SUB1006_wrangling.Rmd`*.
+
+In the attribution-elicitation survey, participants were asked questions about their attitude toward (5) stimulus images (data visualizations). Each participant was randomly assigned to one of 6 stimulus blocks, each containing 1 image from each of (4) categories (ranging from most abstract to most figural). Each participant started by responding to questions for a single 'common block' stimulus (that is thus super-powered as it was seen by all participants).  Two participant recruitment pools were used: Prolific, with a smaller set of participants recruited from Tumblr (to replicate results of interview Study [Morgenstern, Fox, Jones & Satyanarayan] with participants sourced from Tumblr). 
+
+# SETUP
+
+_We start by importing data files previously wrangled in  `0_SUB1006_wrangling.Rmd`._
+
+## IMPORT DATA
+
+```{r import-refs, message=FALSE, warning = FALSE}
+# 
+# ############## IMPORT REFERENCE FILES
+# ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
+# ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
+# ref_labels <- readRDS("data/input/REFERENCE/ref_labels.rds")
+# ref_labels_abs <- readRDS("data/input/REFERENCE/ref_labels_abs.rds")
+# 
+# ############## SETUP Graph Labels
+# ref_stim_id <- levels(ref_stimuli$ID)
+# ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
+# ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
+# ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
+# ref_sd_questions <- rownames(ref_labels)
+# ref_sd_questions_abs <- rownames(ref_labels_abs)
+#   
+# 
+# # ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
+ref_blocks <- c(1,2,3,4,5,6)
+
+
+```
+
+```{r import-data, message=FALSE, warning = FALSE}
+
+############## IMPORT DATA FILES
+df_participants <- readRDS("data/output/df_participants.rds") #1 row per participant — demographic
+
+
+df_tools <- readRDS("data/output/df_tools.rds") #multiselect format for tools Question
+df_actions <- readRDS("data/output/df_actions.rds") # multiselect format for action Question
+
+## TRIAL LEVEL DATA FILES
+df_graphs <- readRDS("data/output/df_graphs.rds") #only categorical and numeric questions
+df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds") # only sd questions LONG
+
+### TRIAL LEVEL DATA FILES WITH (VARIABLE-WISE) Z-SCORED SEMANTIC DIFFERENTIAL QS 
+df_graphs_z <- readRDS("data/output/df_graphs_z.rds") #only categorical and numeric questions
+df_sd_questions_long_z <- readRDS("data/output/df_sd_questions_long_z.rds") # only sd questions LONG
+
+
+### TRIAL LEVEL DATA FILES WITH ABSOLUTE VALUE SEMANTIC DIFFERENTIAL QS 
+df_graphs_abs <- readRDS("data/output/df_graphs_abs.rds") #only categorical and numeric questions
+df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") # only sd questions LONG
+
+```
+
+
+## SETUP GRAPHING
+```{r setup-pallettes}
+
+############## SETUP Colour Palettes
+#https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
+
+## list of color pallettes
+my_colors = list(
+  politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
+  blackred = c("black","red"),
+  greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
+  smallgreens = c("#ADC69D","#567E39","#193E0A"),
+  olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
+  lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
+  darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
+  reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
+  traffic = c("#CE98A2","#81A06D","yellow"),
+  questions = c("#B17380","#3787D2", "#567E39", "#EE897F"),
+  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"),
+  encounter = c("#729B7D","#8E8E8E"),
+  actions = c("#2A363B","#039876ff","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
+  amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
+  my_favourite_colours = c("#702963", "#637029",    "#296370")
+                
+)
+
+## function for using palettes
+my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete","continuous"), direction = c("1","-1")) {
+  palette = all_palettes[[name]]
+  if (missing(n)) {
+    n = length(palette)
+  }
+  type = match.arg(type)
+  out = switch(type,
+               continuous = grDevices::colorRampPalette(palette)(n),
+               discrete = palette[1:n]
+  )
+  out = switch(direction,
+               "1" = out,
+               "-1" = palette[n:1])
+  structure(out, name = name, class = "palette")
+}
+
+```
+
+
+
+
+
+# SAMPLE
+
+Participants were sampled from two survey distribution sources: direct solicitation from co-author MM's ethnographic research participants on Tumblr, and a general sample of US-BASED, English-speaking participants on PROLIFIC. 
+
+```{r}
+
+df <- df_participants
+
+title = "Number of participants by distribution and stimulus block"
+cols = c("Sampling Platform", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
+cont <- table(df$Distribution, df$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+# qacBase::crosstab(df, Distribution, Assigned.Block)
+
+```
+
+# RESPONSE PROFILE
+
+## Platform Choice
+
+_At the start of the study, participants were asked to choose one of five social media platforms to serve as the situational context for the questions they would be asked. (ie. Imagine you are scrolling through your [platform] feed)_. 
+
+```{r platform-choice}
+
+#SET DATAFRAME
+df = df_participants
+
+# PLATFORM by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = PLATFORM , fill = Distribution)) +
+  geom_bar() + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "PLATFORM CHOICE by SAMPLE", 
+    caption = "", 
+    y = "PLATFORM",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# PLATFORM by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(PLATFORM) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "PLATFORM CHOICE by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "PLATFORM") +
+  theme_minimal() 
+
+# PLATFORM by SAMPLE and BLOCK 
+# VERTICAL FACET BAR CHART 
+ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(PLATFORM) )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .) + 
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "PLATFORM CHOICE by SAMPLE and BLOCK", 
+    caption = "As expected, similar distribution within SAMPLE across BLOCKS", 
+    x = "Stimulus Block",
+    fill = "PLATFORM") +
+  theme_minimal() 
+
+```
+
+
+_There is substantial variance in choice of social media platform across the sample (S1 & S2 combined), though the relative distribution across randomly assigned stimulus blocks within each sample is roughly uniform, and thus comparable. (S1) Tumblr chose (1) Tumblr, (2) Instagram or (3) Facebook, while (S2) Prolific chose (1) Instagram, (2) Facebook, (3) Twitter/X, followed by small number of Tumblr & LinkedIn._
+
+
+
+
+## Response Time
+```{r demo-response-time}
+
+df <- df_participants
+
+## BOXPLOT — SURVEY RESPONSE TIME 
+ggplot(df, aes(x=fct_rev(Assigned.Block), y=duration.min, color=Assigned.Block))+
+  geom_boxplot(position=position_dodge(0.9))+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
+  facet_grid(Distribution ~.) + 
+  coord_flip() + 
+  labs( y = "Survey Response Time (mins)", x="",
+        title = "TOTAL Response Time by SAMPLE and BLOCK",
+        caption = "distributions similar across both SAMPLES and stimulus BLOCKS [1-6]") +
+  theme_minimal() + theme(legend.position = "none") 
+
+## RIDGEPLOT — SURVEY RESPONSE TIME 
+ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+  geom_density_ridges(scale=0.8) +
+  # geom_boxplot()+
+  stat_pointinterval()+
+  theme_ridges() +
+  scale_fill_discrete(direction=-1)+
+  facet_grid(Distribution ~.) + 
+  theme_minimal() + 
+  theme(legend.position = "none") +
+    labs( x = "Survey Response Time (mins)", y="",
+        title = "TOTAL Response Time by Sample",
+        caption = "distributions similar across SAMPLES and stimulus BLOCKS[1-6]") 
+
+
+
+p.desc.duration <- psych::describe(df %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
+t.desc.duration <- psych::describe(df %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
+
+``` 
+STUDY 1: TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes, with a mean response time of `r round(t.desc.duration$mean,2)` minutes, SD = `r (round(t.desc.duration$sd,2))`.
+
+
+STUDY 2: PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times ranged from `r p.desc.duration$min` to `r p.desc.duration$max` minutes, with a mean response time of `r round(p.desc.duration$mean,2)` minutes, SD = `r (round(p.desc.duration$sd,2))`.
+
+
+# DEMOGRAPHICS
+
+### Age
+
+Convenience sampling on both TUMBLR and PROLIFIC pools means we do not expect a uniform (i.e. equal) distribution of participants across age categories.  We generally expect that the Tumblr may have more younger users; but expect that the distribution of participants in each age category is uniform _within the sample source_ and _across stimulus blocks_.  
+
+```{r demo-age, message=FALSE, warning=FALSE}
+
+#SET DATAFRAME
+df = df_participants
+
+# AGE by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_age, fill = Distribution)) +
+  geom_bar() + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant AGE by SAMPLE", 
+    caption = "", 
+    y = "AGE",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# AGE by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_age) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant AGE by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "AGE") +
+  theme_minimal() 
+
+# AGE by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART 
+ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_age) )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .) + 
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant AGE by SAMPLE and BLOCK", 
+    caption = "As expected, similar distribution within SAMPLE across BLOCKS", 
+    x = "Stimulus Block",
+    fill = "Age") +
+  theme_minimal() 
+
+```
+_The distribution of age between (S1) TUMBLR and (S2) PROLIFIC were proportionate, with most participants ranging in age from 25-34. Most importantly, across both samples, the relative distribution of age categories is roughly uniform and thus comparable._
+
+### Gender (detail)
+
+Convenience sampling on both (S1) TUMBLR and (S2) PROLIFIC pools means we do not expect a uniform (i.e. equal) distribution of participants across gender categories.  Based on known demographics of Tumblr we expect more of these users to identify as a category other than male or female.  Due to random assignment to stimulus blocks, we expect that the distribution of participants in each gender category is uniform _within the sample source, across stimulus blocks_.  
+
+```{r demo-gender, message=FALSE}
+ 
+#SET DATAFRAME
+df = df_participants
+
+# GENDER by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_gender, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant GENDER by SAMPLE", 
+    caption = "", 
+    y = "GENDER",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# GENDER by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_gender) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant GENDER by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "GENDER") +
+  theme_minimal() 
+
+
+# GENDER by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART
+ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_gender) )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .) + 
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( title = "Participant GENDER by SAMPLE and BLOCK", 
+        caption = "As expected, similiar distributions within SAMPLE across BLOCKS", 
+        x = "Stimulus Block", fill = "GENDER") +
+  theme_minimal() 
+```
+_As expected, the smaller (S1) Tumblr sample contained a greater proportion of users identifiying with categories other than Male and Female. The distribution of GENDER categories within each sample across stimulus blocks is uniform enough to be comparable._
+
+### Gender (collapsed)
+```{r gender-collapsed, message = FALSE}
+
+df <- df_participants
+
+# GENDER (collapsed) by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_gender_collapsed, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant GENDER by SAMPLE", 
+    caption = "", 
+    y = "GENDER (collapsed)",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# GENDER (collapsed) by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_gender_collapsed) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant GENDER by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "GENDER (collapsed)") +
+  theme_minimal() 
+
+
+# GENDER (collapsed) by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART
+ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_gender_collapsed) )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .) + 
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( title = "GENDER (collapsed) by SAMPLE and BLOCK", 
+        caption = "As expected, similiar distributions within SAMPLE across BLOCKS", 
+        x = "Stimulus Block", fill = "GENDER (collapsed)") +
+  theme_minimal() 
+
+
+``` 
+_The relative distribution across gender categories (collapsed) within each sample is roughly uniform and thus comparable._
+
+
+### Gender (described)
+
+Here we explore the free-text responses given for the survey question 'Gender' at the level 'Prefer to Self Describe'. 
+
+```{r describe-gender}
+
+df <- df_participants
+
+### DESCRIBE GENDER FREE REPONSE TEXT
+
+#TABLE of Free Response Demographic Gender
+title = "Participant Gender — Self Describe"
+cols = c("Text","PROLIFIC","TUMBLR","TOTAL")
+cont <- table(df$D_gender_4_TEXT, df$Distribution)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+
+## FOR DESCRIPTIVES PARAGRAPH
+# #PROLIFIC
+df.p <- df %>% filter(Distribution == "PROLIFIC")
+desc.gender.p <- table(df.p$D_gender) %>% prop.table()
+names(desc.gender.p) <- levels(df.p$D_gender)
+p_participants <- nrow(df.p)
+
+# #TUMBLR
+df.t <- df %>% filter(Distribution == "TUMBLR")
+desc.gender.t <- table(df.t$D_gender) %>% prop.table()
+names(desc.gender.t) <- levels(df.t$D_gender)
+t_participants <- nrow(df.t)
+
+
+```
+
+
+STUDY 1: Note that a higher proportion of participants recruited from Tumblr represent identities other than cis-gender Female and cis-gender Male.   `r t_participants` individuals from Tumblr participated in Study 1, ( `r round(desc.gender.t[["Female"]],2)*100`% Female, `r round(desc.gender.t[["Male"]],2)*100`% Male, `r round(desc.gender.t[["Non-binary / third gender"]],2)*100`% Non-binary, `r (round((desc.gender.t[["Prefer not to say"]] + desc.gender.t[["Prefer to self-describe"]]),2)) * 100`% Other).
+
+STUDY 2: `r p_participants` individuals from Prolific participated in Study 2, ( `r round(desc.gender.p[["Female"]],2)*100`% Female, `r round(desc.gender.p[["Male"]],2)*100`% Male, `r round(desc.gender.p[["Non-binary / third gender"]],2)*100`% Non-binary, `r (round((desc.gender.p[["Prefer not to say"]] + desc.gender.p[["Prefer to self-describe"]]),2)) * 100`% Other).
+
+
+
+
+
+
+### Education (detail)
+
+We have no particular expecations with respect to the distribution of education-levels across TUMBLR and PROLIFIC samples, but expect the distribution to be uniform across randomly-assigned stimulus blocks. 
+
+```{r demo-education, message=FALSE}
+
+df <- df_participants
+
+# EDUCATION by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_education, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant EDUCATION by SAMPLE", 
+    caption = "", 
+    y = "EDUCATION",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# EDUCATION by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_education) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant EDUCATION by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "EDUCATION") +
+  theme_minimal() 
+
+# EDUCATION by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART
+ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_education) )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .)+
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( x = "Stimulus Block", fill = "EDUCATION",
+        title = "Participant EDUCATION by SAMPLE and BLOCK",
+        caption = "similiar distributions of education across blocks within samples") +
+  theme_minimal() 
+```
+_The relative distribution of education categories between the sample is proportionate and thus comparable._
+
+### Education (collapsed)
+```{r education-collapsed, message=FALSE}
+
+df <- df_participants
+
+# EDUCATION (collapsed) by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_education_collapsed, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant EDUCATION (collapsed)  by SAMPLE", 
+    caption = "", 
+    y = "EDUCATION (collapsed)",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# EDUCATION (collapsed) by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_education_collapsed) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant EDUCATION (collapsed) by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "EDUCATION (collapsed)") +
+  theme_minimal() 
+
+
+# EDUCATION (collapsed) by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART
+ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_education_collapsed) )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .)+
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( x = "Stimulus Block", fill = "EDUCATION",
+        title = "Participant EDUCATION (collapsed) by SAMPLE and BLOCK",
+        caption = "similiar distributions of education across blocks within samples") +
+  theme_minimal() 
+
+```
+_The relative distribution across education categories (collapsed) within each sample is roughly uniform and thus comparable._
+
+### Politcal Affiliation
+
+Convenience sampling on both (S1) TUMBLR and (S2) PROLIFIC pools means we do not expect a uniform (i.e. equal) distribution of participants across political affiliations. Based on known demographics of TUMBLR and PROLIFIC  we expect _both_ samples to contain substantially more self-identifying DEMOCRATS than REPUBLICANS, with TUMBLR containing more OTHER and INDEPENDENT more of these users to identify as a category other than male or female.  Due to random assignment to stimulus blocks, we expect that the distribution of participants in each political affiliation category is uniform _within the sample source ACROSS stimulus blocks_.  
+
+```{r demo-political-party}
+
+df <- df_participants %>% mutate(politicalParty = fct_rev(D_politicalParty))
+
+
+# AFFILIATION by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = politicalParty, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  labs( 
+    title = "Political AFFILIATION by SAMPLE", 
+    caption = "", 
+    y = "POLITICAL AFFILIATION",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# AFFILIATION by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(politicalParty) )) +
+  geom_bar(position = "stack") +
+  scale_fill_manual(values = my_palettes(name="politics", direction="1")) +
+  labs( 
+    title = "Political AFFILIATION by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "AFFILIATION") +
+  theme_minimal() 
+
+# AFFILIATION by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART 
+ggplot(data = df, aes( fill = D_politicalParty, x = Assigned.Block )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .) + 
+  scale_fill_manual(values = my_palettes(name="politics", direction="1")) +
+  labs( title = "Political AFFILIATION by SAMPLE and BLOCK",
+        caption = "Similar distribution across BLOCKS within SAMPLES", x = "Stimulus Block",
+        fill = "AFFILIATION") +
+  theme_minimal() 
+
+```
+_As expected, across both samples the participant pool skews toward DEMOCRAT and INDEPENDENT affiliations with relatively few REPUBLICANS.  Importantly, the relative distribution of political affiliations within a sample across stimulus blocks is proportionate, and thus comparable._
+
+### Political Values — Fiscal 
+
+In addition to political affiliation, participants were asked to rate their _fiscal political values_ from _left leaning_ to _right leaning_ along a horizontal slider where left-leaning = 0 and right_leaning = 100. 
+
+```{r, demo-political-fiscal, warning=FALSE}
+
+df <- df_participants
+
+# FISCAL POLITICAL by SAMPLE
+# VERTICAL SEMANTIC DIFFERENTIAL
+leftside <- rep("left-leaning", nlevels(df$Distribution))
+rightside <- rep("right-leaning", nlevels(df$Distribution))
+g <- ggplot(df, aes(x=fct_rev(Distribution), y=D_politicsFiscal, color=Distribution)) +
+  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
+  labs( title = "FISCAL VALUES by SAMPLE",
+        caption = "As expected, the smaller Tumblr sample is more left-leaning than the Prolific sample",
+         y = "Fiscal Politics", x = "", color = "Sample") +
+  theme_minimal() +
+  coord_flip()
+g + guides(
+  y = guide_axis_manual(
+  breaks = c("PROLIFIC","TUMBLR"),
+  labels = leftside
+  ),
+  y.sec = guide_axis_manual(
+  breaks = c("PROLIFIC","TUMBLR"),
+  labels = rightside
+))
+
+
+# FISCAL POLITICAL SAMPLE and BLOCK
+# VERTICAL STACKED SEMANTIC DIFFERENTIAL
+leftside <- rep("left-leaning", length(ref_blocks))
+rightside <- rep("right-leaning", length(ref_blocks))
+g <- ggplot(df, aes(x=fct_rev(Assigned.Block), y=D_politicsFiscal, color=Assigned.Block)) +
+  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
+  facet_grid(Distribution ~ .)+
+  labs( title = "FISCAL VALUES by SAMPLE and Stimulus BLOCK",
+        caption = "similar distributions across BLOCKS within SAMPLE",
+         y = "Fiscal Politics ", x = "", color = "Block") +
+  theme_minimal() +
+  coord_flip()
+g + guides(
+  y = guide_axis_manual(
+  breaks = ref_blocks,
+  labels = leftside
+  ),
+  y.sec = guide_axis_manual(
+  breaks = ref_blocks,
+  labels = rightside
+))
+
+rm(g)
+
+```
+_The larger Proflic Sample (S2) has a higher proportion of right-leaning on fiscal politics, compared to the smaller Tumblr sample (S1) with stronger left-leaning.  Across stimulus blocks within each sample, the distribution of fiscal political values is roughly uniform and thus comparable. It should be noted that both samples are largely left-leaning, consistent with the responses for Political Affiliation._
+
+
+### Political Values — Social 
+
+In addition to political affiliation, participants were asked to rate their _social political values_ from _left leaning_ to _right leaning_ along a horizontal slider where left-leaning = 0 and right_leaning = 100. 
+
+```{r, demo-political-social, warning=FALSE}
+
+df <- df_participants
+
+# SOCIAL POLITICAL by SAMPLE
+# VERTICAL SEMANTIC DIFFERENTIAL
+leftside <- rep("left-leaning", nlevels(df$Distribution))
+rightside <- rep("right-leaning", nlevels(df$Distribution))
+g <- ggplot(df, aes(x=fct_rev(Distribution), y=D_politicsSocial, color=Distribution)) +
+  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
+  labs( title = "SOCIAL VALUES by SAMPLE",
+        caption = "As expected, the smaller Tumblr sample is more left-leaning than the Prolific sample",
+         y = "Fiscal Politics", x = "", color = "Sample") +
+  theme_minimal() +
+  coord_flip()
+g + guides(
+  y = guide_axis_manual(
+  breaks = c("PROLIFIC","TUMBLR"),
+  labels = leftside
+  ),
+  y.sec = guide_axis_manual(
+  breaks = c("PROLIFIC","TUMBLR"),
+  labels = rightside
+))
+
+# SOCIAL POLITICAL SAMPLE
+# VERTICAL STACKED SEMANTIC DIFFERENTIAL
+leftside <- rep("left-leaning", length(ref_blocks))
+rightside <- rep("right-leaning", length(ref_blocks))
+g <- ggplot(df, aes(x=fct_rev(Assigned.Block), y=D_politicsSocial, color=Assigned.Block)) +
+  geom_boxplot(position=position_dodge(0.9), width = 0.5)+
+  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
+  facet_grid(Distribution ~ .)+
+  labs( title = "SOCIAL VALUES by SAMPLE and BLOCK",
+        caption = "similar distributions across BLOCKS within SAMPLE",
+         y = "Social Politics", x = "", color = "Block") +
+  theme_minimal() +
+  coord_flip()
+g + guides(
+  y = guide_axis_manual(
+  breaks = ref_blocks,
+  labels = leftside
+  ),
+  y.sec = guide_axis_manual(
+  breaks = ref_blocks,
+  labels = rightside
+))
+
+
+rm(g)
+
+```
+_Across stimulus blocks within each sample, the distribution of social political values is proportional and thus comparable. It should be noted that both samples are largely left-leaning, consistent with the responses for Political Affiliation._
+
+
+### Political Values — Description
+```{r describe-politics}
+
+df <- df_participants
+
+r_politics <- nrow(df %>% filter(D_politicsSocial >= 50)) / nrow(df)
+l_politics <- nrow(df %>% filter(D_politicsSocial < 50)) / nrow(df)
+r_fiscal <- nrow(df %>% filter(D_politicsFiscal >= 50)) / nrow(df)
+l_fiscal <- nrow(df %>% filter(D_politicsFiscal < 50)) / nrow(df)
+ 
+
+#PROLIFIC
+df.p <- df %>% filter(Distribution == "PROLIFIC")
+desc.fiscal.p <- psych::describe(df.p$D_politicsFiscal)
+desc.social.p <- psych::describe(df.p$D_politicsSocial)
+
+
+#TUMBLR
+df.t <- df %>% filter(Distribution == "TUMBLR")
+desc.fiscal.t <- psych::describe(df.t$D_politicsFiscal)
+desc.social.t <- psych::describe(df.t$D_politicsSocial)
+
+  
+```
+
+
+STUDY 1: For the `r nrow(df.p)` participants recruited from Prolific, a spectrum of Social Political values [ranging from 0 (left-leaning) to 100 (right-leaning)] ranged from `r desc.social.p$min` to `r desc.social.p$max`, with a mean value of `r round(desc.social.p$mean,2)`, SD = `r (round(desc.social.p$sd,2))`.  A spectrum of Fiscal Political values [ranging from 0 (left-leaning) to 100 (right-leaning)] ranged from `r desc.fiscal.p$min` to `r desc.fiscal.p$max`, with a mean value of `r round(desc.fiscal.p$mean,2)`, SD = `r (round(desc.fiscal.p$sd,2))`.   
+
+STUDY 2: For the `r nrow(df.t)` participants recruited from Tumblr, a spectrum of Social Political values [ranging from 0 (left-leaning) to 100 (right-leaning)] ranged from `r desc.social.t$min` to `r desc.social.t$max`, with a mean value of `r round(desc.social.t$mean,2)`, SD = `r (round(desc.social.t$sd,2))`.  A spectrum of Fiscal Political values [ranging from 0 (left-leaning) to 100 (right-leaning)] ranged from `r desc.fiscal.t$min` to `r desc.fiscal.t$max`, with a mean value of `r round(desc.fiscal.t$mean,2)`, SD = `r (round(desc.fiscal.t$sd,2))`.   
+
+COMBINED: Overall, `r round(l_politics*100,2)`% of respondents identify with left-leaning social values (vs) `r round(r_politics*100,2)`% identifying as right-leaning; while `r round(l_fiscal*100,2)`% of respondents reported left-leaning fiscal values (vs) `r round(r_fiscal*100,2)`% identify as right-leaning. 
+
+
+### Income 
+
+We have no expectation for distribution across income categories, but expect that the relative distribution across categories is uniform within each sample. 
+
+```{r demo-income, message=FALSE}
+
+df <- df_participants
+
+# INCOME (collapsed) by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_income, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant INCOME by SAMPLE", 
+    caption = "", 
+    y = "INCOME",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# INCOME by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_income) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant INCOME by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "INCOME") +
+  theme_minimal() 
+
+
+# INCOME by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART
+ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_income) )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .)+
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( x = "Stimulus Block", fill = "INCOME",
+        title = "Participant INCOME by SAMPLE and BLOCK",
+        caption = "similiar distributions of across blocks within samples") +
+  theme_minimal() 
+
+```
+_Across stimulus blocks within each sample, the distribution of income categories is roughly uniform and thus comparable._
+
+### Employment Status 
+
+
+We have no expectation for distribution across employment categories, but expect that the relative distribution across categories is uniform within each sample. 
+
+```{r demo-employment, message=FALSE}
+
+df <- df_participants
+
+# EMPLOYMENT STATUS by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = D_employmentStatus, fill = Distribution)) +
+  geom_bar(position="stack") + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant EMPLOYMENT STATUS by SAMPLE", 
+    caption = "", 
+    y = "EMPLOYMENT STATUS",
+    x = "(count)",
+    fill = "SAMPLE") +
+  theme_minimal() 
+
+# EMPLOYMENT by SAMPLE 
+# HORIZONTAL STACKED BAR 
+ggplot(data = df, aes( y = Distribution, fill = fct_rev(D_employmentStatus) )) +
+  geom_bar(position = "stack") +
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( 
+    title = "Participant EMPLOYMENT STATUS by SAMPLE", 
+    caption = "", 
+    x = "(count)",
+    y = "SAMPLE",
+    fill = "EMPLOYMENT") +
+  theme_minimal() 
+
+
+# EMPLOYMENT by SAMPLE and BLOCK
+# VERTICAL FACET BAR CHART
+ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(D_employmentStatus) )) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .)+
+  scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
+  labs( x = "Stimulus Block", fill = "EMPLOYMENT",
+        title = "Participant EMPLOYMENT by SAMPLE and BLOCK",
+        caption = "similiar distributions of across blocks within samples") +
+  theme_minimal() 
+
+```
+
+### Work Detail
+
+Here we explore the free-text responses given for the survey question 'Work Detail'.
+
+```{r describe-work}
+
+df <- df_participants
+
+#TABLE of Free Response Work Detail
+title = "Participant WORK DETAIL — Self Describe"
+cols = c("Text","PROLIFIC","TUMBLR","TOTAL")
+cont <- table(df$D_work_detail, df$Distribution)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+```
+
+
+
+# INTERESTING DEMOGRAPHIC CROSSTABS
+
+## Political Values X  Political Affiliations
+
+```{r demo-plot-political-grid,  fig.width = 10}
+
+df <- df_graphs %>% select(PID, Assigned.Block, Distribution, D_politicsSocial, D_politicsFiscal, D_politicalParty) %>% 
+  mutate(
+    d_social = D_politicsSocial,
+    d_fiscal = D_politicsFiscal
+  )
+
+ggplot(df, aes(x = d_social, y = d_fiscal, color = D_politicalParty)) + 
+  geom_point() + 
+  geom_hline(yintercept = 50) +
+  geom_vline(xintercept = 50) + 
+  facet_grid(Distribution~D_politicalParty)+
+  labs(
+    title = "Social and Fiscal Political Values by Political Party Affiliation",
+    x = "Social Values", y = "Fiscal Values"
+  )+
+  theme_minimal() + 
+  easy_remove_legend() 
+
+
+
+```
+
+_Here we observe that the relationship between left-right leaning Fiscal (y axis) (vs) Social (x axis) political values, faceted (columns) by declared political affiliation.  In the Tumblr sample (S1) we see the highest number of participants reporting both left-leaning fiscal and social values, with one outlier identifying as 'Republican' with moderate social values and strongly right-leaning fiscal values.  In the prolific sample (S2) we see a strong (positive) linear relationship between fiscal and social values in the 'Democrat' and 'Independent' categories, a cluster near the midpoint of both scale for 'no preference', moderate to strongly left-leaning fiscal values (but uniformly distributed social values)._
+
+## Platform Choice X SAMPLE and AGE
+
+```{r platform-age}
+
+df <- df_participants
+
+#PLATFORM CHOICE by Age
+## FACETED STACKED BAR CHART 
+ggplot( df, aes( x = D_age, fill = PLATFORM)) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .) + 
+  labs( title = "PLATFORM CHOICE by SAMPLE and AGE",
+        caption = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") + 
+  easy_add_legend_title("") +
+  theme_minimal()
+
+
+# qacBase::crosstab(df, D_age,PLATFORM, plot=TRUE) 
+
+
+```
+_Here we see the proportion of social media choice across each age group is similar, with the exception of the 55+ ages which are almost entirely Facebook._
+
+## Education X Income
+```{r education-income, message=FALSE}
+df <- df_participants
+
+#Education by Income
+## FACETED STACKED BAR CHART 
+ggplot( df, aes( x = D_education_collapsed, fill = D_income)) +
+  geom_bar(position = "stack") +
+  facet_grid(Distribution ~ .) + 
+  labs( title = "Education (collapsed) by SAMPLE and INCOME",
+        caption = "", x = "") +
+  scale_fill_viridis(discrete=TRUE, option="viridis") + 
+  easy_add_legend_title("") +
+  theme_minimal()
+```
+
+
+
+
+
+# STASH
+
+### GGPAIRS for crosstabls 
+```{r demo-summary}
+# 
+# #GET JUST TUMBLRS 
+# df <- df_data %>% 
+#   filter(Distribution == "PROLIFIC") %>% 
+#   select(D_gender_collapsed, D_education_collapsed, D_income, D_age, D_politicalParty) %>% 
+#   dplyr::rename(
+#     GENDER = D_gender_collapsed, 
+#     EDUCATION = D_education_collapsed, 
+#     INCOME = D_income,
+#     AGE = D_age, 
+#     POLITICS = D_politicalParty
+#   ) 
+# 
+# 
+# #UPPER IS BAR PLOT, LOWER IS DENSITY AUTOPOINT
+# ggpairs(data = df, columns = 1:ncol(df),
+#         showStrips = TRUE,
+#         upper = list(discrete ="facetbar"), 
+#         lower = list(discrete = "autopoint")) + theme_minimal() + 
+#   labs(
+#     title = "Demographic Summary for TUMBLR"
+#   )
+# 
+# #DEFAULT PAIRS
+# ggpairs(data = df, columns = 1:ncol(df)) + theme_minimal() + labs(
+#   title = "Demographic Summary for TUMBLR"
+# )
+
+
+```
+
+# RESOURCES
+
+- custom color palettes: https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
+- ggally for EDA https://ggobi.github.io/ggally/index.html
