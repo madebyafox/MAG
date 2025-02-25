@@ -205,6 +205,7 @@ saveRDS(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.rds")
 
 ## set order of several factor vars used in plots 
 
+order_study = c("TUMBLR","PROLIFIC")
 order_maker = c("individual","organization","education","business","news","political")
 order_age = c("boomer", "gen-x","millennial","gen-z")
 order_gender = c("Other","Female","Male" )
@@ -577,7 +578,8 @@ df_data <- df_data %>%
     Assigned.Block = if_else( (Distribution =="TUMBLR"), RANDOM_BLOCK, Assigned.Block),
     Assigned.Block = factor(Assigned.Block), 
     # PID = if_else( (Distribution =="TUMBLR"), ID.Qualtrics, ID.Prolific),
-    PID = factor(ID.Qualtrics)
+    PID = factor(ID.Qualtrics),
+    Distribution = factor(Distribution, levels=order_study) ## ADDED FACTOR ORDER TO KEEP TUBMLR AS FIRST 
   ) %>% #DROP RANDOM_BLOC COLUMNS
   select (-RANDOM_BLOCK) %>% 
   select(
@@ -1107,7 +1109,11 @@ df_graphs_z <- df_graphs %>%
     CHART_LIKE = datawizard::standardize(CHART_LIKE),
     CHART_BEAUTY = datawizard::standardize(CHART_BEAUTY),
     CHART_INTENT = datawizard::standardize(CHART_INTENT),
-    CHART_TRUST = datawizard::standardize(CHART_TRUST)
+    CHART_TRUST = datawizard::standardize(CHART_TRUST),
+    MAKER_CONF = datawizard::standardize(MAKER_CONF),
+    AGE_CONF = datawizard::standardize(AGE_CONF),
+    GENDER_CONF = datawizard::standardize(GENDER_CONF),
+    TOOL_CONF = datawizard::standardize(TOOL_CONF)
   )
 write.csv(df_graphs_z, file = "data/output/df_graphs_z.csv", na="")
 saveRDS(df_graphs_z, file = "data/output/df_graphs_z.rds")
@@ -1127,7 +1133,11 @@ df_sd_questions_long_z <- df_graphs_z %>%
     CHART_LIKE = as.numeric(CHART_LIKE),
     CHART_BEAUTY = as.numeric(CHART_BEAUTY),
     CHART_INTENT = as.numeric(CHART_INTENT),
-    CHART_TRUST = as.numeric(CHART_TRUST)
+    CHART_TRUST = as.numeric(CHART_TRUST),
+    MAKER_CONF = as.numeric(MAKER_CONF),
+    AGE_CONF = as.numeric(AGE_CONF),
+    GENDER_CONF = as.numeric(GENDER_CONF),
+    TOOL_CONF = as.numeric(TOOL_CONF)
   ) %>% 
   ## pivot longer the SD questions
   pivot_longer(
@@ -1163,7 +1173,12 @@ df_graphs_abs <- df_graphs %>%
     CHART_LIKE =  abs(CHART_LIKE - 50),
     CHART_BEAUTY =  abs(CHART_BEAUTY - 50),
     CHART_INTENT =  abs(CHART_INTENT - 50),
-    CHART_TRUST =  abs(CHART_TRUST - 50)
+    CHART_TRUST =  abs(CHART_TRUST - 50),
+    MAKER_CONF =  abs(MAKER_CONF - 50),
+    AGE_CONF =  abs(AGE_CONF - 50),
+    GENDER_CONF =  abs(GENDER_CONF - 50),
+    TOOL_CONF =  abs(TOOL_CONF - 50)
+    
   )
 write.csv(df_graphs_abs, file = "data/output/df_graphs_abs.csv", na="")
 saveRDS(df_graphs_abs, file = "data/output/df_graphs_abs.rds")
