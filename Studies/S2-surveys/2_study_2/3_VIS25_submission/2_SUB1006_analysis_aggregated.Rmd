@@ -539,7 +539,6 @@ rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.
 
 ## CONFIDENCE
 
-### Setup sample data frame
 ```{r setup-full-sample}
 
 #full stimulus-level data
@@ -562,6 +561,67 @@ questions answered with the same degree of confidence?**
 Here we examine both the central tendency (mean) and shape of the
 distribution for each confidence variable.
 
+### by Sample
+```{r confidence-by-sample}
+
+
+## SETUP DATAFRAME
+df <- df_full %>% select(PID, Distribution, STIMULUS,MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
+  pivot_longer(
+    cols = c(MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF),
+    names_to = "QUESTION",
+    values_to = "CONFIDENCE"
+  ) %>% 
+  mutate(
+    QUESTION = factor(QUESTION, levels=c("MAKER_CONF","AGE_CONF","GENDER_CONF","TOOL_CONF"  ) )
+  ) %>% 
+  group_by(QUESTION, Distribution) %>% 
+  mutate(
+    m=round(mean(CONFIDENCE),0) #calc mean for showing in plots 
+  )
+
+## B
+## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## BOXPLOT W/ JITTER
+B <-
+  df %>% 
+  ggplot(aes(x=QUESTION, y= CONFIDENCE)) + 
+  geom_boxplot(width = 0.5) + 
+  geom_jitter(alpha = 0.25, position=position_dodge2(width = 0.25)) + 
+  ## MEAN
+    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size=3,
+                 vjust=+0.5, hjust = -1.5, aes( label=round(m, digits=0)))+
+    stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
+  facet_grid(.~Distribution) + 
+  theme_minimal() + 
+  labs(title = "Confidence by Survey Question and Sample", caption = "(mean in blue)")
+
+  
+## R
+## CONFIDENCE BY QUESTION & SAMPLE (all stimuli, all Pps, by stdy)
+R <- 
+  df %>% 
+  ggplot(aes(x=CONFIDENCE, y=fct_rev(QUESTION), fill = Distribution)) + #fill=fct_rev(QUESTION))) + 
+    geom_density_ridges(scale = 0.65, alpha = 0.75, quantile_lines = TRUE) +
+    scale_x_continuous(limits = c(0,100))+
+    # scale_fill_manual(values = my_palettes(name="questions", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
+    # stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
+  ## MEAN
+    # stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size=3,
+    #             vjust=+2.5, hjust = 0.50, aes( label=round(m, digits=0)))+
+    # stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
+  theme_minimal() + 
+  labs(title = "Confidence by Survey Question and Sample", y = "QUESTION", caption ="") 
+
+  
+(B+R)
+if(GRAPH_SAVE){ggsave(plot = (B+R), path="figs/level_aggregated/distributions", filename =paste0("all_confidence_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
+```
+
+
+
+### Combined Sample
 ```{r compare-confidence}
 
 df <- df_full %>% select(PID, Distribution, STIMULUS,MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
@@ -624,7 +684,7 @@ question. This tells us there is enough variance in response to each
 question for the measure to be meaningful, and so we will follow up by
 investigating confidence at the STIMULUS level.*
 
-### CONFIDENCE VARIANCE 
+### (Ad-Hoc) Variance in Confidence
 
 ```{r}
 
@@ -760,6 +820,65 @@ created?\
 Participants were also asked: **Please rate your confidence in this
 choice.** The response is stored as `MAKER_CONF` .
 
+```{r maker-id-confidence-sample}
+
+#FILTER DATASET
+df <- df_full
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (by Sample)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_ID = fct_rev(MAKER_ID) )
+S <-   ggbarstats( data = dx, x = MAKER_ID, y = Distribution,
+                   legend.title = "MAKER ID",
+                   results.subtitle	 = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="reds", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+  
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <- df %>% 
+  group_by(MAKER_ID,Distribution) %>% 
+  mutate(count = n(), m = mean(MAKER_CONF)) %>% 
+  ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_ID), fill = fct_rev(MAKER_ID))) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  facet_wrap(~Distribution)+
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker ID Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "Maker ID and Confidence by Sample",
+  # subtitle = "the categories of MAKER ID were chosen in similar proportion, 
+  # and both the mean (in blue) and shape of distribution of confidence scores is similar across values of Maker ID",
+  caption = "(blue indicates mean)"
+)
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_maker_id_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
+
+```
+
+
 ```{r maker-id-confidence-full}
 
 #FILTER DATASET
@@ -846,6 +965,66 @@ from?\
 Participants were asked: **Please rate your confidence in this choice.**
 The response is stored as `AGE_CONF` .
 
+### by Sample
+```{r maker-age-confidence-sample}
+
+#FILTER DATASET
+df <- df_full
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (by Sample)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_AGE = fct_rev(MAKER_AGE) )
+S <-   ggbarstats( data = dx, x = MAKER_AGE, y = Distribution,
+                   legend.title = "MAKER AGE",
+                   results.subtitle	 = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="lightblues", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+  
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <- df %>% 
+  group_by(MAKER_AGE,Distribution) %>% 
+  mutate(count = n(), m = mean(AGE_CONF)) %>% 
+  ggplot(aes(y = AGE_CONF, x = fct_rev(MAKER_AGE), fill = fct_rev(MAKER_AGE))) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  facet_wrap(~Distribution)+
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker AGE Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "Maker AGE and Confidence by Sample",
+  # subtitle = "the categories of MAKER ID were chosen in similar proportion, 
+  # and both the mean (in blue) and shape of distribution of confidence scores is similar across values of Maker ID",
+  caption = "(blue indicates mean)"
+)
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_maker_age_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
+
+```
+
+### Combined Sample
 ```{r maker-age-confidence-full}
 
 #FILTER DATASET
@@ -921,6 +1100,65 @@ stored as `MAKER_GENDER.`
 Participants were asked: **Please rate your confidence in this choice.**
 The response is stored as `GENDER_CONF` .
 
+### by Sample
+```{r maker-gender-confidence-sample}
+
+#FILTER DATASET
+df <- df_full
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (by Sample)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_GENDER = fct_rev(MAKER_GENDER) )
+S <-   ggbarstats( data = dx, x = MAKER_GENDER, y = Distribution,
+                   legend.title = "MAKER GENDER",
+                   results.subtitle	 = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1")) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+  
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <- df %>% 
+  group_by(MAKER_GENDER,Distribution) %>% 
+  mutate(count = n(), m = mean(GENDER_CONF)) %>% 
+  ggplot(aes(y = GENDER_CONF, x = fct_rev(MAKER_GENDER), fill = fct_rev(MAKER_GENDER))) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  facet_wrap(~Distribution)+
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="Maker GENDER Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "Maker GENDER and Confidence by Sample",
+  # subtitle = "the categories of MAKER ID were chosen in similar proportion, 
+  # and both the mean (in blue) and shape of distribution of confidence scores is similar across values of Maker ID",
+  caption = "(blue indicates mean)"
+)
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_maker_gender_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
+
+```
+### Combined Sample
 ```{r maker-gender-confidence-full}
 
 #FILTER DATASET
@@ -1010,6 +1248,64 @@ to create this image?\
 Participants were asked: **Please rate your confidence in this choice.**
 The response is stored as `TOOL_CONF` .
 
+
+### by Sample
+```{r maker-tool-confidence-sample}
+
+#FILTER DATASET
+df <- df_tools
+
+
+## D
+## MAKER IDENTIFICATION AGGREGATED (by Sample)
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+S <-   ggbarstats( data = df, x = TOOL_ID, y = Distribution,
+                   legend.title = "TOOL ID",
+                   results.subtitle	 = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="tools", direction = "-1"),guide = guide_legend(reverse = TRUE)) +
+    theme_minimal() +
+    labs( title = "",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+  
+## H
+## HALF EYE SLAB GGDIST
+##############################
+H <- df %>% 
+  group_by(TOOL_ID,Distribution) %>% 
+  mutate(count = n(), m = mean(TOOL_CONF)) %>% 
+  ggplot(aes(y = TOOL_CONF, x = TOOL_ID, fill = TOOL_ID)) + 
+  stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
+  facet_wrap(~Distribution)+
+  ## MEAN
+  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+               vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
+  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  scale_fill_manual(values = my_palettes(name="tools", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
+            size = 3, nudge_x=0.35) + 
+  labs(y="TOOL Confidence", x="") + 
+  theme_minimal() + 
+  easy_remove_legend()+
+  coord_flip() 
+##############################
+  
+
+(p <- (S + H)) + plot_annotation(
+  title = "Maker GENDER and Confidence by Sample",
+  # subtitle = "the categories of MAKER ID were chosen in similar proportion, 
+  # and both the mean (in blue) and shape of distribution of confidence scores is similar across values of Maker ID",
+  caption = "(blue indicates mean); is multi-select option"
+)
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_tool_ID_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+
+
+```
+
+### Combined Sample
 ```{r maker-tool-confidence-full}
 
 #FILTER DATASET
@@ -1087,9 +1383,10 @@ response was saved as variable `ENCOUNTER`
 ## B
 ## ENCOUNTER  BY STIMULUS
 ## GGSTATSPLOT
+
 (p <- df_full %>% 
   ggbarstats(  
-            x = ENCOUNTER, y = STUDY,
+            x = ENCOUNTER, y = Distribution,
             legend.title = "ENCOUNTER",
             results.subtitle = FALSE) + 
     scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))+
@@ -1097,7 +1394,17 @@ response was saved as variable `ENCOUNTER`
     labs( title = "ENCOUNTER Choice ", subtitle = "", x = "")
 )
 
-if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_encounter.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+# (p <- df_full %>% 
+#   ggbarstats(  
+#             x = ENCOUNTER, y = STUDY,
+#             legend.title = "ENCOUNTER",
+#             results.subtitle = FALSE) + 
+#     scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"))+
+#     theme_minimal() + 
+#     labs( title = "ENCOUNTER Choice ", subtitle = "", x = "")
+# )
+
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_encounter_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 ```
 
 **INTERPRETATION** *In roughly 10% more trials (participant + stimulus),
@@ -1125,7 +1432,88 @@ options: (select all that apply). The response was saved as variable
 
 -   NOTHING—just keep scrolling
 
-```{r}
+### by Sample
+```{r action-choice-by-sample}
+
+#FILTER DATASET
+df <- df_actions
+
+### FULL ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION = fct_rev(CHART_ACTION) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION, y = Distribution,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION by SAMPLE",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+
+### 4 ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION4 = fct_rev(CHART_ACTION4) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION4, y = Distribution,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions4", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION [4] by SAMPLE",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action4_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+
+### 3 ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION3 = fct_rev(CHART_ACTION3) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION3, y = Distribution,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions3", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION [3] by SAMPLE",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action3_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+
+### 2 ACTION
+## D
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( CHART_ACTION2 = fct_rev(CHART_ACTION2) )
+S <-   ggbarstats( data = dx, x = CHART_ACTION2, y = Distribution,
+                   legend.title = "ACTION",
+                   results.subtitle = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="actions2", direction = "1")) +
+    theme_minimal() +
+    labs( title = "CHART ACTION [2] by SAMPLE",  x = "", y="") + 
+    theme(aspect.ratio = 1)
+##############################
+
+if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action2_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+S
+```
+
+
+### Combined Sample
+```{r action-choice-combined}
 
 #FILTER DATASET
 df <- df_actions
@@ -1151,7 +1539,7 @@ if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filen
 S
 
 
-### FULL ACTION
+### 4 ACTION
 ## D
 ## GGSTATSPLOT
 ##############################
@@ -1169,7 +1557,7 @@ S <-   ggbarstats( data = dx, x = CHART_ACTION4, y = STIMULUS,
 if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action4.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 S
 
-### FULL ACTION
+### 3 ACTION
 ## D
 ## GGSTATSPLOT
 ##############################
@@ -1187,7 +1575,7 @@ S <-   ggbarstats( data = dx, x = CHART_ACTION3, y = STIMULUS,
 if(GRAPH_SAVE){ggsave(plot = S, path="figs/level_aggregated/categoricals", filename =paste0("all_action3.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 S
 
-### FULL ACTION
+### 2 ACTION
 ## D
 ## GGSTATSPLOT
 ##############################
@@ -1234,15 +1622,15 @@ options: (select one). The response was saved as variable `PLATFORM`
 #hack for consistent ordering of ggstats bar plot
 (p <- df_full %>% 
   ggbarstats(  
-            x = PLATFORM, y = STUDY,
+            x = PLATFORM, y = Distribution,
             legend.title = "PLATFORM",
             results.subtitle = FALSE) + 
     scale_fill_manual(values = my_palettes(name="platforms", direction = "-1"))+
     theme_minimal() + 
-    labs( title = "PLATFORM Choice ", subtitle = "", x = "")
+    labs( title = "PLATFORM Choice by SAMPLE ", subtitle = "", x = "")
 )
 
-if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_platform_choice.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_platform_choice_by_Sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
     
 ```
 
@@ -1270,7 +1658,37 @@ response scale (slider from 0-100).*
 #### AGGREGATED 
 
 ##### boxplot
-```{r plot_boxplot_sds, fig.width=10, fig.height=14}
+
+
+
+```{r plot_boxplot_sds_by_sample, fig.width=10, fig.height=14}
+
+  #### LIST OF BLOXPLOTS + JITTER #############################################################################
+
+  # setup dataframe 
+  df <- df_graphs 
+  
+  #subset data cols 
+  cols <- df %>% select( all_of(ref_sd_questions))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = TRUE, facet_by = "Distribution", boxplot=TRUE, labels=ref_labels))
+  
+  #aggregate q plots into one for stimulus 
+  plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
+   plot_annotation(
+     title = "ALL STIMULI",
+     subtitle ="", caption = "(point is mean)"
+   )
+  
+if(GRAPH_SAVE == TRUE){  
+  ggsave(plot = plot_master_questions, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli_by_sample","_box.png"), units = c("in"), width = 10, height = 14  )
+}
+
+print(plot_master_questions)
+  
+```  
+
+```{r plot_boxplot_sds_combined, fig.width=10, fig.height=14}
 
   #### LIST OF BLOXPLOTS + JITTER #############################################################################
 
@@ -1298,9 +1716,48 @@ print(plot_master_questions)
 ```  
   
 ##### ggdist halfeye
-```{r plot_halfeye_sds}
+```{r plot_halfeye_sds_by_sample}
 
+  #### GGDIST PLOT#############################################################################
+  
+  # setup dataframe 
+  df <- df_sd_questions_long %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value) 
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+               category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions)) %>% 
+    group_by(QUESTION,Distribution) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
 
+  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+  (g <- d %>%
+      ggplot(aes(y = fct_rev(QUESTION), x = value, fill=category)) +
+    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
+    facet_wrap(~Distribution) + 
+      ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+  cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 8, vjust=-2) +
+  labs (title = "ALL STIMULI by SAMPLE", y = "", caption = "(point is median)") +
+  theme_minimal() + easy_remove_legend()
+)
+
+  if(GRAPH_SAVE == TRUE){ 
+  ggsave(plot = g, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli_by_sample","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+  }
+  
+
+```
+
+```{r plot_halfeye_sds_combined}
 
   #### GGDIST PLOT#############################################################################
   
@@ -1318,7 +1775,6 @@ print(plot_master_questions)
   (g <- d %>%
       ggplot(aes(y = fct_rev(QUESTION), x = value, fill=category)) +
     stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
-    
     ## MEDIAN
     stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
                 vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
@@ -1342,7 +1798,49 @@ print(plot_master_questions)
 ```
 
 ##### density ridges
-```{r plot_ridglines_sds}
+```{r plot_ridglines_sds_by_sample}
+  
+#### DENSITY RIDGES#############################################################################
+  # setup dataframe 
+  df <- df_sd_questions_long %>% select(1:8, QUESTION, value)  
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION,Distribution) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+  
+(x <-
+    ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = category)) +
+    geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.75, panel_scaling = TRUE) + 
+    # scale_fill_manual(values = my_palettes(name="amy_gradient", direction = "1"))+ 
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+ 
+    facet_wrap(~Distribution) + 
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+    labs (title = "ALL STIMULI by Sample", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
+    theme_minimal() + easy_remove_legend()
+)
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/level_aggregated/distributions", filename =paste0("combined_stimuli_by_sample","_ridges.png"), units = c("in"), width = 10, height = 14  )
+}
+
+
+```    
+
+```{r plot_ridglines_sds_combined}
   
 #### DENSITY RIDGES#############################################################################
   # setup dataframe 
@@ -1397,6 +1895,35 @@ the labelled traits).*
 #### AGGREGATED 
 
 ##### boxplot
+
+
+```{r ALL-Q-COLLAPSED-ABS_by_sample, fig.width=10, fig.height=14}
+
+  #### LIST OF BLOXPLOTS + JITTER #############################################################################
+
+  # setup dataframe 
+  df <- df_graphs_abs 
+  
+  #subset data cols 
+  cols <- df %>% select( all_of(ref_sd_questions_abs))
+  plots <- as.list(lapply(colnames(cols), plot_sd, data = df, type ="S", mean=TRUE, facet = TRUE, facet_by = "Distribution", boxplot=TRUE, labels=ref_labels))
+  
+  #aggregate q plots into one for stimulus 
+  plot_master_questions <- plots[[1]] / plots[[2]] / plots[[3]] / plots[[4]] / plots[[5]] / plots[[6]] / plots[[7]] /
+   plots[[8]] /plots[[9]] /plots[[10]] /plots[[11]] + 
+   plot_annotation(
+     title = "ALL STIMULI — SD (ABSOLUTE VALUE)",
+     subtitle ="", caption = "(point is mean)"
+   )
+  
+if(GRAPH_SAVE == TRUE){  
+  ggsave(plot = plot_master_questions, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli_by_sample","_box.png"), units = c("in"), width = 10, height = 14  )
+}
+
+print(plot_master_questions)
+  
+```
+
 ```{r ALL-Q-COLLAPSED-ABS, fig.width=10, fig.height=14}
 
   
@@ -1426,8 +1953,46 @@ if(GRAPH_SAVE == TRUE){
   
 ```
   
-##### ggdist halfeye  
-```{r plot_ggdist_sd_abs}
+##### ggdist halfeye 
+```{r plot_ggdist_sd_abs_by_sample}
+  
+  #### GGDIST PLOT#############################################################################
+  
+  # setup dataframe 
+  df <- df_sd_questions_long_abs %>% select(1:8, QUESTION, STIMULUS_CATEGORY, value) 
+  d <- left_join( x = df, y = ref_labels_abs, 
+                  by = c("QUESTION" = "ref_sd_questions_abs")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION,Distribution) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+
+  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+(  g <- ggplot(d, aes(y = fct_rev(QUESTION), x = value, fill=category)) +
+    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
+    facet_wrap(~Distribution)+
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels_abs$left), title = ""),
+      y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
+    ) +
+  cowplot::draw_text(text = ref_sd_questions, x = 45, y= ref_sd_questions_abs,size = 8, vjust=-2) +
+  labs (title = "ALL STIMULI — SD (ABSOLUTE VALUE) — by SAMPLE", y = "", caption = "(point is median)") +
+  theme_minimal() + easy_remove_legend()
+) 
+
+if(GRAPH_SAVE == TRUE){
+  ggsave(plot = g, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli_by_sample","_ggdist.png"), units = c("in"), width = 10, height = 14  )
+}
+  
+```
+
+```{r plot_ggdist_sd_abs_combined}
   
   #### GGDIST PLOT#############################################################################
   
@@ -1466,7 +2031,45 @@ if(GRAPH_SAVE == TRUE){
 
 
 ##### density ridges
-```{r plot_ridges_sd_abs}
+```{r plot_ridges_sd_abs_by_sample}
+  
+  #### DENSITY RIDGES#############################################################################
+  # setup dataframe 
+  df <- df_sd_questions_long_abs %>% select(1:8, QUESTION, value)  
+  d <- left_join( x = df, y = ref_labels_abs, 
+                  by = c("QUESTION" = "ref_sd_questions_abs")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION,Distribution) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+  
+(  x <-ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = category)) +
+    geom_density_ridges(scale = 0.9,quantile_lines = TRUE, alpha = 0.75) +
+    scale_x_continuous(0,100)+
+    facet_wrap(~Distribution) + 
+    # scale_fill_manual(values = my_palettes(name="amy_gradient", direction = "1"))+ 
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+ 
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels_abs$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
+    ) +
+    labs(title = "ALL STIMULI — SD (ABSOLUTE VALUE) — by Sample", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 50, y= ref_sd_questions_abs, size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    theme_minimal() + easy_remove_legend()
+)
+
+if(GRAPH_SAVE == TRUE){
+    ggsave(plot = x, path="figs/level_aggregated/distributions", filename =paste0("ABS_combined_stimuli_by_sample","_ridges.png"), units = c("in"), width = 10, height = 14  )
+}
+  
+```    
+
+```{r plot_ridges_sd_abs_combined}
   
   #### DENSITY RIDGES#############################################################################
   # setup dataframe 
@@ -1506,7 +2109,7 @@ if(GRAPH_SAVE == TRUE){
 rm(df, c,x,g,plot_master_questions)
 ```
 
-## CORRELATIONS
+## !! HERE STOPPED UPDATING HERE !! CORRELATIONS
 
 ### FULL SCALE
 

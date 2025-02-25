@@ -1,0 +1,212 @@
+<!-- preamble start -->
+<!DOCTYPE html> 
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tinytable_nrn7u681uv3zm9jsj6dc</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+<!-- preamble end -->
+
+    <script>
+      function styleCell_nrn7u681uv3zm9jsj6dc(i, j, css_id) {
+        var table = document.getElementById("tinytable_nrn7u681uv3zm9jsj6dc");
+        table.rows[i].cells[j].classList.add(css_id);
+      }
+      function insertSpanRow(i, colspan, content) {
+        var table = document.getElementById('tinytable_nrn7u681uv3zm9jsj6dc');
+        var newRow = table.insertRow(i);
+        var newCell = newRow.insertCell(0);
+        newCell.setAttribute("colspan", colspan);
+        // newCell.innerText = content;
+        // this may be unsafe, but innerText does not interpret <br>
+        newCell.innerHTML = content;
+      }
+      function spanCell_nrn7u681uv3zm9jsj6dc(i, j, rowspan, colspan) {
+        var table = document.getElementById("tinytable_nrn7u681uv3zm9jsj6dc");
+        const targetRow = table.rows[i];
+        const targetCell = targetRow.cells[j];
+        for (let r = 0; r < rowspan; r++) {
+          // Only start deleting cells to the right for the first row (r == 0)
+          if (r === 0) {
+            // Delete cells to the right of the target cell in the first row
+            for (let c = colspan - 1; c > 0; c--) {
+              if (table.rows[i + r].cells[j + c]) {
+                table.rows[i + r].deleteCell(j + c);
+              }
+            }
+          }
+          // For rows below the first, delete starting from the target column
+          if (r > 0) {
+            for (let c = colspan - 1; c >= 0; c--) {
+              if (table.rows[i + r] && table.rows[i + r].cells[j]) {
+                table.rows[i + r].deleteCell(j);
+              }
+            }
+          }
+        }
+        // Set rowspan and colspan of the target cell
+        targetCell.rowSpan = rowspan;
+        targetCell.colSpan = colspan;
+      }
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(0, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(1, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(2, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(3, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(4, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(5, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(6, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(7, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(8, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(9, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(10, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(11, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(12, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(13, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(14, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(15, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(16, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(17, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(18, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(19, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(20, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(21, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+window.addEventListener('load', function () { styleCell_nrn7u681uv3zm9jsj6dc(22, 1, 'tinytable_css_id7ohvxvakijjb1li7fxu2') })
+    </script>
+
+    <style>
+    .table td.tinytable_css_id7ohvxvakijjb1li7fxu2, .table th.tinytable_css_id7ohvxvakijjb1li7fxu2 {  text-align: center; }
+    </style>
+    <div class="container">
+      <table class="table table-borderless" id="tinytable_nrn7u681uv3zm9jsj6dc" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing='true'>
+        <thead>
+        
+              <tr>
+                <th scope="col">VARIABLE</th>
+                <th scope="col">DISTRIBUTION</th>
+                <th scope="col">STATISTICS</th>
+              </tr>
+        </thead>
+        
+        <tbody>
+                <tr>
+                  <td>MAKER_ID     </td>
+                  <td><img src="./tinytable_assets/id6qdbo54xc6bcg3ywk486.png" style="height: 1.5em;"></td>
+                  <td>political(16%) news(19%) business(20%) education(25%) organization(7%) individual(12%)        </td>
+                </tr>
+                <tr>
+                  <td>MAKER_AGE    </td>
+                  <td><img src="./tinytable_assets/idkj1360dc6puneys95w3l.png" style="height: 1.5em;"></td>
+                  <td>gen-z(9%) millennial(40%) gen-x(41%) boomer(10%)                                              </td>
+                </tr>
+                <tr>
+                  <td>MAKER_GENDER </td>
+                  <td><img src="./tinytable_assets/iddvdzogedh555tx2kv82b.png" style="height: 1.5em;"></td>
+                  <td>Male(59%) Female(34%) Other(7%)                                                               </td>
+                </tr>
+                <tr>
+                  <td>TOOL_ID      </td>
+                  <td><img src="./tinytable_assets/idlbfz2h2frnv0towkj26v.png" style="height: 1.5em;"></td>
+                  <td>programming(4%) viz_advanced(22%) viz_basic(17%) design_advanced(24%) design_basic(23%) ?(9%) </td>
+                </tr>
+                <tr>
+                  <td>ENCOUNTER    </td>
+                  <td><img src="./tinytable_assets/id75r6sk81pm0j9io9fpgw.png" style="height: 1.5em;"></td>
+                  <td>engage(59%) scroll(41%)                                                                       </td>
+                </tr>
+                <tr>
+                  <td>CHART_ACTION2</td>
+                  <td><img src="./tinytable_assets/idfxsaocohbbbpwpxexy9r.png" style="height: 1.5em;"></td>
+                  <td>something(46%) nothing(54%)                                                                   </td>
+                </tr>
+                <tr>
+                  <td>CHART_ACTION4</td>
+                  <td><img src="./tinytable_assets/idtkh4x3ppfkadnu4pxayn.png" style="height: 1.5em;"></td>
+                  <td>seek_info(28%) comment_share(14%) unfollow_block(4%) nothing(54%)                             </td>
+                </tr>
+                <tr>
+                  <td>MAKER_CONF   </td>
+                  <td><img src="./tinytable_assets/idsbl7de1piwai59zbmldd.png" style="height: 1em;"></td>
+                  <td>M=61.6 SD=23.4                                                                                </td>
+                </tr>
+                <tr>
+                  <td>AGE_CONF     </td>
+                  <td><img src="./tinytable_assets/idrcje6xksq79xmdtk3fmh.png" style="height: 1em;"></td>
+                  <td>M=60 SD=21.3                                                                                  </td>
+                </tr>
+                <tr>
+                  <td>GENDER_CONF  </td>
+                  <td><img src="./tinytable_assets/idruoy79ng43ai1sa5d067.png" style="height: 1em;"></td>
+                  <td>M=54.2 SD=25.4                                                                                </td>
+                </tr>
+                <tr>
+                  <td>TOOL_CONF    </td>
+                  <td><img src="./tinytable_assets/idvnw35u56hh8s3wfumemy.png" style="height: 1em;"></td>
+                  <td>M=64.7 SD=23.3                                                                                </td>
+                </tr>
+                <tr>
+                  <td>MAKER_DESIGN </td>
+                  <td><img src="./tinytable_assets/idusfn2eh1uhdqcajhrnpj.png" style="height: 1em;"></td>
+                  <td>M=48.1 SD=28.3                                                                                </td>
+                </tr>
+                <tr>
+                  <td>MAKER_DATA   </td>
+                  <td><img src="./tinytable_assets/id8raehjlamyf2k6a95nk3.png" style="height: 1em;"></td>
+                  <td>M=42.7 SD=27.7                                                                                </td>
+                </tr>
+                <tr>
+                  <td>MAKER_POLITIC</td>
+                  <td><img src="./tinytable_assets/idg83is7boarxpsqk1y3yb.png" style="height: 1em;"></td>
+                  <td>M=47 SD=18.7                                                                                  </td>
+                </tr>
+                <tr>
+                  <td>MAKER_ARGUE  </td>
+                  <td><img src="./tinytable_assets/idsapn1o2vse55rdww4kpx.png" style="height: 1em;"></td>
+                  <td>M=54.9 SD=19.9                                                                                </td>
+                </tr>
+                <tr>
+                  <td>MAKER_SELF   </td>
+                  <td><img src="./tinytable_assets/idmx4c58zkg58c13u7lnhx.png" style="height: 1em;"></td>
+                  <td>M=44 SD=19.6                                                                                  </td>
+                </tr>
+                <tr>
+                  <td>MAKER_ALIGN  </td>
+                  <td><img src="./tinytable_assets/idy4z57awpjdufr4xvg2vf.png" style="height: 1em;"></td>
+                  <td>M=52.7 SD=18.1                                                                                </td>
+                </tr>
+                <tr>
+                  <td>MAKER_TRUST  </td>
+                  <td><img src="./tinytable_assets/id2pyoehwzviosva05vtwm.png" style="height: 1em;"></td>
+                  <td>M=58 SD=18.6                                                                                  </td>
+                </tr>
+                <tr>
+                  <td>CHART_TRUST  </td>
+                  <td><img src="./tinytable_assets/idsr4w0tnh7qi4g9uwo24t.png" style="height: 1em;"></td>
+                  <td>M=54.6 SD=23.2                                                                                </td>
+                </tr>
+                <tr>
+                  <td>CHART_INTENT </td>
+                  <td><img src="./tinytable_assets/idcsdkzgevsym9ytc1xvwd.png" style="height: 1em;"></td>
+                  <td>M=41.3 SD=31.5                                                                                </td>
+                </tr>
+                <tr>
+                  <td>CHART_LIKE   </td>
+                  <td><img src="./tinytable_assets/idbtdqjv7xund0tlv7ujgw.png" style="height: 1em;"></td>
+                  <td>M=48.6 SD=26.4                                                                                </td>
+                </tr>
+                <tr>
+                  <td>CHART_BEAUTY </td>
+                  <td><img src="./tinytable_assets/id10o8jnifsco73g9srcsf.png" style="height: 1em;"></td>
+                  <td>M=49.5 SD=28.9                                                                                </td>
+                </tr>
+        </tbody>
+      </table>
+    </div>
+<!-- postamble start -->
+  </body>
+
+</html>
+<!-- postamble end -->
+<!-- hack to avoid NA insertion in last line -->
