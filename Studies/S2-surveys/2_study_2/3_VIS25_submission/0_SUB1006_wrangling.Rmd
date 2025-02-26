@@ -151,61 +151,13 @@ saveRDS(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.rds")
 ```
 
 
-```{r}
-## PRIOR ORDERING OF QUESTIONS — CHANGED ORDER OF FACTORS FOR READABILITY
-# ### LABELS FOR RAW VALUE OF SD QUESTIONS
-# ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC",
-#                "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
-#                "CHART_LIKE", "CHART_BEAUTY", "CHART_INTENT", "CHART_TRUST")
-# 
-# left <- c("professional","professional","left-leaning","confrontational",
-#           "altruistic","does NOT share","untrustworthy",
-#           "NOT at all","NOT at all", "inform", "untrustworthy")
-# right <- c("layperson","layperson","right-leaning","diplomatic",
-#            "selfish", "DOES share", "trustworthy",
-#            "very much", "very much", "persuade", "trusthworthy")
-# category <- c("COMPETENCY","COMPETENCY",
-#               "VALUES","VALUES","VALUES",
-#               "ALIGN",
-#               "TRUST","LIKE","LIKE","INTENT","TRUST")
-# 
-# ref_labels <- as.data.frame(cbind(ref_sd_questions, left,right,category))
-# rownames(ref_labels) <- ref_sd_questions
-# 
-# write.csv(ref_labels, file = "data/input/REFERENCE/ref_labels.csv", na="")
-# saveRDS(ref_labels, file = "data/input/REFERENCE/ref_labels.rds")
-# 
-# 
-# ### LABELS FOR ABS VALUE OF SD QUESTIONS
-# ref_sd_questions_abs <- c("abs_MAKER_DESIGN","abs_MAKER_DATA","abs_MAKER_POLITIC",
-#                "abs_MAKER_ARGUE","abs_MAKER_SELF","abs_MAKER_ALIGN","abs_MAKER_TRUST",
-#                "abs_CHART_LIKE", "abs_CHART_BEAUTY", "abs_CHART_INTENT", "abs_CHART_TRUST")
-# 
-# left <- c("(neutral)","(neutral)","(neutral)","(neutral)",
-#           "(neutral)","(neutral)","(neutral)",
-#           "(neutral)","(neutral)", "(neutral)", "(neutral)")
-# right <- c("professional/layperson","professiona/layperson","left-leaning/right-leaning","confrontational/diplomatic",
-#           "altruistic/selfish","does NOT share/DOES share","untrustworthy/trustworthy",
-#           "NOT at all/VERY much","NOT at all/VERY much", "inform/persuade", "untrustworthy/trustworthy")
-# category <- c("COMPETENCY","COMPETENCY",
-#               "VALUES","VALUES","VALUES",
-#               "ALIGN",
-#               "TRUST","LIKE","LIKE","INTENT","TRUST")
-# 
-# ref_labels_abs <- as.data.frame(cbind(ref_sd_questions_abs,left,right,category))
-# rownames(ref_labels_abs) <- ref_sd_questions_abs
-# 
-# write.csv(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.csv", na="")
-# saveRDS(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.rds")
-
-```
-
 ## DEFINE Factor Orders
 ```{r define-factor-orders}
 
 ## set order of several factor vars used in plots 
 
-order_study = c("TUMBLR","PROLIFIC")
+order_study = c("TUMBLR","PROLIFIC") ##NEW for VIS
+order_sample = c("TUMBLR","DATACOLLAR","BLUECOLLAR", "GENERAL") ## NEW for VIS
 order_maker = c("individual","organization","education","business","news","political")
 order_age = c("boomer", "gen-x","millennial","gen-z")
 order_gender = c("Other","Female","Male" )
@@ -579,7 +531,9 @@ df_data <- df_data %>%
     Assigned.Block = factor(Assigned.Block), 
     # PID = if_else( (Distribution =="TUMBLR"), ID.Qualtrics, ID.Prolific),
     PID = factor(ID.Qualtrics),
-    Distribution = factor(Distribution, levels=order_study) ## ADDED FACTOR ORDER TO KEEP TUBMLR AS FIRST 
+    Distribution = factor(Distribution, levels=order_study), ## ADDED FACTOR ORDER TO KEEP TUBMLR AS FIRST 
+    Sample = fct_recode(Sample, TUMBLR= "tumblr", BLUECOLLAR = "blue-collar", DATACOLLAR = "data-collar", GENERAL="general-prolific"), #recode factor levels
+    Sample = factor(Sample, levels= order_sample)#set level order
   ) %>% #DROP RANDOM_BLOC COLUMNS
   select (-RANDOM_BLOCK) %>% 
   select(
@@ -654,6 +608,11 @@ df_qda_wide <- df_data
 write.csv(df_data, file = "data/output/df_qda_wide.csv", na="")
 
 
+##CHECK number per block per sample 
+print("Number of valid participants per assigned block and sample")
+table(df_data$Sample, df_data$Assigned.Block)
+
+
 #2 CREATE TRIAL LEVEL DFS FOR QDA ###############################################
 #### CHART LEVEL DATA FRAME (LONG) FOR QDA (incl demographics) ##################
 #### INCLUDES PILOT DATA FROM DATACOLLAR BLUECOLLAR PROLIFIC RECRUITMENT ########
@@ -706,16 +665,17 @@ df_qda_long <- df_data %>%
 write.csv(df_qda_long, file = "data/output/df_qda_long.csv", na="")
 
 
-#### REMOVE PILOT DATA FROM DF_DATA 
-## pilot data IS not included QDA file, but not in quant analysis 
-df_data <- df_data %>% 
-  filter(Scope != "pilot") %>% 
-  mutate(
-    ID.Study = droplevels(ID.Study), 
-    ID.Prolific = droplevels(ID.Prolific),
-    ID.Qualtrics = droplevels(ID.Qualtrics),
-    PID = droplevels(PID)
-  ) 
+# #### TEMP DON'T REMOVE PILOT DATA 
+# #### REMOVE PILOT DATA FROM DF_DATA 
+# ## pilot data IS not included QDA file, but not in quant analysis 
+# df_data <- df_data %>% 
+#   filter(Scope != "pilot") %>% 
+#   mutate(
+#     ID.Study = droplevels(ID.Study), 
+#     ID.Prolific = droplevels(ID.Prolific),
+#     ID.Qualtrics = droplevels(ID.Qualtrics),
+#     PID = droplevels(PID)
+#   ) 
 
 #WRITE  A CSV FILE WITH RESPONSE DATA FOR VALID PARTICIPANTS (NOT EXCLUDED, NOT PILOT) in wide format
 write.csv(df_data, file = "data/output/df_data.csv", na="")
@@ -765,14 +725,19 @@ cols = c("Sampling Platform", "Block-1","Block-2","Block-3","Block-4","Block-5",
 cont <- table(df_data$Distribution, df_data$Assigned.Block)
 cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
 
+title = "Number of successful surveys by sample and block"
+cols = c("Sample", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
+cont <- table(df_data$Sample, df_data$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
 
 
 # END WRANGLE MASTER WIDE PARTICIPANT LEVEL DATA FRAME 
 ################################################################################################
 ################################################################################################
 
-print("df_data represents full set of RESPONSE DATA for valid non-pilot participants [wide]")
-print("df_participants represents full set of DEMOGRAPHIC DATA for valid non-pilot participants [demographics]")
+print("df_data represents full set of RESPONSE DATA for valid  participants [wide]")
+print("df_participants represents full set of DEMOGRAPHIC DATA for valid participants [demographics]")
 
 #REMOVE dataframes not needed for further wrangling
 rm(df_exclude, df_qda_long, df_qda_wide, df_raw)
