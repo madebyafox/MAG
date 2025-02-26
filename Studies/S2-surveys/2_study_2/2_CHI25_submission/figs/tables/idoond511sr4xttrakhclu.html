@@ -1,0 +1,197 @@
+<!-- preamble start -->
+
+    <script>
+      function styleCell_4lf0nd4e8eaoxka5n9rc(i, j, css_id) {
+        var table = document.getElementById("tinytable_4lf0nd4e8eaoxka5n9rc");
+        table.rows[i].cells[j].classList.add(css_id);
+      }
+      function insertSpanRow(i, colspan, content) {
+        var table = document.getElementById('tinytable_4lf0nd4e8eaoxka5n9rc');
+        var newRow = table.insertRow(i);
+        var newCell = newRow.insertCell(0);
+        newCell.setAttribute("colspan", colspan);
+        // newCell.innerText = content;
+        // this may be unsafe, but innerText does not interpret <br>
+        newCell.innerHTML = content;
+      }
+      function spanCell_4lf0nd4e8eaoxka5n9rc(i, j, rowspan, colspan) {
+        var table = document.getElementById("tinytable_4lf0nd4e8eaoxka5n9rc");
+        const targetRow = table.rows[i];
+        const targetCell = targetRow.cells[j];
+        for (let r = 0; r < rowspan; r++) {
+          // Only start deleting cells to the right for the first row (r == 0)
+          if (r === 0) {
+            // Delete cells to the right of the target cell in the first row
+            for (let c = colspan - 1; c > 0; c--) {
+              if (table.rows[i + r].cells[j + c]) {
+                table.rows[i + r].deleteCell(j + c);
+              }
+            }
+          }
+          // For rows below the first, delete starting from the target column
+          if (r > 0) {
+            for (let c = colspan - 1; c >= 0; c--) {
+              if (table.rows[i + r] && table.rows[i + r].cells[j]) {
+                table.rows[i + r].deleteCell(j);
+              }
+            }
+          }
+        }
+        // Set rowspan and colspan of the target cell
+        targetCell.rowSpan = rowspan;
+        targetCell.colSpan = colspan;
+      }
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(0, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(1, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(2, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(3, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(4, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(5, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(6, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(7, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(8, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(9, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(10, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(11, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(12, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(13, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(14, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(15, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(16, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(17, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(18, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(19, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(20, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(21, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+window.addEventListener('load', function () { styleCell_4lf0nd4e8eaoxka5n9rc(22, 1, 'tinytable_css_idtl59ramkc3xxoe4bnoi5') })
+    </script>
+
+    <style>
+    .table td.tinytable_css_idtl59ramkc3xxoe4bnoi5, .table th.tinytable_css_idtl59ramkc3xxoe4bnoi5 {  text-align: center; }
+    </style>
+    <div class="container">
+      <table class="table table-borderless" id="tinytable_4lf0nd4e8eaoxka5n9rc" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing='true'>
+        <thead>
+        
+              <tr>
+                <th scope="col">VARIABLE</th>
+                <th scope="col">DISTRIBUTION</th>
+                <th scope="col">STATISTICS</th>
+              </tr>
+        </thead>
+        
+        <tbody>
+                <tr>
+                  <td>MAKER_ID     </td>
+                  <td><img src="./tinytable_assets/idfnb9iwhcqln9vhlr4pde.png" style="height: 1.5em;"></td>
+                  <td>political(16%) news(19%) business(20%) education(25%) organization(7%) individual(12%)        </td>
+                </tr>
+                <tr>
+                  <td>MAKER_AGE    </td>
+                  <td><img src="./tinytable_assets/idojyqpvobgsj8b1dpey6v.png" style="height: 1.5em;"></td>
+                  <td>gen-z(9%) millennial(40%) gen-x(41%) boomer(10%)                                              </td>
+                </tr>
+                <tr>
+                  <td>MAKER_GENDER </td>
+                  <td><img src="./tinytable_assets/idnjljfva54gfc860dlhks.png" style="height: 1.5em;"></td>
+                  <td>Male(59%) Female(34%) Other(7%)                                                               </td>
+                </tr>
+                <tr>
+                  <td>TOOL_ID      </td>
+                  <td><img src="./tinytable_assets/idnjtasmp2niw4163xlp8c.png" style="height: 1.5em;"></td>
+                  <td>programming(4%) viz_advanced(22%) viz_basic(17%) design_advanced(24%) design_basic(23%) ?(9%) </td>
+                </tr>
+                <tr>
+                  <td>ENCOUNTER    </td>
+                  <td><img src="./tinytable_assets/id6z5l5uu9g4plo3mliwz3.png" style="height: 1.5em;"></td>
+                  <td>engage(59%) scroll(41%)                                                                       </td>
+                </tr>
+                <tr>
+                  <td>CHART_ACTION2</td>
+                  <td><img src="./tinytable_assets/idhqch8836pc56dzsmmszm.png" style="height: 1.5em;"></td>
+                  <td>something(46%) nothing(54%)                                                                   </td>
+                </tr>
+                <tr>
+                  <td>CHART_ACTION4</td>
+                  <td><img src="./tinytable_assets/idad9rsh9zjztkmtxgrcui.png" style="height: 1.5em;"></td>
+                  <td>seek_info(28%) comment_share(14%) unfollow_block(4%) nothing(54%)                             </td>
+                </tr>
+                <tr>
+                  <td>MAKER_CONF   </td>
+                  <td><img src="./tinytable_assets/iddlnzhcqvwea4vzmvsca6.png" style="height: 1em;"></td>
+                  <td>M=61.6 SD=23.4                                                                                </td>
+                </tr>
+                <tr>
+                  <td>AGE_CONF     </td>
+                  <td><img src="./tinytable_assets/id43ufj9s42crhytqwudgl.png" style="height: 1em;"></td>
+                  <td>M=60 SD=21.3                                                                                  </td>
+                </tr>
+                <tr>
+                  <td>GENDER_CONF  </td>
+                  <td><img src="./tinytable_assets/ide072wlv58icwnmk26bjh.png" style="height: 1em;"></td>
+                  <td>M=54.2 SD=25.4                                                                                </td>
+                </tr>
+                <tr>
+                  <td>TOOL_CONF    </td>
+                  <td><img src="./tinytable_assets/id4lipi0a5onhkd4z0wpw1.png" style="height: 1em;"></td>
+                  <td>M=64.7 SD=23.3                                                                                </td>
+                </tr>
+                <tr>
+                  <td>MAKER_DESIGN </td>
+                  <td><img src="./tinytable_assets/idbt9m6dk8wf1b4j4fanjg.png" style="height: 1em;"></td>
+                  <td>M=48.1 SD=28.3                                                                                </td>
+                </tr>
+                <tr>
+                  <td>MAKER_DATA   </td>
+                  <td><img src="./tinytable_assets/idd8kvpyl3cyyrp51brlnv.png" style="height: 1em;"></td>
+                  <td>M=42.7 SD=27.7                                                                                </td>
+                </tr>
+                <tr>
+                  <td>MAKER_POLITIC</td>
+                  <td><img src="./tinytable_assets/idsaglfev0krj0rc7carlx.png" style="height: 1em;"></td>
+                  <td>M=47 SD=18.7                                                                                  </td>
+                </tr>
+                <tr>
+                  <td>MAKER_ARGUE  </td>
+                  <td><img src="./tinytable_assets/idq6uyabjvfd2ac9k10zl3.png" style="height: 1em;"></td>
+                  <td>M=54.9 SD=19.9                                                                                </td>
+                </tr>
+                <tr>
+                  <td>MAKER_SELF   </td>
+                  <td><img src="./tinytable_assets/idr9q2nwtimw2vbfi13mu3.png" style="height: 1em;"></td>
+                  <td>M=44 SD=19.6                                                                                  </td>
+                </tr>
+                <tr>
+                  <td>MAKER_ALIGN  </td>
+                  <td><img src="./tinytable_assets/idvld90c3g7g2htjn225ci.png" style="height: 1em;"></td>
+                  <td>M=52.7 SD=18.1                                                                                </td>
+                </tr>
+                <tr>
+                  <td>MAKER_TRUST  </td>
+                  <td><img src="./tinytable_assets/idnv3eba1la97rahwqvvpw.png" style="height: 1em;"></td>
+                  <td>M=58 SD=18.6                                                                                  </td>
+                </tr>
+                <tr>
+                  <td>CHART_TRUST  </td>
+                  <td><img src="./tinytable_assets/iduqnc2dsr15ahx53xhaz4.png" style="height: 1em;"></td>
+                  <td>M=54.6 SD=23.2                                                                                </td>
+                </tr>
+                <tr>
+                  <td>CHART_INTENT </td>
+                  <td><img src="./tinytable_assets/id9k3vf643vdearq41pcvz.png" style="height: 1em;"></td>
+                  <td>M=41.3 SD=31.5                                                                                </td>
+                </tr>
+                <tr>
+                  <td>CHART_LIKE   </td>
+                  <td><img src="./tinytable_assets/idss3md4f4mjkvxgrqv5px.png" style="height: 1em;"></td>
+                  <td>M=48.6 SD=26.4                                                                                </td>
+                </tr>
+                <tr>
+                  <td>CHART_BEAUTY </td>
+                  <td><img src="./tinytable_assets/idyo5qf9swh5bgdtvuvuwj.png" style="height: 1em;"></td>
+                  <td>M=49.5 SD=28.9                                                                                </td>
+                </tr>
+        </tbody>
+      </table>
+    </div>
+<!-- hack to avoid NA insertion in last line -->
