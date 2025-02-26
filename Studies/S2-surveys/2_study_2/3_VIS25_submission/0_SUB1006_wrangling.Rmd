@@ -46,7 +46,7 @@ n_blocks = 6 #number of stimulus blocks in study design
 
 # WRANGLING
 
-Initial (pilot) data collection occured via via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1"). These data were collected via Prolific, with different demographic restrictions (i.e. 'data collar' and 'blue collar' made use of different values in the Prolific participant background survey on the 'technology use at work' and 'job title' questions.) However, when we duplicated these questions in our own demographic surveys, we found participants' answers often did not match their values on the Prolific background survey, and thus we abandoned this stratified sampling strategy and continued data collection with no demographic restrictions. We made minor alterations to the question wording and respose option wording, and the remaining stimuli were organized in 6 blocks. (The changes to question wording and response option wording were minimal and thus we include our pilot data in the dataset for free response question analysis, but not quantitative data analysis.) Each block was collected via PROLIFIC using independent Qualtrics surveys, with the exception of a smaller sample of respondents directly recruited from Tumblr, using a single Qualtrics survey with randomization logic to assign each Tumblr participant to one of the six stimulus blocks.
+Initial (pilot) data collection occured via via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1"). These data were collected via Prolific, with different demographic restrictions (i.e. 'data collar' and 'blue collar' made use of different values in the Prolific participant background survey on the 'technology use at work' and 'job title' questions.) However, when we duplicated these questions in our own demographic surveys, we found participants' answers often did not match their values on the Prolific background survey, and thus we abandoned this stratified sampling strategy and continued data collection with no demographic restrictions. We made minor alterations to the question wording and respose option wording, and the remaining stimuli were organized in 6 blocks. (The changes to question wording and response option wording were minimal and thus we include our pilot data in the dataset for both free response questions and quantitative data analysis.) Each block was collected via PROLIFIC using independent Qualtrics surveys, with the exception of a smaller sample of respondents directly recruited from Tumblr, using a single Qualtrics survey with randomization logic to assign each Tumblr participant to one of the six stimulus blocks.
 
 ## IMPORT Configuration Files
 
@@ -354,7 +354,7 @@ rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b1, df_raw_b2, df_raw_b3, df_raw
 
 *Here we apply exclusion criteria in order to reduce the raw participant data in `df_raw` to a dataframe of valid participant data `df_subjects`. We remove unneeded columns (i.e. qualtrics configuration columns, etc) and transform columns to the the appropriate data types for further analysis.*
 
-NOTE: data from PILOT (i.e. 'blue collar' and 'data collar' runs on Prolific) are *included* in the qualitative data analysis (i.e. analysis of free response data) but *not* in quantitative data analysis (modelling as well as reporting descriptive statistics of response distributions.
+NOTE: data from PILOT (i.e. 'blue collar' and 'data collar' runs on Prolific) are *included* in the qualitative data analysis (i.e. analysis of free response data) but *not* in quantitative data analysis (modelling as well as reporting descriptive statistics of response distributions. --> CHANGE THEY'VE BEEN LEFT IN FOR COMPARISON W/ TUMBLR
 
 Participants were *excluded* from the sample for the following reasons:
 
@@ -367,11 +367,11 @@ Participants were *excluded* from the sample for the following reasons:
 
 The following dataframes are created:
 
--   `df_data` represents **response data** for all valid participants (not pilot) (wide format)
+-   `df_data` represents **response data** for all valid participants (wide format)
 
 -   `df_exclude` represents **response data** for participants who did not meet inclusion criteria (wide format)
 
--   `df_participants` represents **demographic data** for all valid (not pilot) participants
+-   `df_participants` represents **demographic data** for all valid participants
 
 -   `df_qda_wide` includes all valid (including pilot) responses in wide format, to be used for free response data analysis (wide)
 
