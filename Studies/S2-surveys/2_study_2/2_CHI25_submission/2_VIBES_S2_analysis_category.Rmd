@@ -1722,13 +1722,17 @@ plot_model(mm, type = "est", vline.color = "red", show.intercept = TRUE, show.va
   labs(subtitle = f) + theme_minimal()
 
 
-## PLOT PRED
-plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "MAKER_ID"))
-plot_model(m, type = "pred", terms = c("LIKE_Z", "STIMULUS_CATEGORY", "MAKER_ID"))
-plot_model(m, type = "pred", terms = c("LIKE_Z", "STIMULUS_CATEGORY", "MAKER_ID", " MAKER_AGE"))
+## PLOT PRED (only sig model terms)
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z"))
+plot_model(m, type = "pred", terms = c("LIKE_Z", "STIMULUS_CATEGORY"))
+
+##HAVE TERMS NOT IN MODEL
+# plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "MAKER_ID"))
+# plot_model(m, type = "pred", terms = c("LIKE_Z", "STIMULUS_CATEGORY", "MAKER_ID"))
+# plot_model(m, type = "pred", terms = c("LIKE_Z", "STIMULUS_CATEGORY", "MAKER_ID", " MAKER_AGE"))
 
 ##+ 
-  labs(subtitle = f) + theme_minimal()
+  # labs(subtitle = f) + theme_minimal()
 
 ## IN PAPER
 tab_model(mm)
@@ -1825,40 +1829,7 @@ plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z")) +
 ```
 main effects but interaction is not significant and interaction is not a better fit 
 
-##### ENCOUNTER ~ CATEGORY + LIKE + TRUST
 
-```{r}
-
-################## ENCOUNTER ~ CATEGORY + LIKE + TRUST #################
-f.TLCrP <-  "ENCOUNTER ~ LIKE + CATEGORY + TRUST (1|PID)"
-mm.TLCrP <- glmer(ENCOUNTER ~ LIKE_Z + TRUST_Z + STIMULUS_CATEGORY + (1|PID), 
-                data = df,family = "binomial")
-car::Anova(mm.TLCrP, type = 2)
-summary(mm.TLCrP)
-performance(mm.TLCrP)
-
-m <- mm.TLCrP
-f <- f.TLCrP
-## REPORT 
-# report(m)
-
-
-## PLOT COEF
-plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
-  labs(subtitle = f) + theme_minimal()
-
-
-## PLOT PRED
-plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "TRUST_Z")) + 
-  labs(subtitle = f) + theme_minimal()
-
-## IN PAPER
-# tab_model(mm.I)
-
-compare_performance(mm.TLCrP, mm.LCrP, mm.ALCrP, rank = TRUE)
-anova(mm.TLCrP, mm.LCrP, mm.ALCrP)
-```
-trust not sig, model not better 
 
 ##### (no) ENCOUNTER ~ CATEGORY + LIKE + ALIGN
 
@@ -1894,6 +1865,40 @@ compare_performance(mm.LCrP, mm.ALCrP, rank = TRUE)
 anova(mm.LCrP, mm.ALCrP)
 ```
 
+##### ENCOUNTER ~ CATEGORY + LIKE + TRUST
+
+```{r}
+
+################## ENCOUNTER ~ CATEGORY + LIKE + TRUST #################
+f.TLCrP <-  "ENCOUNTER ~ LIKE + CATEGORY + TRUST (1|PID)"
+mm.TLCrP <- glmer(ENCOUNTER ~ LIKE_Z + TRUST_Z + STIMULUS_CATEGORY + (1|PID), 
+                data = df,family = "binomial")
+car::Anova(mm.TLCrP, type = 2)
+summary(mm.TLCrP)
+performance(mm.TLCrP)
+
+m <- mm.TLCrP
+f <- f.TLCrP
+## REPORT 
+# report(m)
+
+
+## PLOT COEF
+plot_model(m, type = "est", vline.color = "red", show.intercept = TRUE, show.values = TRUE) + 
+  labs(subtitle = f) + theme_minimal()
+
+
+## PLOT PRED
+plot_model(m, type = "pred", terms = c("STIMULUS_CATEGORY", "LIKE_Z", "TRUST_Z")) + 
+  labs(subtitle = f) + theme_minimal()
+
+## IN PAPER
+# tab_model(mm.I)
+
+compare_performance(mm.TLCrP, mm.LCrP, mm.ALCrP, rank = TRUE)
+anova(mm.TLCrP, mm.LCrP, mm.ALCrP)
+```
+trust not sig, model not better 
 
 
 
@@ -1957,65 +1962,65 @@ anova(mm.LCrP, mm.ALCrP)
 
 ```{r hypo-category-encounter-describe}
 
-############ DESCRIBE FINAL MODEL ###########
-summary(m_best)
-report(m_best)
-
-
-######### PRINT COEFFICIENTS 
-print("COEFFICIENT ESTIMATES — LOG ODDS")
-tidy(m_best)
-print("COEFFICIENT ESTIMATES — ODDS RATIOS")
-tidy(m_best, exponentiate=TRUE)
+# ############ DESCRIBE FINAL MODEL ###########
+# summary(m_best)
+# report(m_best)
+# 
+# 
+# ######### PRINT COEFFICIENTS 
+# print("COEFFICIENT ESTIMATES — LOG ODDS")
+# tidy(m_best)
+# print("COEFFICIENT ESTIMATES — ODDS RATIOS")
+# tidy(m_best, exponentiate=TRUE)
 
 ``` 
 
 #### model vis
 ```{r hypo-category-encounter-modelvis}
 
-############ VISUALIZE MODEL COEFFICIENTS 
-#SJPLOT | MODEL | ODDS RATIO
-#library(sjPlot)
-plot_model(m_best, type = "est",
-           vline.color = "red", 
-           show.intercept = TRUE, 
-           show.values = TRUE) + theme_minimal() + 
-  labs(title = "Model Predicted Odds Ratio for ENCOUNTER",
-       subtitle = "")
-
-
-
-############ VISUALIZE MODEL PREDICTIONS
-#SJPLOT | MODEL | PROBABILITIES
-plot_model(m_best, type = "int", mdrt.values = "meansd") + theme_minimal()
-
-plot_model(m_best, type="emm", 
-           terms = c("BLOCK"), ci.lvl = 0.95) + theme_minimal() + 
-  labs(title = "Estimated Marginal Means for BLOCK")
-
-plot_model(m_best, type="emm", 
-           terms = c("STIMULUS_CATEGORY"), ci.lvl = 0.95) + theme_minimal() + 
-  labs(title = "Estimated Marginal Means for CATEGORY")
-
-plot_model(m_best, type="emm", 
-           terms = c("BLOCK","STIMULUS_CATEGORY"), ci.lvl = 0.95) + theme_minimal() + 
-  labs(title = "Estimated Marginal Means for INTERACTION")
-
-
-
-## MANUAL PREDICTION INTERACTION PLOT [bc stupid sjPlot cant facet argh]
-means <- estimate_means(m_best, at=c("BLOCK","STIMULUS_CATEGORY"), transform = "response",
-                        backend="emmeans")
-m <- as_tibble(means)
-
-## CUSTOM PREDICTIONS PLOT
-m %>% ggplot( aes(x = BLOCK, y = Probability, color=STIMULUS_CATEGORY)) +
-  geom_point() +
-  geom_linerange(aes(ymin = CI_low, ymax=CI_high)) + 
-  scale_y_continuous(limits = c(0,1))+
-  facet_wrap(~STIMULUS_CATEGORY) + 
-  theme_minimal() + easy_remove_legend() + 
-  labs(title = "MODEL PREDICTED Probability of ENGAGE (rather than scroll)")
+# ############ VISUALIZE MODEL COEFFICIENTS 
+# #SJPLOT | MODEL | ODDS RATIO
+# #library(sjPlot)
+# plot_model(m_best, type = "est",
+#            vline.color = "red", 
+#            show.intercept = TRUE, 
+#            show.values = TRUE) + theme_minimal() + 
+#   labs(title = "Model Predicted Odds Ratio for ENCOUNTER",
+#        subtitle = "")
+# 
+# 
+# 
+# ############ VISUALIZE MODEL PREDICTIONS
+# #SJPLOT | MODEL | PROBABILITIES
+# plot_model(m_best, type = "int", mdrt.values = "meansd") + theme_minimal()
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("BLOCK"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for BLOCK")
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("STIMULUS_CATEGORY"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for CATEGORY")
+# 
+# plot_model(m_best, type="emm", 
+#            terms = c("BLOCK","STIMULUS_CATEGORY"), ci.lvl = 0.95) + theme_minimal() + 
+#   labs(title = "Estimated Marginal Means for INTERACTION")
+# 
+# 
+# 
+# ## MANUAL PREDICTION INTERACTION PLOT [bc stupid sjPlot cant facet argh]
+# means <- estimate_means(m_best, at=c("BLOCK","STIMULUS_CATEGORY"), transform = "response",
+#                         backend="emmeans")
+# m <- as_tibble(means)
+# 
+# ## CUSTOM PREDICTIONS PLOT
+# m %>% ggplot( aes(x = BLOCK, y = Probability, color=STIMULUS_CATEGORY)) +
+#   geom_point() +
+#   geom_linerange(aes(ymin = CI_low, ymax=CI_high)) + 
+#   scale_y_continuous(limits = c(0,1))+
+#   facet_wrap(~STIMULUS_CATEGORY) + 
+#   theme_minimal() + easy_remove_legend() + 
+#   labs(title = "MODEL PREDICTED Probability of ENGAGE (rather than scroll)")
 
 ```
 
