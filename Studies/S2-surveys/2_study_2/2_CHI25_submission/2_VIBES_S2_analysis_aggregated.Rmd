@@ -434,14 +434,11 @@ t <- tinytable::tt(tab, theme = "void") %>%
 
 t
 if(GRAPH_SAVE){
-  save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE)
+  #save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) <-- have to save manually from render in view window
   save_tt(t, output="figs/tables/sparklines.tex", overwrite = TRUE)  
 }
 
 ```
-
-
-
 
 
 
