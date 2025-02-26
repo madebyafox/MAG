@@ -74,7 +74,7 @@ n_blocks = 6
 
 ## IMPORTANT 
 ## SET TO TRUE when running file; but FALSE when rendering file (don't need to re-save on render)
-GRAPH_SAVE = FALSE #set to true to generate all the SD graphs and save to folders 
+GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
