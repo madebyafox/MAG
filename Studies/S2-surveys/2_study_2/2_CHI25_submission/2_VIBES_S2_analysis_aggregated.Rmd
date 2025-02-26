@@ -82,11 +82,15 @@ library(kSamples) #AD K-SAMPLE TEST (for distribution comparison)
 library(rstatix) #FRIEDMAN'S TESTS and effect sizes 
 
 #CONFIG
+options(chromote.headless = "new") #for webshot workarounds saving 'screenshots' of rendered figs
 options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
+
 ## IMPORTANT 
-GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
+## SET TO TRUE when running file; but FALSE when rendering file (don't need to re-save on render)
+GRAPH_SAVE = FALSE #set to true to generate all the SD graphs and save to folders 
+
 
 ```
 
@@ -434,7 +438,7 @@ t <- tinytable::tt(tab, theme = "void") %>%
 
 t
 if(GRAPH_SAVE){
-  #save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) <-- have to save manually from render in view window
+  save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) 
   save_tt(t, output="figs/tables/sparklines.tex", overwrite = TRUE)  
 }
 
@@ -2319,7 +2323,7 @@ p <- plot_model(mm.BxID, type = "pred", terms = c("INTENT_Z", "BEAUTY_Z", "DATA_
 tab_model(mm.BxID, file = "figs/PAPER/mmBxID_table.html")
 
 # then take this html file and make .png file
-webshot("figs/PAPER/mmBxID_table.html", "figs/PAPER/mmBxID_table.svg")
+webshot("figs/PAPER/mmBxID_table.html", "figs/PAPER/mmBxID_table.png")
 ```
 ### not using 
 
@@ -2442,98 +2446,98 @@ webshot("figs/PAPER/mmBxID_table.html", "figs/PAPER/mmBxID_table.svg")
 
 
 ```{r}
-## INTENT MAIN EFFECT 
-# SUBJECT INTERCEPT | FIXED BEAUTY 
-print("TRUSTS ~ INTENT + (1|PID)")
-mm.IrP <- lmer(CHART_TRUST ~ CHART_INTENT + (1|PID), data = df)
-# :: TEST fixed factor 
-compare_performance(mm.rP, mm.BrP, mm.IrP, rank = TRUE)
-paste("AIC with INTENT is lower than BEAUTY model?", AIC(logLik(mm.BrP)) > AIC(logLik(mm.IrP)) )
-anova(mm.BrP, mm.IrP, test = "Chi") #same as anova(m0, m1, test = "Chi")
-print("A model with INTENT IS a better fit than model with BEAUTY")
-car::Anova(mm.IrP, type=2)
-print("BEAUTY IS a significant predictor in the model")
-summary(mm.IrP)
-
-
-## BEAUTY AND INTENT MAIN EFFECTS 
-# SUBJECT INTERCEPT | BEAUTY + INTENT
-print("TRUST ~ INTENT + BEAUTY + (1|PID)")
-mm.IBrP <- lmer(CHART_TRUST ~ CHART_INTENT + CHART_BEAUTY + (1|PID), data = df)
-# :: TEST fixed factor 
-compare_performance(mm.rP, mm.BrP, mm.IrP, mm.IBrP, rank = TRUE)
-##anova instead of LRT b/c models are not nested 
-anova(mm.IrP,mm.IBrP, mm.BrP) #same as anova(m0, m1, test = "Chi")
-test_lrt(mm.IrP, mm.IBrP)
-test_lrt(mm.BrP, mm.IBrP)
-paste("A model with a linear combination of BEAUTY and INTENT predicting TRUST is a significantly better fit than either fixed effect alone.")
-car::Anova(mm.IBrP, type = 2)
-summary(mm.IBrP)
-print("CATEGORY is a significant predictor in this model, but BLOCK is not")
-
-
-## BEAUTY INTENT INTERACTION
-# SUBJECT INTERCEPT | INTENT * BEAUTY 
-print("TRUST ~ INTENT * BEAUTY + (1|PID)")
-mm.IBXrP <- lmer(CHART_TRUST ~ CHART_INTENT * CHART_BEAUTY + (1|PID), 
-                data = df) 
-               # control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
-               # optCtrl=list(maxfun=2e5)))
-# :: TEST fixed factor 
-compare_performance(mm.IBXrP, mm.IBrP, mm.IrP, mm.BrP, rank = TRUE)
-##anova instead of LRT b/c models are not nested 
-anova(mm.IBXrP, mm.IBrP)
-test_lrt(mm.IBrP, mm.IBXrP, verbose = TRUE) #same as anova(m0, m1, test = "Chi")
-paste("A model with an interaction is significantly better fit")
-car::Anova(mm.IBXrP, type = 3)
-print("In this model, both the main effects and interaction are significant")
-
-
-
-
-#############VERSION WITH ZSCORED VARS 
-## BEAUTY INTENT INTERACTION
-# SUBJECT INTERCEPT | INTENT * BEAUTY 
-print("TRUST ~ INTENT * BEAUTY + (1|PID)")
-mm.ZIBXrP <- lmer(TRUST_Z ~ INTENT_Z * BEAUTY_Z + (1|PID), 
-                data = df) 
-               # control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
-               # optCtrl=list(maxfun=2e5)))
-# :: TEST fixed factor 
-compare_performance(mm.IBXrP, mm.ZIBXrP, rank = TRUE) ## should be the same
-##anova instead of LRT b/c models are not nested 
-car::Anova(mm.ZIBXrP, type = 3)
-summary(mm.ZIBXrP)
-
-
-
-## SET BEST 
-m_best <- mm.ZIBXrP
-f <- "(ZSCORED) TRUST ~ INTENT * BEAUTY"
-
-
-############ PARTIAL CORRELATION SANITY CHECK 
-
-# print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
-# #CALCULATE partial correlations with PID as random effect
-# ## (this isolates correlation pairwise factoring out other variables)
-# c <- df %>% correlation(partial=TRUE,multilevel = TRUE)
-# (s <- c %>% summary(redundant = FALSE ))
-
-
-# ###### VIS WITH CORRELATION PACKAGE
-# #SEE [correlation] PLOT
-# g <- plot(s, show_data = "point",   show_text = "label",
-#      stars=TRUE, show_legend=FALSE,
-#      show_statistic = FALSE, show_ci = FALSE) + 
-#      theme_minimal()+
-#      labs(title = "All Stimuli | Correlation Matrix — SD Questions", 
-#           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
-#      # text = list(fontface = "italic")
-# g
-# ggsave(g, scale =1, filename = "figs/level_aggregated/models/partial_correlation_mmIBXrP.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
-
-
+# ## INTENT MAIN EFFECT 
+# # SUBJECT INTERCEPT | FIXED BEAUTY 
+# print("TRUSTS ~ INTENT + (1|PID)")
+# mm.IrP <- lmer(CHART_TRUST ~ CHART_INTENT + (1|PID), data = df)
+# # :: TEST fixed factor 
+# compare_performance(mm.rP, mm.BrP, mm.IrP, rank = TRUE)
+# paste("AIC with INTENT is lower than BEAUTY model?", AIC(logLik(mm.BrP)) > AIC(logLik(mm.IrP)) )
+# anova(mm.BrP, mm.IrP, test = "Chi") #same as anova(m0, m1, test = "Chi")
+# print("A model with INTENT IS a better fit than model with BEAUTY")
+# car::Anova(mm.IrP, type=2)
+# print("BEAUTY IS a significant predictor in the model")
+# summary(mm.IrP)
+# 
+# 
+# ## BEAUTY AND INTENT MAIN EFFECTS 
+# # SUBJECT INTERCEPT | BEAUTY + INTENT
+# print("TRUST ~ INTENT + BEAUTY + (1|PID)")
+# mm.IBrP <- lmer(CHART_TRUST ~ CHART_INTENT + CHART_BEAUTY + (1|PID), data = df)
+# # :: TEST fixed factor 
+# compare_performance(mm.rP, mm.BrP, mm.IrP, mm.IBrP, rank = TRUE)
+# ##anova instead of LRT b/c models are not nested 
+# anova(mm.IrP,mm.IBrP, mm.BrP) #same as anova(m0, m1, test = "Chi")
+# test_lrt(mm.IrP, mm.IBrP)
+# test_lrt(mm.BrP, mm.IBrP)
+# paste("A model with a linear combination of BEAUTY and INTENT predicting TRUST is a significantly better fit than either fixed effect alone.")
+# car::Anova(mm.IBrP, type = 2)
+# summary(mm.IBrP)
+# print("CATEGORY is a significant predictor in this model, but BLOCK is not")
+# 
+# 
+# ## BEAUTY INTENT INTERACTION
+# # SUBJECT INTERCEPT | INTENT * BEAUTY 
+# print("TRUST ~ INTENT * BEAUTY + (1|PID)")
+# mm.IBXrP <- lmer(CHART_TRUST ~ CHART_INTENT * CHART_BEAUTY + (1|PID), 
+#                 data = df) 
+#                # control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+#                # optCtrl=list(maxfun=2e5)))
+# # :: TEST fixed factor 
+# compare_performance(mm.IBXrP, mm.IBrP, mm.IrP, mm.BrP, rank = TRUE)
+# ##anova instead of LRT b/c models are not nested 
+# anova(mm.IBXrP, mm.IBrP)
+# test_lrt(mm.IBrP, mm.IBXrP, verbose = TRUE) #same as anova(m0, m1, test = "Chi")
+# paste("A model with an interaction is significantly better fit")
+# car::Anova(mm.IBXrP, type = 3)
+# print("In this model, both the main effects and interaction are significant")
+# 
+# 
+# 
+# 
+# #############VERSION WITH ZSCORED VARS 
+# ## BEAUTY INTENT INTERACTION
+# # SUBJECT INTERCEPT | INTENT * BEAUTY 
+# print("TRUST ~ INTENT * BEAUTY + (1|PID)")
+# mm.ZIBXrP <- lmer(TRUST_Z ~ INTENT_Z * BEAUTY_Z + (1|PID), 
+#                 data = df) 
+#                # control=glmerControl(optimizer="bobyqa", #would not converge under Nelder)Mead
+#                # optCtrl=list(maxfun=2e5)))
+# # :: TEST fixed factor 
+# compare_performance(mm.IBXrP, mm.ZIBXrP, rank = TRUE) ## should be the same
+# ##anova instead of LRT b/c models are not nested 
+# car::Anova(mm.ZIBXrP, type = 3)
+# summary(mm.ZIBXrP)
+# 
+# 
+# 
+# ## SET BEST 
+# m_best <- mm.ZIBXrP
+# f <- "(ZSCORED) TRUST ~ INTENT * BEAUTY"
+# 
+# 
+# ############ PARTIAL CORRELATION SANITY CHECK 
+# 
+# # print("PARTIAL CORRELATION WITH PID AS RANDOM EFFECT")
+# # #CALCULATE partial correlations with PID as random effect
+# # ## (this isolates correlation pairwise factoring out other variables)
+# # c <- df %>% correlation(partial=TRUE,multilevel = TRUE)
+# # (s <- c %>% summary(redundant = FALSE ))
+# 
+# 
+# # ###### VIS WITH CORRELATION PACKAGE
+# # #SEE [correlation] PLOT
+# # g <- plot(s, show_data = "point",   show_text = "label",
+# #      stars=TRUE, show_legend=FALSE,
+# #      show_statistic = FALSE, show_ci = FALSE) + 
+# #      theme_minimal()+
+# #      labs(title = "All Stimuli | Correlation Matrix — SD Questions", 
+# #           subtitle="(partial correlation; pearson method; Holm p-value adjustment; participant as random effect)")
+# #      # text = list(fontface = "italic")
+# # g
+# # ggsave(g, scale =1, filename = "figs/level_aggregated/models/partial_correlation_mmIBXrP.png", width = 14, height = 6, dpi = 320, limitsize = FALSE)
+# 
+# 
 
 
 
@@ -2548,16 +2552,16 @@ f <- "(ZSCORED) TRUST ~ INTENT * BEAUTY"
 
 ```{r hypo-trust_beauty_intent}
 
-############ DESCRIBE FINAL MODEL ###########
-summary(m_best)
-report(m_best)
-
-
-######### PRINT COEFFICIENTS 
-# print("COEFFICIENT ESTIMATES — LOG ODDS")
-# tidy(m_best)
-# print("COEFFICIENT ESTIMATES — ODDS RATIOS")
-# tidy(m_best, exponentiate=TRUE)
+# ############ DESCRIBE FINAL MODEL ###########
+# summary(m_best)
+# report(m_best)
+# 
+# 
+# ######### PRINT COEFFICIENTS 
+# # print("COEFFICIENT ESTIMATES — LOG ODDS")
+# # tidy(m_best)
+# # print("COEFFICIENT ESTIMATES — ODDS RATIOS")
+# # tidy(m_best, exponentiate=TRUE)
 
 ``` 
 

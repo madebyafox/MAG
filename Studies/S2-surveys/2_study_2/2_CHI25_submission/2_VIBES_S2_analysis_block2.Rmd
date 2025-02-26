@@ -68,11 +68,13 @@ library(equatiomatic) ## extracting model formula
 library(latex2exp) ## extracting and printing model formula
 
 #CONFIG
+options(chromote.headless = "new") #for webshot workarounds saving 'screenshots' of rendered figs
 options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
 ## IMPORTANT 
-GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
+## SET TO TRUE when running file; but FALSE when rendering file (don't need to re-save on render)
+GRAPH_SAVE = FALSE #set to true to generate all the SD graphs and save to folders 
 
 ```
 
