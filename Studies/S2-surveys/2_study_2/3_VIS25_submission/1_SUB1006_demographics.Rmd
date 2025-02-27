@@ -54,12 +54,14 @@ library(paletteer) #more palettes
 library(lessR) ##easy donuts 
 
 #CONFIG
+options(chromote.headless = "new") #for webshot workarounds saving 'screenshots' of rendered figs
 options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
 n_blocks = 6
 
-## IMPORTANT 
-graph_render = TRUE #set to true to generate all the SD graphs and save to folders 
 
+## IMPORTANT 
+## SET TO TRUE when running file; but FALSE when rendering file (don't need to re-save on render)
+GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders
 ```
 
 *This notebook contains code to characterize the distribution of demographic (response) variables in the SUBMISSION 1006 Study(survey). It relies upon data wrangling performed in `0_SUB1006_wrangling.Rmd`*.
@@ -99,8 +101,6 @@ ref_blocks <- c(1,2,3,4,5,6)
 
 ############## IMPORT DATA FILES
 df_participants <- readRDS("data/output/df_participants.rds") #1 row per participant — demographic
-
-
 df_tools <- readRDS("data/output/df_tools.rds") #multiselect format for tools Question
 df_actions <- readRDS("data/output/df_actions.rds") # multiselect format for action Question
 
@@ -171,7 +171,7 @@ my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete","c
 
 # SAMPLE
 
-Participants were sampled from two survey distribution sources: direct solicitation from co-author MM's ethnographic research participants on Tumblr, and a general sample of US-BASED, English-speaking participants on PROLIFIC. 
+Participants were sampled from two survey distribution sources: (STUDY 1) direct solicitation from co-author MM's ethnographic research participants on Tumblr, (STUDY 2)two samples of US-BASED English Speaking participants on Prolific with targeted occupations (`data collar`, `blue-collar`) and finally (STUDY 3) a  general sample of US-BASED, English-speaking participants on PROLIFIC (no demographic targetting). 
 
 ```{r}
 
@@ -179,7 +179,7 @@ df <- df_participants
 
 title = "Number of participants by distribution and stimulus block"
 cols = c("Sampling Platform", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
-cont <- table(df$Distribution, df$Assigned.Block)
+cont <- table(df$Sample, df$Assigned.Block)
 cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
 
 # qacBase::crosstab(df, Distribution, Assigned.Block)
@@ -199,7 +199,7 @@ df = df_participants
 
 # PLATFORM by SAMPLE 
 # HORIZONTAL STACKED BAR 
-ggplot(data = df, aes( y = PLATFORM , fill = Distribution)) +
+ggplot(data = df, aes( fill = PLATFORM , y = Sample)) +
   geom_bar() + 
   # scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
   labs( 
@@ -212,7 +212,7 @@ ggplot(data = df, aes( y = PLATFORM , fill = Distribution)) +
 
 # PLATFORM by SAMPLE 
 # HORIZONTAL STACKED BAR 
-ggplot(data = df, aes( y = Distribution, fill = fct_rev(PLATFORM) )) +
+ggplot(data = df, aes( y = Sample, fill = fct_rev(PLATFORM) )) +
   geom_bar(position = "stack") +
   scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
   labs( 
@@ -227,7 +227,7 @@ ggplot(data = df, aes( y = Distribution, fill = fct_rev(PLATFORM) )) +
 # VERTICAL FACET BAR CHART 
 ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(PLATFORM) )) +
   geom_bar(position = "stack") +
-  facet_grid(Distribution ~ .) + 
+  facet_grid(Sample ~ .) + 
   scale_fill_viridis(discrete=TRUE, option="viridis", direction=-1) + 
   labs( 
     title = "PLATFORM CHOICE by SAMPLE and BLOCK", 
@@ -239,7 +239,7 @@ ggplot(data = df, aes( x = Assigned.Block, fill = fct_rev(PLATFORM) )) +
 ```
 
 
-_There is substantial variance in choice of social media platform across the sample (S1 & S2 combined), though the relative distribution across randomly assigned stimulus blocks within each sample is roughly uniform, and thus comparable. (S1) Tumblr chose (1) Tumblr, (2) Instagram or (3) Facebook, while (S2) Prolific chose (1) Instagram, (2) Facebook, (3) Twitter/X, followed by small number of Tumblr & LinkedIn._
+_There is substantial variance in choice of social media platform across the samples, though the relative proportion across randomly assigned stimulus blocks within each sample is roughly uniform, and thus comparable. (S1) Tumblr chose (1) Tumblr, (2) Instagram or (3) Facebook, while (S2,S3) Prolific chose (1) Instagram, (2) Facebook, (3) Twitter/X, followed by small number of Tumblr & LinkedIn._
 
 
 
@@ -250,10 +250,10 @@ _There is substantial variance in choice of social media platform across the sam
 df <- df_participants
 
 ## BOXPLOT — SURVEY RESPONSE TIME 
-ggplot(df, aes(x=fct_rev(Assigned.Block), y=duration.min, color=Assigned.Block))+
+ggplot(df, aes(x=fct_rev(Assigned.Block), y=duration.min))+
   geom_boxplot(position=position_dodge(0.9))+
-  geom_jitter(position=position_jitterdodge(), alpha = 0.3) +
-  facet_grid(Distribution ~.) + 
+  geom_jitter( alpha = 0.3) +
+  facet_grid(Sample ~.) + 
   coord_flip() + 
   labs( y = "Survey Response Time (mins)", x="",
         title = "TOTAL Response Time by SAMPLE and BLOCK",
@@ -261,13 +261,13 @@ ggplot(df, aes(x=fct_rev(Assigned.Block), y=duration.min, color=Assigned.Block))
   theme_minimal() + theme(legend.position = "none") 
 
 ## RIDGEPLOT — SURVEY RESPONSE TIME 
-ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Assigned.Block))) +
+ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block))) +
   geom_density_ridges(scale=0.8) +
   # geom_boxplot()+
   stat_pointinterval()+
   theme_ridges() +
   scale_fill_discrete(direction=-1)+
-  facet_grid(Distribution ~.) + 
+  facet_grid(Sample ~.) + 
   theme_minimal() + 
   theme(legend.position = "none") +
     labs( x = "Survey Response Time (mins)", y="",
@@ -275,6 +275,7 @@ ggplot(df, aes(x = duration.min, y = fct_rev(Assigned.Block), fill = fct_rev(Ass
         caption = "distributions similar across SAMPLES and stimulus BLOCKS[1-6]") 
 
 
+#### TODO PICK UP HERE 
 
 p.desc.duration <- psych::describe(df %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
 t.desc.duration <- psych::describe(df %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))

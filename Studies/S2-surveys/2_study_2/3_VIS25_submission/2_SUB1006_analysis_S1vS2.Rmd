@@ -1,5 +1,5 @@
 ---
-title: "SUBMISSION 1006 — AGGREGATED DATA"
+title: "SUBMISSION 1006 — S1vS2"
 author: "ANONYMIZED"
 date: "2024-02-24"
 output:
@@ -87,6 +87,9 @@ n_blocks = 6
 
 ## IMPORTANT 
 GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
+source("graphing_functions.R") #import graphing palettes and custom functions
+
+
 
 ```
 
@@ -99,15 +102,14 @@ for a single 'common' stimulus (B0-0). Two participant recruitment pools
 were used: (S1) Tumblr (to replicate and compare survey results to Morgenstern et. al interviews
 with participants sourced from Tumblr), and (2) a broader sample recruited from Prolific. 
 
-**This notebook includes analysis and exploration of the full data set
-(i.e. data aggregated over all stimuli).**
+**This notebook includes analysis and comparison of data collected in Study 1 (Tumblr sample) and Study 2 (Prolific data-collar vs. blue-collar samples).**
 
 # SETUP
 
 *We start by importing data files previously wrangled in
 `0_SUB1006_wrangling.Rmd`.*
 
-## Import Data
+## WIP Import Data
 
 ```{r import-refs, message=FALSE, warning = FALSE}
 
@@ -131,187 +133,205 @@ ref_blocks <- c(1,2,3,4,5,6)
 
 ```
 
+
+Since data for all surveys were wrangled in a single cleaning file, here we filter all dataframes to only include data from participants in the (S1) Tumblr and (S2) Prolific data vs. blue collar samples.  Also, we filter data to only include data for STIMULUS BLOCK 1, because Study 2 only include BLOCK 1
+
+TODO:: return to these and remove unneeded files
+
 ```{r import-data, message=FALSE, warning = FALSE}
 
 ############## IMPORT DATA FILES
-# df_data <- readRDS("data/output/df_data.rds") #1 row per participant — WIDE
-df_participants <- readRDS("data/output/df_participants.rds") #1 row per participant — demographic
-df_questions <- readRDS("data/output/df_questions.rds") #1 row per question — LONG
-df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds") # only sd questions WIDE
 
+#1 row per participant — WIDE
+df_data <- readRDS("data/output/df_data.rds") %>% filter(Sample !="GENERAL") %>% filter(Assigned.Block ==1) %>% droplevels()
+ 
+#1 row per participant — demographic
+df_participants <- readRDS("data/output/df_participants.rds") %>% filter(Sample !="GENERAL") %>% filter(Assigned.Block ==1) %>% droplevels()
 
-df_tools <- readRDS("data/output/df_tools.rds") #multiselect format for tools Question
-df_actions <- readRDS("data/output/df_actions.rds") # multiselect format for action Question
-# # df_graphs_full <- readRDS("data/output/df_graphs_full.rds") #includes free response data
-
-df_graphs <- readRDS("data/output/df_graphs.rds") #only categorical and numeric questions
-df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds") # only sd questions LONG
-
-### DATA FILES WITH (VARIABLE-WISE) Z-SCORED SEMANTIC DIFFERENTIAL QS 
-df_graphs_z <- readRDS("data/output/df_graphs_z.rds") #only categorical and numeric questions
-df_sd_questions_long_z <- readRDS("data/output/df_sd_questions_long_z.rds") # only sd questions LONG
-
-
-### DATA FILES WITH ABSOLUTE VALUE SEMANTIC DIFFERENTIAL QS 
-df_graphs_abs <- readRDS("data/output/df_graphs_abs.rds") #only categorical and numeric questions
-df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") # only sd questions LONG
+# #1 row per question — LONG
+# df_questions <- readRDS("data/output/df_questions.rds") 
+# 
+# # only sd questions WIDE
+# df_sd_questions_wide <- readRDS("data/output/df_sd_questions_wide.rds")
+# 
+# #multiselect format for tools Question
+# df_tools <- readRDS("data/output/df_tools.rds") 
+# 
+# # multiselect format for action Question
+# df_actions <- readRDS("data/output/df_actions.rds") 
+# # # df_graphs_full <- readRDS("data/output/df_graphs_full.rds") #includes free response data
+# 
+# only categorical and numeric questions
+df_graphs <- readRDS("data/output/df_graphs.rds") %>% filter(Sample !="GENERAL") %>% filter(Assigned.Block ==1) %>% droplevels()
+# # only sd questions LONG
+# df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds") 
+# 
+# ### DATA FILES WITH (VARIABLE-WISE) Z-SCORED SEMANTIC DIFFERENTIAL QS 
+# df_graphs_z <- readRDS("data/output/df_graphs_z.rds") #only categorical and numeric questions
+# df_sd_questions_long_z <- readRDS("data/output/df_sd_questions_long_z.rds") # only sd questions LONG
+# 
+# 
+# ### DATA FILES WITH ABSOLUTE VALUE SEMANTIC DIFFERENTIAL QS 
+# df_graphs_abs <- readRDS("data/output/df_graphs_abs.rds") #only categorical and numeric questions
+# df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") # only sd questions LONG
 
 ```
 
-## Set up Graphing
+
+## TODO Set up Graphing
 
 ```{r setup-pallettes}
 
-
-# Custom ggplot theme to make pretty plots
-# Get the font at https://fonts.google.com/specimen/Barlow+Semi+Condensed
-theme_clean <- function() {
-  theme_minimal(base_family = "Barlow Semi Condensed") +
-    theme(panel.grid.minor = element_blank(),
-          plot.title = element_text(family = "BarlowSemiCondensed-Bold"),
-          axis.title = element_text(family = "BarlowSemiCondensed-Medium"),
-          strip.text = element_text(family = "BarlowSemiCondensed-Bold",
-                                    size = rel(1), hjust = 0),
-          strip.background = element_rect(fill = "grey80", color = NA))
-}
-
-set_theme(base = theme_clean())
-
-
-
-############## SETUP Colour Palettes
-#https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
-
-## list of color pallettes
-my_colors = list(
-  politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
-  blackred = c("black","red"),
-  greys = c("#707070","#999999","#C2C2C2"),
-  greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
-  smallgreens = c("#ADC69D","#567E39","#193E0A"), ## MALE FEMALE OTHER
-  olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
-  lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
-  darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
-  reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
-  traffic = c("#CE98A2","#81A06D","yellow"),
-  questions = c("#B17380","#3787D2", "#567E39", "#EE897F"),
-  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"), #? ... design.....vis...... programming
-  encounter = c("#8E8E8E","#729B7D"), ##SCROLL ENGAGE
-  actions2 = c("#8E8E8E","#729B7D"),
-  actions4 = c("#8E8E8E", "#A3A3A3","#729B7D","#499678"),
-  actions3 = c("#8E8E8E","#99b898ff","#fdcea8ff"),
-  actions = c("#8E8E8E","#2A363B","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
-  
-  platforms = c("#5D93EA","#FF70CD", "#3BD3F5", "#8B69B5","black"),
-  amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
-  my_favourite_colours = c("#702963", "#637029",    "#296370")
-)
-
-## function for using palettes
-my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete","continuous"), direction = c("1","-1")) {
-  palette = all_palettes[[name]]
-  if (missing(n)) {
-    n = length(palette)
-  }
-  type = match.arg(type)
-  out = switch(type,
-               continuous = grDevices::colorRampPalette(palette)(n),
-               discrete = palette[1:n]
-  )
-  out = switch(direction,
-               "1" = out,
-               "-1" = palette[n:1])
-  structure(out, name = name, class = "palette")
-}
+# 
+# # Custom ggplot theme to make pretty plots
+# # Get the font at https://fonts.google.com/specimen/Barlow+Semi+Condensed
+# theme_clean <- function() {
+#   theme_minimal(base_family = "Barlow Semi Condensed") +
+#     theme(panel.grid.minor = element_blank(),
+#           plot.title = element_text(family = "BarlowSemiCondensed-Bold"),
+#           axis.title = element_text(family = "BarlowSemiCondensed-Medium"),
+#           strip.text = element_text(family = "BarlowSemiCondensed-Bold",
+#                                     size = rel(1), hjust = 0),
+#           strip.background = element_rect(fill = "grey80", color = NA))
+# }
+# 
+# set_theme(base = theme_clean())
+# 
+# 
+# 
+# ############## SETUP Colour Palettes
+# #https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
+# 
+# ## list of color pallettes
+# my_colors = list(
+#   politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
+#   blackred = c("black","red"),
+#   greys = c("#707070","#999999","#C2C2C2"),
+#   greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
+#   smallgreens = c("#ADC69D","#567E39","#193E0A"), ## MALE FEMALE OTHER
+#   olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
+#   lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
+#   darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
+#   reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
+#   traffic = c("#CE98A2","#81A06D","yellow"),
+#   questions = c("#B17380","#3787D2", "#567E39", "#EE897F"),
+#   tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"), #? ... design.....vis...... programming
+#   encounter = c("#8E8E8E","#729B7D"), ##SCROLL ENGAGE
+#   actions2 = c("#8E8E8E","#729B7D"),
+#   actions4 = c("#8E8E8E", "#A3A3A3","#729B7D","#499678"),
+#   actions3 = c("#8E8E8E","#99b898ff","#fdcea8ff"),
+#   actions = c("#8E8E8E","#2A363B","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
+#   
+#   platforms = c("#5D93EA","#FF70CD", "#3BD3F5", "#8B69B5","black"),
+#   amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
+#   my_favourite_colours = c("#702963", "#637029",    "#296370")
+# )
+# 
+# ## function for using palettes
+# my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete","continuous"), direction = c("1","-1")) {
+#   palette = all_palettes[[name]]
+#   if (missing(n)) {
+#     n = length(palette)
+#   }
+#   type = match.arg(type)
+#   out = switch(type,
+#                continuous = grDevices::colorRampPalette(palette)(n),
+#                discrete = palette[1:n]
+#   )
+#   out = switch(direction,
+#                "1" = out,
+#                "-1" = palette[n:1])
+#   structure(out, name = name, class = "palette")
+# }
 
 ```
 
 ```{r SD-GRAPHING-FUNCTIONS}
 
-
-############## RETURNS SD STACKED AND COLORED BY BY X
-## LOOP STYLE
-multi_sd <- function (data, left, right, x, y, color) {
-
-  # g <- ggplot(df, aes(y = .data[[x]], x = {{y}}, color = {{color}}))+
-  g <- ggplot(data, aes(y = .data[[x]], x = .data[[y]], color = .data[[color]]))+
-  geom_boxplot(width = 0.5) +
-  geom_jitter(width = 0.1, alpha=0.5) +
-    
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() +
-  guides(
-    y = guide_axis_manual(labels = left),
-    y.sec = guide_axis_manual(labels = right)
-  ) + theme_minimal()
-
-  return(g)
-}
-
-
-############## RETURNS SINGLE SD 
-## LOOP STYLE
-single_sd <- function (data, left, right, x) {
-
-  g <- ggplot(data, aes(y = {{x}}, x = ""))+
-  geom_boxplot(width = 0.5) +
-  geom_jitter(width = 0.1, alpha=0.5) +
-  scale_y_continuous(limits=c(-1,101)) +
-  labs(x="", y="") +
-  coord_flip() +
-  guides(
-    y = guide_axis_manual(labels = left),
-    y.sec = guide_axis_manual(labels = right)
-  ) + theme_minimal()
-
-  return(g)
-}
-
-
-# ######## RETURNS SINGLE SD
-# ##  APPLY STYLE
-plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) {
-
-  ggplot(data, aes(y = .data[[column]], x="")) +
-    {if(boxplot) geom_boxplot(width = 0.5) } +
-    geom_jitter(width = 0.1, alpha=0.2, {if(facet) aes(color=.data[[facet_by]])}) +
-    {if(mean)
-      stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue")
-      } +
-    {if(mean)
-      ## assumes data has been passed in with mean column at m
-      # stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
-      #            vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0)))
-      stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
-                 vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0)))
-      } +
-
-    {if(facet) facet_grid(.data[[facet_by]] ~ .)} +
-    # scale_y_continuous(limits=c(-1,101)) +
-    labs(x="", y="") +
-    coord_flip()  +
-    {if(type == "S")
-      guides(
-        y = guide_axis_manual(labels = labels[column,"left"]),
-        y.sec = guide_axis_manual(labels = labels[column,"right"])
-      )} +
-    {if(type == "Q")
-      guides(
-        y = guide_axis_manual(labels = labels[q,"left"]),
-        y.sec = guide_axis_manual(labels = labels[q,"right"])
-      )} +
-  theme_minimal()  +
-     labs (
-       caption = column
-     ) + easy_remove_legend()
-}
+# 
+# ############## RETURNS SD STACKED AND COLORED BY BY X
+# ## LOOP STYLE
+# multi_sd <- function (data, left, right, x, y, color) {
+# 
+#   # g <- ggplot(df, aes(y = .data[[x]], x = {{y}}, color = {{color}}))+
+#   g <- ggplot(data, aes(y = .data[[x]], x = .data[[y]], color = .data[[color]]))+
+#   geom_boxplot(width = 0.5) +
+#   geom_jitter(width = 0.1, alpha=0.5) +
+# 
+#   scale_y_continuous(limits=c(-1,101)) +
+#   labs(x="", y="") +
+#   coord_flip() +
+#   guides(
+#     y = guide_axis_manual(labels = left),
+#     y.sec = guide_axis_manual(labels = right)
+#   ) + theme_minimal()
+# 
+#   return(g)
+# }
+# 
+# 
+# ############## RETURNS SINGLE SD
+# ## LOOP STYLE
+# single_sd <- function (data, left, right, x) {
+# 
+#   g <- ggplot(data, aes(y = {{x}}, x = ""))+
+#   geom_boxplot(width = 0.5) +
+#   geom_jitter(width = 0.1, alpha=0.5) +
+#   scale_y_continuous(limits=c(-1,101)) +
+#   labs(x="", y="") +
+#   coord_flip() +
+#   guides(
+#     y = guide_axis_manual(labels = left),
+#     y.sec = guide_axis_manual(labels = right)
+#   ) + theme_minimal()
+# 
+#   return(g)
+# }
+# 
+# 
+# # ######## RETURNS SINGLE SD
+# # ##  APPLY STYLE
+# plot_sd = function (data, column, type, mean, facet, facet_by, boxplot, labels) {
+# 
+#   ggplot(data, aes(y = .data[[column]], x="")) +
+#     {if(boxplot) geom_boxplot(width = 0.5) } +
+#     geom_jitter(width = 0.1, alpha=0.2, {if(facet) aes(color=.data[[facet_by]])}) +
+#     {if(mean)
+#       stat_summary(fun="mean", geom="point", shape=20, size=5, color="blue", fill="blue")
+#       } +
+#     {if(mean)
+#       ## assumes data has been passed in with mean column at m
+#       # stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
+#       #            vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0)))
+#       stat_summary(fun="mean", geom="text", colour="blue",  fontface = "bold",
+#                  vjust=-1.25, hjust = 0.50, aes( label=round(..y.., digits=0)))
+#       } +
+# 
+#     {if(facet) facet_grid(.data[[facet_by]] ~ .)} +
+#     # scale_y_continuous(limits=c(-1,101)) +
+#     labs(x="", y="") +
+#     coord_flip()  +
+#     {if(type == "S")
+#       guides(
+#         y = guide_axis_manual(labels = labels[column,"left"]),
+#         y.sec = guide_axis_manual(labels = labels[column,"right"])
+#       )} +
+#     {if(type == "Q")
+#       guides(
+#         y = guide_axis_manual(labels = labels[q,"left"]),
+#         y.sec = guide_axis_manual(labels = labels[q,"right"])
+#       )} +
+#   theme_minimal()  +
+#      labs (
+#        caption = column
+#      ) + easy_remove_legend()
+# }
 
 ```
 
 
-# AD HOCS
-## SPARKLINES TABLE
+# TODO AD HOCS
+## TODO SPARKLINES TABLE
 
 ```{r sparktabletest}
 
@@ -453,7 +473,7 @@ about some subset of the stimuli, (common stimulus B0-0 and 4 additional
 images defined as a block), yielding (o = `r nrow(df_graphs)`)
 stimulus-level observations.
 
-## SAMPLE
+## TODO SAMPLE
 
 ### Sample Demographics
 
@@ -537,7 +557,7 @@ rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.
 
 
 
-## CONFIDENCE
+##CONFIDENCE
 
 ```{r setup-full-sample}
 
@@ -561,9 +581,9 @@ questions answered with the same degree of confidence?**
 Here we examine both the central tendency (mean) and shape of the
 distribution for each confidence variable.
 
-### by Sample
-```{r confidence-by-sample}
+```{r confidence-by-sample, message=FALSE}
 
+df <- df_graphs
 
 ## SETUP DATAFRAME
 df <- df_full %>% select(PID, Sample, STIMULUS,MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
@@ -581,7 +601,7 @@ df <- df_full %>% select(PID, Sample, STIMULUS,MAKER_CONF, AGE_CONF, GENDER_CONF
   )
 
 ## B
-## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
+## CONFIDENCE BY QUESTION FACET SAMPLE
 ## BOXPLOT W/ JITTER
 B <-
   df %>% 
@@ -592,213 +612,46 @@ B <-
     stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size=3,
                  vjust=+0.5, hjust = -1.5, aes( label=round(m, digits=0)))+
     stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
+  scale_x_discrete(labels=c("MAKER","AGE","GENDER","TOOL"))+
   facet_grid(.~Sample) + 
   theme_minimal() + 
-  labs(title = "Confidence by Survey Question and Sample", caption = "(mean in blue)")
-
-  
-## R
-## CONFIDENCE BY QUESTION & SAMPLE (all stimuli, all Pps, by stdy)
-R <- 
-  df %>% 
-  ggplot(aes(x=CONFIDENCE, y=fct_rev(QUESTION), fill = Sample)) + #fill=fct_rev(QUESTION))) + 
-    geom_density_ridges( scale = 0.65, alpha = 0.5, quantile_lines = TRUE,   
-              jittered_points = TRUE, scale = .95, rel_min_height = .01,
-              point_shape = "|", point_size = 3, size = 0.25,
-              position = position_points_jitter(height = 0)
-    ) +
-    scale_x_continuous(limits = c(0,100))+
-    # scale_fill_manual(values = my_palettes(name="questions", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
-    # stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
-  ## MEAN
-    # stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size=3,
-    #             vjust=+2.5, hjust = 0.50, aes( label=round(m, digits=0)))+
-    # stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
-  theme_minimal() + 
-  labs(title = "Confidence by Survey Question and Sample", y = "QUESTION", caption ="") 
-
-  
-(B+R)
-if(GRAPH_SAVE){ggsave(plot = (B+R), path="figs/level_aggregated/distributions", filename =paste0("all_confidence_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
-
-```
-
-
-
-### Combined Sample
-```{r compare-confidence}
-
-df <- df_full %>% select(PID, Distribution, STIMULUS,MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
-  pivot_longer(
-    cols = c(MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF),
-    names_to = "QUESTION",
-    values_to = "CONFIDENCE"
-  ) %>% 
-  mutate(
-    QUESTION = factor(QUESTION, levels=c("MAKER_CONF","AGE_CONF","GENDER_CONF","TOOL_CONF"  ) )
-  ) %>% 
-  group_by(QUESTION) %>% 
-  mutate(
-    m=round(mean(CONFIDENCE),0) #calc mean for showing in plots 
-  )
-
-
-## B
-## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
-## BOXPLOT W/ JITTER
-B <- df %>% 
-  ggplot(aes(x=QUESTION, y= CONFIDENCE)) + 
-  geom_boxplot(width = 0.5) + 
-  geom_jitter(alpha = 0.25, position=position_dodge2(width = 0.25)) + 
-  ## MEAN
-    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size=3,
-                 vjust=+0.5, hjust = -1.5, aes( label=round(m, digits=0)))+
-    stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
-  theme_minimal() + 
-  labs(title = "Confidence by Survey Question", caption = "(mean in blue)")
-
+  labs(title = "Confidence by Question and Sample", caption = "(mean in blue)")
+###################################################
 
 ## R
-## CONFIDENCE ACROSS QUESTIONS (all stimuli, all Pps)
-## RIDGEPLOT W/ INTERVAL MEAN
+## CONFIDENCE BY SAMPLE FACET QUESTION (all stimuli, all Pps, by stdy)
 R <- df %>% 
-  ggplot(aes(x=CONFIDENCE, y=fct_rev(QUESTION), fill=fct_rev(QUESTION))) + 
-    geom_density_ridges(scale = 0.65, alpha = 0.75, quantile_lines = TRUE) +
+  ggplot(aes(x=CONFIDENCE, y=Sample, fill = Sample)) + #fill=fct_rev(QUESTION))) + 
+    geom_density_ridges( aes(color = Sample), 
+              ## ridge geometry
+              scale = 0.65, alpha = 0.5, quantile_lines = TRUE,  panel_scaling = TRUE,
+              ## rug geometry
+              jittered_points = TRUE, rel_min_height = .01,
+              point_shape = "|", point_size = 3,
+              position = position_points_jitter(height = 0)) +
+  facet_wrap(~QUESTION)+
     scale_x_continuous(limits = c(0,100))+
-    scale_fill_manual(values = my_palettes(name="questions", direction = "-1"), name = "",  guide = guide_legend(reverse = TRUE)) +   
-    stat_pointinterval(side = "bottom", scale = 0.7, slab_linewidth = NA, point_interval = "mean_qi") +
-  ## MEAN
-    stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size=3,
-                vjust=+2.5, hjust = 0.50, aes( label=round(m, digits=0)))+
-    stat_summary(fun=mean, geom="point", size=2, color="blue", fill="blue") +
+    
+  ## MEAN W/ GGDIST
+    stat_pointinterval(side = "bottom",  point_interval = "mean_qi",
+                       point_color="black", point_size=1, interval_alpha=0) +
+  ## MEAN W/ STAT_SUMMARY
+    stat_summary(fun=mean, geom="text", colour="black",  fontface = "bold", size=3,
+                vjust=1.5, hjust = +0.5, aes( label=round(m, digits=0)))+
+    # stat_summary(fun=mean, geom="point", size=1, color="blue", fill="blue") +
   theme_minimal() + 
-  labs(title = "Confidence by Survey Question", y = "QUESTION", caption =" (mean in blue)") + 
-  easy_remove_legend() 
-
+  labs(title = "Confidence by Sample & Survey Question", y = "QUESTION", caption ="(point is mean)") 
+###################################################
+  
 (B+R)
 
-if(GRAPH_SAVE){ggsave(plot = (B+R), path="figs/level_aggregated/distributions", filename =paste0("all_confidence.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+if(GRAPH_SAVE){ggsave(plot = (B+R), path="figs/level_samples/distributions", filename =paste0("CONFIDENCE_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 
-```
-
-**INTERPRETATION** *Aggregated across all participants and all stimuli,
-the average confidence scores for each question (maker id, age, gender,
-tool id) are similar, with slightly lower confidence for the GENDER
-question. This tells us there is enough variance in response to each
-question for the measure to be meaningful, and so we will follow up by
-investigating confidence at the STIMULUS level.*
-
-### (Ad-Hoc) Variance in Confidence
-
-```{r}
-
-
-
-
-## DATAFRAME WITH LONG FORM CONFIDENCE SCORES 
-df_conf_long <- df_graphs %>% 
-  select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
-  pivot_longer(
-    cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
-    names_to = "QUESTION") 
-
-# 
-# print("QUESTION LEVEL CONFIDENCE (ALL P, ALL S)")
-# (q_conf <- df_conf_long %>% 
-#   group_by(QUESTION) %>% 
-#   summarize(
-#     m = mean(value),
-#     sd = sd(value)
-#   ))
-
-print("SD AND RANGES OF PARTICIPANT CONFIDENCE [ALL STIMULI]")
-## PARTICIPANT LOW VARIANCE
-## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
-(df_lowvar_q <- df_graphs %>% 
-  # filter(STIMULUS!="B0-0") %>% 
-  # filter(BLOCK %in% c("B1","B2")) %>% 
-  select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
-  pivot_longer(
-    cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
-    names_to = "QUESTION") %>%
-  group_by(PID) %>% 
-  summarise(
-    count_pid = n(), #5 trials of each question
-    mean_pid = mean(value), 
-    min_pid = min(value),
-    max_pid = max(value),
-    range_pid = max_pid-min_pid, 
-    low_range_pid = ifelse(range_pid < 20, TRUE, FALSE),
-    sd_pid = sd(value),
-    low_sd_pid = ifelse(sd_pid < 10, TRUE, FALSE)) %>% 
-  summarise(
-    n = n(), #318p X 5 stimuli
-    n_pid = sum(count_pid),
-    n_low_range = sum((low_range_pid==TRUE)),
-    prop.low_range = n_low_range / n,
-    n_low_sd = sum((low_sd_pid==TRUE)),
-    prop.low_sd = n_low_sd / n
-  )) 
-
-
-# print("SD AND RANGES OF PARTICIPANT CONFIDENCE SCORES BY QUESTION")
-# ## PARTICIPANT - QUESTION LOW VARIANCE
-# ## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
-# (df_lowvar_q <- df_graphs %>% 
-#   # filter(STIMULUS!="B0-0") %>% 
-#   # filter(BLOCK %in% c("B1","B2")) %>% 
-#   select(PID, STIMULUS, BLOCK, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
-#   pivot_longer(
-#     cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
-#     names_to = "QUESTION") %>%
-#   group_by(PID, QUESTION) %>% 
-#   summarise(
-#     count_pidq = n(), #5 trials of each question
-#     mean_pidq = mean(value), 
-#     min_pidq = min(value),
-#     max_pidq = max(value),
-#     range_pidq = max_pidq-min_pidq, 
-#     low_range_pidq = ifelse(range_pidq < 20, TRUE, FALSE),
-#     sd_pidq = sd(value),
-#     low_sd_pidq = ifelse(sd_pidq < 10, TRUE, FALSE)) %>% 
-#   group_by(QUESTION) %>% 
-#   summarise(
-#     n = n(), #318p X 5 stimuli
-#     n_pidq = sum(count_pidq),
-#     n_low_range = sum((low_range_pidq==TRUE)),
-#     prop.low_range = n_low_range / n,
-#     n_low_sd = sum((low_sd_pidq==TRUE)),
-#     prop.low_sd = n_low_sd / n
-#   )) 
-
-
-
-### participants with lowest 
-## PARTICIPANT LOW VARIANCE
-## proportion of participants with less than 20 point variance in a particular question [across 5 stim]
-((df_low <- df_graphs %>% 
-  # filter(STIMULUS!="B0-0") %>% 
-  # filter(BLOCK %in% c("B1","B2")) %>% 
-  select(PID, MAKER_CONF, AGE_CONF, GENDER_CONF, TOOL_CONF) %>% 
-  pivot_longer(
-    cols = c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF"),
-    names_to = "QUESTION") %>% 
-  group_by(PID) %>% 
-  summarise(
-    pid = unique(PID),
-    count_pid = n(), #5 trials of each question
-    mean_pid = mean(value), 
-    min_pid = min(value),
-    max_pid = max(value),
-    range_pid = max_pid-min_pid, 
-    low_range_pid = ifelse(range_pid < 20, TRUE, FALSE),
-    sd_pid = sd(value),
-    low_sd_pid = ifelse(sd_pid < 10, TRUE, FALSE)) ))
 
 ```
 
 
-Looking at confidence scores by participant aggregating over all stimuli and all questions, we see that 39/318 (12%) participants had less SD of less than 10 points (on 100 point scale) in confidence.  
+
 
 
 ## MAKER ID
@@ -826,9 +679,7 @@ choice.** The response is stored as `MAKER_CONF` .
 
 ```{r maker-id-confidence-sample}
 
-#FILTER DATASET
 df <- df_full
-
 
 ## D
 ## MAKER IDENTIFICATION AGGREGATED (by Sample)
@@ -836,7 +687,7 @@ df <- df_full
 ##############################
 #hack for consistent ordering of ggstats bar plot
 dx <- df %>% mutate( MAKER_ID = fct_rev(MAKER_ID) )
-S <-   ggbarstats( data = dx, x = MAKER_ID, y = Distribution,
+S <-   ggbarstats( data = dx, x = MAKER_ID, y = Sample,
                    legend.title = "MAKER ID",
                    results.subtitle	 = FALSE) + 
     scale_fill_manual(values = my_palettes(name="reds", direction = "1")) +
@@ -850,20 +701,20 @@ S <-   ggbarstats( data = dx, x = MAKER_ID, y = Distribution,
 ## H
 ## HALF EYE SLAB GGDIST
 ##############################
-H <- df %>% 
-  group_by(MAKER_ID,Distribution) %>% 
+H <-  df %>% 
+  group_by(MAKER_ID,Sample) %>% 
   mutate(count = n(), m = mean(MAKER_CONF)) %>% 
   ggplot(aes(y = MAKER_CONF, x = fct_rev(MAKER_ID), fill = fct_rev(MAKER_ID))) + 
   stat_halfeye(scale=0.55, density="bounded", point_interval = "mean_qi", normalize= "all") +
-  facet_wrap(~Distribution)+
+  facet_wrap(~Sample)+
   ## MEAN
-  stat_summary(fun=mean, geom="text", colour="blue",  fontface = "bold", size = 2,
+  stat_summary(fun=mean, geom="text", colour="black",  fontface = "bold", size = 2,
                vjust=2.5, hjust = .5, aes( label=round(m, digits=0)))+
-  stat_summary(fun=mean, geom="point", shape=20, size=3, color="blue", fill="blue") +
+  stat_summary(fun=mean, geom="point", shape=20, size=2, color="black", fill="black") +
   scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
   geom_text(aes(label= paste0("n=",count) ,  y = 5), color = "black",
-            size = 3, nudge_x=0.35) + 
-  labs(y="Maker ID Confidence", x="") + 
+            size = 3, nudge_x=0.35) +
+  labs(y="Maker ID Confidence", x="") +
   theme_minimal() + 
   easy_remove_legend()+
   coord_flip() 
@@ -872,12 +723,11 @@ H <- df %>%
 
 (p <- (S + H)) + plot_annotation(
   title = "Maker ID and Confidence by Sample",
-  # subtitle = "the categories of MAKER ID were chosen in similar proportion, 
-  # and both the mean (in blue) and shape of distribution of confidence scores is similar across values of Maker ID",
-  caption = "(blue indicates mean)"
+  subtitle = "No salient differences in proportion of MAKERID by SAMPLE; no salient difs in CONFIDENCE by MAKERID",
+  caption = ""
 )
 
-if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_aggregated/categoricals", filename =paste0("all_maker_id_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
+if(GRAPH_SAVE){ggsave(plot = p, path="figs/level_samples/categoricals", filename =paste0("MAKER_by_sample.png"), units = c("in"), width = 14, height = 8 ,  bg='#ffffff'  )}
 
 
 ```
