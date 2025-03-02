@@ -143,7 +143,8 @@ TODO:: return to these and remove unneeded files
 ############## IMPORT DATA FILES
 
 #1 row per participant — WIDE
-df_data <- readRDS("data/output/df_data.rds") %>% filter(Sample !="GENERAL") %>% filter(Assigned.Block ==1) %>% droplevels()
+df_all <- readRDS("data/output/df_data.rds") 
+df_data <- df_all %>% filter(Sample !="GENERAL") %>% filter(Assigned.Block ==1) %>% droplevels()
  
 #1 row per participant — demographic
 df_participants <- readRDS("data/output/df_participants.rds") %>% filter(Sample !="GENERAL") %>% filter(Assigned.Block ==1) %>% droplevels()
@@ -162,9 +163,12 @@ df_actions <- readRDS("data/output/df_actions.rds") %>% filter(Sample !="GENERAL
 # # # df_graphs_full <- readRDS("data/output/df_graphs_full.rds") #includes free response data
 # 
 # only categorical and numeric questions
-df_graphs <- readRDS("data/output/df_graphs.rds") %>% filter(Sample !="GENERAL") %>% filter(Assigned.Block ==1) %>% droplevels()
+df_graphs_ALL <- readRDS("data/output/df_graphs.rds") 
+df_graphs <- df_graphs_ALL %>%  filter(Sample !="GENERAL") %>% filter(Assigned.Block ==1) %>% droplevels()
 # only sd questions LONG
+
 df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds")%>% filter(Sample !="GENERAL") %>% filter(Assigned.Block ==1) %>% droplevels()
+df_sd_questions_long_ALL <- readRDS("data/output/df_sd_questions_long.rds")
 # 
 # ### DATA FILES WITH (VARIABLE-WISE) Z-SCORED SEMANTIC DIFFERENTIAL QS 
 # df_graphs_z <- readRDS("data/output/df_graphs_z.rds") #only categorical and numeric questions
@@ -331,6 +335,197 @@ df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds")%>% filte
 
 
 # TODO AD HOCS
+
+## SD by SAMPLE 
+
+```{r aggregation-by-sample}
+
+
+
+ df <- df_sd_questions_long_ALL %>% select(1:8, QUESTION, Sample, value)  
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION,Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+  
+(x <-
+    ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = category)) +
+    geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.75, panel_scaling = TRUE) + 
+    # scale_fill_manual(values = my_palettes(name="amy_gradient", direction = "1"))+ 
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+ 
+    facet_grid(.~Sample) + 
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+    labs (title = "ALL DATA by Sample", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
+    theme_minimal() + easy_remove_legend() 
+)
+  
+  
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/level_samples", filename =paste0("ALL_by_sample_ridges.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+
+
+
+## TODO ADD RUGS
+
+
+```
+
+## WIP SAMPLE SPARKLINES TABLE
+
+```{r sample_spark_table}
+
+library(tinytable)
+library(webshot2)
+
+
+
+#### CUSTOM HORIZONTAL STACKED BARPLOT
+g <- function(d, ...){
+
+  p <- d$pal %>% unique
+  ggplot(d, aes(x="", fill=value)) +
+    geom_bar(stat="count", position = "stack") +
+    scale_fill_manual(values=my_colors[[p]]) + 
+    coord_flip() + theme_void() + easy_remove_axes() + easy_remove_legend()
+}
+
+
+## SETUP LIST OF NUMERIC DATAFRAMES 
+all_q <- c(ref_conf_questions, ref_sd_questions)
+
+## DECIDE DATAFRAME VERSION (Raw, z-scored, abs)
+df <- df_graphs_ALL
+
+## SETUP NUMERIC DATAFRAME
+df_num <- df %>% select(all_of(all_q))
+
+df_tumblr_num <- df %>% filter(Sample =="TUMBLR") %>% select(all_of(all_q))
+df_pilot_num <- df %>% filter(Sample %in% c("DATACOLLAR","BLUECOLLAR")) %>% select(all_of(all_q))
+df_general_num <- df %>% filter(Sample == "GENERAL") %>% select(all_of(all_q))
+
+## CALC MEANS 
+### MEANS 
+m <- sapply(df_num, FUN=mean)
+m <- round(m,1)
+m <- paste0("M=",m)
+sd <- sapply(df_num, FUN=sd)
+sd <- round(sd,1)
+sd <- paste0("SD=",sd)
+stat <- paste0(m," ",sd)
+
+
+### CREATE LIST OF CATEGORICAL DATAFRAMES
+id = df %>% select(MAKER_ID) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
+age = df %>% select(MAKER_AGE) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
+gender = df %>% select(MAKER_GENDER) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
+tools <- df_tools %>% select(TOOL_ID) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="tools") %>% as.data.frame()
+encounter = df %>% select(ENCOUNTER) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="encounter") %>% as.data.frame()
+action2 = df_actions %>% select(CHART_ACTION2) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="actions2") %>% as.data.frame()
+action4 = df_actions %>% select(CHART_ACTION4) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="actions4") %>% as.data.frame()
+
+df_cat <- list()
+df_cat[["MAKER_ID"]] <- id
+df_cat[["MAKER_AGE"]] <- age
+df_cat[["MAKER_GENDER"]] <- gender
+df_cat[["TOOL_ID"]] <- tools
+df_cat[["ENCOUNTER"]] <- encounter
+df_cat[["CHART_ACTION2"]] <- action2
+df_cat[["CHART_ACTION4"]] <- action4
+
+
+## CALC CAT PROPORTIONS 
+n <- nrow(id)
+m_id <- table(id) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100) %>% map_df(rev) #reverse reading order 
+stat_id <- paste0(m_id$value, "(", m_id$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(age)
+m_age <- table(age) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_age <- paste0(m_age$value, "(", m_age$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(gender)
+m_gender <- table(gender) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_gender <- paste0(m_gender$value, "(", m_gender$prop,"%)")%>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(tools)
+m_tools <- table(tools) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_tools <- paste0(m_tools$value, "(", m_tools$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(encounter)
+m_encounter <- table(encounter) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_encounter <- paste0(m_encounter$value, "(", m_encounter$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(action2)
+m_action2 <- table(action2) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_action2 <- paste0(m_action2$value, "(", m_action2$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(action4)
+m_action4 <- table(action4) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_action4 <- paste0(m_action4$value, "(", m_action4$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+
+## SETUP QUESTIONS 
+questions <- c(ref_cat_questions, "TOOL_ID", "ENCOUNTER", "CHART_ACTION2", "CHART_ACTION4", ref_conf_questions, ref_sd_questions)
+
+
+#### SETUP TABLE
+tab <- data.frame(
+  VARIABLE = questions,
+  # DISTRIBUTION = "",
+  TUMBLR = "",
+  DATABLUE = "",
+  GENERAL = "",
+  STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
+    # c("","","","","","","",stat)
+)
+
+### RENDER TABLE
+t <- tinytable::tt(tab, theme = "void") %>% 
+  plot_tt(j=2, i= 1:7, fun=g, data = df_cat, height = 1.5) %>% #tumblr
+  plot_tt(j=3, i= 1:7, fun=g, data = df_cat, height = 1.5) %>% #blue/data
+  plot_tt(j=4, i= 1:7, fun=g, data = df_cat, height = 1.5) %>% #general
+  plot_tt(j=2, i= 8:22, fun="density", data = df_tumblr, color="darkgrey") %>%  #TUMBLR
+  plot_tt(j=3, i= 8:22, fun="density", data = df_pilot, color="darkgrey") %>%  #BLUE/DATA
+  plot_tt(j=4, i= 8:22, fun="density", data = df_general, color="darkgrey") %>%  #GENERAL
+  style_tt(j=2, align="c") 
+
+t
+if(GRAPH_SAVE){
+  # save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) ## CAN'T SAVE, HAVE TO MANUALLY SAVE FROM VIEWER WINDOW
+  save_tt(t, output="figs/tables/sparklines.tex", overwrite = TRUE)  
+}
+
+```
+
+
+
+
+
+
+
+
+
+
 ## TODO SPARKLINES TABLE
 
 ```{r sparktabletest}
