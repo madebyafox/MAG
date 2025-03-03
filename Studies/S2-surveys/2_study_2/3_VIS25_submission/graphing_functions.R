@@ -39,7 +39,8 @@ my_colors = list(
   actions4 = c("#8E8E8E", "#A3A3A3","#729B7D","#499678"),
   actions3 = c("#8E8E8E","#99b898ff","#fdcea8ff"),
   actions = c("#8E8E8E","#2A363B","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
-  
+  samples = c("#8B69B5", "#7AAFE1","#ADC69D","#66818e"), #tumblr, datacollar, bluecollar, general
+  repeated = c("#2A363B","#C2C2C2"), #before/after
   platforms = c("#5D93EA","#FF70CD", "#3BD3F5", "#8B69B5","black"),
   amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
   my_favourite_colours = c("#702963", "#637029",    "#296370")
