@@ -214,7 +214,8 @@ table(df_b1_participants$Assigned.Block, df_b1_participants$Sample)
 
 ```
 
-# MOCKUP MAIN BLOCK 1 FIGURE
+# MOCKUP (FIG 1) MAIN DESCRIPTIVES FIGURE (QUESTIONS + BLOCK 1)
+## BLOCK 1 BY SAMPLE
 
 ### SD Questions
 ```{r block1_sds_by_sample, message=FALSE, warning = FALSE}
@@ -441,6 +442,218 @@ scale_fill_manual(values = my_palettes(name="lightblues", direction = "1")) +
  
 
 
+
+
+
+
+
+
+
+
+
+
+
+# MOCKUP (FIG 2) BY STIMULUS RESULTS
+
+## BLOCK 1 STIMULUS (aggregate over samples)
+
+##### density ridges
+```{r plot_ridglines_sds_block1}
+  
+
+#DEFINE STIMULI
+df <- df_graphs %>% filter(Assigned.Block==1) %>% droplevels()
+stimuli <- levels(df$STIMULUS)
+
+
+## LOOP THROUGH EACH STIMULUS IN LIST
+i = 0
+
+for (s in stimuli){
+  i = i+1
+  
+  # setup titles 
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+
+
+#### DENSITY RIDGES#############################################################################
+  # setup dataframe 
+  df <- df_sd_questions_long %>% select(1:8, Sample, QUESTION, STIMULUS, value)  %>% filter(STIMULUS==s)
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+  
+(x <-
+    ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill=category)) +
+    geom_density_ridges(
+     ## ridge geometry
+              scale = 0.65, alpha = 0.5, quantile_lines = TRUE,  panel_scaling = TRUE,
+              ## rug geometry
+              jittered_points = TRUE, rel_min_height = .01,
+              point_shape = "|", point_size = 1, point_alpha=1,
+              position = position_points_jitter(height = 0)) +
+    
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+    labs (title = title, y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
+    theme_minimal() + easy_remove_legend()
+)
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/level_block1", filename =paste0(s,"_by_sample_ridges_ALLSAMPLES.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+
+
+} ## END LOOP STIMULUI
+```    
+
+
+
+
+
+
+## BLOCK 1 STIMULUS BY SAMPLE
+##### faceted density ridges
+```{r plot_ridglines_sds_facet_b1}
+  
+#DEFINE STIMULI
+df <- df_graphs %>% filter(Assigned.Block==1) %>% droplevels()
+stimuli <- levels(df$STIMULUS)
+
+## LOOP THROUGH EACH STIMULUS IN LIST
+i = 0
+
+for (s in stimuli){
+  i = i+1
+  
+  # setup titles 
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+
+
+#### DENSITY RIDGES#############################################################################
+  # setup dataframe 
+  df <- df_sd_questions_long %>% select(1:8, Sample, QUESTION, STIMULUS, value)  %>% filter(STIMULUS==s)
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION, Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+  
+(x <-
+    ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = Sample, color = Sample)) +
+    # geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = TRUE) + 
+    
+    geom_density_ridges( 
+              ## ridge geometry
+              scale = 0.65, alpha = 0.25, quantile_lines = TRUE,  panel_scaling = TRUE,
+              ## rug geometry
+              jittered_points = TRUE, rel_min_height = .01,
+              point_shape = "|", point_size = 1, point_alpha=1,
+              position = position_points_jitter(height = 0)) +
+    facet_grid(.~Sample)+
+    scale_fill_manual(values = my_palettes(name="samples", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="samples", direction = "1"))+
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+    labs (title = title, y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
+    theme_minimal() + easy_remove_legend()
+)
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/level_block1", filename =paste0(s,"_by_sample_ridges_FACET.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+
+
+} ## END LOOP STIMULUI
+```    
+
+##### stacked density ridges
+```{r plot_ridglines_sds_block1}
+  
+
+
+#DEFINE STIMULI
+df <- df_graphs %>% filter(Assigned.Block==1) %>% droplevels()
+stimuli <- levels(df$STIMULUS)
+
+
+
+## LOOP THROUGH EACH STIMULUS IN LIST
+i = 0
+
+for (s in stimuli){
+  i = i+1
+  
+  # setup titles 
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+
+
+#### DENSITY RIDGES#############################################################################
+  # setup dataframe 
+  df <- df_sd_questions_long %>% select(1:8, Sample, QUESTION, STIMULUS, value)  %>% filter(STIMULUS==s)
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions))%>% 
+    group_by(QUESTION,Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+  
+(x <-
+    ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = Sample, color = Sample)) +
+    geom_density_ridges(scale = 0.75, quantile_lines = FALSE, alpha = 0.25, panel_scaling = TRUE) + 
+    scale_fill_manual(values = my_palettes(name="samples", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="samples", direction = "1"))+
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+    labs (title = title, y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
+    theme_minimal() + easy_remove_legend()
+)
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/level_block1", filename =paste0(s,"_by_sample_ridges_STACK.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+
+
+} ## END LOOP STIMULUI
+```    
 
 
 
@@ -1607,6 +1820,7 @@ if(GRAPH_SAVE == TRUE) {
 
 } ## END LOOP STIMULUI
 ```    
+
 
 
 
