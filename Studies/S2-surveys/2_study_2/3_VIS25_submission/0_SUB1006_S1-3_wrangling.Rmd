@@ -46,7 +46,15 @@ n_blocks = 6 #number of stimulus blocks in study design
 
 # WRANGLING
 
-Initial (pilot) data collection occured via via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1"). These data were collected via Prolific, with different demographic restrictions (i.e. 'data collar' and 'blue collar' made use of different values in the Prolific participant background survey on the 'technology use at work' and 'job title' questions.) However, when we duplicated these questions in our own demographic surveys, we found participants' answers often did not match their values on the Prolific background survey, and thus we abandoned this stratified sampling strategy and continued data collection with no demographic restrictions. We made minor alterations to the question wording and respose option wording, and the remaining stimuli were organized in 6 blocks. (The changes to question wording and response option wording were minimal and thus we include our pilot data in the dataset for both free response questions and quantitative data analysis.) Each block was collected via PROLIFIC using independent Qualtrics surveys, with the exception of a smaller sample of respondents directly recruited from Tumblr, using a single Qualtrics survey with randomization logic to assign each Tumblr participant to one of the six stimulus blocks.
+This file takes raw data files from (3) Qualtrics surveys (Study 1, Study 2, Study 3), standardizing their format for further data analysis. Note that all raw data comes from Qualtrics, and each Qualtrics survey includes a different stimulus block (set of 5 stimuli).
+
+1.  **Study 1:** We collected data sampling directly from the Tumblr social media platform produces files with slightly different metadata (several fields required for tracking Prolific are not included). The Qualtrics surveys for Tumblr used randomization logic to assign each Tumblr participant to one of the six stimulus blocks. **(All stimulus blocks, n ~ 12-15 / block)**
+
+2.  **Study 2:** Initial data collection via PROFLIFIC occurred via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1"). These data were collected via Prolific, with different demographic restrictions (i.e. 'data collar' and 'blue collar' made use of different values in the Prolific participant background survey on the 'technology use at work' and 'job title' questions.) However, when we duplicated these questions in our own demographic surveys, we found participants' answers often did not match their values on the Prolific background survey, and thus we abandoned this stratified sampling strategy and continued data collection with no demographic restrictions. **(Stimulus block #1 only; n = 40 (20 blue-collar; 20 data-collar) )**
+
+3.  **Study 3:** General (non-stratified) sampling via PROLIFIC collecting data for all 6 stimulus blocks. **(n =40/block )**
+
+4.  *Data for Study 4 (a repeated measures design where participants rate the stimuli with obscured and unobscured versions of each image)*
 
 ## IMPORT Configuration Files
 
@@ -78,7 +86,7 @@ ref_surveys <- read_csv("data/input/REFERENCE/studies.csv", col_names = TRUE) %>
     Qualtrics.URL = as.factor(Qualtrics.URL),
     Qualtrics.Survey = as.factor(Qualtrics.Survey),
     Sample = as.factor(Sample),
-    Scope = as.factor(Scope)
+    Study = as.factor(Study)
 )
 saveRDS(ref_surveys, file = "data/input/REFERENCE/ref_surveys.rds")
 
@@ -150,14 +158,16 @@ saveRDS(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.rds")
 
 ```
 
-
 ## DEFINE Factor Orders
+
 ```{r define-factor-orders}
 
 ## set order of several factor vars used in plots 
 
-order_study = c("TUMBLR","PROLIFIC") ##NEW for VIS
+# order_study = c("TUMBLR","PROLIFIC") ##NEW for VIS
+order_study = c("Study1","Study2","Study3","Study4") ##NEW for VIS
 order_sample = c("TUMBLR","DATACOLLAR","BLUECOLLAR", "GENERAL") ## NEW for VIS
+order_distribution = c("TUMBLR","PROLIFIC")
 order_maker = c("individual","organization","education","business","news","political")
 order_age = c("boomer", "gen-x","millennial","gen-z")
 order_gender = c("Other","Female","Male" )
@@ -171,7 +181,7 @@ order_actions2 = c("nothing","something")
 
 ```
 
-## IMPORT Participant Data Files
+## IMPORT RAW Participant Data Files
 
 *Here we import raw qualtrics data files for each survey, and normalize column names to produce a single raw data file including all attempts at completing all the surveys: `df_raw`.*
 
@@ -354,8 +364,6 @@ rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b1, df_raw_b2, df_raw_b3, df_raw
 
 *Here we apply exclusion criteria in order to reduce the raw participant data in `df_raw` to a dataframe of valid participant data `df_subjects`. We remove unneeded columns (i.e. qualtrics configuration columns, etc) and transform columns to the the appropriate data types for further analysis.*
 
-NOTE: data from PILOT (i.e. 'blue collar' and 'data collar' runs on Prolific) are *included* in the qualitative data analysis (i.e. analysis of free response data) but *not* in quantitative data analysis (modelling as well as reporting descriptive statistics of response distributions. --> CHANGE THEY'VE BEEN LEFT IN FOR COMPARISON W/ TUMBLR
-
 Participants were *excluded* from the sample for the following reasons:
 
 -   **abandoned**; Finished = False and Progress \< 100%
@@ -363,7 +371,6 @@ Participants were *excluded* from the sample for the following reasons:
 -   **didnot-follow-instructions** free responses indicate they misinterpred the question (most commonly they describe the graph rather than their reactions/judgements/impressions of it)
 -   **illegible-english** free responses text is largely illegible
 
-**Following wrangling, there should be 240 valid participant records recruited from PROLIFIC (6 blocks of \~40) and 78 valid participants records recruited from Tumblr ( \~12-15 per block).**
 
 The following dataframes are created:
 
@@ -373,9 +380,9 @@ The following dataframes are created:
 
 -   `df_participants` represents **demographic data** for all valid participants
 
--   `df_qda_wide` includes all valid (including pilot) responses in wide format, to be used for free response data analysis (wide)
+-   `df_qda_wide` includes all valid responses in wide format, to be used for free response data analysis (wide)
 
--   `df_qda_long` represents response and demographic data for all valid participants + pilot participants (used to generate a spreadsheet for analysis for free response data) *at the trial (i.e. stimulus) level* (i.e. long).
+-   `df_qda_long` represents response and demographic data for all valid participants (used to generate a spreadsheet for analysis for free response data) *at the trial (i.e. stimulus) level* (i.e. long).
 
 ```{r WRANGLE-CLEANING, warning=FALSE}
 
@@ -531,9 +538,10 @@ df_data <- df_data %>%
     Assigned.Block = factor(Assigned.Block), 
     # PID = if_else( (Distribution =="TUMBLR"), ID.Qualtrics, ID.Prolific),
     PID = factor(ID.Qualtrics),
-    Distribution = factor(Distribution, levels=order_study), ## ADDED FACTOR ORDER TO KEEP TUBMLR AS FIRST 
+    Distribution = factor(Distribution, levels=order_distribution), ## ADDED FACTOR ORDER TO KEEP TUBMLR AS FIRST 
     Sample = fct_recode(Sample, TUMBLR= "tumblr", BLUECOLLAR = "blue-collar", DATACOLLAR = "data-collar", GENERAL="general-prolific"), #recode factor levels
-    Sample = factor(Sample, levels= order_sample)#set level order
+    Sample = factor(Sample, levels= order_sample), #set level order
+    Study = factor(Study, levels = order_study) #set level order
   ) %>% #DROP RANDOM_BLOC COLUMNS
   select (-RANDOM_BLOCK) %>% 
   select(
@@ -544,7 +552,7 @@ df_data <- df_data %>%
     ID.Qualtrics:ID.Session,
     EndState,
     StartDate: Q_RelevantIDLastStartDate, 
-    Prolific.Name, Qualtrics.Survey,  Qualtrics.URL, Description, Sample, Scope, 
+    Prolific.Name, Qualtrics.Survey,  Qualtrics.URL, Description, Sample, Study, 
     duration.sec:PLATFORM,
     `0_Q_B0_ENCOUNTER` : `4_Q_B6_CHART-ACTION`
   )
@@ -561,9 +569,9 @@ df_exclude <- df_data %>%
     !is.na(TerminateFlag) | Finished == FALSE | EndState != "COMPLETE"  
   ) %>% 
   select(
-    PID, Distribution, ID.Qualtrics, ID.Prolific, ID.Study, Assigned.Block, Scope, Source, Progress, 
+    PID, Distribution, ID.Qualtrics, ID.Prolific, ID.Study, Assigned.Block, Study, Source, Progress, 
     Finished, TerminateFlag, EndState,StartDate, duration.min, 
-    D_gender:D_politicsFiscal, SCREEN_workMethod:FEEDBACK, Prolific.Name:Scope
+    D_gender:D_politicsFiscal, SCREEN_workMethod:FEEDBACK, Prolific.Name:Study
   )  %>% 
   mutate(
     EndState = if_else( (Progress < 100), "abandoned", EndState),
@@ -602,7 +610,6 @@ sum(duplicated(df_data$PID))
 
 
 ## save participant-level data file for qda validation 
-## note that this DOES contain pilot data 
 ## this does NOT contain excluded participants 
 df_qda_wide <- df_data
 write.csv(df_data, file = "data/output/df_qda_wide.csv", na="")
@@ -611,6 +618,10 @@ write.csv(df_data, file = "data/output/df_qda_wide.csv", na="")
 ##CHECK number per block per sample 
 print("Number of valid participants per assigned block and sample")
 table(df_data$Sample, df_data$Assigned.Block)
+
+##CHECK number per block per study 
+print("Number of valid participants per assigned block and study")
+table(df_data$Study, df_data$Assigned.Block)
 
 
 #2 CREATE TRIAL LEVEL DFS FOR QDA ###############################################
@@ -665,19 +676,7 @@ df_qda_long <- df_data %>%
 write.csv(df_qda_long, file = "data/output/df_qda_long.csv", na="")
 
 
-# #### TEMP DON'T REMOVE PILOT DATA 
-# #### REMOVE PILOT DATA FROM DF_DATA 
-# ## pilot data IS not included QDA file, but not in quant analysis 
-# df_data <- df_data %>% 
-#   filter(Scope != "pilot") %>% 
-#   mutate(
-#     ID.Study = droplevels(ID.Study), 
-#     ID.Prolific = droplevels(ID.Prolific),
-#     ID.Qualtrics = droplevels(ID.Qualtrics),
-#     PID = droplevels(PID)
-#   ) 
-
-#WRITE  A CSV FILE WITH RESPONSE DATA FOR VALID PARTICIPANTS (NOT EXCLUDED, NOT PILOT) in wide format
+#WRITE  A CSV FILE WITH RESPONSE DATA FOR VALID PARTICIPANTS (NOT EXCLUDED) in wide format
 write.csv(df_data, file = "data/output/df_data.csv", na="")
 saveRDS(df_data, file = "data/output/df_data.rds")
 
@@ -687,14 +686,14 @@ saveRDS(df_data, file = "data/output/df_data.rds")
 df_participants <- df_data %>% 
   select(
     PID:Assigned.Block, 
-    EndState, Sample, Scope, 
+    EndState, Sample, Study, 
     duration.sec, duration.min, 
     contains("D_"), 
     contains("SCREEN_"),
     PLATFORM
   )
 
-#WRITE  A CSV FILE WITH DEMOGRAPHIC DATA ALL VALID PARTICIPANTS (NOT EXCLUDED, NOT PILOT) in wide format
+#WRITE  A CSV FILE WITH DEMOGRAPHIC DATA ALL VALID PARTICIPANTS (NOT EXCLUDED) in wide format
 write.csv(df_participants, file = "data/output/df_participants.csv", na="")
 saveRDS(df_participants, file = "data/output/df_participants.rds")
 
@@ -706,8 +705,8 @@ saveRDS(df_participants, file = "data/output/df_participants.rds")
 # cols = c("Control Condition","Impasse Condition","Total for Period")
 
 title = "Number of abandoned/screened/rejected attempts "
-cols = c("Block","pilot","study2","sum")
-cont <- table(df_exclude$Assigned.Block, df_exclude$Scope)
+cols = c("Block","Study1","Study2","Study3","Study4","sum")
+cont <- table(df_exclude$Assigned.Block, df_exclude$Study)
 cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
 
 title = "Number of abandoned/screened/rejected attempts by type"
@@ -774,7 +773,7 @@ The following dataframes are created:
 df_questions <- df_data %>% 
   select(
   PID, duration.min,  Assigned.Block,
-  Sample, Scope, Distribution, PLATFORM, 
+  Sample, Study, Distribution, PLATFORM, 
   D_gender_collapsed:D_politicsFiscal, 
   contains("_Q_"), contains("loop"), 
 ) %>% 
@@ -1053,7 +1052,8 @@ print("df_graphs_full is trial level dataset; df_graphs is trial level quantitat
 
 Finally, we create duplicate versions of datasets used to analyze the semantic differential scores, with standardized (i.e. z-scored), and absolute values (i.e. folding SD scale in half, so 0 = center of the slider, and 50 = the left and right extremes)
 
-### Z-SCORED 
+### Z-SCORED
+
 ```{r, standardizing-zscores}
 
 ########## Z-SCORE
@@ -1118,7 +1118,8 @@ saveRDS(df_sd_questions_long_z, file = "data/output/df_sd_questions_long_z.rds")
 
 ```
 
-### ABS_VALUE
+### ABSOLUTE_VALUE
+
 ```{r, standardizing-absvalue}
 
 ########## ABS VALUE
@@ -1173,7 +1174,7 @@ saveRDS(df_sd_questions_long_abs, file = "data/output/df_sd_questions_long_abs.r
 
 
 dfSummary(df_participants , #%>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM, 
-                      #       contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
+                      #       contains("D_"), Prolific.Name:Study, contains("SCREEN_")), 
           headings = TRUE,
           plain.ascii  = FALSE,
           style        = 'grid',
@@ -1186,11 +1187,12 @@ dfSummary(df_participants , #%>% select(PID, duration.min, Distribution, Assigne
 ```
 
 ## TRIAL-LEVEL
+
 ```{r summarytools-profile-graphs, results='asis'}
 
 
 dfSummary(df_graphs,  # %>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM,
-                      #       contains("D_"), Prolific.Name:Scope, contains("SCREEN_")), 
+                      #       contains("D_"), Prolific.Name:Study, contains("SCREEN_")), 
           headings = TRUE,
           plain.ascii  = FALSE,
           style        = 'grid',
@@ -1202,8 +1204,8 @@ dfSummary(df_graphs,  # %>% select(PID, duration.min, Distribution, Assigned.Blo
 
 ```
 
-
 # STASH
+
 ```{r}
 # EXPLORING HOW CORRELATION IS AFFECTED BY STANDARDIZING BY VARIABLE, PARTICIPANT OR BOTH
 # AS WELL AS THE EFFECT OF SUBJECT RANDOM EFFECT IN CORRPLOT
@@ -1394,7 +1396,3 @@ dfSummary(df_graphs,  # %>% select(PID, duration.min, Distribution, Assigned.Blo
 
 
 ```
-
-
-
-         
