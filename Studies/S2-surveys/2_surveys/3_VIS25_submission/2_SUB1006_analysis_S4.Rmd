@@ -182,9 +182,19 @@ df <- df_questions_long %>% filter(QUESTION %in% ref_sd_questions)
 ## TODO ADD RUGS
 (x <-
     ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = TIME, color= TIME)) +
-    geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = FALSE) + 
-    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
-    scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
+    # geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = FALSE) + 
+    
+    geom_density_ridges( 
+              ## ridge geometry
+              scale = 0.65, alpha = 0.25, quantile_lines = TRUE,  panel_scaling = FALSE,
+              ## rug geometry
+              jittered_points = TRUE, rel_min_height = .01,
+              point_shape = "|", point_size = 3,
+              position = position_points_jitter(height = 0)) +
+    
+    
+    scale_fill_manual(values = my_palettes(name="blackred", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="blackred", direction = "1"))+
     facet_grid(.~STIMULUS) + 
     ## MEDIAN
     stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
@@ -195,15 +205,16 @@ df <- df_questions_long %>% filter(QUESTION %in% ref_sd_questions)
       y = guide_axis_manual(labels = rev(ref_labels$left)),
       y.sec = guide_axis_manual(labels = rev(ref_labels$right))
     ) +
-    labs (title = "BLOCK 1 by Study & Sample", y = "", caption = "(point is median)") +
+    labs (title = "Attitude Shift by Stimulus", y = "", caption = "(point is median)") +
     cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
     # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
-    theme_minimal() + easy_remove_legend() 
+    theme_minimal() 
+  # + easy_remove_legend() 
 )
   
 
 if(GRAPH_SAVE == TRUE) {
-    ggsave(plot = x, path="figs/level_block1", filename =paste0("B1_SDS_by_sample_ridges.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+    ggsave(plot = x, path="figs/study4", filename =paste0("S4_B1_SDS_by_Stimulus_ridges.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
 ```
 
 
