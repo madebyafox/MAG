@@ -60,8 +60,8 @@ n_blocks = 6
 
 
 ## IMPORTANT 
-## SET TO TRUE when running file; but FALSE when rendering file (don't need to re-save on render)
-GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders
+GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
+# source("graphing_functions.R") #import graphing palettes and custom functions
 ```
 
 *This notebook contains code to characterize the distribution of demographic (response) variables in the SUBMISSION 1006 Study(survey). It relies upon data wrangling performed in `0_SUB1006_wrangling.Rmd`*.
@@ -120,66 +120,32 @@ df_sd_questions_long_abs <- readRDS("data/output/df_sd_questions_long_abs.rds") 
 ```
 
 
-## SETUP GRAPHING
-```{r setup-pallettes}
-
-############## SETUP Colour Palettes
-#https://www.r-bloggers.com/2022/06/custom-colour-palettes-for-ggplot2/
-
-## list of color pallettes
-my_colors = list(
-  politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
-  blackred = c("black","red"),
-  greens = c("#ADC69D","#81A06D","#567E39","#2D5D16","#193E0A"),
-  smallgreens = c("#ADC69D","#567E39","#193E0A"),
-  olives = c("#CDCEA1","#B8B979","#A0A054","#78783F","#50502A","#35351C"),
-  lightblues = c("#96C5D2","#61A2B2","#3C8093","#2C6378","#1F4A64"),
-  darkblues = c("#7AAFE1","#3787D2","#2A73B7","#225E96","#1A4974","#133453"),
-  reds = c("#D9B8BD","#CE98A2","#B17380","#954E5F","#78263E","#62151F"),
-  traffic = c("#CE98A2","#81A06D","yellow"),
-  questions = c("#B17380","#3787D2", "#567E39", "#EE897F"),
-  tools= c("#D55662","#EE897F","#F5D0AD","#A0B79B","#499678","#2D363A"),
-  encounter = c("#729B7D","#8E8E8E"),
-  actions = c("#2A363B","#039876ff","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
-  amy_gradient =  c("#ac57aa", "#9e5fa4", "#90689f", "#827099", "#747894", "#66818e", "#578988", "#499183", "#3b997d", "#2da278", "#1faa72"),
-  my_favourite_colours = c("#702963", "#637029",    "#296370")
-                
-)
-
-## function for using palettes
-my_palettes = function(name, n, all_palettes = my_colors, type = c("discrete","continuous"), direction = c("1","-1")) {
-  palette = all_palettes[[name]]
-  if (missing(n)) {
-    n = length(palette)
-  }
-  type = match.arg(type)
-  out = switch(type,
-               continuous = grDevices::colorRampPalette(palette)(n),
-               discrete = palette[1:n]
-  )
-  out = switch(direction,
-               "1" = out,
-               "-1" = palette[n:1])
-  structure(out, name = name, class = "palette")
-}
-
-```
-
-
-
-
-
 # SAMPLE
 
-Participants were sampled from two survey distribution sources: (STUDY 1) direct solicitation from co-author MM's ethnographic research participants on Tumblr, (STUDY 2)two samples of US-BASED English Speaking participants on Prolific with targeted occupations (`data collar`, `blue-collar`) and finally (STUDY 3) a  general sample of US-BASED, English-speaking participants on PROLIFIC (no demographic targetting). 
+Participants were sampled from two survey distribution sources: direct solicitation from author MM's ethnographic research participants on TUMBLR (STUDY 1) , two samples of US-BASED English Speaking participants on Prolific with targeted occupations (`data collar`, `blue-collar`) (STUDY 2), a  general sample of US-BASED, English-speaking participants on PROLIFIC (no demographic targetting)(STUDY 3, STUDY4). 
 
 ```{r}
 
 df <- df_participants
 
-title = "Number of participants by distribution and stimulus block"
-cols = c("Sampling Platform", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
+
+title = "Number of participants by DISTRIBUTION platform  and stimulus block"
+cols = c("Distribution Platform", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
+cont <- table(df$Distribution, df$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+
+
+title = "Number of participants by SAMPLE and stimulus block"
+cols = c("Sample", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
 cont <- table(df$Sample, df$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+
+
+title = "Number of participants by STUDY and stimulus block"
+cols = c("Study", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
+cont <- table(df$Study, df$Assigned.Block)
 cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
 
 # qacBase::crosstab(df, Distribution, Assigned.Block)

@@ -745,11 +745,11 @@ rm(df_exclude, df_qda_long, df_qda_wide, df_raw)
 
 ## WRANGLE QUESTION and TRIAL level data
 
-*Here we pivot response data from valid (non-pilot) participants to be represented at the QUESTION (i.e. semantic differential) and TRIAL (ie. question+stimulus) levels.*
+*Here we pivot response data from valid participants to be represented at the QUESTION (i.e. semantic differential) and TRIAL (ie. question+stimulus) levels.*
 
 The following dataframes are created:
 
--   `df_questions` include non-pilot valid responses at the most granular level, where each row refers to a participant+stimulus+question (long format) [318p X 5s X 28q]
+-   `df_questions` include valid responses at the most granular level, where each row refers to a participant+stimulus+question (long format) [318p X 5s X 28q]
 
 -   `df_sd_questions_long` includes only the semantic differential-type questions (long)
 
