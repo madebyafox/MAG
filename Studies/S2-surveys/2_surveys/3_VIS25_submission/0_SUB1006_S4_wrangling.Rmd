@@ -842,8 +842,8 @@ df_sd_questions_long <- df_questions_long %>%
     value = as.numeric(value)
   )
 ## WRITE DATAFRAME
-write.csv(df_sd_questions_long, file = "data/output/Study_4/df_sd_questions_long.csv", na="")
-saveRDS(df_sd_questions_long, file = "data/output/Study_4/df_sd_questions_long.rds")
+write.csv(df_sd_questions_long, file = "data/output/Study_4/df_sd_questions_long_S4.csv", na="")
+saveRDS(df_sd_questions_long, file = "data/output/Study_4/df_sd_questions_long_S4.rds")
 
 ```
 
@@ -1022,12 +1022,12 @@ df_sd_questions_long_z <- df_graphs_z %>%
     TIME = factor(TIME, levels=order_times),
     QUESTION = factor(QUESTION, levels=ref_sd_questions)
   ) %>% droplevels()
-write.csv(df_sd_questions_long_z, file = "data/output/Study_4/df_sd_questions_long_z.csv", na="")
-saveRDS(df_sd_questions_long_z, file = "data/output/Study_4/df_sd_questions_long_z.rds")    
+write.csv(df_sd_questions_long_z, file = "data/output/Study_4/df_sd_questions_long_z_S4.csv", na="")
+saveRDS(df_sd_questions_long_z, file = "data/output/Study_4/df_sd_questions_long_z_S4.rds")    
 
 ```
 
-### ABSOLUTE_VALUE
+## ABSOLUTE_VALUE
 
 ```{r, standardizing-absvalue}
 
@@ -1080,8 +1080,8 @@ df_sd_questions_long_abs <- df_graphs_abs %>%
     TIME = factor(TIME, levels=order_times),
     QUESTION = factor(QUESTION, levels=ref_sd_questions)
   ) %>% droplevels()
-write.csv(df_sd_questions_long_abs, file = "data/output/Study_4/df_sd_questions_long_abs.csv", na="")
-saveRDS(df_sd_questions_long_abs, file = "data/output/Study_4/df_sd_questions_long_abs.rds")    
+write.csv(df_sd_questions_long_abs, file = "data/output/Study_4/df_sd_questions_long_abs_S4.csv", na="")
+saveRDS(df_sd_questions_long_abs, file = "data/output/Study_4/df_sd_questions_long_abs_S4.rds")    
 
 ```
 
