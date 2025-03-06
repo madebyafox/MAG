@@ -44,9 +44,9 @@ n_blocks = 6 #number of stimulus blocks in study design
 
 *This notebook contains code to wrangle raw data from multiple qualtrics surveys into a single normalized dataset of (valid) participant responses.*
 
-# WRANGLING
+# STANDARDIZE
 
-This file takes raw data files from (3) Qualtrics surveys (Study 1, Study 2, Study 3), standardizing their format for further data analysis. Note that all raw data comes from Qualtrics, and each Qualtrics survey includes a different stimulus block (set of 5 stimuli).
+This notebook takes raw data files from (3) Qualtrics surveys (Study 1, Study 2, Study 3), standardizing their format for further data analysis. Note that all raw data comes from Qualtrics, and each Qualtrics survey includes a different stimulus block (set of 5 stimuli).
 
 1.  **Study 1:** We collected data sampling directly from the Tumblr social media platform produces files with slightly different metadata (several fields required for tracking Prolific are not included). The Qualtrics surveys for Tumblr used randomization logic to assign each Tumblr participant to one of the six stimulus blocks. **(All stimulus blocks, n ~ 12-15 / block)**
 
@@ -54,11 +54,11 @@ This file takes raw data files from (3) Qualtrics surveys (Study 1, Study 2, Stu
 
 3.  **Study 3:** General (non-stratified) sampling via PROLIFIC collecting data for all 6 stimulus blocks. **(n =40/block )**
 
-4.  *Data for Study 4 (a repeated measures design where participants rate the stimuli with obscured and unobscured versions of each image)*
+4.  *Data for Study 4 (a repeated measures design where participants rate the stimuli with obscured and unobscured versions of each image)* This wrangling is handled in a separate notebook. 
 
-## IMPORT Configuration Files
+## Import Configuration Files
 
-*Here we import files with reference information for stimuli `ref_stimuli` and qualtrics surveys `ref_surveys`.*
+*Import files with reference information for stimuli `ref_stimuli` and qualtrics surveys `ref_surveys`.*
 
 ```{r setup-references, message=FALSE, warning = FALSE}
 
@@ -92,9 +92,9 @@ saveRDS(ref_surveys, file = "data/input/REFERENCE/ref_surveys.rds")
 
 ```
 
-## DEFINE Labels
+## Define Labels
 
-*Here we define labels used in survey questions and response options.*
+*Define labels used in survey questions and response options; used to generate labels for graphs and filtering of datasets in analysis files.*
 
 ```{r setup-labels}
 
@@ -106,7 +106,7 @@ ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EX
 ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
 
 
-### LABELS FOR RAW VALUE OF SD QUESTIONS
+############## LABELS FOR RAW VALUE OF SD QUESTIONS
 ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA",
                       "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
                       "CHART_TRUST", "CHART_INTENT", "CHART_LIKE", "CHART_BEAUTY")
@@ -131,7 +131,7 @@ write.csv(ref_labels, file = "data/input/REFERENCE/ref_labels.csv", na="")
 saveRDS(ref_labels, file = "data/input/REFERENCE/ref_labels.rds")
 
 
-### LABELS FOR ABS VALUE OF SD QUESTIONS
+############## LABELS FOR ABS VALUE OF SD QUESTIONS
 ref_sd_questions_abs <- c("MAKER_DESIGN","MAKER_DATA",
                       "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
                       "CHART_TRUST", "CHART_INTENT", "CHART_LIKE", "CHART_BEAUTY")
@@ -155,16 +155,14 @@ write.csv(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.csv", na="
 saveRDS(ref_labels_abs, file = "data/input/REFERENCE/ref_labels_abs.rds")
 
 
-
 ```
 
-## DEFINE Factor Orders
+## Define Factors
+
+*Define order of factors for multiple-choice variables*
 
 ```{r define-factor-orders}
 
-## set order of several factor vars used in plots 
-
-# order_study = c("TUMBLR","PROLIFIC") ##NEW for VIS
 order_study = c("Study1","Study2","Study3","Study4") ##NEW for VIS
 order_sample = c("TUMBLR","DATACOLLAR","BLUECOLLAR", "GENERAL") ## NEW for VIS
 order_distribution = c("TUMBLR","PROLIFIC")
@@ -181,14 +179,13 @@ order_actions2 = c("nothing","something")
 
 ```
 
-## IMPORT RAW Participant Data Files
+## Import Raw Survey Files
 
-*Here we import raw qualtrics data files for each survey, and normalize column names to produce a single raw data file including all attempts at completing all the surveys: `df_raw`.*
+*Here we import raw qualtrics data files for each survey, and normalize column names to produce a single raw data file including all attempts at completing all the surveys: `df_raw`. This intermediary file is not used for analysis, but rather for further wrangling into participant, trial, and question level files*
 
 ```{r WRANGLE-INPUT, message=FALSE, warning=FALSE}
 
-#1. IMPORT RAW DATA FILES ########################################################
-#### RAW DATA ####################################################################
+#### IMPORT RAW DATA FILES ########################################################
 # will always be the unaltered version of imported data
 # 1 row per subject 
 df_raw_datacollar <- read_csv("data/input/CLEAN/CLEAN_MAG_S2_PROLIFIC_datacollarpilot_B1.csv", col_names = TRUE)
@@ -360,35 +357,15 @@ rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b1, df_raw_b2, df_raw_b3, df_raw
 
 ```
 
-## WRANGLE PARTICIPANT and RESPONSE Data
+## Wrangle Standardized File
 
-*Here we apply exclusion criteria in order to reduce the raw participant data in `df_raw` to a dataframe of valid participant data `df_subjects`. We remove unneeded columns (i.e. qualtrics configuration columns, etc) and transform columns to the the appropriate data types for further analysis.*
-
-Participants were *excluded* from the sample for the following reasons:
-
--   **abandoned**; Finished = False and Progress \< 100%
--   **fails consent or pre-screening**, Finished = TRUE, Progress = 100%, Q_TerminateFlag = "Screened"
--   **didnot-follow-instructions** free responses indicate they misinterpred the question (most commonly they describe the graph rather than their reactions/judgements/impressions of it)
--   **illegible-english** free responses text is largely illegible
+Here we drop irrelevant columns (qualtrics junk) and set factors. The resulting `df_data` frame is wide (1 row/participant, but includes redundant columns for the blocks they were not assigned to).
 
 
-The following dataframes are created:
+```{r WRANGLE-FACTORS, warning=FALSE}
 
--   `df_data` represents **response data** for all valid participants (wide format)
-
--   `df_exclude` represents **response data** for participants who did not meet inclusion criteria (wide format)
-
--   `df_participants` represents **demographic data** for all valid participants
-
--   `df_qda_wide` includes all valid responses in wide format, to be used for free response data analysis (wide)
-
--   `df_qda_long` represents response and demographic data for all valid participants (used to generate a spreadsheet for analysis for free response data) *at the trial (i.e. stimulus) level* (i.e. long).
-
-```{r WRANGLE-CLEANING, warning=FALSE}
-
-#1A. CLEAN MASTER PARTICIPANT-LEVEL DF  #########################################################
-################################################################################################
-#### MASTER WIDE FORMAT DATA FRAME [1 row / valid qualtrics submission] ################
+####WRANGLE MASTER PARTICIPANT-LEVEL DF  #####################################################
+#### MASTER WIDE FORMAT DATA FRAME [1 row / valid qualtrics submission] ######################
 
 ##RENAME AND SET CORRECT DATA TYPES
 df_data <- df_raw %>% 
@@ -557,6 +534,26 @@ df_data <- df_data %>%
     `0_Q_B0_ENCOUNTER` : `4_Q_B6_CHART-ACTION`
   )
 
+#DROP WIP DATAFRAMES 
+rm(df_raw)
+```
+
+
+# CLEANING
+
+*Here we apply exclusion criteria in order to reduce the raw participant data in `df_data` to a dataframe of valid participant data `df_subjects`. We remove unneeded columns (i.e. qualtrics configuration columns, etc) and transform columns to the the appropriate data types for further analysis.*
+
+
+Participants were *excluded* from the sample for the following reasons:
+
+-   **abandoned**; Finished = False and Progress \< 100%
+-   **fails consent or pre-screening**, Finished = TRUE, Progress = 100%, Q_TerminateFlag = "Screened"
+-   **didnot-follow-instructions** free responses indicate they misinterpred the question (most commonly they describe the graph rather than their reactions/judgements/impressions of it)
+-   **illegible-english** free responses text is largely illegible
+
+A dataframe `df_exclude` is saved, including **response data** for participants who did not meet inclusion criteria (wide format)
+
+```{r CLEAN-MASTER}
 
 #1B CLEAN MASTER PARTICIPANT-LEVEL DF  #########################################
 #### SEGREGATE PARTICIPANTS WHO DID NOT COMPLETE ###############################
@@ -579,8 +576,8 @@ df_exclude <- df_data %>%
     EndState = if_else( (TerminateFlag == "Screened" & is.na(EndState)), "screened", EndState),
     EndState = factor(EndState)
   )
-write.csv(df_exclude, file = "data/output/df_exclude.csv", na="")
-saveRDS(df_exclude, file = "data/output/df_exclude.rds")
+write.csv(df_exclude, file = "data/output/Study_1_2_3/df_exclude.csv", na="")
+saveRDS(df_exclude, file = "data/output/Study_1_2_3/df_exclude.rds")
 
 
 
@@ -607,22 +604,128 @@ sum(df_data$PID %in% df_exclude$PID)
 #no duplicated PROLIFIC ids in good data 
 print("Number of PIDs duplicated in df_data print [should be 0]")
 sum(duplicated(df_data$PID))
+```
 
+
+# WRANGLE
+
+*Reshape data into files for analysis*
+
+TODO MOVE THIS TO TOP OF FILE 
+
+The following dataframes are created:
+
+-   `df_data` represents **response data** for all valid participants (wide format) — answers are not stored as factors; not useful for numeric analysis but just as a record of participant-level responses
+
+-   `df_participants` represents **demographic data** for all valid participants
+
+-   `df_qda_wide` includes all valid responses in wide format, to be used for free response data analysis (wide)
+
+-   `df_qda_long` represents response and demographic data for all valid participants (used to generate a spreadsheet for analysis for free response data) *at the trial (i.e. stimulus) level* (i.e. long).
+
+-   `df_questions` include valid responses at the most granular level, where each row refers to a participant+stimulus+question (long format) [318p X 5s X 28q]
+
+-   `df_sd_questions_long` includes only the semantic differential-type questions (long)
+
+-   `df_sd_questions_wide` is a wide version of the `df_sd_questions` dataframe useful for some graphs (318p X 11q = 3498 rows)
+
+-   `df_tools` contains responses to the tool id and tool confidence questions, where tool_id is a multi-select Q
+
+-   `df_actions` contains responses to the action id and action confidence questions, where df_action is a multi-select Q
+
+-   `df_graphs_full` is a stimulus (ie. graph image) level dataframe where each row contains columns for a participant and all the Qs for that graph
+
+-   `df_graphs` is df_graphs_full w/o the free response and multiselect Qs
+
+## Sanity Check
+
+
+```{r SANITY-CHECK}
+
+########## CHECK BLOCK COUNTS 
+#############################################################################
+# title = "Participants by Condition and Data Collection Modality"
+# cols = c("Control Condition","Impasse Condition","Total for Period")
+
+title = "Number of abandoned/screened/rejected attempts "
+cols = c("Block","Study1","Study2","Study3","Study4","sum")
+cont <- table(df_exclude$Assigned.Block, df_exclude$Study)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+title = "Number of abandoned/screened/rejected attempts by type"
+cols = c("Rejection Type", "Sum")
+cont <- table(df_exclude$EndState)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+title = "Number of successful surveys"
+cols = c("Assigned.Block", "Sum")
+cont <- table(df_data$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+title = "Number of successful surveys by distribution and block"
+cols = c("Sampling Platform", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
+cont <- table(df_data$Distribution, df_data$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+title = "Number of successful surveys by sample and block"
+cols = c("Sample", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
+cont <- table(df_data$Sample, df_data$Assigned.Block)
+cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
+
+```
+
+
+## Create MASTER data file
+
+`df_data` represents **response data** for all valid participants (wide format) — answers are not stored as factors; not useful for numeric analysis but just as a record of participant-level responses
+
+```{r CREATE-MASTER}
+
+#WRITE  A CSV FILE WITH RESPONSE DATA FOR VALID PARTICIPANTS (NOT EXCLUDED) in wide format
+write.csv(df_data, file = "data/output/Study_1_2_3/df_data.csv", na="")
+saveRDS(df_data, file = "data/output/Study_1_2_3/df_data.rds")
+
+```
+
+
+## Create DEMOGRAPHICS file 
+`df_participants` represents **demographic data** for all valid participants (WIDE)
+```{r CREATE-DEMOGRAPHICS}
+
+##### CREATE PARTICIPANT LEVEL DEMOGRAPHIC DATAFRAME 
+df_participants <- df_data %>% 
+  select(
+    PID:Assigned.Block, 
+    EndState, Sample, Study, 
+    duration.sec, duration.min, 
+    contains("D_"), 
+    contains("SCREEN_"),
+    PLATFORM
+  )
+
+#WRITE  A CSV FILE WITH DEMOGRAPHIC DATA ALL VALID PARTICIPANTS (NOT EXCLUDED) in wide format
+write.csv(df_participants, file = "data/output/Study_1_2_3/df_participants.csv", na="")
+saveRDS(df_participants, file = "data/output/Study_1_2_3/df_participants.rds")
+
+```
+
+## Create QDA WIDE
+
+Two files are created for the purpose of qualitative data analysis: 
+-   `df_qda_wide`: PARTICIPANT level:  includes all valid responses in wide format, to be used for free response data analysis (wide)
+-   `df_qda_long`: GRAPH level:  represents response and demographic data for all valid participants (used to generate a spreadsheet for analysis for free response data) *at the trial (i.e. stimulus) level* (i.e. long).
+
+
+```{r CREATE-QDA-WIDE}
 
 ## save participant-level data file for qda validation 
 ## this does NOT contain excluded participants 
 df_qda_wide <- df_data
-write.csv(df_data, file = "data/output/df_qda_wide.csv", na="")
+write.csv(df_data, file = "data/output/Study_1_2_3/df_qda_wide.csv", na="")
 
-
-##CHECK number per block per sample 
-print("Number of valid participants per assigned block and sample")
-table(df_data$Sample, df_data$Assigned.Block)
-
-##CHECK number per block per study 
-print("Number of valid participants per assigned block and study")
-table(df_data$Study, df_data$Assigned.Block)
-
+```
+## Create QDA LONG
+```{r CREATE-QDA-LONG}
 
 #2 CREATE TRIAL LEVEL DFS FOR QDA ###############################################
 #### CHART LEVEL DATA FRAME (LONG) FOR QDA (incl demographics) ##################
@@ -673,103 +776,75 @@ df_qda_long <- df_data %>%
     CHART_LATENCY = round(CHART_LATENCY/60,2) #CHANGE TO MINS
   )
 #WRITE A CSV FILE AS THE BASIS FOR THE QUALITATIVE DATA ANALYSIS
-write.csv(df_qda_long, file = "data/output/df_qda_long.csv", na="")
-
-
-#WRITE  A CSV FILE WITH RESPONSE DATA FOR VALID PARTICIPANTS (NOT EXCLUDED) in wide format
-write.csv(df_data, file = "data/output/df_data.csv", na="")
-saveRDS(df_data, file = "data/output/df_data.rds")
-
-
-
-##### CREATE PARTICIPANT LEVEL DEMOGRAPHIC DATAFRAME 
-df_participants <- df_data %>% 
-  select(
-    PID:Assigned.Block, 
-    EndState, Sample, Study, 
-    duration.sec, duration.min, 
-    contains("D_"), 
-    contains("SCREEN_"),
-    PLATFORM
-  )
-
-#WRITE  A CSV FILE WITH DEMOGRAPHIC DATA ALL VALID PARTICIPANTS (NOT EXCLUDED) in wide format
-write.csv(df_participants, file = "data/output/df_participants.csv", na="")
-saveRDS(df_participants, file = "data/output/df_participants.rds")
-
-
-
-########## CHECK BLOCK COUNTS 
-#############################################################################
-# title = "Participants by Condition and Data Collection Modality"
-# cols = c("Control Condition","Impasse Condition","Total for Period")
-
-title = "Number of abandoned/screened/rejected attempts "
-cols = c("Block","Study1","Study2","Study3","Study4","sum")
-cont <- table(df_exclude$Assigned.Block, df_exclude$Study)
-cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
-
-title = "Number of abandoned/screened/rejected attempts by type"
-cols = c("Rejection Type", "Sum")
-cont <- table(df_exclude$EndState)
-cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
-
-title = "Number of successful surveys"
-cols = c("Assigned.Block", "Sum")
-cont <- table(df_data$Assigned.Block)
-cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
-
-title = "Number of successful surveys by distribution and block"
-cols = c("Sampling Platform", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
-cont <- table(df_data$Distribution, df_data$Assigned.Block)
-cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
-
-title = "Number of successful surveys by sample and block"
-cols = c("Sample", "Block-1","Block-2","Block-3","Block-4","Block-5","Block-6", "Sum")
-cont <- table(df_data$Sample, df_data$Assigned.Block)
-cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_classic()
-
-
-
-# END WRANGLE MASTER WIDE PARTICIPANT LEVEL DATA FRAME 
-################################################################################################
-################################################################################################
-
-print("df_data represents full set of RESPONSE DATA for valid  participants [wide]")
-print("df_participants represents full set of DEMOGRAPHIC DATA for valid participants [demographics]")
-
-#REMOVE dataframes not needed for further wrangling
-rm(df_exclude, df_qda_long, df_qda_wide, df_raw)
+write.csv(df_qda_long, file = "data/output/Study_1_2_3/df_qda_long.csv", na="")
 
 ```
 
-## WRANGLE QUESTION and TRIAL level data
+## Create GRAPH/TRIAL level (all questions)
 
-*Here we pivot response data from valid participants to be represented at the QUESTION (i.e. semantic differential) and TRIAL (ie. question+stimulus) levels.*
+`df_graphs_full` contains 1 row / participant-graph (all qs as columns).  The _full indicates the file contains free response questions (useful for hover text on interactive visualizations)
+```{r GRAPH-LEVEL-FULL}
+#### DFS FOR TRIAL LEVEL ANALYSIS   ######################################################
+#### CHART LEVEL DATA FRAME (LONG) #####################################################
+# roll partway back up from questions 
+# 1 row per participant X graph 
+# unnest https://stackoverflow.com/questions/58035452/pivot-wider-outputs-s3-vctrs-list-of-objects
+df_graphs_full <- df_questions %>% 
+  pivot_wider(
+    names_from = QUESTION,
+    values_from = value 
+  ) %>%  
+  tidyr::unnest() %>%  # handle r coerces values to lists
+  mutate(
+    across(contains("MAKER_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
+    across(contains("_CONF") | contains("_LATENCY"), as.numeric),
+    across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
+    across(CHART_LIKE:CHART_TRUST, as.numeric),
+    ENCOUNTER = factor(ENCOUNTER),
+    # loop_number = as.numeric(loop_number),
+    # loop_number = ifelse(is.na(loop_number), 0, loop_number),
+    MAKER_LATENCY = round(MAKER_LATENCY/60,2), #CHANGE TO MINS
+    CHART_LATENCY = round(CHART_LATENCY/60,2), #CHANGE TO MINS
+    MAKER_ID = factor( MAKER_ID,levels = c("business", "political", "education","news","organization","individual"))
+  )
+## WRITE DATAFRAME
+write.csv(df_graphs_full, file = "data/output/Study_1_2_3/df_graphs_full.csv", na="")
+saveRDS(df_graphs_full, file = "data/output/Study_1_2_3/df_graphs_full.rds")
 
-The following dataframes are created:
+```
 
--   `df_questions` include valid responses at the most granular level, where each row refers to a participant+stimulus+question (long format) [318p X 5s X 28q]
+## Create GRAPH/TRIAL level (SD and categorical)
+`df_graphs_full` contains 1 row / participant-graph (all qs as columns), only for the SD and categorical (not multi-select or free response questions).
 
--   `df_sd_questions_long` includes only the semantic differential-type questions (long)
+```{r GRAPH-LEVEL-MAIN}
 
--   `df_sd_questions_wide` is a wide version of the `df_sd_questions` dataframe useful for some graphs (318p X 11q = 3498 rows)
+#### DFS FOR TRIAL LEVEL ANALYSIS w/o free response ######################################################
+#### CHART LEVEL DATA FRAME (LONG) ##########################
+## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES and MULTISELECT
+df_graphs <- df_graphs_full %>% 
+  select( !where(is.character)) %>% 
+  mutate(
+    ##re order factor levels
+   MAKER_ID = factor(MAKER_ID, levels = order_maker),
+   MAKER_AGE = factor(MAKER_AGE, levels = order_age),
+   MAKER_GENDER = factor(MAKER_GENDER, levels = order_gender),
+   ENCOUNTER = factor(ENCOUNTER, levels = order_encounter),
+  ) 
+## WRITE DATAFRAME
+write.csv(df_graphs, file = "data/output/Study_1_2_3/df_graphs.csv", na="")
+saveRDS(df_graphs, file = "data/output/Study_1_2_3/df_graphs.rds")
 
--   `df_tools` contains responses to the tool id and tool confidence questions, where tool_id is a multi-select Q
+```
 
--   `df_actions` contains responses to the action id and action confidence questions, where df_action is a multi-select Q
 
--   `df_graphs_full` is a stimulus (ie. graph image) level dataframe where each row contains columns for a participant and all the Qs for that graph
+## Create QUESTION level (long)
 
--   `df_graphs` is df_graphs_full w/o the free response and multiselect Qs
+`df_questions` is at the graph-question level, but includes _all_ questions, both categorical, free response, and numeric. 
+```{r QUESTION-LONG, warning=FALSE}
 
-```{r WRANGLE-QUESTION-LEVEL, warning=FALSE}
-
-#4 CREATE QUESTION LEVEL DFS ###################################################################
 #### QUESTION LEVEL DATA FRAME (LONG) ##########################
 # unravel ALL the way down to questions 
 # 1 row per participant-graph-question
-# 1 row X 318p X 5g X 28q --> 55,520 rows
 df_questions <- df_data %>% 
   select(
   PID, duration.min,  Assigned.Block,
@@ -829,8 +904,34 @@ df_questions <- df_data %>%
 ) %>% 
 select(-stimulus) %>% filter(QUESTION !="loop_number") %>%  filter(as.character(BLOCK)==as.character(tempblock) | BLOCK=="B0")
 ## WRITE DATAFRAME
-write.csv(df_questions, file = "data/output/df_questions.csv", na="")
-saveRDS(df_questions, file = "data/output/df_questions.rds")
+write.csv(df_questions, file = "data/output/Study_1_2_3/df_questions.csv", na="")
+saveRDS(df_questions, file = "data/output/Study_1_2_3/df_questions.rds")
+```
+
+## Create SD questions (long)
+
+`df_sd_questions_long` includes only the Semantic Differential questions (still in long format); 1 row per participant-graph-question 
+```{r SD-LONG}
+
+### SD QUESTIONS LEVEL DATA FRAME (LONG) #####################
+## 1 row per participant X sd question X block
+## 318p X 11q X 5s = 17,490
+df_sd_questions_long <- df_questions %>% 
+  filter(QUESTION %in% ref_sd_questions) %>% 
+  mutate(
+    QUESTION = droplevels(QUESTION),
+    value = as.numeric(value)
+  )
+## WRITE DATAFRAME
+write.csv(df_sd_questions_long, file = "data/output/Study_1_2_3/df_sd_questions_long.csv", na="")
+saveRDS(df_sd_questions_long, file = "data/output/Study_1_2_3/df_sd_questions_long.rds")
+
+```
+
+## Create SD questions (wide)
+`df_sd_questions_wide` includes only the Semantic Differential questions (in wide format); 1 row per participant-question; but with a column for each stimulus
+
+```{r SD-WIDE}
 
 #### SD QUESTION LEVEL DATA FRAME (wide-stim) ##########################
 # ravel up one level from questions
@@ -849,25 +950,14 @@ df_sd_questions_wide <- df_questions %>%
     QUESTION = droplevels(QUESTION)
   )
 ## WRITE DATAFRAME
-write.csv(df_sd_questions_wide, file = "data/output/df_sd_questions_wide.csv", na="")
-saveRDS(df_sd_questions_wide, file = "data/output/df_sd_questions_wide.rds")
+write.csv(df_sd_questions_wide, file = "data/output/Study_1_2_3/df_sd_questions_wide.csv", na="")
+saveRDS(df_sd_questions_wide, file = "data/output/Study_1_2_3/df_sd_questions_wide.rds")
+```
 
+## Create TOOLS
 
-### SD QUESTIONS LEVEL DATA FRAME (LONG) #####################
-## 1 row per participant X sd question X block
-## 318p X 11q X 5s = 17,490
-df_sd_questions_long <- df_questions %>% 
-  filter(QUESTION %in% ref_sd_questions) %>% 
-  mutate(
-    QUESTION = droplevels(QUESTION),
-    value = as.numeric(value)
-  )
-## WRITE DATAFRAME
-write.csv(df_sd_questions_long, file = "data/output/df_sd_questions_long.csv", na="")
-saveRDS(df_sd_questions_long, file = "data/output/df_sd_questions_long.rds")
-
-#5 SPECIAL DFS FOR MULTISELECT QS  #####################################################
-#### MULTI-SELECT QUESTIONS  ##########################
+`df_tools` contains 1 row per PARTICIPANT-GRAPH-TOOL (tool is a multi-select question)
+```{r TOOLS}
 
 ## DF_TOOLS 
 # 1 ROW per PARTICIPANT X STIMULUS X tool_id selection 
@@ -908,9 +998,16 @@ df_tools <- df_questions %>%
          MAKER_GENDER = factor(MAKER_GENDER, levels = order_gender),
         ) 
 ## WRITE DATAFRAME
-write.csv(df_tools, file = "data/output/df_tools.csv", na="")
-saveRDS(df_tools, file = "data/output/df_tools.rds")
+write.csv(df_tools, file = "data/output/Study_1_2_3/df_tools.csv", na="")
+saveRDS(df_tools, file = "data/output/Study_1_2_3/df_tools.rds")
+```
 
+
+## Create ACTIONS
+
+`df_actions` contains 1 row per PARTICIPANT-GRAPH-ACTION (tool is a multi-select question)
+
+```{r ACTIONS}
 ## DF_ACTIONS 
 # 1 ROW per PARTICIPANT X STIMULUS X chart_action selection 
 # chart_action is a multiselect field 
@@ -996,64 +1093,18 @@ df_actions <- df_questions %>%
          PID = droplevels(PID)) 
   # select(-value,-QUESTION)
 ## WRITE DATAFRAME
-write.csv(df_actions, file = "data/output/df_actions.csv", na="")
-saveRDS(df_actions, file = "data/output/df_actions.rds")
-
-
-#6 DFS FOR TRIAL LEVEL ANALYSIS   ######################################################
-#### CHART LEVEL DATA FRAME (LONG) #####################################################
-# roll partway back up from questions 
-# 1 row per participant X graph 
-# unnest https://stackoverflow.com/questions/58035452/pivot-wider-outputs-s3-vctrs-list-of-objects
-df_graphs_full <- df_questions %>% 
-  pivot_wider(
-    names_from = QUESTION,
-    values_from = value 
-  ) %>%  
-  tidyr::unnest() %>%  # handle r coerces values to lists
-  mutate(
-    across(contains("MAKER_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
-    across(contains("_CONF") | contains("_LATENCY"), as.numeric),
-    across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
-    across(CHART_LIKE:CHART_TRUST, as.numeric),
-    ENCOUNTER = factor(ENCOUNTER),
-    # loop_number = as.numeric(loop_number),
-    # loop_number = ifelse(is.na(loop_number), 0, loop_number),
-    MAKER_LATENCY = round(MAKER_LATENCY/60,2), #CHANGE TO MINS
-    CHART_LATENCY = round(CHART_LATENCY/60,2), #CHANGE TO MINS
-    MAKER_ID = factor( MAKER_ID,levels = c("business", "political", "education","news","organization","individual"))
-  )
-## WRITE DATAFRAME
-write.csv(df_graphs_full, file = "data/output/df_graphs_full.csv", na="")
-saveRDS(df_graphs_full, file = "data/output/df_graphs_full.rds")
-
-
-#7 DFS FOR TRIAL LEVEL ANALYSIS w/o free response ######################################################
-#### CHART LEVEL DATA FRAME (LONG) ##########################
-## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES and MULTISELECT
-df_graphs <- df_graphs_full %>% 
-  select( !where(is.character)) %>% 
-  mutate(
-    ##re order factor levels
-   MAKER_ID = factor(MAKER_ID, levels = order_maker),
-   MAKER_AGE = factor(MAKER_AGE, levels = order_age),
-   MAKER_GENDER = factor(MAKER_GENDER, levels = order_gender),
-   ENCOUNTER = factor(ENCOUNTER, levels = order_encounter),
-  )
-## WRITE DATAFRAME
-write.csv(df_graphs, file = "data/output/df_graphs.csv", na="")
-saveRDS(df_graphs, file = "data/output/df_graphs.rds")
-
-print("df_graphs_full is trial level dataset; df_graphs is trial level quantitative data only")
-
+write.csv(df_actions, file = "data/output/Study_1_2_3/df_actions.csv", na="")
+saveRDS(df_actions, file = "data/output/Study_1_2_3/df_actions.rds")
 ```
 
-## STANDARDIZING SEMANTIC DIFFERENTIALS
+
+
+
+## Z-SCORED
 
 Finally, we create duplicate versions of datasets used to analyze the semantic differential scores, with standardized (i.e. z-scored), and absolute values (i.e. folding SD scale in half, so 0 = center of the slider, and 50 = the left and right extremes)
 
-### Z-SCORED
-
+Note: created as separate files rather than adding cols to 
 ```{r, standardizing-zscores}
 
 ########## Z-SCORE
@@ -1064,24 +1115,24 @@ Finally, we create duplicate versions of datasets used to analyze the semantic d
 ## VARIABLE WISE STANDARDIZATION
 df_graphs_z <- df_graphs %>% 
   mutate(
-    MAKER_DESIGN  = datawizard::standardize(MAKER_DESIGN ),
-    MAKER_DATA = datawizard::standardize(MAKER_DATA),
-    MAKER_POLITIC = datawizard::standardize(MAKER_POLITIC),
-    MAKER_ARGUE = datawizard::standardize(MAKER_ARGUE),
-    MAKER_SELF = datawizard::standardize(MAKER_SELF),
-    MAKER_ALIGN = datawizard::standardize(MAKER_ALIGN),
-    MAKER_TRUST = datawizard::standardize(MAKER_TRUST),
-    CHART_LIKE = datawizard::standardize(CHART_LIKE),
-    CHART_BEAUTY = datawizard::standardize(CHART_BEAUTY),
-    CHART_INTENT = datawizard::standardize(CHART_INTENT),
-    CHART_TRUST = datawizard::standardize(CHART_TRUST),
-    MAKER_CONF = datawizard::standardize(MAKER_CONF),
-    AGE_CONF = datawizard::standardize(AGE_CONF),
-    GENDER_CONF = datawizard::standardize(GENDER_CONF),
-    TOOL_CONF = datawizard::standardize(TOOL_CONF)
+    MAKER_DESIGN_z  = datawizard::standardize(MAKER_DESIGN ),
+    MAKER_DATA_z = datawizard::standardize(MAKER_DATA),
+    MAKER_POLITIC_z = datawizard::standardize(MAKER_POLITIC),
+    MAKER_ARGUE_z = datawizard::standardize(MAKER_ARGUE),
+    MAKER_SELF_z = datawizard::standardize(MAKER_SELF),
+    MAKER_ALIGN_z = datawizard::standardize(MAKER_ALIGN),
+    MAKER_TRUST_z = datawizard::standardize(MAKER_TRUST),
+    CHART_LIKE_z = datawizard::standardize(CHART_LIKE),
+    CHART_BEAUTY_z = datawizard::standardize(CHART_BEAUTY),
+    CHART_INTENT_z = datawizard::standardize(CHART_INTENT),
+    CHART_TRUST_z = datawizard::standardize(CHART_TRUST),
+    MAKER_CONF_z = datawizard::standardize(MAKER_CONF),
+    AGE_CONF_z = datawizard::standardize(AGE_CONF),
+    GENDER_CONF_z = datawizard::standardize(GENDER_CONF),
+    TOOL_CONF_z = datawizard::standardize(TOOL_CONF)
   )
-write.csv(df_graphs_z, file = "data/output/df_graphs_z.csv", na="")
-saveRDS(df_graphs_z, file = "data/output/df_graphs_z.rds")
+write.csv(df_graphs_z, file = "data/output/Study_1_2_3/df_graphs_z.csv", na="")
+saveRDS(df_graphs_z, file = "data/output/Study_1_2_3/df_graphs_z.rds")
 
 ## DF_SD_QUESTIONS_LONG_Z
 ## LONG DATAFRAME FOR RAINCLOUDS
@@ -1111,8 +1162,8 @@ df_sd_questions_long_z <- df_graphs_z %>%
   ) %>% mutate(
     QUESTION = factor(QUESTION, levels=ref_sd_questions)
   )
-write.csv(df_sd_questions_long_z, file = "data/output/df_sd_questions_long_z.csv", na="")
-saveRDS(df_sd_questions_long_z, file = "data/output/df_sd_questions_long_z.rds")    
+write.csv(df_sd_questions_long_z, file = "data/output/Study_1_2_3/df_sd_questions_long_z.csv", na="")
+saveRDS(df_sd_questions_long_z, file = "data/output/Study_1_2_3/df_sd_questions_long_z.rds")    
 
 
 
@@ -1146,8 +1197,8 @@ df_graphs_abs <- df_graphs %>%
     TOOL_CONF =  abs(TOOL_CONF - 50)
     
   )
-write.csv(df_graphs_abs, file = "data/output/df_graphs_abs.csv", na="")
-saveRDS(df_graphs_abs, file = "data/output/df_graphs_abs.rds")
+write.csv(df_graphs_abs, file = "data/output/Study_1_2_3/df_graphs_abs.csv", na="")
+saveRDS(df_graphs_abs, file = "data/output/Study_1_2_3/df_graphs_abs.rds")
 
 ## DF_SD_QUESTIONS_LONG_ABS
 ## LONG DATAFRAME FOR RAINCLOUDS
@@ -1159,8 +1210,8 @@ df_sd_questions_long_abs <- df_graphs_abs %>%
   ) %>% mutate(
     QUESTION = factor(QUESTION, levels=ref_sd_questions)
   )
-write.csv(df_sd_questions_long_abs, file = "data/output/df_sd_questions_long_abs.csv", na="")
-saveRDS(df_sd_questions_long_abs, file = "data/output/df_sd_questions_long_abs.rds")    
+write.csv(df_sd_questions_long_abs, file = "data/output/Study_1_2_3/df_sd_questions_long_abs.csv", na="")
+saveRDS(df_sd_questions_long_abs, file = "data/output/Study_1_2_3/df_sd_questions_long_abs.rds")    
 
 
 
