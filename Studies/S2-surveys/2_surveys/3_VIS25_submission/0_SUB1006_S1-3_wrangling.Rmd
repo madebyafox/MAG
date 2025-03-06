@@ -44,17 +44,41 @@ n_blocks = 6 #number of stimulus blocks in study design
 
 *This notebook contains code to wrangle raw data from multiple qualtrics surveys into a single normalized dataset of (valid) participant responses.*
 
+The following dataframes are created:
+
+-   `df_data` represents **response data** for all valid participants (wide format) — answers are not stored as factors; not useful for numeric analysis but just as a record of participant-level responses
+
+-   `df_participants` represents **demographic data** for all valid participants
+
+-   `df_qda_wide` includes all valid responses in wide format, to be used for free response data analysis (wide)
+
+-   `df_qda_long` represents response and demographic data for all valid participants (used to generate a spreadsheet for analysis for free response data) *at the trial (i.e. stimulus) level* (i.e. long).
+
+-   `df_questions` include valid responses at the most granular level, where each row refers to a participant+stimulus+question (long format) [318p X 5s X 28q]
+
+-   `df_sd_questions_long` includes only the semantic differential-type questions (long)
+
+-   `df_sd_questions_wide` is a wide version of the `df_sd_questions` dataframe useful for some graphs (318p X 11q = 3498 rows)
+
+-   `df_tools` contains responses to the tool id and tool confidence questions, where tool_id is a multi-select Q
+
+-   `df_actions` contains responses to the action id and action confidence questions, where df_action is a multi-select Q
+
+-   `df_graphs_full` is a stimulus (ie. graph image) level dataframe where each row contains columns for a participant and all the Qs for that graph
+
+-   `df_graphs` is df_graphs_full w/o the free response and multiselect Qs
+
 # STANDARDIZE
 
 This notebook takes raw data files from (3) Qualtrics surveys (Study 1, Study 2, Study 3), standardizing their format for further data analysis. Note that all raw data comes from Qualtrics, and each Qualtrics survey includes a different stimulus block (set of 5 stimuli).
 
-1.  **Study 1:** We collected data sampling directly from the Tumblr social media platform produces files with slightly different metadata (several fields required for tracking Prolific are not included). The Qualtrics surveys for Tumblr used randomization logic to assign each Tumblr participant to one of the six stimulus blocks. **(All stimulus blocks, n ~ 12-15 / block)**
+1.  **Study 1:** We collected data sampling directly from the Tumblr social media platform produces files with slightly different metadata (several fields required for tracking Prolific are not included). The Qualtrics surveys for Tumblr used randomization logic to assign each Tumblr participant to one of the six stimulus blocks. **(All stimulus blocks, n \~ 12-15 / block)**
 
 2.  **Study 2:** Initial data collection via PROFLIFIC occurred via Qualtrics surveys named `MAG_S2_PROLIFIC-DATACOLLAR_0` and `MAG_S2_PROLIFIC-DATACOLLAR_0`, each presenting participants with one common graph ("block 0", `STIMULUS = B0-0`) and four subsequent graphs in random order ("block 1"). These data were collected via Prolific, with different demographic restrictions (i.e. 'data collar' and 'blue collar' made use of different values in the Prolific participant background survey on the 'technology use at work' and 'job title' questions.) However, when we duplicated these questions in our own demographic surveys, we found participants' answers often did not match their values on the Prolific background survey, and thus we abandoned this stratified sampling strategy and continued data collection with no demographic restrictions. **(Stimulus block #1 only; n = 40 (20 blue-collar; 20 data-collar) )**
 
 3.  **Study 3:** General (non-stratified) sampling via PROLIFIC collecting data for all 6 stimulus blocks. **(n =40/block )**
 
-4.  *Data for Study 4 (a repeated measures design where participants rate the stimuli with obscured and unobscured versions of each image)* This wrangling is handled in a separate notebook. 
+4.  *Data for Study 4 (a repeated measures design where participants rate the stimuli with obscured and unobscured versions of each image)* This wrangling is handled in a separate notebook.
 
 ## Import Configuration Files
 
@@ -361,7 +385,6 @@ rm(df_raw_datacollar, df_raw_bluecollar, df_raw_b1, df_raw_b2, df_raw_b3, df_raw
 
 Here we drop irrelevant columns (qualtrics junk) and set factors. The resulting `df_data` frame is wide (1 row/participant, but includes redundant columns for the blocks they were not assigned to).
 
-
 ```{r WRANGLE-FACTORS, warning=FALSE}
 
 ####WRANGLE MASTER PARTICIPANT-LEVEL DF  #####################################################
@@ -538,11 +561,9 @@ df_data <- df_data %>%
 rm(df_raw)
 ```
 
-
 # CLEANING
 
 *Here we apply exclusion criteria in order to reduce the raw participant data in `df_data` to a dataframe of valid participant data `df_subjects`. We remove unneeded columns (i.e. qualtrics configuration columns, etc) and transform columns to the the appropriate data types for further analysis.*
-
 
 Participants were *excluded* from the sample for the following reasons:
 
@@ -606,12 +627,9 @@ print("Number of PIDs duplicated in df_data print [should be 0]")
 sum(duplicated(df_data$PID))
 ```
 
-
 # WRANGLE
 
 *Reshape data into files for analysis*
-
-TODO MOVE THIS TO TOP OF FILE 
 
 The following dataframes are created:
 
@@ -638,7 +656,6 @@ The following dataframes are created:
 -   `df_graphs` is df_graphs_full w/o the free response and multiselect Qs
 
 ## Sanity Check
-
 
 ```{r SANITY-CHECK}
 
@@ -674,7 +691,6 @@ cont %>% addmargins() %>% kbl(caption = title, col.names = cols) %>%  kable_clas
 
 ```
 
-
 ## Create MASTER data file
 
 `df_data` represents **response data** for all valid participants (wide format) — answers are not stored as factors; not useful for numeric analysis but just as a record of participant-level responses
@@ -687,9 +703,10 @@ saveRDS(df_data, file = "data/output/Study_1_2_3/df_data.rds")
 
 ```
 
+## Create DEMOGRAPHICS file
 
-## Create DEMOGRAPHICS file 
 `df_participants` represents **demographic data** for all valid participants (WIDE)
+
 ```{r CREATE-DEMOGRAPHICS}
 
 ##### CREATE PARTICIPANT LEVEL DEMOGRAPHIC DATAFRAME 
@@ -711,10 +728,7 @@ saveRDS(df_participants, file = "data/output/Study_1_2_3/df_participants.rds")
 
 ## Create QDA WIDE
 
-Two files are created for the purpose of qualitative data analysis: 
--   `df_qda_wide`: PARTICIPANT level:  includes all valid responses in wide format, to be used for free response data analysis (wide)
--   `df_qda_long`: GRAPH level:  represents response and demographic data for all valid participants (used to generate a spreadsheet for analysis for free response data) *at the trial (i.e. stimulus) level* (i.e. long).
-
+Two files are created for the purpose of qualitative data analysis: - `df_qda_wide`: PARTICIPANT level: includes all valid responses in wide format, to be used for free response data analysis (wide) - `df_qda_long`: GRAPH level: represents response and demographic data for all valid participants (used to generate a spreadsheet for analysis for free response data) *at the trial (i.e. stimulus) level* (i.e. long).
 
 ```{r CREATE-QDA-WIDE}
 
@@ -724,7 +738,9 @@ df_qda_wide <- df_data
 write.csv(df_data, file = "data/output/Study_1_2_3/df_qda_wide.csv", na="")
 
 ```
+
 ## Create QDA LONG
+
 ```{r CREATE-QDA-LONG}
 
 #2 CREATE TRIAL LEVEL DFS FOR QDA ###############################################
@@ -780,66 +796,10 @@ write.csv(df_qda_long, file = "data/output/Study_1_2_3/df_qda_long.csv", na="")
 
 ```
 
-## Create GRAPH/TRIAL level (all questions)
-
-`df_graphs_full` contains 1 row / participant-graph (all qs as columns).  The _full indicates the file contains free response questions (useful for hover text on interactive visualizations)
-```{r GRAPH-LEVEL-FULL}
-#### DFS FOR TRIAL LEVEL ANALYSIS   ######################################################
-#### CHART LEVEL DATA FRAME (LONG) #####################################################
-# roll partway back up from questions 
-# 1 row per participant X graph 
-# unnest https://stackoverflow.com/questions/58035452/pivot-wider-outputs-s3-vctrs-list-of-objects
-df_graphs_full <- df_questions %>% 
-  pivot_wider(
-    names_from = QUESTION,
-    values_from = value 
-  ) %>%  
-  tidyr::unnest() %>%  # handle r coerces values to lists
-  mutate(
-    across(contains("MAKER_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
-    across(contains("_CONF") | contains("_LATENCY"), as.numeric),
-    across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
-    across(CHART_LIKE:CHART_TRUST, as.numeric),
-    ENCOUNTER = factor(ENCOUNTER),
-    # loop_number = as.numeric(loop_number),
-    # loop_number = ifelse(is.na(loop_number), 0, loop_number),
-    MAKER_LATENCY = round(MAKER_LATENCY/60,2), #CHANGE TO MINS
-    CHART_LATENCY = round(CHART_LATENCY/60,2), #CHANGE TO MINS
-    MAKER_ID = factor( MAKER_ID,levels = c("business", "political", "education","news","organization","individual"))
-  )
-## WRITE DATAFRAME
-write.csv(df_graphs_full, file = "data/output/Study_1_2_3/df_graphs_full.csv", na="")
-saveRDS(df_graphs_full, file = "data/output/Study_1_2_3/df_graphs_full.rds")
-
-```
-
-## Create GRAPH/TRIAL level (SD and categorical)
-`df_graphs_full` contains 1 row / participant-graph (all qs as columns), only for the SD and categorical (not multi-select or free response questions).
-
-```{r GRAPH-LEVEL-MAIN}
-
-#### DFS FOR TRIAL LEVEL ANALYSIS w/o free response ######################################################
-#### CHART LEVEL DATA FRAME (LONG) ##########################
-## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES and MULTISELECT
-df_graphs <- df_graphs_full %>% 
-  select( !where(is.character)) %>% 
-  mutate(
-    ##re order factor levels
-   MAKER_ID = factor(MAKER_ID, levels = order_maker),
-   MAKER_AGE = factor(MAKER_AGE, levels = order_age),
-   MAKER_GENDER = factor(MAKER_GENDER, levels = order_gender),
-   ENCOUNTER = factor(ENCOUNTER, levels = order_encounter),
-  ) 
-## WRITE DATAFRAME
-write.csv(df_graphs, file = "data/output/Study_1_2_3/df_graphs.csv", na="")
-saveRDS(df_graphs, file = "data/output/Study_1_2_3/df_graphs.rds")
-
-```
-
-
 ## Create QUESTION level (long)
 
-`df_questions` is at the graph-question level, but includes _all_ questions, both categorical, free response, and numeric. 
+`df_questions` is at the graph-question level, but includes *all* questions, both categorical, free response, and numeric.
+
 ```{r QUESTION-LONG, warning=FALSE}
 
 #### QUESTION LEVEL DATA FRAME (LONG) ##########################
@@ -910,7 +870,8 @@ saveRDS(df_questions, file = "data/output/Study_1_2_3/df_questions.rds")
 
 ## Create SD questions (long)
 
-`df_sd_questions_long` includes only the Semantic Differential questions (still in long format); 1 row per participant-graph-question 
+`df_sd_questions_long` includes only the Semantic Differential questions (still in long format); 1 row per participant-graph-question
+
 ```{r SD-LONG}
 
 ### SD QUESTIONS LEVEL DATA FRAME (LONG) #####################
@@ -929,6 +890,7 @@ saveRDS(df_sd_questions_long, file = "data/output/Study_1_2_3/df_sd_questions_lo
 ```
 
 ## Create SD questions (wide)
+
 `df_sd_questions_wide` includes only the Semantic Differential questions (in wide format); 1 row per participant-question; but with a column for each stimulus
 
 ```{r SD-WIDE}
@@ -957,6 +919,7 @@ saveRDS(df_sd_questions_wide, file = "data/output/Study_1_2_3/df_sd_questions_wi
 ## Create TOOLS
 
 `df_tools` contains 1 row per PARTICIPANT-GRAPH-TOOL (tool is a multi-select question)
+
 ```{r TOOLS}
 
 ## DF_TOOLS 
@@ -1001,7 +964,6 @@ df_tools <- df_questions %>%
 write.csv(df_tools, file = "data/output/Study_1_2_3/df_tools.csv", na="")
 saveRDS(df_tools, file = "data/output/Study_1_2_3/df_tools.rds")
 ```
-
 
 ## Create ACTIONS
 
@@ -1097,14 +1059,68 @@ write.csv(df_actions, file = "data/output/Study_1_2_3/df_actions.csv", na="")
 saveRDS(df_actions, file = "data/output/Study_1_2_3/df_actions.rds")
 ```
 
+## Create GRAPH/TRIAL level (all questions)
 
+`df_graphs_full` contains 1 row / participant-graph (all qs as columns). The \_full indicates the file contains free response questions (useful for hover text on interactive visualizations)
 
+```{r GRAPH-LEVEL-FULL}
+#### DFS FOR TRIAL LEVEL ANALYSIS   ######################################################
+#### CHART LEVEL DATA FRAME (LONG) #####################################################
+# roll partway back up from questions 
+# 1 row per participant X graph 
+# unnest https://stackoverflow.com/questions/58035452/pivot-wider-outputs-s3-vctrs-list-of-objects
+df_graphs_full <- df_questions %>% 
+  pivot_wider(
+    names_from = QUESTION,
+    values_from = value 
+  ) %>%  
+  tidyr::unnest() %>%  # handle r coerces values to lists
+  mutate(
+    across(contains("MAKER_ID") | contains("MAKER_GENDER") | contains("MAKER_AGE"), factor),
+    across(contains("_CONF") | contains("_LATENCY"), as.numeric),
+    across(MAKER_DESIGN:MAKER_TRUST, as.numeric),
+    across(CHART_LIKE:CHART_TRUST, as.numeric),
+    ENCOUNTER = factor(ENCOUNTER),
+    # loop_number = as.numeric(loop_number),
+    # loop_number = ifelse(is.na(loop_number), 0, loop_number),
+    MAKER_LATENCY = round(MAKER_LATENCY/60,2), #CHANGE TO MINS
+    CHART_LATENCY = round(CHART_LATENCY/60,2), #CHANGE TO MINS
+    MAKER_ID = factor( MAKER_ID,levels = c("business", "political", "education","news","organization","individual"))
+  )
+## WRITE DATAFRAME
+write.csv(df_graphs_full, file = "data/output/Study_1_2_3/df_graphs_full.csv", na="")
+saveRDS(df_graphs_full, file = "data/output/Study_1_2_3/df_graphs_full.rds")
 
-## Z-SCORED
+```
 
-Finally, we create duplicate versions of datasets used to analyze the semantic differential scores, with standardized (i.e. z-scored), and absolute values (i.e. folding SD scale in half, so 0 = center of the slider, and 50 = the left and right extremes)
+## Create GRAPH/TRIAL level (SD and categorical)
 
-Note: created as separate files rather than adding cols to 
+`df_graphs_full` contains 1 row / participant-graph (all qs as columns), only for the SD and categorical (not multi-select or free response questions).
+
+```{r GRAPH-LEVEL-MAIN}
+
+#### DFS FOR TRIAL LEVEL ANALYSIS w/o free response ######################################################
+#### CHART LEVEL DATA FRAME (LONG) ##########################
+## SUBSET OF COLUMNS EXCLUDING THE FREE RESPONSES and MULTISELECT
+df_graphs <- df_graphs_full %>% 
+  select( !where(is.character)) %>% 
+  mutate(
+    ##re order factor levels
+   MAKER_ID = factor(MAKER_ID, levels = order_maker),
+   MAKER_AGE = factor(MAKER_AGE, levels = order_age),
+   MAKER_GENDER = factor(MAKER_GENDER, levels = order_gender),
+   ENCOUNTER = factor(ENCOUNTER, levels = order_encounter),
+  ) 
+## WRITE DATAFRAME
+write.csv(df_graphs, file = "data/output/Study_1_2_3/df_graphs.csv", na="")
+saveRDS(df_graphs, file = "data/output/Study_1_2_3/df_graphs.rds")
+
+```
+
+## Z-SCORED SD
+
+Create duplicate versions of datasets used to analyze the semantic differential scores, with standardized (i.e. z-scored). Created as separate files rather than adding cols to extant dfs b/c it makes the looping graphing code more readable
+
 ```{r, standardizing-zscores}
 
 ########## Z-SCORE
@@ -1169,7 +1185,9 @@ saveRDS(df_sd_questions_long_z, file = "data/output/Study_1_2_3/df_sd_questions_
 
 ```
 
-### ABSOLUTE_VALUE
+## ABSOLUTE_VALUE SD
+
+Create duplicate versions of datasets used to analyze the semantic differential scores with absolute values (i.e. folding SD scale in half, so 0 = center of the slider, and 50 = the left and right extremes) Created as separate files rather than adding cols to extant dfs b/c it makes the looping graphing code more readable
 
 ```{r, standardizing-absvalue}
 
