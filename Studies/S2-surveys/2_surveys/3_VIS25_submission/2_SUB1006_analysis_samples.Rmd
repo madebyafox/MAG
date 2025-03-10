@@ -142,21 +142,33 @@ TODO:: return to these and remove unneeded files
 ```{r import-data}
 
 # 1 row per participant — wide
-df_data <- readRDS("data/output/df_data.rds")
+df_data <- readRDS("data/output/Study_1_2_3/df_data.rds")
+
 
 # 1 row per participant — demographic
-df_participants <- readRDS("data/output/df_participants.rds")
+df_participants <- readRDS("data/output/Study_1_2_3/df_participants.rds")
+df_participants_S4 <- readRDS("data/output/Study_4/df_participants_S4.rds")
 
 # sd questions LONG
-df_sd_questions_long <- readRDS("data/output/df_sd_questions_long.rds")
+df_sd_questions_long <- readRDS("data/output/Study_1_2_3/df_sd_questions_long.rds")
 
 # all questions LONG
-df_graphs <- readRDS("data/output/df_graphs.rds")
+df_graphs <- readRDS("data/output/Study_1_2_3/df_graphs.rds")
+
+
+
 
 
 ### CREATE BLOCK 1 DATAFRAMES (bc data/blue collar was only run on Block 1)
 df_b1_data <- df_data %>% filter(Assigned.Block==1) %>% droplevels()
+
+
+## FILTER FOR BLOCK 1 PARTICIPANTS AND JOIN S1_3 & S4
 df_b1_participants <- df_participants %>% filter(Assigned.Block==1) %>% droplevels()
+df_b1_participants_S4 <- df_participants_S4 %>% filter(Assigned.Block==1) %>% droplevels()
+df_b1_participants <- rbind(df_b1_participants, df_b1_participants_S4)
+
+
 df_b1_sds_long <- df_sd_questions_long%>% filter(Assigned.Block==1) %>% droplevels()
 df_b1_graphs <- df_graphs %>%  filter(Assigned.Block==1) %>% droplevels()
 
@@ -206,15 +218,134 @@ df_b1_graphs <- df_graphs %>%  filter(Assigned.Block==1) %>% droplevels()
 
 # SAMPLE
 
+## TODO Describe Sample 
 ```{r describe-sample}
-print("df_participants")
-table(df_participants$Assigned.Block, df_participants$Sample)
+
+
 print("df_b1_participants")
-table(df_b1_participants$Assigned.Block, df_b1_participants$Sample)
+table(df_b1_participants$Assigned.Block, df_b1_participants$Sample, df_b1_participants$Study)
+
 
 ```
 
-# MOCKUP (FIG 1) MAIN DESCRIPTIVES FIGURE (QUESTIONS + BLOCK 1)
+## TODO Sample Demographics
+
+```{r sample-size}
+
+df <- df_participants
+
+## FOR DESCRIPTIVES PARAGRAPH
+# #PROLIFIC
+df.p <- df %>% filter(Distribution == "PROLIFIC")
+desc.gender.p <- table(df.p$D_gender) %>% prop.table()
+names(desc.gender.p) <- levels(df.p$D_gender)
+p_participants <- nrow(df.p)
+
+# #TUMBLR
+df.t <- df %>% filter(Distribution == "TUMBLR")
+desc.gender.t <- table(df.t$D_gender) %>% prop.table()
+names(desc.gender.t) <- levels(df.t$D_gender)
+t_participants <- nrow(df.t)
+
+
+```
+
+Combined, a total of `r p_participants + t_participants` participants
+were recruited from US-located English speaking users of (S1) TUMBLR (n =
+`r t_participants`) and (S2) PROLIFIC (n = `r p_participants`).
+
+`r t_participants` individuals from Tumblr participated in Study 1, (
+`r round(desc.gender.t[["Female"]],2)*100`% Female,
+`r round(desc.gender.t[["Male"]],2)*100`% Male,
+`r round(desc.gender.t[["Non-binary / third gender"]],2)*100`%
+Non-binary,
+`r (round((desc.gender.t[["Prefer not to say"]] + desc.gender.t[["Prefer to self-describe"]]),2)) * 100`%
+Other). Note that a higher proportion of participants recruited from
+TUMBLR report identities other than cis-gender Female and cis-gender
+Male.
+
+`r p_participants` individuals from PROLIFIC participated in Study 2, (
+`r round(desc.gender.p[["Female"]],2)*100`% Female,
+`r round(desc.gender.p[["Male"]],2)*100`% Male,
+`r round(desc.gender.p[["Non-binary / third gender"]],2)*100`%
+Non-binary,
+`r (round((desc.gender.p[["Prefer not to say"]] + desc.gender.p[["Prefer to self-describe"]]),2)) * 100`%
+Other).
+
+
+
+## TODO Study Response Time
+
+```{r demo-response-time}
+
+df <- df_participants
+
+## for descriptives paragraph
+p.desc.duration <- psych::describe(df %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
+
+t.desc.duration <- psych::describe(df %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
+
+a.desc.duration <- psych::describe(df %>% pull(duration.min))
+
+```
+
+STUDY 1: TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times
+ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes,
+with a mean response time of `r round(t.desc.duration$mean,2)` minutes,
+SD = `r (round(t.desc.duration$sd,2))`.
+
+STUDY 2 : PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times
+ranged from `r p.desc.duration$min` to `r p.desc.duration$max` minutes,
+with a mean response time of `r round(p.desc.duration$mean,2)` minutes,
+SD = `r (round(p.desc.duration$sd,2))`.
+
+COMBINED: Across the entire sample, (n = `r a.desc.duration$n` ) participant response times
+ranged from `r a.desc.duration$min` to `r a.desc.duration$max` minutes,
+with a mean response time of `r round(a.desc.duration$mean,2)` minutes,
+SD = `r (round(a.desc.duration$sd,2))`.
+
+```{r demo-cleanup}
+rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.t, p_participants, t_participants)
+```
+
+
+
+
+## SAMPLE Politics
+
+```{r sample-politics}
+
+#setup df
+df <- df_b1_participants %>% select(PID, Sample, Study, D_politicalParty, D_politicsSocial, D_politicsFiscal)
+
+## SCATTERPLOT #################
+## Social X Fiscal Politics, colored by Sample
+(p <- df %>% ggplot(aes(x = D_politicsSocial, y = D_politicsFiscal, color = Sample)) +
+  geom_jitter(alpha = 0.5) + 
+  scale_color_manual(values = my_palettes(name="samples", direction = "1")) + 
+  facet_wrap(~Study) + 
+  labs (title = "Political Leaning by Participant Study", x = "Social Values", y = "Fiscal Values") + theme_clean() + 
+guides(
+  x.sec = guide_axis_manual(
+    position = "top",
+    breaks = unit(c(0.2, 0.8), "npc"), 
+    labels = expression("left-leaning", "right-leaning")),
+  y.sec = guide_axis_manual(
+    position = "right",angle=90,
+    breaks = unit(c(0.2, 0.8), "npc"), 
+    labels = expression("left-leaning", "right-leaning"))
+  ) + theme_clean() + ggeasy::easy_remove_legend()
+)
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = p, path="figs/level_block1", filename =paste0("B1_participant_politics.png"), units = c("in"), width = 10, height = 10,  bg='#ffffff'  )}
+
+
+```
+
+
+
+# MOCKUP (FIG 1) MAIN DESCRIPTIVES FIGURE (QUESTIONS + BLOCK 1 AGGREGATED)
 ## BLOCK 1 BY SAMPLE
 
 ### SD Questions
@@ -527,7 +658,7 @@ if(GRAPH_SAVE == TRUE) {
 
 
 
-## BLOCK 1 STIMULUS BY SAMPLE
+## BLOCK 1 STIMULUS BY SAMPLE (horizontal facet)
 ##### faceted density ridges
 ```{r plot_ridglines_sds_facet_b1}
   
@@ -662,6 +793,13 @@ if(GRAPH_SAVE == TRUE) {
 
 
 
+
+## TODO BLOCK 1 STIMULUS BY SAMPLE (vertical facet) <-- arvind's suggestion
+
+
+
+
+
 # PICKUP HERE TODO BY SAMPLE ANALYSIS
 
 As we argue in our manuscript, we understand that an individual's
@@ -676,88 +814,6 @@ as a function of the individual and visualization.
 about some subset of the stimuli, (common stimulus B0-0 and 4 additional
 images defined as a block), yielding (o = `r nrow(df_graphs)`)
 stimulus-level observations.
-
-## TODO SAMPLE
-
-### Sample Demographics
-
-```{r sample-size}
-
-df <- df_participants
-
-## FOR DESCRIPTIVES PARAGRAPH
-# #PROLIFIC
-df.p <- df %>% filter(Distribution == "PROLIFIC")
-desc.gender.p <- table(df.p$D_gender) %>% prop.table()
-names(desc.gender.p) <- levels(df.p$D_gender)
-p_participants <- nrow(df.p)
-
-# #TUMBLR
-df.t <- df %>% filter(Distribution == "TUMBLR")
-desc.gender.t <- table(df.t$D_gender) %>% prop.table()
-names(desc.gender.t) <- levels(df.t$D_gender)
-t_participants <- nrow(df.t)
-
-
-```
-
-Combined, a total of `r p_participants + t_participants` participants
-were recruited from US-located English speaking users of (S1) TUMBLR (n =
-`r t_participants`) and (S2) PROLIFIC (n = `r p_participants`).
-
-`r t_participants` individuals from Tumblr participated in Study 1, (
-`r round(desc.gender.t[["Female"]],2)*100`% Female,
-`r round(desc.gender.t[["Male"]],2)*100`% Male,
-`r round(desc.gender.t[["Non-binary / third gender"]],2)*100`%
-Non-binary,
-`r (round((desc.gender.t[["Prefer not to say"]] + desc.gender.t[["Prefer to self-describe"]]),2)) * 100`%
-Other). Note that a higher proportion of participants recruited from
-TUMBLR report identities other than cis-gender Female and cis-gender
-Male.
-
-`r p_participants` individuals from PROLIFIC participated in Study 2, (
-`r round(desc.gender.p[["Female"]],2)*100`% Female,
-`r round(desc.gender.p[["Male"]],2)*100`% Male,
-`r round(desc.gender.p[["Non-binary / third gender"]],2)*100`%
-Non-binary,
-`r (round((desc.gender.p[["Prefer not to say"]] + desc.gender.p[["Prefer to self-describe"]]),2)) * 100`%
-Other).
-
-
-
-### Study Response Time
-
-```{r demo-response-time}
-
-df <- df_participants
-
-## for descriptives paragraph
-p.desc.duration <- psych::describe(df %>% filter(Distribution=="PROLIFIC") %>% pull(duration.min))
-
-t.desc.duration <- psych::describe(df %>% filter(Distribution=="TUMBLR") %>% pull(duration.min))
-
-a.desc.duration <- psych::describe(df %>% pull(duration.min))
-
-```
-
-STUDY 1: TUMBLR SAMPLE (n = `r t.desc.duration$n` ) participant response times
-ranged from `r t.desc.duration$min` to `r t.desc.duration$max` minutes,
-with a mean response time of `r round(t.desc.duration$mean,2)` minutes,
-SD = `r (round(t.desc.duration$sd,2))`.
-
-STUDY 2 : PROLIFIC SAMPLE (n = `r p.desc.duration$n` ) participant response times
-ranged from `r p.desc.duration$min` to `r p.desc.duration$max` minutes,
-with a mean response time of `r round(p.desc.duration$mean,2)` minutes,
-SD = `r (round(p.desc.duration$sd,2))`.
-
-COMBINED: Across the entire sample, (n = `r a.desc.duration$n` ) participant response times
-ranged from `r a.desc.duration$min` to `r a.desc.duration$max` minutes,
-with a mean response time of `r round(a.desc.duration$mean,2)` minutes,
-SD = `r (round(a.desc.duration$sd,2))`.
-
-```{r demo-cleanup}
-rm(df, df.p, df.t, p.desc.duration, t.desc.duration, desc.gender.p, desc.gender.t, p_participants, t_participants)
-```
 
 
 
