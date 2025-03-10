@@ -155,6 +155,15 @@ write.csv(ref_labels, file = "data/input/REFERENCE/ref_labels.csv", na="")
 saveRDS(ref_labels, file = "data/input/REFERENCE/ref_labels.rds")
 
 
+
+############## LABELS FOR Z-scored VALUE OF SD QUESTIONS
+ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
+                      "MAKER_POLITIC_z", "MAKER_ARGUE_z","MAKER_SELF_z","MAKER_ALIGN_z","MAKER_TRUST_z",
+                      "CHART_TRUST_z", "CHART_INTENT_z", "CHART_LIKE_z", "CHART_BEAUTY_z")
+
+
+
+
 ############## LABELS FOR ABS VALUE OF SD QUESTIONS
 ref_sd_questions_abs <- c("MAKER_DESIGN","MAKER_DATA",
                       "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
@@ -862,10 +871,17 @@ df_questions <- df_data %>%
                   labels= c("F","D","C","B","A")),
     tempblock = paste("B",as.character(Assigned.Block), sep="")
 ) %>% 
-select(-stimulus) %>% filter(QUESTION !="loop_number") %>%  filter(as.character(BLOCK)==as.character(tempblock) | BLOCK=="B0")
+  select(-stimulus) %>% #drop unformatted stimulus column
+  filter(QUESTION !="loop_number") %>%  #drop loop number rows, we don't use this question
+  ## !! FILTER OUT BLANK ROWS (i.e otherwise there is a row for each stimulus in the blocks the person was not assigned to)
+  filter(as.character(BLOCK)==as.character(tempblock) | BLOCK=="B0") %>% 
+  select(-tempblock) #drop tempblock column
+
+
+
 ## WRITE DATAFRAME
-write.csv(df_questions, file = "data/output/Study_1_2_3/df_questions.csv", na="")
-saveRDS(df_questions, file = "data/output/Study_1_2_3/df_questions.rds")
+write.csv(df_questions, file = "data/output/Study_1_2_3/df_questions_long.csv", na="")
+saveRDS(df_questions, file = "data/output/Study_1_2_3/df_questions_long.rds")
 ```
 
 ## Create SD questions (long)
@@ -1155,28 +1171,26 @@ saveRDS(df_graphs_z, file = "data/output/Study_1_2_3/df_graphs_z.rds")
 df_sd_questions_long_z <- df_graphs_z %>% 
   ##first transform dw-transformer to numeric
   mutate(
-    MAKER_DESIGN = as.numeric(MAKER_DESIGN),
-    MAKER_DATA = as.numeric(MAKER_DATA),
-    MAKER_POLITIC = as.numeric(MAKER_POLITIC),
-    MAKER_ARGUE = as.numeric(MAKER_ARGUE),
-    MAKER_SELF = as.numeric(MAKER_SELF),
-    MAKER_ALIGN = as.numeric(MAKER_ALIGN),
-    MAKER_TRUST = as.numeric(MAKER_TRUST),
-    CHART_LIKE = as.numeric(CHART_LIKE),
-    CHART_BEAUTY = as.numeric(CHART_BEAUTY),
-    CHART_INTENT = as.numeric(CHART_INTENT),
-    CHART_TRUST = as.numeric(CHART_TRUST),
-    MAKER_CONF = as.numeric(MAKER_CONF),
-    AGE_CONF = as.numeric(AGE_CONF),
-    GENDER_CONF = as.numeric(GENDER_CONF),
-    TOOL_CONF = as.numeric(TOOL_CONF)
-  ) %>% 
+    MAKER_DESIGN_z = as.numeric(MAKER_DESIGN_z),
+    MAKER_DATA_z = as.numeric(MAKER_DATA_z),
+    MAKER_POLITIC_z = as.numeric(MAKER_POLITIC_z),
+    MAKER_ARGUE_z = as.numeric(MAKER_ARGUE_z),
+    MAKER_SELF_z = as.numeric(MAKER_SELF_z),
+    MAKER_ALIGN_z = as.numeric(MAKER_ALIGN_z),
+    MAKER_TRUST_z = as.numeric(MAKER_TRUST_z),
+    CHART_LIKE_z = as.numeric(CHART_LIKE_z),
+    CHART_BEAUTY_z = as.numeric(CHART_BEAUTY_z),
+    CHART_INTENT_z = as.numeric(CHART_INTENT_z),
+    CHART_TRUST_z = as.numeric(CHART_TRUST_z)) %>% 
+  #drop non z-scored columns AND confidence cols
+  select(- (ENCOUNTER:CHART_LATENCY), 
+         - contains("_CONF"))%>% 
   ## pivot longer the SD questions
   pivot_longer(
-    cols = ref_sd_questions,
+    cols = ref_sd_questions_z,
     names_to = "QUESTION"
   ) %>% mutate(
-    QUESTION = factor(QUESTION, levels=ref_sd_questions)
+    QUESTION = factor(QUESTION, levels=ref_sd_questions_z)
   )
 write.csv(df_sd_questions_long_z, file = "data/output/Study_1_2_3/df_sd_questions_long_z.csv", na="")
 saveRDS(df_sd_questions_long_z, file = "data/output/Study_1_2_3/df_sd_questions_long_z.rds")    
