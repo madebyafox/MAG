@@ -121,6 +121,7 @@ ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
 ref_cat_questions <- c("ENCOUNTER","ID","AGE","GENDER")
 ref_conf_questions <- c("ID_CONF","AGE_CONF","GENDER_CONF")
 ref_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
+ref_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
 ref_sd_questions_wide <- c("PRE_DESIGN",
                            "PRE_DATA",
                            "PRE_POLITICS", 
@@ -136,7 +137,21 @@ ref_sd_questions_wide <- c("PRE_DESIGN",
                            "POST_BEAUTY",
                            "POST_INTENT")
 
-
+ref_sd_questions_wide_z <- c(
+                           "PRE_DESIGN_z",
+                           "PRE_DATA_z",
+                           "PRE_POLITICS_z", 
+                           "PRE_TRUST_z",
+                           "PRE_ALIGN_z",
+                           "PRE_BEAUTY_z",
+                           "PRE_INTENT_z",
+                           "POST_DESIGN_z",
+                           "POST_DATA_z",
+                           "POST_POLITICS_z",
+                           "POST_TRUST_z",
+                           "POST_ALIGN_z",
+                           "POST_BEAUTY_z",
+                           "POST_INTENT_z")
 
 ############## GRAPH LABELS
 left <- c("professional","professional",
@@ -949,28 +964,28 @@ Create duplicate versions of datasets used to analyze the semantic differential 
 ## VARIABLE WISE STANDARDIZATION
 df_graphs_z <- df_graphs %>% 
   mutate(
-    PRE_DESIGN  = datawizard::standardize(PRE_DESIGN),
-    PRE_DATA = datawizard::standardize(PRE_DATA),
-    PRE_POLITICS = datawizard::standardize(PRE_POLITICS),
-    PRE_TRUST = datawizard::standardize(PRE_TRUST),
-    PRE_ALIGN = datawizard::standardize(PRE_ALIGN),
-    PRE_BEAUTY = datawizard::standardize(PRE_BEAUTY),
-    PRE_INTENT = datawizard::standardize(PRE_INTENT),
-    PRE_LATENCY = datawizard::standardize(PRE_LATENCY),
-    PRE_ID_CONF = datawizard::standardize(PRE_ID_CONF),
-    PRE_AGE_CONF = datawizard::standardize(PRE_AGE_CONF),
-    PRE_GENDER_CONF = datawizard::standardize(PRE_GENDER_CONF),
-    POST_DESIGN  = datawizard::standardize(POST_DESIGN),
-    POST_DATA = datawizard::standardize(POST_DATA),
-    POST_POLITICS = datawizard::standardize(POST_POLITICS),
-    POST_TRUST = datawizard::standardize(POST_TRUST),
-    POST_ALIGN = datawizard::standardize(POST_ALIGN),
-    POST_BEAUTY = datawizard::standardize(POST_BEAUTY),
-    POST_INTENT = datawizard::standardize(POST_INTENT),
-    POST_LATENCY = datawizard::standardize(POST_LATENCY),
-    POST_ID_CONF = datawizard::standardize(POST_ID_CONF),
-    POST_AGE_CONF = datawizard::standardize(POST_AGE_CONF),
-    POST_GENDER_CONF = datawizard::standardize(POST_GENDER_CONF)
+    PRE_DESIGN_z  = datawizard::standardize(PRE_DESIGN),
+    PRE_DATA_z = datawizard::standardize(PRE_DATA),
+    PRE_POLITICS_z = datawizard::standardize(PRE_POLITICS),
+    PRE_TRUST_z = datawizard::standardize(PRE_TRUST),
+    PRE_ALIGN_z = datawizard::standardize(PRE_ALIGN),
+    PRE_BEAUTY_z = datawizard::standardize(PRE_BEAUTY),
+    PRE_INTENT_z = datawizard::standardize(PRE_INTENT),
+    PRE_LATENCY_z = datawizard::standardize(PRE_LATENCY),
+    PRE_ID_CONF_z = datawizard::standardize(PRE_ID_CONF),
+    PRE_AGE_CONF_z = datawizard::standardize(PRE_AGE_CONF),
+    PRE_GENDER_CONF_z = datawizard::standardize(PRE_GENDER_CONF),
+    POST_DESIGN_z  = datawizard::standardize(POST_DESIGN),
+    POST_DATA_z = datawizard::standardize(POST_DATA),
+    POST_POLITICS_z = datawizard::standardize(POST_POLITICS),
+    POST_TRUST_z = datawizard::standardize(POST_TRUST),
+    POST_ALIGN_z = datawizard::standardize(POST_ALIGN),
+    POST_BEAUTY_z = datawizard::standardize(POST_BEAUTY),
+    POST_INTENT_z = datawizard::standardize(POST_INTENT),
+    POST_LATENCY_z = datawizard::standardize(POST_LATENCY),
+    POST_ID_CONF_z = datawizard::standardize(POST_ID_CONF),
+    POST_AGE_CONF_z = datawizard::standardize(POST_AGE_CONF),
+    POST_GENDER_CONF_z = datawizard::standardize(POST_GENDER_CONF)
   )
 write.csv(df_graphs_z, file = "data/output/Study_4/df_graphs_z_S4.csv", na="")
 saveRDS(df_graphs_z, file = "data/output/Study_4/df_graphs_z_S4.rds")
@@ -981,34 +996,27 @@ saveRDS(df_graphs_z, file = "data/output/Study_4/df_graphs_z_S4.rds")
 df_sd_questions_long_z <- df_graphs_z %>% 
   #get rid of datawizard transform but save raw z-score values
   mutate(
-    PRE_DESIGN = as.numeric(PRE_DESIGN),
-    PRE_DATA = as.numeric(PRE_DATA),
-    PRE_POLITICS = as.numeric(PRE_POLITICS),
-    PRE_TRUST = as.numeric(PRE_TRUST),
-    PRE_ALIGN = as.numeric(PRE_ALIGN),
-    PRE_BEAUTY = as.numeric(PRE_BEAUTY),
-    PRE_INTENT = as.numeric(PRE_INTENT),
-    PRE_LATENCY = as.numeric(PRE_LATENCY),
-    PRE_ID_CONF = as.numeric(PRE_ID_CONF),
-    PRE_AGE_CONF = as.numeric(PRE_AGE_CONF),
-    PRE_GENDER_CONF = as.numeric(PRE_GENDER_CONF),
-    POST_DESIGN = as.numeric(POST_DESIGN),
-    POST_DATA = as.numeric(POST_DATA),
-    POST_POLITICS = as.numeric(POST_POLITICS),
-    POST_TRUST = as.numeric(POST_TRUST),
-    POST_ALIGN = as.numeric(POST_ALIGN),
-    POST_BEAUTY = as.numeric(POST_BEAUTY),
-    POST_INTENT = as.numeric(POST_INTENT),
-    POST_LATENCY = as.numeric(POST_LATENCY),
-    POST_ID_CONF = as.numeric(POST_ID_CONF),
-    POST_AGE_CONF = as.numeric(POST_AGE_CONF),
-    POST_GENDER_CONF = as.numeric(POST_GENDER_CONF)
+    PRE_DESIGN_z = as.numeric(PRE_DESIGN_z),
+    PRE_DATA_z = as.numeric(PRE_DATA_z),
+    PRE_POLITICS_z = as.numeric(PRE_POLITICS_z),
+    PRE_TRUST_z = as.numeric(PRE_TRUST_z),
+    PRE_ALIGN_z = as.numeric(PRE_ALIGN_z),
+    PRE_BEAUTY_z = as.numeric(PRE_BEAUTY_z),
+    PRE_INTENT_z = as.numeric(PRE_INTENT_z),
+    POST_DESIGN_z = as.numeric(POST_DESIGN_z),
+    POST_DATA_z = as.numeric(POST_DATA_z),
+    POST_POLITICS_z = as.numeric(POST_POLITICS_z),
+    POST_TRUST_z = as.numeric(POST_TRUST_z),
+    POST_ALIGN_z = as.numeric(POST_ALIGN_z),
+    POST_BEAUTY_z = as.numeric(POST_BEAUTY_z),
+    POST_INTENT_z = as.numeric(POST_INTENT_z),
   ) %>% 
-  select(PID:STIMULUS_CATEGORY,
-         contains(ref_sd_questions_wide)) %>% 
+#drop non z-scored columns AND confidence cols
+  select(- (PRE_ENCOUNTER:POST_LATENCY), 
+         - contains(c("_CONF", "_LATENCY"))) %>% 
   ## pivot longer the SD questions
   pivot_longer(
-    cols = contains(ref_sd_questions_wide),
+    cols = contains(ref_sd_questions_wide_z),
     names_to = "QUESTION", 
     values_to = c("value")
   ) %>% 
@@ -1016,11 +1024,12 @@ df_sd_questions_long_z <- df_graphs_z %>%
     TIME = case_when(
       str_detect(QUESTION,"-P") ~"POST",
       !str_detect(QUESTION,"-P") ~"PRE"),
-    QUESTION = str_replace_all(QUESTION,"-P","")
-  ) %>% 
+    QUESTION = str_replace_all(QUESTION,"PRE_",""),
+    QUESTION = str_replace_all(QUESTION,"POST_","")
+  )  %>% 
   mutate(
     TIME = factor(TIME, levels=order_times),
-    QUESTION = factor(QUESTION, levels=ref_sd_questions)
+    QUESTION = factor(QUESTION, levels=ref_sd_questions_z)
   ) %>% droplevels()
 write.csv(df_sd_questions_long_z, file = "data/output/Study_4/df_sd_questions_long_z_S4.csv", na="")
 saveRDS(df_sd_questions_long_z, file = "data/output/Study_4/df_sd_questions_long_z_S4.rds")    
