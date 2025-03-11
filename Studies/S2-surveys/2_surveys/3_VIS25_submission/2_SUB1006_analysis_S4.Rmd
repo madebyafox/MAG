@@ -167,6 +167,8 @@ df_sd_questions_long <- readRDS("data/output/Study_4/df_sd_questions_long_S4.rds
 df_questions <- readRDS("data/output/Study_4/df_questions_S4.rds") #pre/post in sep cols
 
 
+df_sd_questions_long_abs <-  readRDS("data/output/Study_4/df_sd_questions_long_abs_S4.rds")
+
 ```
 
 
@@ -238,6 +240,69 @@ df <- df_sd_questions_long
 if(GRAPH_SAVE == TRUE) {
     ggsave(plot = x, path="figs/study4", filename =paste0("S4_B1_SDS_by_Stimulus_ridges.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
 ```
+
+
+
+
+
+## PRE-POST SD ABSOLUTE VALUES
+```{r block1_sds_by_sample_ABS, message=FALSE, warning = FALSE}
+
+
+### FILTER FOR ONLY SD QUESTIONS
+df <- df_sd_questions_long_abs 
+# %>% filter(QUESTION %in% ref_sd_questions)
+
+
+############## BLOCK 1 SDs by STIMULUS 
+ df <- df %>% select(1:7, STIMULUS, QUESTION, TIME, value)  
+ d <- left_join( x = df, y = ref_labels_abs, 
+                  by = c("QUESTION" = "ref_sd_questions_abs")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions),
+          value = as.numeric(value)) %>%
+    group_by(STIMULUS, QUESTION,TIME) %>% 
+    mutate(m=median(value)) %>% droplevels() ## calc median for printing on graph
+  
+(x <-
+    ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = TIME, color= TIME)) +
+    # geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = FALSE) + 
+    
+    geom_density_ridges( 
+              ## ridge geometry
+              scale = 0.65, alpha = 0.25, quantile_lines = TRUE,  panel_scaling = FALSE,
+              ## rug geometry
+              jittered_points = TRUE, rel_min_height = .01,
+              point_shape = "|", point_size = 3,
+              position = position_points_jitter(height = 0)) +
+    
+    scale_x_continuous(limits = c(0,50))+
+    scale_fill_manual(values = my_palettes(name="blackred", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="blackred", direction = "1"))+
+    facet_grid(.~STIMULUS) + 
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels_abs$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
+    ) +
+    labs (title = "ABS VALUE Attitude Shift by Stimulus", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions_abs, x = 100, y= ref_sd_questions_abs,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+  
+    theme_minimal() 
+  # + easy_remove_legend() 
+)
+  
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study4", filename =paste0("S4_B1_SDS_by_Stimulus_ridges_ABS.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+```
+
+
 
 
 
@@ -440,6 +505,7 @@ df <- df_questions %>%
 if(GRAPH_SAVE == TRUE) {
     ggsave(plot = x, path="figs/study4", filename =paste0("S4_B1_SDS_by_Stimulus_ridges.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
 ```
+
 
 
 ## CONFIDENCE and CATEGORICALS
