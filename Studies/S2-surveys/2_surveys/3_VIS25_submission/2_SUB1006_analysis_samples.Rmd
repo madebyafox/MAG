@@ -540,7 +540,7 @@ for (s in stimuli){
 
   ## SAVE GRAPH FOR THIS STIMULIS 
   if(GRAPH_SAVE == TRUE) {
-     ggsave(plot = p, path="figs/level_block1", filename =paste0("STUDY_STACK_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )} 
+     ggsave(plot = p, path="figs/level_block1", filename =paste0("FULL_STUDY_STACK_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )} 
 
 }## END LOOP OVER STIMULI
 
