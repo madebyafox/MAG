@@ -128,6 +128,7 @@ ref_sd_questions <- rownames(ref_labels)
 ref_sd_questions_abs <- rownames(ref_labels_abs)
 
 ref_min_sd_questions <-  c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC", "MAKER_ALIGN","CHART_INTENT","MAKER_TRUST","CHART_BEAUTY")  
+ref_s4_sd_questions <-  c("DESIGN","DATA","POLITICS", "ALIGN","INTENT","TRUST","BEAUTY")  
 
 # ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
 ref_blocks <- c(1,2,3,4,5,6)
@@ -152,6 +153,25 @@ df_participants_S4 <- readRDS("data/output/Study_4/df_participants_S4.rds")
 
 # sd questions LONG
 df_sd_questions_long <- readRDS("data/output/Study_1_2_3/df_sd_questions_long.rds")
+df_sd_questions_long_S4 <- readRDS("data/output/Study_4/df_sd_questions_long_S4.rds")
+
+
+## FILTER BLOCK1
+df_b1_sd_questions_long <- df_sd_questions_long %>% 
+  filter(Assigned.Block==1) %>% 
+  filter(QUESTION %in% ref_min_sd_questions) %>% droplevels()
+                                                                                         
+df_b1_sd_questions_long_S4 <- df_sd_questions_long_S4 %>% 
+  filter(Assigned.Block==1) %>% 
+  filter(TIME =="PRE") %>% select(-TIME) %>% droplevels()
+
+df_b1_sd_questions_long <- rbind(df_b1_sd_questions_long, df_b1_sd_questions_long_S4) %>% 
+  mutate(
+    QUESTION = str_replace_all(QUESTION, "MAKER_POLITIC","POLITICS"),
+    QUESTION = str_replace_all(QUESTION, "MAKER_",""),
+    QUESTION = str_replace_all(QUESTION, "CHART_","")
+  )
+
 
 # all questions LONG
 df_graphs <- readRDS("data/output/Study_1_2_3/df_graphs.rds")
@@ -349,7 +369,7 @@ if(GRAPH_SAVE == TRUE) {
 
 ## !! BLOCK 1 STIMULUS BY SAMPLE (vertical facet) !!
 
-##### stacked density ridges
+##### study 1-3 stacked density ridges
 ```{r plot_ridglines_sds_block1_STIMULUS}
   
 #### DENSITY RIDGES#############################################################################
@@ -430,6 +450,103 @@ for (s in stimuli){
 
 
 ```    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### study 1-4 stacked density ridges
+```{r plot_ridglines_sds_block1_STIMULUS}
+  
+#### DENSITY RIDGES#############################################################################
+#### loop over questions and stimuli, vertically stack studies, color by sample
+
+
+## DEFINE STIMULI & QUESTIONS
+stimuli <- ref_stimuli %>% filter( str_detect(ID, "B0|B1")) %>% 
+  mutate(STIMULUS = factor(ID)) %>% pull(STIMULUS) 
+stimuli <- as.vector(stimuli)
+questions <- ref_s4_sd_questions
+
+## SETUP DATAFRAME
+
+df <- df_b1_sd_questions_long %>% 
+          select(PID, Assigned.Block, Sample, Study, STIMULUS, QUESTION, value)  %>% 
+          mutate(QUESTION = factor(QUESTION, levels=ref_s4_sd_questions)) %>% #set q order
+          droplevels() 
+
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+
+for (s in stimuli){
+  i=0
+  print(s)
+  for (q in questions) {
+    i = i+1
+    print(i)
+    print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% filter(QUESTION ==q) %>% 
+    group_by(Study,Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = Study, fill = Sample, color = Sample, )) +
+      geom_density_ridges2(scale = 1.5, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
+           ## RUG GEOMETRY
+            jittered_points = TRUE,
+            position = position_points_jitter(width = 0.05, height = 0),
+            point_shape = '|', point_size = 3, point_alpha = 1) +
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="samples", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="samples", direction = "1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 4,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      guides(
+        y = guide_axis_manual(labels = ref_labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = ref_labels[q,"right"]),
+        # x.sec = guide_axis_manual(position = "top", title = q, breaks = NULL)
+        ) +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + easy_remove_legend() 
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  p <- x[[1]] / x[[2]] /x[[3]] / x[[4]] /x[[5]] / x[[6]] /x[[7]] 
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS 
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/level_block1", filename =paste0("STUDY_STACK_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )} 
+
+}## END LOOP OVER STIMULI
+
+
+```    
+
 
 
 
