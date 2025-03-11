@@ -1,0 +1,209 @@
+---
+title: "SUBMISSION 1006 — DATA WRANGLING"
+author: "ANONYMIZED"
+date: "2025-02-24"
+output:
+  html_document:
+    theme: flatly
+    code_folding: hide
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    toc_depth: 5
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+always_allow_html: yes
+font-family: DejaVu Sans
+mainfont: DejaVu Sans
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(psych) #describe()
+library(tidyverse) #all the things
+library(magrittr) #special pipes like %<>%
+library(lubridate) #dealing with dates
+library(kableExtra) #printing tables
+
+#EXPLORATORY DATA ANALYSIS
+library(summarytools) #data quality
+library(qacBase) #EDA
+
+#CONFIG
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+n_blocks = 6 #number of stimulus blocks in study design
+
+```
+
+*This notebook contains code to combine data from Study 1, Study 2, Study 3, and Study 4 of the MAGIC-VIS project to a single single normalized dataset of (valid) participant responses.* The file only includes questions included in all four versions of the attitude elictation survey
+
+
+
+
+## IMPORT Configuration Files
+
+*Import files with reference information for stimuli `ref_stimuli` and qualtrics surveys `ref_surveys`.*
+
+```{r setup-references, message=FALSE, warning = FALSE}
+
+############## IMPORT STIMULI FILE
+#contains data for each stimulus used 
+ref_stimuli <- read_csv("data/input/REFERENCE/stimuli.csv", col_names = TRUE) %>% 
+  mutate(
+    BLOCK = as.factor(BLOCK), 
+    STIMULUS_CATEGORY = as.factor(CATEGORY),
+    ID = as.factor(ID),
+    MAKER_ID = as.factor(MAKER_ID)) %>% 
+  select(-CATEGORY)
+
+
+
+############## STUDY ID FILE
+#most blocks were run as separate qualtrics surveys with diffferent recruitments in Prolific
+ref_surveys <- read_csv("data/input/REFERENCE/studies.csv", col_names = TRUE) %>%
+  mutate(
+    ID.Study = as.factor(ID.Study),
+    Assigned.Block = as.factor(Assigned.Block),
+    Distribution = as.factor(Distribution),
+    Prolific.Name = as.factor(Prolific.Name),
+    Qualtrics.URL = as.factor(Qualtrics.URL),
+    Qualtrics.Survey = as.factor(Qualtrics.Survey),
+    Sample = as.factor(Sample),
+    Study = as.factor(Study)
+)
+
+
+```
+
+## DEFINE Labels
+
+*Define labels used in survey questions and response options; used to generate labels for graphs and filtering of datasets in analysis files.*
+
+```{r setup-labels}
+
+############## BUILD LABELS
+ref_stim_id <- levels(ref_stimuli$ID)
+
+### SD questions on Studies S1, S2, S3
+ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA",
+                      "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
+                      "CHART_TRUST", "CHART_INTENT", "CHART_LIKE", "CHART_BEAUTY")
+ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
+                      "MAKER_POLITIC_z", "MAKER_ARGUE_z","MAKER_SELF_z","MAKER_ALIGN_z","MAKER_TRUST_z",
+                      "CHART_TRUST_z", "CHART_INTENT_z", "CHART_LIKE_z", "CHART_BEAUTY_z")
+
+
+## SD questions on Study4
+ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
+ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
+
+
+```
+
+## IMPORT Wrangled Data
+
+We want to include in this dataset only responses from participants who saw _message-obscured_ stimuli. Thus we include participants from Studies 1-3, and for Study 4, on the _pre-test_ scores, which reflect answers to questions when participants viewed the message-obscured version of the graph. 
+```{r import-wrangled}
+
+## IMPORT LONG-FORMAT SD QUESTIONS
+df_sd_questions_long_s13 <- readRDS("data/output/Study_1_2_3/df_sd_questions_long.rds")
+df_sd_questions_long_s4 <- readRDS("data/output/Study_4/df_sd_questions_long_S4.rds")
+
+
+## IMPORT LONG-FORMAT SD QUESTIONS (z-scored)
+df_sd_questions_long_s13_z <- readRDS("data/output/Study_1_2_3/df_sd_questions_long_z.rds")
+df_sd_questions_long_s4_z <- readRDS("data/output/Study_4/df_sd_questions_long_z_S4.rds")
+```
+
+
+## JOIN Study Files
+
+```{r join-sds}
+
+## WRANGLE STUDIES 1_3, 
+df1 <- df_sd_questions_long_s13 %>% 
+  # Retain only cols needed for modelling
+  select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
+         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value) %>% 
+  # Filter out questions dropped from Study 4
+  filter(QUESTION %nin% c("MAKER_ARGUE","MAKER_SELF","CHART_LIKE","CHART_TRUST")) %>% 
+  # Rename questions to match Study 4
+  mutate(
+    QUESTION = str_replace(QUESTION, "MAKER_",""), #strip MAKER_ prefix
+    QUESTION = str_replace(QUESTION, "CHART_",""), #strip CHART_ prefix
+    QUESTION = str_replace(QUESTION, "POLITIC","POLITICS"), 
+    QUESTION = factor(QUESTION, levels = ref_min_sd_questions) #set factor order
+  ) %>% 
+  # Drop levels
+  droplevels()
+
+## STUDY 4, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
+df4 <- df_sd_questions_long_s4 %>% 
+  #Retail only cols needed for modelling
+  select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
+        STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %>% 
+  # Filter out responses from the POST test
+  filter(TIME=="PRE") %>% 
+  # Drop time
+  select(-TIME) %>% 
+  # Drop levels
+  droplevels()
+
+## JOIN STUDIES
+df <- rbind(df1, df4)
+
+## WRITE FILE
+saveRDS(df, file = "data/output/COMBINED/df_sd_questions_long_ALL.rds")
+
+## CLEANUP
+rm(df, df1, df4)
+
+```
+
+## JOIN Study Files (Z-SCORED)
+
+```{r join-sds-z}
+
+## WRANGLE STUDIES 1_3, 
+df1 <- df_sd_questions_long_s13_z %>% 
+  # Retain only cols needed for modelling
+  select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
+         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value) %>% 
+  # Filter out questions dropped from Study 4
+  filter(QUESTION %nin% c("MAKER_ARGUE_z","MAKER_SELF_z","CHART_LIKE_z","CHART_TRUST_z"))  %>% 
+  # Rename questions to match Study 4
+  mutate(
+    QUESTION = str_replace(QUESTION, "MAKER_",""), #strip MAKER_ prefix
+    QUESTION = str_replace(QUESTION, "CHART_",""), #strip CHART_ prefix
+    QUESTION = str_replace(QUESTION, "POLITIC","POLITICS"), 
+    QUESTION = factor(QUESTION, levels = ref_min_sd_questions_z) #set factor order
+  ) %>% 
+  # Drop levels
+  droplevels()
+
+## STUDY 4, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
+df4 <- df_sd_questions_long_s4_z %>% 
+  #Retail only cols needed for modelling
+  select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
+        STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %>% 
+  # Filter out responses from the POST test
+  filter(TIME=="PRE") %>% 
+  # Drop time
+  select(-TIME) %>% 
+  # Drop levels
+  droplevels()
+
+## JOIN STUDIES
+df <- rbind(df1, df4)
+
+## WRITE FILE
+saveRDS(df, file = "data/output/COMBINED/df_sd_questions_long_ALL_z.rds")
+
+```
