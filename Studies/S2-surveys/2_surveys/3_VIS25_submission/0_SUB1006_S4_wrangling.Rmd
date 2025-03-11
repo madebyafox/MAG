@@ -1019,14 +1019,15 @@ df_sd_questions_long_z <- df_graphs_z %>%
     cols = contains(ref_sd_questions_wide_z),
     names_to = "QUESTION", 
     values_to = c("value")
-  ) %>% 
+  ) %>%
+  ## separate PRE and POST into time columns
   mutate(
     TIME = case_when(
       str_detect(QUESTION,"-P") ~"POST",
       !str_detect(QUESTION,"-P") ~"PRE"),
     QUESTION = str_replace_all(QUESTION,"PRE_",""),
     QUESTION = str_replace_all(QUESTION,"POST_","")
-  )  %>% 
+  ) %>% 
   mutate(
     TIME = factor(TIME, levels=order_times),
     QUESTION = factor(QUESTION, levels=ref_sd_questions_z)
