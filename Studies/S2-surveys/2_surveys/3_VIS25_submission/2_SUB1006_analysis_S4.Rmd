@@ -150,7 +150,7 @@ order_encounter = c("scroll", "engage")
 
 ############## IMPORT DATA FILES
 
-# 1 row per participant — wide
+# 1 row per participant — wide 
 # df_data <- readRDS("data/output/df_data.rds")
 
 # 1 row per participant — demographic
@@ -217,8 +217,8 @@ df <- df_sd_questions_long
               position = position_points_jitter(height = 0)) +
     
     
-    scale_fill_manual(values = my_palettes(name="blackred", direction = "1"))+
-    scale_color_manual(values = my_palettes(name="blackred", direction = "1"))+
+    scale_fill_manual(values = my_palettes(name="blackgreen", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="blackgreen", direction = "1"))+
     facet_grid(.~STIMULUS) + 
     ## MEDIAN
     stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
@@ -237,8 +237,8 @@ df <- df_sd_questions_long
 )
   
 
-if(GRAPH_SAVE == TRUE) {
-    ggsave(plot = x, path="figs/study4", filename =paste0("S4_B1_SDS_by_Stimulus_ridges.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+# if(GRAPH_SAVE == TRUE) {
+#     ggsave(plot = x, path="figs/study4", filename =paste0("S4_B1_SDS_by_Stimulus_ridges.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
 ```
 
 
