@@ -259,7 +259,9 @@ df_raw <- df_raw_study4 %>%
           `1_Q_B1_loop-number` : `1_Q_B1_LATENCY-P_Click Count`,
           `2_Q_B1_loop-number` : `2_Q_B1_LATENCY-P_Click Count`,
           `3_Q_B1_loop-number` : `3_Q_B1_LATENCY-P_Click Count`,
-          `4_Q_B1_loop-number` : `4_Q_B1_LATENCY-P_Click Count`
+          `4_Q_B1_loop-number` : `4_Q_B1_LATENCY-P_Click Count`,
+          QUALITY_CHECK_TEXT
+          
 ) 
 
 
@@ -414,7 +416,8 @@ df_data <- df_raw %>%
     D_employmentStatus:D_politicsFiscal,
     SCREEN_workMethod: SCREEN_socialMedia_TEXT, 
     PURPOSE, FEEDBACK, PLATFORM,
-    `0_Q_B0_ENCOUNTER`: `4_Q_B1_LATENCY-P`
+    `0_Q_B0_ENCOUNTER`: `4_Q_B1_LATENCY-P`,
+    QUALITY_CHECK_TEXT
   ) 
 
 ##### JOIN SURVEY-LEVEL DATA 
@@ -444,7 +447,8 @@ df_data <- df_data %>%
     StartDate: Q_RelevantIDLastStartDate, 
     Prolific.Name, Qualtrics.Survey,  Qualtrics.URL, Description, Sample, Study, 
     duration.sec:PLATFORM,
-     `0_Q_B0_ENCOUNTER`: `4_Q_B1_LATENCY-P`
+     `0_Q_B0_ENCOUNTER`: `4_Q_B1_LATENCY-P`,
+    QUALITY_CHECK_TEXT
   ) 
 
 #DROP WIP DATAFRAMES 
@@ -464,6 +468,7 @@ Participants were *excluded* from the sample for the following reasons:
 -   **fails consent or pre-screening**, Finished = TRUE, Progress = 100%, Q_TerminateFlag = "Screened"
 -   **didnot-follow-instructions** free responses indicate they misinterpred the question (most commonly they describe the graph rather than their reactions/judgements/impressions of it)
 -   **illegible-english** free responses text is largely illegible
+-   additionally, free responses were inspected in Qualtrics for evidence of vague/low effort answers, and those flagged by Qualtrics for straighlining, likely AI generated text, and likely bot-generated.  These are noted as comments in the `QUALITY_CHECK_TEXT` column
 
 A dataframe `df_exclude` is saved, including **response data** for participants who did not meet inclusion criteria (wide format)
 
@@ -476,14 +481,15 @@ A dataframe `df_exclude` is saved, including **response data** for participants 
 ## screening verification answers (ie. one prolific ID for multiple qualrics IDs)
 df_exclude <- df_data %>% 
   filter( 
-    !is.na(TerminateFlag) | Finished == FALSE | EndState != "COMPLETE"  
+    ( !is.na(TerminateFlag) | Finished == FALSE | EndState != "COMPLETE" |  (QUALITY_CHECK_TEXT !="NA"))
   ) %>% 
   select(
     PID, Distribution, ID.Qualtrics, ID.Prolific, ID.Study, Assigned.Block, Study, Source, Progress, 
     Finished, TerminateFlag, EndState,StartDate, duration.min, 
-    D_gender:D_politicsFiscal, SCREEN_workMethod:FEEDBACK, Prolific.Name:Study
+    D_gender:D_politicsFiscal, SCREEN_workMethod:FEEDBACK, Prolific.Name:Study, QUALITY_CHECK_TEXT
   )  %>% 
   mutate(
+    EndState = if_else( (QUALITY_CHECK_TEXT!="NA"), QUALITY_CHECK_TEXT, EndState),
     EndState = if_else( (Progress < 100), "abandoned", EndState),
     EndState = if_else( (str_detect(EndState,"screen")), "screened", EndState),
     EndState = if_else( (TerminateFlag == "Screened" & is.na(EndState)), "screened", EndState),

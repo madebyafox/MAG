@@ -1903,6 +1903,7 @@ ref_blocks &lt;- c(&quot;block1&quot;, &quot;block2&quot;, &quot;block3&quot;, &
 ref_cat_questions &lt;- c(&quot;ENCOUNTER&quot;,&quot;ID&quot;,&quot;AGE&quot;,&quot;GENDER&quot;)
 ref_conf_questions &lt;- c(&quot;ID_CONF&quot;,&quot;AGE_CONF&quot;,&quot;GENDER_CONF&quot;)
 ref_sd_questions &lt;-  c(&quot;DESIGN&quot;,&quot;DATA&quot;,&quot;POLITICS&quot;, &quot;TRUST&quot;,&quot;ALIGN&quot;,&quot;BEAUTY&quot;,&quot;INTENT&quot;)
+ref_sd_questions_z &lt;-  c(&quot;DESIGN_z&quot;,&quot;DATA_z&quot;,&quot;POLITICS_z&quot;, &quot;TRUST_z&quot;,&quot;ALIGN_z&quot;,&quot;BEAUTY_z&quot;,&quot;INTENT_z&quot;)
 ref_sd_questions_wide &lt;- c(&quot;PRE_DESIGN&quot;,
                            &quot;PRE_DATA&quot;,
                            &quot;PRE_POLITICS&quot;, 
@@ -1918,7 +1919,21 @@ ref_sd_questions_wide &lt;- c(&quot;PRE_DESIGN&quot;,
                            &quot;POST_BEAUTY&quot;,
                            &quot;POST_INTENT&quot;)
 
-
+ref_sd_questions_wide_z &lt;- c(
+                           &quot;PRE_DESIGN_z&quot;,
+                           &quot;PRE_DATA_z&quot;,
+                           &quot;PRE_POLITICS_z&quot;, 
+                           &quot;PRE_TRUST_z&quot;,
+                           &quot;PRE_ALIGN_z&quot;,
+                           &quot;PRE_BEAUTY_z&quot;,
+                           &quot;PRE_INTENT_z&quot;,
+                           &quot;POST_DESIGN_z&quot;,
+                           &quot;POST_DATA_z&quot;,
+                           &quot;POST_POLITICS_z&quot;,
+                           &quot;POST_TRUST_z&quot;,
+                           &quot;POST_ALIGN_z&quot;,
+                           &quot;POST_BEAUTY_z&quot;,
+                           &quot;POST_INTENT_z&quot;)
 
 ############## GRAPH LABELS
 left &lt;- c(&quot;professional&quot;,&quot;professional&quot;,
@@ -2018,7 +2033,9 @@ df_raw &lt;- df_raw_study4 %&gt;%
           `1_Q_B1_loop-number` : `1_Q_B1_LATENCY-P_Click Count`,
           `2_Q_B1_loop-number` : `2_Q_B1_LATENCY-P_Click Count`,
           `3_Q_B1_loop-number` : `3_Q_B1_LATENCY-P_Click Count`,
-          `4_Q_B1_loop-number` : `4_Q_B1_LATENCY-P_Click Count`
+          `4_Q_B1_loop-number` : `4_Q_B1_LATENCY-P_Click Count`,
+          QUALITY_CHECK_TEXT
+          
 ) 
 
 
@@ -2172,7 +2189,8 @@ df_data &lt;- df_raw %&gt;%
     D_employmentStatus:D_politicsFiscal,
     SCREEN_workMethod: SCREEN_socialMedia_TEXT, 
     PURPOSE, FEEDBACK, PLATFORM,
-    `0_Q_B0_ENCOUNTER`: `4_Q_B1_LATENCY-P`
+    `0_Q_B0_ENCOUNTER`: `4_Q_B1_LATENCY-P`,
+    QUALITY_CHECK_TEXT
   ) 
 
 ##### JOIN SURVEY-LEVEL DATA 
@@ -2202,7 +2220,8 @@ df_data &lt;- df_data %&gt;%
     StartDate: Q_RelevantIDLastStartDate, 
     Prolific.Name, Qualtrics.Survey,  Qualtrics.URL, Description, Sample, Study, 
     duration.sec:PLATFORM,
-     `0_Q_B0_ENCOUNTER`: `4_Q_B1_LATENCY-P`
+     `0_Q_B0_ENCOUNTER`: `4_Q_B1_LATENCY-P`,
+    QUALITY_CHECK_TEXT
   ) 
 
 #DROP WIP DATAFRAMES 
@@ -2228,6 +2247,10 @@ they misinterpred the question (most commonly they describe the graph
 rather than their reactions/judgements/impressions of it)</li>
 <li><strong>illegible-english</strong> free responses text is largely
 illegible</li>
+<li>additionally, free responses were inspected in Qualtrics for
+evidence of vague/low effort answers, and those flagged by Qualtrics for
+straighlining, likely AI generated text, and likely bot-generated. These
+are noted as comments in the <code>QUALITY_CHECK_TEXT</code> column</li>
 </ul>
 <p>A dataframe <code>df_exclude</code> is saved, including
 <strong>response data</strong> for participants who did not meet
@@ -2240,14 +2263,15 @@ inclusion criteria (wide format)</p>
 ## screening verification answers (ie. one prolific ID for multiple qualrics IDs)
 df_exclude &lt;- df_data %&gt;% 
   filter( 
-    !is.na(TerminateFlag) | Finished == FALSE | EndState != &quot;COMPLETE&quot;  
+    ( !is.na(TerminateFlag) | Finished == FALSE | EndState != &quot;COMPLETE&quot; |  (QUALITY_CHECK_TEXT !=&quot;NA&quot;))
   ) %&gt;% 
   select(
     PID, Distribution, ID.Qualtrics, ID.Prolific, ID.Study, Assigned.Block, Study, Source, Progress, 
     Finished, TerminateFlag, EndState,StartDate, duration.min, 
-    D_gender:D_politicsFiscal, SCREEN_workMethod:FEEDBACK, Prolific.Name:Study
+    D_gender:D_politicsFiscal, SCREEN_workMethod:FEEDBACK, Prolific.Name:Study, QUALITY_CHECK_TEXT
   )  %&gt;% 
   mutate(
+    EndState = if_else( (QUALITY_CHECK_TEXT!=&quot;NA&quot;), QUALITY_CHECK_TEXT, EndState),
     EndState = if_else( (Progress &lt; 100), &quot;abandoned&quot;, EndState),
     EndState = if_else( (str_detect(EndState,&quot;screen&quot;)), &quot;screened&quot;, EndState),
     EndState = if_else( (TerminateFlag == &quot;Screened&quot; &amp; is.na(EndState)), &quot;screened&quot;, EndState),
@@ -2394,10 +2418,10 @@ sum
 0
 </td>
 <td style="text-align:right;">
-1
+18
 </td>
 <td style="text-align:right;">
-1
+18
 </td>
 </tr>
 <tr>
@@ -2414,10 +2438,10 @@ Sum
 0
 </td>
 <td style="text-align:right;">
-1
+18
 </td>
 <td style="text-align:right;">
-1
+18
 </td>
 </tr>
 </tbody>
@@ -2451,7 +2475,7 @@ Sum
 1
 </td>
 <td style="text-align:right;">
-15
+35
 </td>
 </tr>
 <tr>
@@ -2459,7 +2483,7 @@ Sum
 Sum
 </td>
 <td style="text-align:right;">
-15
+35
 </td>
 </tr>
 </tbody>
@@ -2502,10 +2526,10 @@ TUMBLR
 PROLIFIC
 </td>
 <td style="text-align:right;">
-15
+35
 </td>
 <td style="text-align:right;">
-15
+35
 </td>
 </tr>
 <tr>
@@ -2513,10 +2537,10 @@ PROLIFIC
 Sum
 </td>
 <td style="text-align:right;">
-15
+35
 </td>
 <td style="text-align:right;">
-15
+35
 </td>
 </tr>
 </tbody>
@@ -2777,8 +2801,8 @@ df_sd_questions_long &lt;- df_questions_long %&gt;%
     value = as.numeric(value)
   )
 ## WRITE DATAFRAME
-write.csv(df_sd_questions_long, file = &quot;data/output/Study_4/df_sd_questions_long.csv&quot;, na=&quot;&quot;)
-saveRDS(df_sd_questions_long, file = &quot;data/output/Study_4/df_sd_questions_long.rds&quot;)</code></pre>
+write.csv(df_sd_questions_long, file = &quot;data/output/Study_4/df_sd_questions_long_S4.csv&quot;, na=&quot;&quot;)
+saveRDS(df_sd_questions_long, file = &quot;data/output/Study_4/df_sd_questions_long_S4.rds&quot;)</code></pre>
 </div>
 <div id="create-sd-questions-wide" class="section level2" number="3.9">
 <h2><span class="header-section-number">3.9</span> Create SD questions
@@ -2880,28 +2904,28 @@ looping graphing code more readable</p>
 ## VARIABLE WISE STANDARDIZATION
 df_graphs_z &lt;- df_graphs %&gt;% 
   mutate(
-    PRE_DESIGN  = datawizard::standardize(PRE_DESIGN),
-    PRE_DATA = datawizard::standardize(PRE_DATA),
-    PRE_POLITICS = datawizard::standardize(PRE_POLITICS),
-    PRE_TRUST = datawizard::standardize(PRE_TRUST),
-    PRE_ALIGN = datawizard::standardize(PRE_ALIGN),
-    PRE_BEAUTY = datawizard::standardize(PRE_BEAUTY),
-    PRE_INTENT = datawizard::standardize(PRE_INTENT),
-    PRE_LATENCY = datawizard::standardize(PRE_LATENCY),
-    PRE_ID_CONF = datawizard::standardize(PRE_ID_CONF),
-    PRE_AGE_CONF = datawizard::standardize(PRE_AGE_CONF),
-    PRE_GENDER_CONF = datawizard::standardize(PRE_GENDER_CONF),
-    POST_DESIGN  = datawizard::standardize(POST_DESIGN),
-    POST_DATA = datawizard::standardize(POST_DATA),
-    POST_POLITICS = datawizard::standardize(POST_POLITICS),
-    POST_TRUST = datawizard::standardize(POST_TRUST),
-    POST_ALIGN = datawizard::standardize(POST_ALIGN),
-    POST_BEAUTY = datawizard::standardize(POST_BEAUTY),
-    POST_INTENT = datawizard::standardize(POST_INTENT),
-    POST_LATENCY = datawizard::standardize(POST_LATENCY),
-    POST_ID_CONF = datawizard::standardize(POST_ID_CONF),
-    POST_AGE_CONF = datawizard::standardize(POST_AGE_CONF),
-    POST_GENDER_CONF = datawizard::standardize(POST_GENDER_CONF)
+    PRE_DESIGN_z  = datawizard::standardize(PRE_DESIGN),
+    PRE_DATA_z = datawizard::standardize(PRE_DATA),
+    PRE_POLITICS_z = datawizard::standardize(PRE_POLITICS),
+    PRE_TRUST_z = datawizard::standardize(PRE_TRUST),
+    PRE_ALIGN_z = datawizard::standardize(PRE_ALIGN),
+    PRE_BEAUTY_z = datawizard::standardize(PRE_BEAUTY),
+    PRE_INTENT_z = datawizard::standardize(PRE_INTENT),
+    PRE_LATENCY_z = datawizard::standardize(PRE_LATENCY),
+    PRE_ID_CONF_z = datawizard::standardize(PRE_ID_CONF),
+    PRE_AGE_CONF_z = datawizard::standardize(PRE_AGE_CONF),
+    PRE_GENDER_CONF_z = datawizard::standardize(PRE_GENDER_CONF),
+    POST_DESIGN_z  = datawizard::standardize(POST_DESIGN),
+    POST_DATA_z = datawizard::standardize(POST_DATA),
+    POST_POLITICS_z = datawizard::standardize(POST_POLITICS),
+    POST_TRUST_z = datawizard::standardize(POST_TRUST),
+    POST_ALIGN_z = datawizard::standardize(POST_ALIGN),
+    POST_BEAUTY_z = datawizard::standardize(POST_BEAUTY),
+    POST_INTENT_z = datawizard::standardize(POST_INTENT),
+    POST_LATENCY_z = datawizard::standardize(POST_LATENCY),
+    POST_ID_CONF_z = datawizard::standardize(POST_ID_CONF),
+    POST_AGE_CONF_z = datawizard::standardize(POST_AGE_CONF),
+    POST_GENDER_CONF_z = datawizard::standardize(POST_GENDER_CONF)
   )
 write.csv(df_graphs_z, file = &quot;data/output/Study_4/df_graphs_z_S4.csv&quot;, na=&quot;&quot;)
 saveRDS(df_graphs_z, file = &quot;data/output/Study_4/df_graphs_z_S4.rds&quot;)
@@ -2912,52 +2936,47 @@ saveRDS(df_graphs_z, file = &quot;data/output/Study_4/df_graphs_z_S4.rds&quot;)
 df_sd_questions_long_z &lt;- df_graphs_z %&gt;% 
   #get rid of datawizard transform but save raw z-score values
   mutate(
-    PRE_DESIGN = as.numeric(PRE_DESIGN),
-    PRE_DATA = as.numeric(PRE_DATA),
-    PRE_POLITICS = as.numeric(PRE_POLITICS),
-    PRE_TRUST = as.numeric(PRE_TRUST),
-    PRE_ALIGN = as.numeric(PRE_ALIGN),
-    PRE_BEAUTY = as.numeric(PRE_BEAUTY),
-    PRE_INTENT = as.numeric(PRE_INTENT),
-    PRE_LATENCY = as.numeric(PRE_LATENCY),
-    PRE_ID_CONF = as.numeric(PRE_ID_CONF),
-    PRE_AGE_CONF = as.numeric(PRE_AGE_CONF),
-    PRE_GENDER_CONF = as.numeric(PRE_GENDER_CONF),
-    POST_DESIGN = as.numeric(POST_DESIGN),
-    POST_DATA = as.numeric(POST_DATA),
-    POST_POLITICS = as.numeric(POST_POLITICS),
-    POST_TRUST = as.numeric(POST_TRUST),
-    POST_ALIGN = as.numeric(POST_ALIGN),
-    POST_BEAUTY = as.numeric(POST_BEAUTY),
-    POST_INTENT = as.numeric(POST_INTENT),
-    POST_LATENCY = as.numeric(POST_LATENCY),
-    POST_ID_CONF = as.numeric(POST_ID_CONF),
-    POST_AGE_CONF = as.numeric(POST_AGE_CONF),
-    POST_GENDER_CONF = as.numeric(POST_GENDER_CONF)
+    PRE_DESIGN_z = as.numeric(PRE_DESIGN_z),
+    PRE_DATA_z = as.numeric(PRE_DATA_z),
+    PRE_POLITICS_z = as.numeric(PRE_POLITICS_z),
+    PRE_TRUST_z = as.numeric(PRE_TRUST_z),
+    PRE_ALIGN_z = as.numeric(PRE_ALIGN_z),
+    PRE_BEAUTY_z = as.numeric(PRE_BEAUTY_z),
+    PRE_INTENT_z = as.numeric(PRE_INTENT_z),
+    POST_DESIGN_z = as.numeric(POST_DESIGN_z),
+    POST_DATA_z = as.numeric(POST_DATA_z),
+    POST_POLITICS_z = as.numeric(POST_POLITICS_z),
+    POST_TRUST_z = as.numeric(POST_TRUST_z),
+    POST_ALIGN_z = as.numeric(POST_ALIGN_z),
+    POST_BEAUTY_z = as.numeric(POST_BEAUTY_z),
+    POST_INTENT_z = as.numeric(POST_INTENT_z),
   ) %&gt;% 
-  select(PID:STIMULUS_CATEGORY,
-         contains(ref_sd_questions_wide)) %&gt;% 
+#drop non z-scored columns AND confidence cols
+  select(- (PRE_ENCOUNTER:POST_LATENCY), 
+         - contains(c(&quot;_CONF&quot;, &quot;_LATENCY&quot;))) %&gt;% 
   ## pivot longer the SD questions
   pivot_longer(
-    cols = contains(ref_sd_questions_wide),
+    cols = contains(ref_sd_questions_wide_z),
     names_to = &quot;QUESTION&quot;, 
     values_to = c(&quot;value&quot;)
-  ) %&gt;% 
+  ) %&gt;%
+  ## separate PRE and POST into time columns
   mutate(
     TIME = case_when(
       str_detect(QUESTION,&quot;-P&quot;) ~&quot;POST&quot;,
       !str_detect(QUESTION,&quot;-P&quot;) ~&quot;PRE&quot;),
-    QUESTION = str_replace_all(QUESTION,&quot;-P&quot;,&quot;&quot;)
+    QUESTION = str_replace_all(QUESTION,&quot;PRE_&quot;,&quot;&quot;),
+    QUESTION = str_replace_all(QUESTION,&quot;POST_&quot;,&quot;&quot;)
   ) %&gt;% 
   mutate(
     TIME = factor(TIME, levels=order_times),
-    QUESTION = factor(QUESTION, levels=ref_sd_questions)
+    QUESTION = factor(QUESTION, levels=ref_sd_questions_z)
   ) %&gt;% droplevels()
-write.csv(df_sd_questions_long_z, file = &quot;data/output/Study_4/df_sd_questions_long_z.csv&quot;, na=&quot;&quot;)
-saveRDS(df_sd_questions_long_z, file = &quot;data/output/Study_4/df_sd_questions_long_z.rds&quot;)    </code></pre>
-<div id="absolute_value" class="section level3" number="3.12.1">
-<h3><span class="header-section-number">3.12.1</span>
-ABSOLUTE_VALUE</h3>
+write.csv(df_sd_questions_long_z, file = &quot;data/output/Study_4/df_sd_questions_long_z_S4.csv&quot;, na=&quot;&quot;)
+saveRDS(df_sd_questions_long_z, file = &quot;data/output/Study_4/df_sd_questions_long_z_S4.rds&quot;)    </code></pre>
+</div>
+<div id="absolute_value" class="section level2" number="3.13">
+<h2><span class="header-section-number">3.13</span> ABSOLUTE_VALUE</h2>
 <pre class="r"><code>########## ABS VALUE
 ## COLLAPSE SD SCALES AT 0 TO SHOW MIDDLE VS EXTREMES
 
@@ -2996,20 +3015,20 @@ df_sd_questions_long_abs &lt;- df_graphs_abs %&gt;%
     cols = contains(ref_sd_questions_wide),
     names_to = &quot;QUESTION&quot;, 
     values_to = c(&quot;value&quot;)
-  ) %&gt;% 
+  )  %&gt;% 
   mutate(
     TIME = case_when(
-      str_detect(QUESTION,&quot;-P&quot;) ~&quot;POST&quot;,
-      !str_detect(QUESTION,&quot;-P&quot;) ~&quot;PRE&quot;),
-    QUESTION = str_replace_all(QUESTION,&quot;-P&quot;,&quot;&quot;)
-  ) %&gt;% 
+      str_detect(QUESTION,&quot;POST_&quot;) ~&quot;POST&quot;,
+      !str_detect(QUESTION,&quot;POST&quot;) ~&quot;PRE&quot;),
+    QUESTION = str_replace_all(QUESTION,&quot;PRE_&quot;,&quot;&quot;),
+    QUESTION = str_replace_all(QUESTION,&quot;POST_&quot;,&quot;&quot;)
+  )  %&gt;% 
   mutate(
     TIME = factor(TIME, levels=order_times),
     QUESTION = factor(QUESTION, levels=ref_sd_questions)
   ) %&gt;% droplevels()
-write.csv(df_sd_questions_long_abs, file = &quot;data/output/Study_4/df_sd_questions_long_abs.csv&quot;, na=&quot;&quot;)
-saveRDS(df_sd_questions_long_abs, file = &quot;data/output/Study_4/df_sd_questions_long_abs.rds&quot;)    </code></pre>
-</div>
+write.csv(df_sd_questions_long_abs, file = &quot;data/output/Study_4/df_sd_questions_long_abs_S4.csv&quot;, na=&quot;&quot;)
+saveRDS(df_sd_questions_long_abs, file = &quot;data/output/Study_4/df_sd_questions_long_abs_S4.rds&quot;)    </code></pre>
 </div>
 </div>
 <div id="profiling" class="section level1" number="4">
@@ -3032,12 +3051,12 @@ Summary</h3>
 <div id="df_participants" class="section level4" number="4.1.1.1">
 <h4><span class="header-section-number">4.1.1.1</span>
 df_participants</h4>
-<p><strong>Dimensions:</strong> 15 x 29<br />
+<p><strong>Dimensions:</strong> 35 x 29<br />
 <strong>Duplicates:</strong> 0</p>
-<table style="width:97%;">
+<table style="width:98%;">
 <colgroup>
 <col width="23%" />
-<col width="27%" />
+<col width="28%" />
 <col width="17%" />
 <col width="19%" />
 <col width="9%" />
@@ -3055,29 +3074,29 @@ df_participants</h4>
 <tr class="odd">
 <td>PID<br />
 [factor]</td>
-<td>1. R_1I0iHRdAtslLyCK<br />
-2. R_1NTQKVdgM8CmNO1<br />
-3. R_1tllC65FM331Hu0<br />
-4. R_36lsPCIUrHD1d6y<br />
-5. R_38fhVE1dC3HsMKZ<br />
-6. R_3hH2y8Xn2WdtjbS<br />
-7. R_3vc1IVl1UMrAopj<br />
-8. R_5htDl6TU8QrF1zZ<br />
-9. R_5QrCKYHt51qQEXO<br />
-10. R_6F5b2KyY7iqgius<br />
-[ 5 others ]</td>
-<td>1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-5 (33.3%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADcAAADkCAQAAACWeHRMAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAA+0lEQVR42u3W243CQBBEUYycI0EQD+RAlPA7w3MkysZqzv2zkPZo6V25putuzfarasW5uX04PxzyOH1PtD907j86dE+X+G9X+3Y4HA6HG+/uBZR/5fRN7csv8C59Uiv80e1Oi2yVl5ytgsPhcLiinGkUzFbB4XA4HC6erRLMNApW+3Y4HA6HG89WCWarBKt9OxwOh8ONZ6sEs1WC1b4dDofD4TbLmUbBbBUcDofD4eLZKsFsFRwOh8Ph4tkqwUyjYLVvh8PhcLjxbJVgtkqw2rfD4XA43GY50yjYh60SqfnS3m6VRP1fQ+1/BBwOh8NtlvvlVlm+2rdbmbsBCphAyzvziFIAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>1. R_144s3PnFP9VI253<br />
+2. R_1I0iHRdAtslLyCK<br />
+3. R_1irmSR8xxlJWBao<br />
+4. R_1KMWnBcB00ffd5L<br />
+5. R_1NTQKVdgM8CmNO1<br />
+6. R_1tllC65FM331Hu0<br />
+7. R_30B1JVRPxq5MAcl<br />
+8. R_34uRDOFTIJaxMHq<br />
+9. R_36lsPCIUrHD1d6y<br />
+10. R_38fhVE1dC3HsMKZ<br />
+[ 25 others ]</td>
+<td>1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+25 (71.4%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGcAAADkCAQAAAAvbPIEAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABlUlEQVR42u3YsU3DYBRG0RhlxwzBPLADU0KDkB1FSCiF7/84p0vnqzwX/rbPyyQvZz+AnP+Tc93/eP9+kV63sx/rL/Zv/92/c7vczn66pww7NjllcsrklMkpk1Mmp2xYzvX48+Ps53nStv/4Weqr7ccvn2+rG5ZzeHfeltwK9mwFZXLK5JTJKZNTJqdMTpmcMtNHzeDpw1ZQNuzY5JTJKZNTJqdMTpmcMjlltoKawVvBsBzTR9mwY5NTJqdMTpmcMjllcsqG5dgKamwFq7AVlA07NjllcsrklMkpk1Mmp2xYjq2gxlawCltB2bBjk1Mmp0xOmZwyOWVyyuSUmT5qBk8ftoKyYccmp0xOmZwyOWVyyuSUySmzFdTYClZhKyiTUyanTE6ZnDI5ZXLK5JTZCmoGbwXDckwfZcOOTU6ZnDI5ZXLK5JTJKRuWYyuosRWswlZQNuzY5JTJKZNTJqdMTpmcMjllpo+awdPHw61gMbujunt31lsKjm/7sGOTUyanTE6ZnDI5ZXLK5JRN3grWN+zY5JR9Af4tPYMHXUvDAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3087,8 +3106,8 @@ df_participants</h4>
 <td>1. TUMBLR<br />
 2. PROLIFIC</td>
 <td>0 ( 0.0%)<br />
-15 (100.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAvCAQAAAB5nfGMAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAArElEQVRo3u3YsQ3CMBRAQYyyIzuwD0MwZWgNvNSOlLs0idJYT7aLP/Yb/+6rF3BOsiRZ2j49r0tfNHMJuyXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLkiWNeSA3Vq9mqbmE3ZJkSdv8ce0R93yHbN9/HquXdhIOUZIlyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIs6Wfe8l69noWe0/u49kDuiEOUZEmypA/vSBTkQ9D58wAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+35 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAvCAQAAAB5nfGMAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAArElEQVRo3u3YsQ3CMBRAQYyyIzuwD0MwZWgNvNSOlLs0idJYT7aLP/Yb/+6rF3BOsiRZ2j49r0tfNHMJuyXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLkiWNeSA3Vq9mqbmE3ZJkSdv8ce0R93yHbN9/HquXdhIOUZIlyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIs6Wfe8l69noWe0/u49kDuiEOUZEmypA/vSBTkQ9D58wAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3096,8 +3115,8 @@ df_participants</h4>
 <td>Assigned.Block<br />
 [factor]</td>
 <td>1. 1</td>
-<td>15 (100.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAbCAQAAADmdrQ3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAd0lEQVRYw+3YsQ2AIBBAUc+wIzswkDs4pZagfusj4b8KQnP5CRTEtelrzx5gTmZBZkFl3BxLPzQt+ro8j2r2bJPwEiGzILMgsyCzILMgsyCzILMgsyCzILMgsyCzILMgs6DXN9SZPU+iNqxj6X/KX14iZBZkFnQDa2gFo4qho0EAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>35 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAbCAQAAADmdrQ3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAd0lEQVRYw+3YsQ2AIBBAUc+wIzswkDs4pZagfusj4b8KQnP5CRTEtelrzx5gTmZBZkFl3BxLPzQt+ro8j2r2bJPwEiGzILMgsyCzILMgsyCzILMgsyCzILMgsyCzILMgs6DXN9SZPU+iNqxj6X/KX14iZBZkFnQDa2gFo4qho0EAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3105,8 +3124,8 @@ df_participants</h4>
 <td>EndState<br />
 [factor]</td>
 <td>1. COMPLETE</td>
-<td>15 (100.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAbCAQAAADmdrQ3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAd0lEQVRYw+3YsQ2AIBBAUc+wIzswkDs4pZagfusj4b8KQnP5CRTEtelrzx5gTmZBZkFl3BxLPzQt+ro8j2r2bJPwEiGzILMgsyCzILMgsyCzILMgsyCzILMgsyCzILMgs6DXN9SZPU+iNqxj6X/KX14iZBZkFnQDa2gFo4qho0EAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>35 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAbCAQAAADmdrQ3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAd0lEQVRYw+3YsQ2AIBBAUc+wIzswkDs4pZagfusj4b8KQnP5CRTEtelrzx5gTmZBZkFl3BxLPzQt+ro8j2r2bJPwEiGzILMgsyCzILMgsyCzILMgsyCzILMgsyCzILMgs6DXN9SZPU+iNqxj6X/KX14iZBZkFnQDa2gFo4qho0EAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3120,8 +3139,8 @@ df_participants</h4>
 <td>0 ( 0.0%)<br />
 0 ( 0.0%)<br />
 0 ( 0.0%)<br />
-15 (100.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAABXCAQAAACe7H4gAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAABA0lEQVR42u3YsQ3CMABFQYyyIzuwD0MwJXTIwEMpjZQ7GhCN9eSk+ONx4tt59QH+kyxJlvaYPrdDv2jmEm5LkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLGvMgN1afZqm5hNuS3rIce8uduS1JliRLkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkizJlvtiy90lSzJxJ7clyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlmbhfTNy7ZEnb/OPgE/f0Dtne/7msPtqf8BAlWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlfQwL99XnWeg6fR/HXp5+8RAlWZIs6QkDGBxY3oc+EgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+35 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAABXCAQAAACe7H4gAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABA0lEQVR42u3YsQ3CMABFQYyyIzuwD0MwJXTIwEMpjZQ7GhCN9eSk+ONx4tt59QH+kyxJlvaYPrdDv2jmEm5LkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLGvMgN1afZqm5hNuS3rIce8uduS1JliRLkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkizJlvtiy90lSzJxJ7clyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlmbhfTNy7ZEnb/OPgE/f0Dtne/7msPtqf8BAlWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlfQwL99XnWeg6fR/HXp5+8RAlWZIs6QkDGBxY3oc+EgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3135,32 +3154,32 @@ df_participants</h4>
 <td>0 ( 0.0%)<br />
 0 ( 0.0%)<br />
 0 ( 0.0%)<br />
-15 (100.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAABXCAQAAACe7H4gAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAABA0lEQVR42u3YsQ3CMABFQYyyIzuwD0MwJXTIwEMpjZQ7GhCN9eSk+ONx4tt59QH+kyxJlvaYPrdDv2jmEm5LkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLGvMgN1afZqm5hNuS3rIce8uduS1JliRLkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkizJlvtiy90lSzJxJ7clyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlmbhfTNy7ZEnb/OPgE/f0Dtne/7msPtqf8BAlWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlfQwL99XnWeg6fR/HXp5+8RAlWZIs6QkDGBxY3oc+EgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+35 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAABXCAQAAACe7H4gAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABA0lEQVR42u3YsQ3CMABFQYyyIzuwD0MwJXTIwEMpjZQ7GhCN9eSk+ONx4tt59QH+kyxJlvaYPrdDv2jmEm5LkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLGvMgN1afZqm5hNuS3rIce8uduS1JliRLkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkizJlvtiy90lSzJxJ7clyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlmbhfTNy7ZEnb/OPgE/f0Dtne/7msPtqf8BAlWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlfQwL99XnWeg6fR/HXp5+8RAlWZIs6QkDGBxY3oc+EgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>duration.sec<br />
 [numeric]</td>
-<td>Mean (sd) : 2434.4 (1103.2)<br />
+<td>Mean (sd) : 2671.3 (1239.7)<br />
 min &lt; med &lt; max:<br />
-1063 &lt; 2073 &lt; 4873<br />
-IQR (CV) : 930.5 (0.5)</td>
-<td>15 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAABKUlEQVR42u3cQU7bUBhG0ZOKPXYPdD2wB1bZTr6BATGxkZKKe2cZ2LGP9CL9sl9ufxW/7n0Bj1EMiGE9HT/cLpzo5cKPzJ8rX3y64wU/nT7Lp36fPO7tHgYfalEghhUDYlgxIIYVA2JYMSCGFQNiWO9GqytT4v/dhwnz7JT4GHPi+VoUiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDPjWfZjnu9NLyodNsA/BcOUV5e/ZBNuiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBnA7PkV9/VH/+/R8eJR7+1F3/mUtCsSwYgD/AE1oD+68U6KzAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+938 &lt; 2152 &lt; 6577<br />
+IQR (CV) : 1981.5 (0.5)</td>
+<td>35 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABSUlEQVR42u3cXWrbQABG0eOSPWYP7XraPXSV6cv3YAKp7JBgpb33zfgHz4GxxiOhy4vi26O/wDmKATGsp+sHl8OX/7zhp+TH8cecouuhPN375ueD538/enTvqkmBGFYMiGHFgBjW3QfM447XFudbWXwCw1dcWTQpEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBjwKTvTx51vC/8hDOfbwm9SIIYVA2JYMSCGFQNiWDEghhUDYlgxIIb1kD/axx3tSHz0fsRJGf6+I/Hx+xFNCsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwa8OqN9y/3/vkY3jeTq4oBXJ/bPd4n/e7tvJE0KxLBiQAwrBsSwLtcH2F//zLrhlr5frRsu/9XI36xJgRhWDOAP/1AX9lrW2XMAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>duration.min<br />
 [numeric]</td>
-<td>Mean (sd) : 40.6 (18.4)<br />
+<td>Mean (sd) : 44.5 (20.7)<br />
 min &lt; med &lt; max:<br />
-17.7 &lt; 34.5 &lt; 81.2<br />
-IQR (CV) : 15.5 (0.5)</td>
-<td>15 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAABMUlEQVR42u3cUU7bQABF0RPEHruHsh66h66y/LwPA2oiQJWh3PsXWZnYR5pIzmR8+aO4O/sEPkcxIIZ1f3xx+cBAjze+ZB4+Mvg/6XjC9+8e5VU/rhz7ffY136hJgRhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMeNN+ilsbR75yb9pW8pU3jlyvSYEYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBjWsx/oz1mJOG394/BArhfrFOesRFz/1PcevfXOY00KxLBiQAwrBsSwYkAMKwbEsGIAl+N9za//+E9er/t5uLW6fKsr/2tNCsSwYgBPqiAUgmQMI8sAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+15.6 &lt; 35.9 &lt; 109.6<br />
+IQR (CV) : 33 (0.5)</td>
+<td>35 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABVElEQVR42u3bUU7CQBRA0YNxj+xB16N7cJX68z6qsQa0QIP3/kHCpJxk6GQ6HN4VD7e+gH0UA2KYHpcvDmd++GX1h+X53KFu0PLiH389Cjh+++7brb/h2TUpEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAT9xte7n7f9sRtl3vZXlmrSYEYphgQwxQDYphiwJ8f12zRHp597YBhD4uzJgVimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQw3TFYx57PnJ81dMutz/VslaTAjFMMSCGKQbEMH26YW53Z99mpLVRtj89+2XdsNWd/XixUS6zzmhSIIYpBsQwxYAYphiwk3/XXLIfFnKLRdjdM5y2CGtSIIYpBsQwxYAYphjAYbm6eN3xc6Xte1osnw7/6puv1qRADFMM4ANbpBy2yoSOyQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3170,10 +3189,10 @@ IQR (CV) : 15.5 (0.5)</td>
 <td>1. female<br />
 2. male<br />
 3. other</td>
-<td>7 (46.7%)<br />
-7 (46.7%)<br />
-1 ( 6.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABDCAQAAACVI4sPAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAm0lEQVRo3u3XwQ2AIBAFUdbYoz1oPdoDVeoVjUpAcX/MzI0LeclyWGwNWnXeAECl9elhcXpQo12AQhgcOHF3khsZIECAAHkHCBCg1h32oVh3y4tZuiRa9TXPSg1yI5MD7d7Q7PVrZMkvCBAgQIC8AwTodyB26rPYqUvK7NTT51O83ak9nrjcyAABAgTIO0CAALVOe8lXSG5kgHJtGcMRIfY+dZAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>17 (48.6%)<br />
+17 (48.6%)<br />
+1 ( 2.9%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEoAAABDCAQAAACR1lsyAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAnUlEQVRo3u3Xuw2AMAxFURuxY3aAeWCHTAltwidCCZJfcW+XBh3hFI4fptcUDQA10lwe9sALtvgLyiwFkXJ1khwfKFCgQIECBUogSdRln8p9X/k5L5dN7/7MeKVDcnySqOpObZEvUx4OHYECBQoUKFCgBGJHb8WO3tPjjr5GztFufyqFbekNlEagQIECBQoUKIEkUfoPB5UkxwfqaychPxDNPm8k6AAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3183,10 +3202,10 @@ IQR (CV) : 15.5 (0.5)</td>
 <td>1. Female<br />
 2. Male<br />
 3. Non-binary / third gender</td>
-<td>7 (46.7%)<br />
-7 (46.7%)<br />
-1 ( 6.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABDCAQAAACVI4sPAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAm0lEQVRo3u3XwQ2AIBAFUdbYoz1oPdoDVeoVjUpAcX/MzI0LeclyWGwNWnXeAECl9elhcXpQo12AQhgcOHF3khsZIECAAHkHCBCg1h32oVh3y4tZuiRa9TXPSg1yI5MD7d7Q7PVrZMkvCBAgQIC8AwTodyB26rPYqUvK7NTT51O83ak9nrjcyAABAgTIO0CAALVOe8lXSG5kgHJtGcMRIfY+dZAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>17 (48.6%)<br />
+17 (48.6%)<br />
+1 ( 2.9%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEoAAABDCAQAAACR1lsyAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAnUlEQVRo3u3Xuw2AMAxFURuxY3aAeWCHTAltwidCCZJfcW+XBh3hFI4fptcUDQA10lwe9sALtvgLyiwFkXJ1khwfKFCgQIECBUogSdRln8p9X/k5L5dN7/7MeKVDcnySqOpObZEvUx4OHYECBQoUKFCgBGJHb8WO3tPjjr5GztFufyqFbekNlEagQIECBQoUKIEkUfoPB5UkxwfqaychPxDNPm8k6AAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3196,21 +3215,25 @@ IQR (CV) : 15.5 (0.5)</td>
 <td>All NA’s</td>
 <td></td>
 <td></td>
-<td>15<br />
+<td>35<br />
 (100.0%)</td>
 </tr>
 <tr class="even">
 <td>D_race<br />
 [character]</td>
-<td>1. Black or African American<br />
-2. White or Caucasian<br />
-3. White or Caucasian,Americ<br />
-4. White or Caucasian,Asian</td>
-<td>3 (20.0%)<br />
-10 (66.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGEAAABXCAQAAAC+LOOYAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAA20lEQVR42u3ZQQrCQBAFUUdyRw/hefQOnlK3ndlIkkXXfOrtgiBT0AN2HN/b6u7dBzAhI2GrD+8TF+M5Oo5dD7rtP3oc/KpPx/knAYNkAoEJBCYQmEBgAoEJBCYQTPsC4ff/UaPuPy0L2Cn11GmD9FrnpVIZmIu7c4/9jQ0YJBMITCAwgcAEAhMITCAwgcDduUvY7hyQ8Gf97/lj/ELCvP6vcbkDBskEAhMITCAwgcAEAhMITCBw/e/i+k/j+k8QMEgmEJhAYAKBCQQmEJhAEJCQtjuvKWCQTCD4AVvrF/akw9mwAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>1. Asian<br />
+2. Black or African American<br />
+3. Black or African American<br />
+4. White or Caucasian<br />
+5. White or Caucasian,Americ<br />
+6. White or Caucasian,Asian</td>
+<td>2 ( 5.7%)<br />
+3 ( 8.6%)<br />
+1 ( 2.9%)<br />
+27 (77.1%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAG8AAACACAQAAACv3v+8AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABJklEQVR42u3aUQqCQBRG4Sbco4toPbmHVllPwZ1RQSKQ83u+p6IXD12Fudjet2T3sy/APPP2TPXLMtyIj3b25f2iRkz9T3P5/Dr7Ov8gfDjNIzOPzDwy88jMIzOPzDyy4byXcMarWj3bIg/nK7UofDjD87p777mz02WulFZ5/Srpi/y4CR9O88jMIzOPzDwy88jMIwvPc9dC464lxeauhbtbGQ3/3ry5beEKH07zyMwjM4/MPDLzyMwjM4/MVRLNhVZJh95rgSlDeOC9Fpb+6RE+nOaRmUdmHpl5ZOaRmUdmHpm7FpoL7VrC83xthyx8OM0jM4/MPDLzyMwjM48sPM9dC427lhTuWsjCh9M8MvPIzCMzj8w8MvPIzCO70iopT/hwmkf2AY8+Iqbp8TqWAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3220,10 +3243,10 @@ IQR (CV) : 15.5 (0.5)</td>
 <td>1. hs_or_less<br />
 2. ugrad<br />
 3. grad</td>
-<td>3 (20.0%)<br />
-9 (60.0%)<br />
-3 (20.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAABDCAQAAABdT2HZAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAArElEQVRo3u3ZwQmAMAxGYSvd0SGcR3dwSr2mBcG2mOaH924iyHcI0mi6F7XW2QDIMcv24uwY7D15MC0sl7e2xkddHt4qwcGADBkyZMixggwZMuTvVeflGeff1pI977ssGF1ZpeBgCJKLWT7ifocxMzu4rvpUvhQEBwMyZMiQIccKMmTI02L3+yt2P++Gdz+fX5WvZH5VQoYMGfL0IEOGDBlyrNTXVY0EBwOyRw+O9xIhQF+wdgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>6 (17.1%)<br />
+20 (57.1%)<br />
+9 (25.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFUAAABDCAQAAABHc4FXAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAr0lEQVRo3u3ZwQ1AQBBAUSt6VIR66EGVXGedkJ3lJ//fRCLvMJIdyjFQGr8GSP22KV5sjwZ3Kfm8CJrqW/Pth+z5zkugAZAqlZJUqZSkSqUkNaPLebX/KfR+JZ6zOxzrHxZ1oAEAUatZXf/3/SLM5Os1sEf1Sw4aAKlSKUmVSkmqVEogqrtVq9ytsmu8W2X+dmu6W+W+lKABkCqVklSplKRKpSQ1I+oa+O9AAyA1oxOb3RIh+7BLDwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3239,27 +3262,33 @@ IQR (CV) : 15.5 (0.5)</td>
 7. graduate or professional</td>
 <td>0 ( 0.0%)<br />
 0 ( 0.0%)<br />
-3 (20.0%)<br />
-1 ( 6.7%)<br />
-4 (26.7%)<br />
-4 (26.7%)<br />
-3 (20.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC8AAACUCAQAAACpI7iRAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAyklEQVRo3u3ZWw5AMBCFYRV7tAjrsQir5HWKTFOdXkb+40kkXxjSk0Y4p5qZq+rO+ekUx27yIqToezjw8PDw8IPwQRZUMCGl6Hs4EW9T5b3uHh4eHh6+H0/XKlnkyZeu3dSJLvHpmokfieu+Zw8PDw//I/623qfW79z4rvJE126FD6R2bfmb8P1hwsPDw/+Ip2uVjL5tfomYceG2+Zn44/A9e3h4ePiWPF2rhK6NQtfCw8PDD8lT5Ur4HQwPDw8Pb5CWXWsf37OvzF8o6S/IosGeFAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+6 (17.1%)<br />
+4 (11.4%)<br />
+5 (14.3%)<br />
+11 (31.4%)<br />
+9 (25.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAACUCAQAAACZr6mwAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAA60lEQVRo3u3ZwQ2DMBBEURzRY4pIPSmCKuEUaZ2D5fWajTX5kxMHeMJrySNSzi0rjzRJlNpO83tPH5x9uuYCQkFBQUFBDafYg7dMf7x9uuYCVtT8GrPCW0FBQUFBQXlCtwhmtxe+bvFyrvdeXz67bzzcb6U5KygoKCiolHydV/5TqD+aNcbRLbxdokm1ukV8ipqbHQoKCgoqJXSLYNasMZ+M1hn3J5LxjaM5KygoKKh/pugWwazdLVwxMxn++6Un9SbTnBUUFBQUVEqoMcFM7hatbxpTu0V70pqbHQoKCgoqJb/qFvdGc1aJ1AX25jAzVpeLqQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>D_employmentStatus<br />
 [factor]</td>
-<td>1. Other<br />
-2. Retired<br />
-3. Working full-time<br />
-4. Working part-time</td>
-<td>1 ( 6.7%)<br />
-4 (26.7%)<br />
-8 (53.3%)<br />
-2 (13.3%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABXCAQAAAA5HQqeAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAA0klEQVRo3u3aQQrCQBBEUUdyRw/hefQOnjLZ9kQRMt1J1cD/u+DmwSQwBbb15t1dDQB4dkt8eH+9kM+mQEXG0v/06J4+Ct0u+yMGCFAdQIDqAAJUBzDb7j7ocAPsa/H2Krk+/yia5jriV8lIrt0xfzfJSNVvsf0RAwSoDiBAdQABqgOYjU0y0lSbxB54wmgqKLxr5aMpX/+h2h8xQIDqAAJUBxCgOoDZGE0jMZoqOzyarv4/3MHRdP1HZH/EAAGqAwhQHUCA6uyBc20Sx+yPGGC2DY0zF/ZZp+tnAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>1. A homemaker or stay-at-ho<br />
+2. Other<br />
+3. Retired<br />
+4. Student<br />
+5. Unemployed and looking fo<br />
+6. Working full-time<br />
+7. Working part-time</td>
+<td>1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+3 ( 8.6%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+22 (62.9%)<br />
+6 (17.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF0AAACUCAQAAABbn+00AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABKUlEQVR42u3aUWrCQBiFUVPco4voeuoeusr6ImUSVGILM/fPnO8tbweZES7J8nOq2sdoAHqtzu3D9X7wP5fRrGe1N3Pzq19Ol9G63RU+MOjo6PGho6PHh44+C/28fvwe7Xmjpd0dsePotxcrqVKF6auz/hU/q9vManT0+NDR0eNDR0ePzzbtlW06uofbdFvmVt1c00fLNPXqFj4w6Ojo8aGjo8eHjj4L3azu1UFmtfemAfRKoaOjx4eOjh4fOvosdNu0VwfZpoXpZnUAvVLo6OjxoaOjx4eO/la2aa9s09Ht+hw5qOZM7/gcOaf1n0jhA4OOjh4fOjp6fOjos9DN6l4dZFb/Y5uOfrv65206/lYUPjDo6OjxoaOjx4eOPgv9KNu0VoUPDPqIbsDZKCd8IJ7uAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3273,72 +3302,72 @@ IQR (CV) : 15.5 (0.5)</td>
 5. $75,000-$99,999<br />
 6. $100,000-$149,999<br />
 7. $150,000 or more</td>
-<td>1 ( 6.7%)<br />
-4 (26.7%)<br />
-3 (20.0%)<br />
-2 (13.3%)<br />
-1 ( 6.7%)<br />
-3 (20.0%)<br />
-1 ( 6.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC8AAACUCAQAAACpI7iRAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAA00lEQVRo3u3ZWw5AMBCFYRV7tAjrYQ9WyevUZWR6wTT/eRPJFxmNo4Stq5m+qu6cH+TBcroRU7CTEhniU2N0tGZfve/Zw8PDwzfEH573+U/4OEF2S0I1XUSKDc1+LvNOJWasVnlK4sXhe/bw8PDwb/J0rZK/d62+sc7s2qel4Hv28PDw8A3xVLkSc9faPlobu9Z6b3wvTHh4ePiGeLpWybdVnvK3+ZbnbzM8PDz8dzxdq+Rv2+Zj+EQNDw8PD0+Vq2FfCw8PDw9fIG92bfn4nn1lfgduSil30mQ7fwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>2 ( 5.7%)<br />
+3 ( 8.6%)<br />
+7 (20.0%)<br />
+7 (20.0%)<br />
+4 (11.4%)<br />
+7 (20.0%)<br />
+5 (14.3%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAACUCAQAAABVNpNbAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAzElEQVRo3u3Yyw2DMBCEYRulxxSRekgPqZKckJaHzW4EYqL95wQHPok18sjUqZyX4URLGHvYm/dqgK96DEwtrJSnuf7c+5pgYGBgsaz2s/geZlPtTunYWDexz//JzMZGI3uKZYMtC2WOf1F0ZwYGBqaJ0QHxuDqgGzMbRwf0slww3ZmBgYElwJIUCh0ABgYGtpMkHXBXoRz/XnIXimdpdGcGBgamidEB8XCoAAMDA9tJkkL5oQPa54FwB/SmqvtpgIGBJcCu6wCp19TFvn2mKKET18HSAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>D_work_detail<br />
 [character]</td>
-<td>1. retired<br />
-2. Associate<br />
-3. bank controller<br />
-4. Credit Reporting Supervis<br />
-5. Fast Food Crew, only 20 m<br />
-6. I am an operations manage<br />
-7. IT Specialist<br />
-8. manufacturing<br />
-9. Office Manager<br />
-10. Prefer not to say<br />
-[ 3 others ]</td>
-<td>3 (20.0%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-3 (20.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAADkCAQAAABeFJ6aAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAzklEQVR42u3bsQ3CMBRFURuxIzvAPLBDpoSGIgIH+FYiOfzzOoocyY6UW1HvZb0dVrQGxo7zH7eOCzzXBayUU5CatjsmDAZLgL18gqY+5bk6/x7WDmD+/E7u7PrWgEvo5B8bEH0d494ZDAZLgCUJigbAYDBYY0kaICjxwWCwBJgGxKcBMBjsXzANiE8DYDAYrLEkQdEAGAwGa0wDStEAGAyWFUvSAEGJDwaDJcA0ID4NgMFgsMaSBOVLA3452wLmH8wwGGzH2HYNGOqY42IP8gM/y6Sa284AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>1. nurse<br />
+2. retired<br />
+3. Associate<br />
+4. bank controller<br />
+5. CIO CTO i am in charge o<br />
+6. Credit Reporting Supervis<br />
+7. Data scientist<br />
+8. English tutor<br />
+9. Fast Food Crew, only 20 m<br />
+10. Financial Advisor<br />
+[ 23 others ]</td>
+<td>2 ( 5.7%)<br />
+2 ( 5.7%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+23 (65.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAADkCAQAAADNsOl9AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABk0lEQVR42u3XQUrDYBRGUSPdYxfhenQPrlJHwp+0guDg5oVzRhYnufQF+m1fL7O91g8goH6A/7qtHz4OL8TbVj/ec+tj3vb/ui9/f9bP+SfjT0hATUBNQE1ATUBNQG18wOHn9Iyf0KttHQcn3S8P1mcef0LjA3bvwPuQTfxrgE0sQMA8AmoCagJqAmoCauMDjPrCpUb90008YQv/OHwD990qnmD8CQmoCagJqAmoCagJqAmo2cSFS23i8QFGfW38CQmoCagJqAmoCagJqI0PsIkLNvGZ2MS18SckoCagJqAmoCagJqA2PsAmLtjEZ2IT18afkICagJqAmoCagJqAmoCaUV+41Ki3iWvjT0hATUBNQE1ATUBNQE1AzSYu2MRnYhPXBNQE1ATUBNQE1ATUBNRs4sKlNvH4AKO+Nv6EBNQE1ATUBNQE1ATUxgfYxAWb+Exs4tr4ExJQE1ATUBNQE1ATUBNQM+oLlxr1Tzfx6S2ncngHJizi/Xs6/oQE1ATUBNQE1ATUBNQE1K61iScaf0ICat/jSD4rH2ICYwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>D_zipcode<br />
 [character]</td>
-<td>1. 15122<br />
-2. 19444<br />
-3. 27103<br />
-4. 27705<br />
-5. 28081<br />
-6. 29607<br />
-7. 32566<br />
-8. 34474<br />
-9. 36609<br />
-10. 37874<br />
-[ 5 others ]</td>
-<td>1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-5 (33.3%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADcAAADkCAQAAACWeHRMAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAA+0lEQVR42u3W243CQBBEUYycI0EQD+RAlPA7w3MkysZqzv2zkPZo6V25putuzfarasW5uX04PxzyOH1PtD907j86dE+X+G9X+3Y4HA6HG+/uBZR/5fRN7csv8C59Uiv80e1Oi2yVl5ytgsPhcLiinGkUzFbB4XA4HC6erRLMNApW+3Y4HA6HG89WCWarBKt9OxwOh8ONZ6sEs1WC1b4dDofD4TbLmUbBbBUcDofD4eLZKsFsFRwOh8Ph4tkqwUyjYLVvh8PhcLjxbJVgtkqw2rfD4XA43GY50yjYh60SqfnS3m6VRP1fQ+1/BBwOh8NtlvvlVlm+2rdbmbsBCphAyzvziFIAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>1. 00000<br />
+2. 08077<br />
+3. 11581<br />
+4. 11801<br />
+5. 19444<br />
+6. 19711<br />
+7. 20147<br />
+8. 27103<br />
+9. 28081<br />
+10. 28470<br />
+[ 25 others ]</td>
+<td>1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+25 (71.4%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGcAAADkCAQAAAAvbPIEAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABlUlEQVR42u3YsU3DYBRG0RhlxwzBPLADU0KDkB1FSCiF7/84p0vnqzwX/rbPyyQvZz+AnP+Tc93/eP9+kV63sx/rL/Zv/92/c7vczn66pww7NjllcsrklMkpk1Mmp2xYzvX48+Ps53nStv/4Weqr7ccvn2+rG5ZzeHfeltwK9mwFZXLK5JTJKZNTJqdMTpmcMtNHzeDpw1ZQNuzY5JTJKZNTJqdMTpmcMjlltoKawVvBsBzTR9mwY5NTJqdMTpmcMjllcsqG5dgKamwFq7AVlA07NjllcsrklMkpk1Mmp2xYjq2gxlawCltB2bBjk1Mmp0xOmZwyOWVyyuSUmT5qBk8ftoKyYccmp0xOmZwyOWVyyuSUySmzFdTYClZhKyiTUyanTE6ZnDI5ZXLK5JTZCmoGbwXDckwfZcOOTU6ZnDI5ZXLK5JTJKRuWYyuosRWswlZQNuzY5JTJKZNTJqdMTpmcMjllpo+awdPHw61gMbujunt31lsKjm/7sGOTUyanTE6ZnDI5ZXLK5JRN3grWN+zY5JR9Af4tPYMHXUvDAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3351,13 +3380,13 @@ IQR (CV) : 15.5 (0.5)</td>
 4. 45-54<br />
 5. 55-64<br />
 6. 65+ years</td>
-<td>1 ( 6.7%)<br />
-3 (20.0%)<br />
-1 ( 6.7%)<br />
-4 (26.7%)<br />
-4 (26.7%)<br />
-2 (13.3%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC8AAACACAQAAAAxZPgcAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAyklEQVRo3u3Y0Q2DMAxF0abKjh2CecoOnbL8xiUYOSEptu77Q0hHyIl4hPR9jMxzqO6cz+XFuluIJdnJEsny1ktcfbqf3vfs4eHh4QPxP+/7/je8TCq7paGaKinFQLN/N3xT6WWvVvl5zraC79nDw8PDz+TpWiX/7dqWY/Mhz7EZHh4ePixPlSvpPtfWJnLA28+1+8jV870x4eHh4QPxdK0SqlyEKoeHh4dvC12r5G5da/tpbexa69L7nj08PDx8IH5mlV8f37MfzG/FeyM3H7VzUQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>5 (14.3%)<br />
+6 (17.1%)<br />
+6 (17.1%)<br />
+10 (28.6%)<br />
+6 (17.1%)<br />
+2 ( 5.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADEAAACACAQAAAAIA0lHAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAzElEQVRo3u3XUQ6CMBCEYUq4I4fwPHIHTylPJFtJ6FRpbXb/eTMoX3CbzJLeU+vMzQUnxGI/bNJgHqn8HXujJb+0Fn/8qn4KH7OAgICACE589EV9G5STbD8JdSbG3tXhLJ5Ve5uyJpwIZT04oh8MH7OAgICAGJmgu8XQ3WJ8zAICAgIiOMF6IOaH7r6M+UO+7u6r5BP1cWghICAgghN0t5ix1wNe7SEgICACEXS3mH93t9rOFUTe3XeN3scsICAgIIITvdeDNvExiw7EDtiZI6JEl5XpAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3369,45 +3398,45 @@ IQR (CV) : 15.5 (0.5)</td>
 3. No preference<br />
 4. Independent<br />
 5. Republican</td>
-<td>3 (20.0%)<br />
+<td>11 (31.4%)<br />
+1 ( 2.9%)<br />
 0 ( 0.0%)<br />
-0 ( 0.0%)<br />
-5 (33.3%)<br />
-7 (46.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABsCAQAAABj2TzsAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAA2klEQVRo3u3awQ3CMAxGYYKyY4dgHtiBKdurg5Bcp3H9H967IST4VBfJqGn7Q6tnNQBQtG5ffCZuqFe7jrBf28e3tuBHfddcFpPcyAABAgSoOkCAAGX3sw+t32+iNbutLVj+prIGuZFpg94C/xq1r5BCgAABAlQdIECAsmOn9tIGsVMDAgQIECBAgADVJwdiyfcannXk7NSx4yoXD6P4RR/nyI0MECBAgKoDBAhQdhxG+Zf0Ti0HumHJP5G5V9KXfL/xhyQ3MkCAAAGqDhAgQNlpL/kKyY0MkNcBfWsZl5ZD95UAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+9 (25.7%)<br />
+14 (40.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABsCAQAAABwDnwYAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAA1UlEQVRo3u3ayw2FIBCFYTH0SBHWoz1YpW5cDMoCyOgh8Z+dj1y+cEgcuYZj0tYsHh/AFO3B5r4gllA6a4eJ+aXkOvxecY88AgAAAAAAAADArR+oeYL7VrDdSej+mbayY8ojkAOyNbBec7N8lcVzBpJzW9oM+L4AAAAAAAAAOYCeUB7BWIBVsHM91gwAAAAAAAAAAH4JoCkt7hP2V/sOo+uf1z2vNfIIAAAAAAAAAABsVMojkAOcm9LKMlm/+kVlufKFLo8AAAAAAAAAADBWU6ooeQQATuJGG14QbpuoAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>D_politicalParty_OTHER<br />
 [character]</td>
-<td>All NA’s</td>
-<td></td>
-<td></td>
-<td>15<br />
-(100.0%)</td>
+<td>1. Democratic Socialist</td>
+<td>1 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAbCAQAAADmdrQ3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAd0lEQVRYw+3YsQ2AIBBAUc+wIzswkDs4pZagfusj4b8KQnP5CRTEtelrzx5gTmZBZkFl3BxLPzQt+ro8j2r2bJPwEiGzILMgsyCzILMgsyCzILMgsyCzILMgsyCzILMgs6DXN9SZPU+iNqxj6X/KX14iZBZkFnQDa2gFo4qho0EAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>34<br />
+(97.1%)</td>
 </tr>
 <tr class="even">
 <td>D_politicsSocial<br />
 [numeric]</td>
-<td>Mean (sd) : 44.9 (33.3)<br />
+<td>Mean (sd) : 41 (31.9)<br />
 min &lt; med &lt; max:<br />
 0 &lt; 41 &lt; 100<br />
-IQR (CV) : 53.5 (0.7)</td>
-<td>14 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAABKUlEQVR42u3cQWrbUBhG0eOQPXYPzXqSPXiV7eQbqJQOFIfYTe6dCYHQO/A0+CV0+aV4uvcNPEYxIIb1fDx4O/2geLncewHv77jY5z9P/Th1oeu9V/JhtSkQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKAX/NIs/2+lBve94/IL6R4cwI93p64Pt5A+I2BWJYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghnXjSPaxOjknP8yxvxTDuTn5sTYFYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA7gcv689/2fh/7mfh4+FL99q5f+sTYEYVgzgNyNDEVrDmAmCAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+IQR (CV) : 57 (0.8)</td>
+<td>25 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABL0lEQVR42u3cQWobMQCG0eeQO+YOzXmaO+SU6eZfTCldTBPiafJ9u8FgRg9khCR8e1M83PsFrlEMiGE9Hh9eTv9QPN/uPYB/7zjYx98/ejr1Ra/3HsmH1aRADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsG/LHfcKV+fuIm0IUZPnMTqEmBGFYMiGHFgBhWDHj3uuH8EueavZPhzALn9cJnYk0KxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAM69K3ZM928u7N4Wrxl2I4d/fmWJMCMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw7odD3rO/7Pw/9yPw6nV7VuN/K81KRDDigH8Aly1EvJ04OR+AAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>D_politicsFiscal<br />
 [numeric]</td>
-<td>Mean (sd) : 47 (32.2)<br />
+<td>Mean (sd) : 42.5 (32.1)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 46 &lt; 100<br />
-IQR (CV) : 42 (0.7)</td>
-<td>13 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAABLUlEQVR42u3cQWobURRFwZLRHrMHez3JHrLKeHIHjcGDFrQiknNmgkZ6KvgaPD66/VG8/e0BXqMYEMO6H1/cLv2on6d/hj4uHeg4zv3hd3mgH6ee/v3EyToUiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAvu8jzS9NrOzvP4yvcLyvZs0vTM8+fX7E+b4XboUAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLCeekv26k5usg977H+K4fE9eYcCMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKAdyO92t/vdjfWFzb++Gy8O2/+ubf1qFADCsG8AlBQBLurNgc2wAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+0 &lt; 43 &lt; 100<br />
+IQR (CV) : 42.5 (0.8)</td>
+<td>24 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABNUlEQVR42u3cQW5TMRhG0RPUPbIHWA/soauEyTd4qGLgljYB7p1FkaL4SH5yflm5/VB8uvcXeIxiQAzr6fri+/GD4uvt3gt4fdfFPv361uejD3q+90r+WG0KxLBiQAwrBsSwYsCLc8Np3971l9nHHc7eyHBy3Hp+4MNZmwIxrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBb54+vW+nI77XD+0emuHjhnZtCsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsB56CHfa4ezyMrn8pxjOridea1MghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWLfr5bHzfxb+m/tyuQl3+69W/tvaFIhhxQB+AlzAE16h6poNAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3415,39 +3444,43 @@ IQR (CV) : 42 (0.7)</td>
 <td>SCREEN_workMethod<br />
 [character]</td>
 <td>1. btwn-50-75<br />
-2. less-25<br />
-3. more-75</td>
-<td>3 (20.0%)<br />
-5 (33.3%)<br />
-7 (46.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABDCAQAAACVI4sPAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAq0lEQVRo3u2X2wmAMBAEjaRHi7Ae7cEq9fciQrw8zCIzf0FIBvcCm3BOWsyjBRDyEu1iLxioNdRL2GNj+mlxbnW0+S0GucgQQgghhEaDEEII9ebWh9r3Gy/BtrUG5a8I6yAXmZxQMkNbl1ej7xlQWfLzeK+JXGQIIYQQQqNBCKHfCdGpn6BTe/igU7/AzEr3Tp0nvUhykSGEEEIIjQYhhBDqjXbJV0AuMoRyXAI3EiH9NLG2AAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+2. btwn25-50<br />
+3. less-25<br />
+4. more-75</td>
+<td>3 ( 8.6%)<br />
+6 (17.1%)<br />
+6 (17.1%)<br />
+20 (57.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFUAAABXCAQAAADfNMHaAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAy0lEQVRo3u3YwY3CQBAFUQY5R4IgHsjBUcK1bY0lY9zTLqnqtoLDOzTS/G2fG6V7NUBqbVP8471xuM9WxYugafnRo/P1ucq5CnQAUqVSkiqVklSplKRmtHqvXuVt2qvFd3bZY3+zqKMewOunfwqMXlw7tlW/8VcNOgCpUilJlUpJqlRKUjNyW50VdFuBqM7AjEAHIFUqJalSKUmVSklqRs7As3IGZvfHDBxSuMnDM3BEyx856ACkSqUkVSolqVIpgajUbXXtQAcgNaMvI4oX9uoRqMwAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>SCREEN_workFunction<br />
 [character]</td>
-<td>1. Account-Management,Admini<br />
-2. Account-Management,Data-A<br />
-3. Account-Management,Health<br />
-4. Administration-PersonalAs<br />
-5. Finance-Accounting<br />
-6. IT<br />
-7. IT,other<br />
-8. other<br />
-9. Product-Management<br />
-10. Sales-Business-Developmen</td>
-<td>1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-5 (33.3%)<br />
-2 (13.3%)<br />
-1 ( 6.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADcAAADQCAQAAAAJkzH3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAA9klEQVR42u3ZWw7BUBiFUZXO0SCMhzkYJa/nuLbpVs1vfW8iscKpdIfhuluz/apacW5sH5wfDvI4LCfaFx37pw7do0v83dU+OxwOh8NN7+4GlL/l9A3tzS9wL31SK/zR2Z2+slVecrYKDofD4YpyplEwWwWHw+FwuHi2SjBbBYfD4XC4eLZKMNMoWO2zw+FwONz0bJVgtkqw2meHw+FwuM1yplEwWwWHw+FwuHi2SrAPWyVS86G93SqJ+quh9hcBh8PhcJvlbJVgW59Gy37YmTmNll5Ktc8Oh8PhcNOzVYJta6v4ywmHw+FwuPn9chp9v9pntzJ3A9Q0OvYiIRgOAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>1. other<br />
+2. Healthcare-Professional<br />
+3. IT<br />
+4. Data-Analysis<br />
+5. Education-Professional<br />
+6. Finance-Accounting<br />
+7. Product-Management<br />
+8. Account-Management,Admini<br />
+9. Account-Management,Data-A<br />
+10. Account-Management,Financ<br />
+[ 10 others ]</td>
+<td>8 (22.9%)<br />
+3 ( 8.6%)<br />
+3 ( 8.6%)<br />
+2 ( 5.7%)<br />
+2 ( 5.7%)<br />
+2 ( 5.7%)<br />
+2 ( 5.7%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+10 (28.6%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADEAAADkCAQAAACbZgQLAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABF0lEQVR42u3cQQ6CMBAFUDHekUN4Hr2Dp9RtMUImLcVmeH9HNH2RIf7Z6PS+9M61u5CEuJUXz4bB3KfyqjzotnzjXAm8Nl7LMQsEAoEYmfj6Mn/VnbKZqSyPqfqY75SnJpzFY6W77013MNDdrY9AjlkgEAjEyQnrQTC6G4FAIBCDELo7mH+vB21rwU9iuR7sNfocs0AgEIiRCd0djO4OJscsEAgEYmRCdweju4PJMQsEAoE4OWE9CEZ3IxAIBGIQQncH87O79+nslU8xV/8QLUz0CAKBQCB6R3cHYz2oI3oEgUAgTk7o7mB0dx3RIwgEAoHoHetBMKFfqVekuCE7/TvcMsuJ5nhoEQgE4uTE0d3dJzlmcQDxAXhtP8/TmOxyAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3456,55 +3489,63 @@ IQR (CV) : 42 (0.7)</td>
 [character]</td>
 <td>1. just a worker drone<br />
 2. labor<br />
-3. prefer not to say<br />
-4. retired<br />
-5. Retired</td>
-<td>1 (20.0%)<br />
-1 (20.0%)<br />
-1 (20.0%)<br />
-1 (20.0%)<br />
-1 (20.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAABsCAQAAACs9wgvAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAg0lEQVRo3u3VMQ6AIAxG4dZ4R+/gffQOnFIWh8bg0AaSEt6/OfglMPD0kX7bOlqJsd1+3IELPPUHEzmcVBl3TDAwMDDfPu9ZiSnv1D6uGgDs/5Pc2RUpMkEBAwPLgdEA/2gAGBgYWGOLBIUGgIGBgTW2SAMIin9gYGBgvo0LSqpj5sUq7wQbjDdP7oAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
-<td>10<br />
-(66.7%)</td>
+3. n/a<br />
+4. prefer not to say<br />
+5. retired<br />
+6. Retired<br />
+7. Stay at home parent<br />
+8. translator</td>
+<td>1 (12.5%)<br />
+1 (12.5%)<br />
+1 (12.5%)<br />
+1 (12.5%)<br />
+1 (12.5%)<br />
+1 (12.5%)<br />
+1 (12.5%)<br />
+1 (12.5%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB0AAACoCAQAAAC2nS1CAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAkUlEQVRo3u3UwQ2AIAxGYWrc0R3cR3dgSr02JtCIJrTp40bCd/gPPLnK6FmG5SS66stpDt+lQUvZurA62AqFJqaP/1pfUNFhEPO5fu1g62H3nKxBofMobeoMbFDaBIW6puGyRpug0BQ0XJvIGhSagtKmzsAGpU1QqGsaLmu0CQpNQcO1iaxBoSnoX22KsPUDvQFe7CvKWtQF9gAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>27<br />
+(77.1%)</td>
 </tr>
 <tr class="odd">
 <td>SCREEN_socialMedia<br />
 [character]</td>
 <td>1. Facebook,Twitter,Youtube,<br />
-2. Instagram<br />
-3. Facebook,Instagram,Reddit<br />
-4. Facebook,LinkedIn<br />
-5. Facebook,Reddit,LinkedIn<br />
-6. Facebook,Snapchat<br />
-7. Facebook,Twitter,Instagra<br />
-8. Facebook,Twitter,Reddit,L<br />
-9. Facebook,Youtube,Reddit,L<br />
-10. other<br />
-[ 2 others ]</td>
-<td>3 (20.0%)<br />
-2 (13.3%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-1 ( 6.7%)<br />
-2 (13.3%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAADkCAQAAABeFJ6aAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAA1ElEQVR42u3bQQ6CMBRF0da4R/cg69E9sEqdOCCmVD+BpPrPmzHwBKrhjqyPst9OO1oDY+flxX3DAV7rClbKJUjNxz0mDAZLgL29guZtymt1+T6sG4Dl53/kzG5fNGDqnEWwAf0vaNwzg8FgCbAkQfnQgCl0s90GRE9w3J8GDAZLgCVpgKDEB4PBEmAaEJ8GwGCwf8E0ID4NgMFgsMaSBEUDYDAYrDENKEUDYDBYVixJAwQlPhgMlgDTgPg0AAaDwRpLEhT/XoPBYLDGjmvAUI85LvYEmOVANgb7+e0AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+2. Facebook,Instagram,Reddit<br />
+3. Facebook,Twitter,Reddit,L<br />
+4. Instagram<br />
+5. Twitter,Reddit,LinkedIn<br />
+6. Facebook<br />
+7. Facebook,Instagram,Linked<br />
+8. Facebook,Instagram,Reddit<br />
+9. Facebook,LinkedIn<br />
+10. Facebook,Reddit,LinkedIn<br />
+[ 17 others ]</td>
+<td>4 (11.4%)<br />
+3 ( 8.6%)<br />
+2 ( 5.7%)<br />
+2 ( 5.7%)<br />
+2 ( 5.7%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+1 ( 2.9%)<br />
+17 (48.6%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEoAAADkCAQAAACVz3pkAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABbklEQVR42u3dQU7DMBRFUYK6xy6C9dA9sEo6QnKi5Ndy5eQhnTtDCHGEPXgeoC6/H3l9Xg2Aeqdb+8WjvGBfy0xI+6tv62/dD3/oZ6ZoU+TxQUFBQUFBQQW0mS5nDpTjlnZcTV1xL2odkccXiVrdqe+DjT53nb9A7W/08y9/5PFBQUFBQUFBBRSJ8nCoin84lBv97G2+i1pv9OvuV+TxQUFBQUFBQQUUibLRq+I3eiTKw6G3yOODgoKCgoKCCshGr7LRR7LRe4s8PigoKCgoKKiAbPQqG32k3Y1+1Tb/a/OXuhf/ynoZKiMoKCgoKCiogCJRHg5V8Q8HG30QlREUFBQUFBRUQJEoG73KRh/JRoeCgoKCggoI6l+jbPSq+I0eifJwGERlBAUFBQUFBRWQjV5lo49kow+iMoKCgoKCgoIKKBLl4VAV/3Do+rSnU2qOqfsTWee2vsuRxwcFBQUFBQUVUCQqf6OnFHl8UL09AfSSPycqzP87AAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>SCREEN_socialMedia_TEXT<br />
 [character]</td>
-<td>1. blue sky</td>
-<td>1 (100.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAbCAQAAADmdrQ3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAd0lEQVRYw+3YsQ2AIBBAUc+wIzswkDs4pZagfusj4b8KQnP5CRTEtelrzx5gTmZBZkFl3BxLPzQt+ro8j2r2bJPwEiGzILMgsyCzILMgsyCzILMgsyCzILMgsyCzILMgs6DXN9SZPU+iNqxj6X/KX14iZBZkFnQDa2gFo4qho0EAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
-<td>14<br />
-(93.3%)</td>
+<td>1. blue sky<br />
+2. Threads</td>
+<td>1 (50.0%)<br />
+1 (50.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEwAAAAvCAQAAADj/uRUAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAf0lEQVRYw+3XMQ6AIAxGYWq8o3fwPnIHTqlrMXEoYvqbvLexkC8pA7WzaLZkA4DNavWHmvzgdnuAlbIlslp3kh0lMGDA1AIGDJhawKLd/mNt7JYPMv9pteFr5uQtsqOUhXVv7MjefllGXgQMGDC1gAEDphawaP9YRpSSHSWwaBd1LAtMXWMelQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>33<br />
+(94.3%)</td>
 </tr>
 <tr class="odd">
 <td>PLATFORM<br />
@@ -3512,10 +3553,10 @@ IQR (CV) : 42 (0.7)</td>
 <td>1. Facebook<br />
 2. Instagram<br />
 3. Twitter/X</td>
-<td>7 (46.7%)<br />
-4 (26.7%)<br />
-4 (26.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABDCAQAAACVI4sPAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAmklEQVRo3u3WywmAMBBF0YzYoz1oPdpDqtRtFCXkxzzk3p0bOTAKz86g1eQNAFTanD4cTh/Uah+gEBYHTrw9yZ0MECBAgLwDBAjQ6B57KNa9pWOWjkSrfk1bqUHuZHKg2ze0dxn5W9Plu4/81t9C7mSAAAEC5B0gQL8DsanfYlOXxKbOJXcyQIAAAfIOECBAo9Me+QrJnQxQrgvR9xGMMbZHVgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>13 (37.1%)<br />
+13 (37.1%)<br />
+9 (25.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAABDCAQAAABqga7tAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAiklEQVRYw+3Wyw2AIBCEYdbYoz1oPdoDVeoVDZvgKo9k/7lx4TsMCSNn6JOpk+sQntPDUbnwVRQ4hKUiG28nfx0DAwMDAwOrefzH0XaLIZKODjFfU5bUct7xXnvdM/aAgYGBgYFzYXM1yxgdf99cW3Fbv26uN0/TX8fAwMDAwMBqxhh7LeOv427wBRDPESHOpRKrAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3540,7 +3581,7 @@ IQR (CV) : 42 (0.7)</td>
 Summary</h3>
 <div id="df_graphs" class="section level4" number="4.2.1.1">
 <h4><span class="header-section-number">4.2.1.1</span> df_graphs</h4>
-<p><strong>Dimensions:</strong> 75 x 51<br />
+<p><strong>Dimensions:</strong> 175 x 51<br />
 <strong>Duplicates:</strong> 0</p>
 <table style="width:97%;">
 <colgroup>
@@ -3563,41 +3604,41 @@ Summary</h3>
 <tr class="odd">
 <td>PID<br />
 [factor]</td>
-<td>1. R_1I0iHRdAtslLyCK<br />
-2. R_1NTQKVdgM8CmNO1<br />
-3. R_1tllC65FM331Hu0<br />
-4. R_36lsPCIUrHD1d6y<br />
-5. R_38fhVE1dC3HsMKZ<br />
-6. R_3hH2y8Xn2WdtjbS<br />
-7. R_3vc1IVl1UMrAopj<br />
-8. R_5htDl6TU8QrF1zZ<br />
-9. R_5QrCKYHt51qQEXO<br />
-10. R_6F5b2KyY7iqgius<br />
-[ 5 others ]</td>
-<td>5 ( 6.7%)<br />
-5 ( 6.7%)<br />
-5 ( 6.7%)<br />
-5 ( 6.7%)<br />
-5 ( 6.7%)<br />
-5 ( 6.7%)<br />
-5 ( 6.7%)<br />
-5 ( 6.7%)<br />
-5 ( 6.7%)<br />
-5 ( 6.7%)<br />
-25 (33.3%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADcAAADkCAQAAACWeHRMAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAA+0lEQVR42u3W243CQBBEUYycI0EQD+RAlPA7w3MkysZqzv2zkPZo6V25putuzfarasW5uX04PxzyOH1PtD907j86dE+X+G9X+3Y4HA6HG+/uBZR/5fRN7csv8C59Uiv80e1Oi2yVl5ytgsPhcLiinGkUzFbB4XA4HC6erRLMNApW+3Y4HA6HG89WCWarBKt9OxwOh8ONZ6sEs1WC1b4dDofD4TbLmUbBbBUcDofD4eLZKsFsFRwOh8Ph4tkqwUyjYLVvh8PhcLjxbJVgtkqw2rfD4XA43GY50yjYh60SqfnS3m6VRP1fQ+1/BBwOh8NtlvvlVlm+2rdbmbsBCphAyzvziFIAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>1. R_144s3PnFP9VI253<br />
+2. R_1I0iHRdAtslLyCK<br />
+3. R_1irmSR8xxlJWBao<br />
+4. R_1KMWnBcB00ffd5L<br />
+5. R_1NTQKVdgM8CmNO1<br />
+6. R_1tllC65FM331Hu0<br />
+7. R_30B1JVRPxq5MAcl<br />
+8. R_34uRDOFTIJaxMHq<br />
+9. R_36lsPCIUrHD1d6y<br />
+10. R_38fhVE1dC3HsMKZ<br />
+[ 25 others ]</td>
+<td>5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+125 (71.4%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGcAAADkCAQAAAAvbPIEAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABlUlEQVR42u3YsU3DYBRG0RhlxwzBPLADU0KDkB1FSCiF7/84p0vnqzwX/rbPyyQvZz+AnP+Tc93/eP9+kV63sx/rL/Zv/92/c7vczn66pww7NjllcsrklMkpk1Mmp2xYzvX48+Ps53nStv/4Weqr7ccvn2+rG5ZzeHfeltwK9mwFZXLK5JTJKZNTJqdMTpmcMtNHzeDpw1ZQNuzY5JTJKZNTJqdMTpmcMjlltoKawVvBsBzTR9mwY5NTJqdMTpmcMjllcsqG5dgKamwFq7AVlA07NjllcsrklMkpk1Mmp2xYjq2gxlawCltB2bBjk1Mmp0xOmZwyOWVyyuSUmT5qBk8ftoKyYccmp0xOmZwyOWVyyuSUySmzFdTYClZhKyiTUyanTE6ZnDI5ZXLK5JTZCmoGbwXDckwfZcOOTU6ZnDI5ZXLK5JTJKRuWYyuosRWswlZQNuzY5JTJKZNTJqdMTpmcMjllpo+awdPHw61gMbujunt31lsKjm/7sGOTUyanTE6ZnDI5ZXLK5JRN3grWN+zY5JR9Af4tPYMHXUvDAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>duration.min<br />
 [numeric]</td>
-<td>Mean (sd) : 40.6 (17.9)<br />
+<td>Mean (sd) : 44.5 (20.4)<br />
 min &lt; med &lt; max:<br />
-17.7 &lt; 34.5 &lt; 81.2<br />
-IQR (CV) : 22.8 (0.4)</td>
-<td>15 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAABMUlEQVR42u3cUU7bQABF0RPEHruHsh66h66y/LwPA2oiQJWh3PsXWZnYR5pIzmR8+aO4O/sEPkcxIIZ1f3xx+cBAjze+ZB4+Mvg/6XjC9+8e5VU/rhz7ffY136hJgRhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMeNN+ilsbR75yb9pW8pU3jlyvSYEYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBjWsx/oz1mJOG394/BArhfrFOesRFz/1PcevfXOY00KxLBiQAwrBsSwYkAMKwbEsGIAl+N9za//+E9er/t5uLW6fKsr/2tNCsSwYgBPqiAUgmQMI8sAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+15.6 &lt; 35.9 &lt; 109.6<br />
+IQR (CV) : 33.7 (0.5)</td>
+<td>35 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABVElEQVR42u3bUU7CQBRA0YNxj+xB16N7cJX68z6qsQa0QIP3/kHCpJxk6GQ6HN4VD7e+gH0UA2KYHpcvDmd++GX1h+X53KFu0PLiH389Cjh+++7brb/h2TUpEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAT9xte7n7f9sRtl3vZXlmrSYEYphgQwxQDYphiwJ8f12zRHp597YBhD4uzJgVimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQw3TFYx57PnJ81dMutz/VslaTAjFMMSCGKQbEMH26YW53Z99mpLVRtj89+2XdsNWd/XixUS6zzmhSIIYpBsQwxYAYphiwk3/XXLIfFnKLRdjdM5y2CGtSIIYpBsQwxYAYphjAYbm6eN3xc6Xte1osnw7/6puv1qRADFMM4ANbpBy2yoSOyQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3605,8 +3646,8 @@ IQR (CV) : 22.8 (0.4)</td>
 <td>Assigned.Block<br />
 [factor]</td>
 <td>1. 1</td>
-<td>75 (100.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAbCAQAAADmdrQ3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAAd0lEQVRYw+3YsQ2AIBBAUc+wIzswkDs4pZagfusj4b8KQnP5CRTEtelrzx5gTmZBZkFl3BxLPzQt+ro8j2r2bJPwEiGzILMgsyCzILMgsyCzILMgsyCzILMgsyCzILMgs6DXN9SZPU+iNqxj6X/KX14iZBZkFnQDa2gFo4qho0EAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>175 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAbCAQAAADmdrQ3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAd0lEQVRYw+3YsQ2AIBBAUc+wIzswkDs4pZagfusj4b8KQnP5CRTEtelrzx5gTmZBZkFl3BxLPzQt+ro8j2r2bJPwEiGzILMgsyCzILMgsyCzILMgsyCzILMgsyCzILMgs6DXN9SZPU+iNqxj6X/KX14iZBZkFnQDa2gFo4qho0EAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3620,8 +3661,8 @@ IQR (CV) : 22.8 (0.4)</td>
 <td>0 ( 0.0%)<br />
 0 ( 0.0%)<br />
 0 ( 0.0%)<br />
-75 (100.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAABXCAQAAACe7H4gAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAABA0lEQVR42u3YsQ3CMABFQYyyIzuwD0MwJXTIwEMpjZQ7GhCN9eSk+ONx4tt59QH+kyxJlvaYPrdDv2jmEm5LkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLGvMgN1afZqm5hNuS3rIce8uduS1JliRLkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkizJlvtiy90lSzJxJ7clyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlmbhfTNy7ZEnb/OPgE/f0Dtne/7msPtqf8BAlWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlfQwL99XnWeg6fR/HXp5+8RAlWZIs6QkDGBxY3oc+EgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+175 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAABXCAQAAACe7H4gAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABA0lEQVR42u3YsQ3CMABFQYyyIzuwD0MwJXTIwEMpjZQ7GhCN9eSk+ONx4tt59QH+kyxJlvaYPrdDv2jmEm5LkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLGvMgN1afZqm5hNuS3rIce8uduS1JliRLkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkizJlvtiy90lSzJxJ7clyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlmbhfTNy7ZEnb/OPgE/f0Dtne/7msPtqf8BAlWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlfQwL99XnWeg6fR/HXp5+8RAlWZIs6QkDGBxY3oc+EgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3635,8 +3676,8 @@ IQR (CV) : 22.8 (0.4)</td>
 <td>0 ( 0.0%)<br />
 0 ( 0.0%)<br />
 0 ( 0.0%)<br />
-75 (100.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAABXCAQAAACe7H4gAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAABA0lEQVR42u3YsQ3CMABFQYyyIzuwD0MwJXTIwEMpjZQ7GhCN9eSk+ONx4tt59QH+kyxJlvaYPrdDv2jmEm5LkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLGvMgN1afZqm5hNuS3rIce8uduS1JliRLkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkizJlvtiy90lSzJxJ7clyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlmbhfTNy7ZEnb/OPgE/f0Dtne/7msPtqf8BAlWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlfQwL99XnWeg6fR/HXp5+8RAlWZIs6QkDGBxY3oc+EgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+175 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAABXCAQAAACe7H4gAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAABA0lEQVR42u3YsQ3CMABFQYyyIzuwD0MwJXTIwEMpjZQ7GhCN9eSk+ONx4tt59QH+kyxJlvaYPrdDv2jmEm5LkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLGvMgN1afZqm5hNuS3rIce8uduS1JliRLkiXJkmRJsiRZkixJliRLkiXJkmRJsiRZkizJlvtiy90lSzJxJ7clyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlmbhfTNy7ZEnb/OPgE/f0Dtne/7msPtqf8BAlWZIsSZYkS5IlyZJkSbIkWZIsSZYkS5IlfQwL99XnWeg6fR/HXp5+8RAlWZIs6QkDGBxY3oc+EgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3646,8 +3687,8 @@ IQR (CV) : 22.8 (0.4)</td>
 <td>1. TUMBLR<br />
 2. PROLIFIC</td>
 <td>0 ( 0.0%)<br />
-75 (100.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAvCAQAAAB5nfGMAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwD3RCWmAAAArElEQVRo3u3YsQ3CMBRAQYyyIzuwD0MwZWgNvNSOlLs0idJYT7aLP/Yb/+6rF3BOsiRZ2j49r0tfNHMJuyXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLkiWNeSA3Vq9mqbmE3ZJkSdv8ce0R93yHbN9/HquXdhIOUZIlyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIs6Wfe8l69noWe0/u49kDuiEOUZEmypA/vSBTkQ9D58wAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+175 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAvCAQAAAB5nfGMAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAArElEQVRo3u3YsQ3CMBRAQYyyIzuwD0MwZWgNvNSOlLs0idJYT7aLP/Yb/+6rF3BOsiRZ2j49r0tfNHMJuyXJkmRJsiRZkixJliRLkiXJkmRJsiRZkixJliRLkiWNeSA3Vq9mqbmE3ZJkSdv8ce0R93yHbN9/HquXdhIOUZIlyZJkSbIkWZIsSZYkS5IlyZJkSbIkWZIs6Wfe8l69noWe0/u49kDuiEOUZEmypA/vSBTkQ9D58wAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3657,10 +3698,10 @@ IQR (CV) : 22.8 (0.4)</td>
 <td>1. Facebook<br />
 2. Instagram<br />
 3. Twitter/X</td>
-<td>35 (46.7%)<br />
-20 (26.7%)<br />
-20 (26.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABDCAQAAACVI4sPAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAmklEQVRo3u3WywmAMBBF0YzYoz1oPdpDqtRtFCXkxzzk3p0bOTAKz86g1eQNAFTanD4cTh/Uah+gEBYHTrw9yZ0MECBAgLwDBAjQ6B57KNa9pWOWjkSrfk1bqUHuZHKg2ze0dxn5W9Plu4/81t9C7mSAAAEC5B0gQL8DsanfYlOXxKbOJXcyQIAAAfIOECBAo9Me+QrJnQxQrgvR9xGMMbZHVgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>65 (37.1%)<br />
+65 (37.1%)<br />
+45 (25.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAABDCAQAAABqga7tAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAiklEQVRYw+3Wyw2AIBCEYdbYoz1oPdoDVeoVDZvgKo9k/7lx4TsMCSNn6JOpk+sQntPDUbnwVRQ4hKUiG28nfx0DAwMDAwOrefzH0XaLIZKODjFfU5bUct7xXnvdM/aAgYGBgYFzYXM1yxgdf99cW3Fbv26uN0/TX8fAwMDAwMBqxhh7LeOv427wBRDPESHOpRKrAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3670,10 +3711,10 @@ IQR (CV) : 22.8 (0.4)</td>
 <td>1. female<br />
 2. male<br />
 3. other</td>
-<td>35 (46.7%)<br />
-35 (46.7%)<br />
-5 ( 6.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABDCAQAAACVI4sPAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAm0lEQVRo3u3XwQ2AIBAFUdbYoz1oPdoDVeoVjUpAcX/MzI0LeclyWGwNWnXeAECl9elhcXpQo12AQhgcOHF3khsZIECAAHkHCBCg1h32oVh3y4tZuiRa9TXPSg1yI5MD7d7Q7PVrZMkvCBAgQIC8AwTodyB26rPYqUvK7NTT51O83ak9nrjcyAABAgTIO0CAALVOe8lXSG5kgHJtGcMRIfY+dZAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>85 (48.6%)<br />
+85 (48.6%)<br />
+5 ( 2.9%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEoAAABDCAQAAACR1lsyAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAnUlEQVRo3u3Xuw2AMAxFURuxY3aAeWCHTAltwidCCZJfcW+XBh3hFI4fptcUDQA10lwe9sALtvgLyiwFkXJ1khwfKFCgQIECBUogSdRln8p9X/k5L5dN7/7MeKVDcnySqOpObZEvUx4OHYECBQoUKFCgBGJHb8WO3tPjjr5GztFufyqFbekNlEagQIECBQoUKIEkUfoPB5UkxwfqaychPxDNPm8k6AAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3683,10 +3724,10 @@ IQR (CV) : 22.8 (0.4)</td>
 <td>1. Female<br />
 2. Male<br />
 3. Non-binary / third gender</td>
-<td>35 (46.7%)<br />
-35 (46.7%)<br />
-5 ( 6.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABDCAQAAACVI4sPAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAm0lEQVRo3u3XwQ2AIBAFUdbYoz1oPdoDVeoVjUpAcX/MzI0LeclyWGwNWnXeAECl9elhcXpQo12AQhgcOHF3khsZIECAAHkHCBCg1h32oVh3y4tZuiRa9TXPSg1yI5MD7d7Q7PVrZMkvCBAgQIC8AwTodyB26rPYqUvK7NTT51O83ak9nrjcyAABAgTIO0CAALVOe8lXSG5kgHJtGcMRIfY+dZAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>85 (48.6%)<br />
+85 (48.6%)<br />
+5 ( 2.9%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEoAAABDCAQAAACR1lsyAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAnUlEQVRo3u3Xuw2AMAxFURuxY3aAeWCHTAltwidCCZJfcW+XBh3hFI4fptcUDQA10lwe9sALtvgLyiwFkXJ1khwfKFCgQIECBUogSdRln8p9X/k5L5dN7/7MeKVDcnySqOpObZEvUx4OHYECBQoUKFCgBGJHb8WO3tPjjr5GztFufyqFbekNlEagQIECBQoUKIEkUfoPB5UkxwfqaychPxDNPm8k6AAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3696,7 +3737,7 @@ IQR (CV) : 22.8 (0.4)</td>
 <td>No levels defined</td>
 <td>All NA’s</td>
 <td></td>
-<td>75<br />
+<td>175<br />
 (100.0%)</td>
 </tr>
 <tr class="odd">
@@ -3705,10 +3746,10 @@ IQR (CV) : 22.8 (0.4)</td>
 <td>1. hs_or_less<br />
 2. ugrad<br />
 3. grad</td>
-<td>15 (20.0%)<br />
-45 (60.0%)<br />
-15 (20.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAABDCAQAAABdT2HZAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAArElEQVRo3u3ZwQmAMAxGYSvd0SGcR3dwSr2mBcG2mOaH924iyHcI0mi6F7XW2QDIMcv24uwY7D15MC0sl7e2xkddHt4qwcGADBkyZMixggwZMuTvVeflGeff1pI977ssGF1ZpeBgCJKLWT7ifocxMzu4rvpUvhQEBwMyZMiQIccKMmTI02L3+yt2P++Gdz+fX5WvZH5VQoYMGfL0IEOGDBlyrNTXVY0EBwOyRw+O9xIhQF+wdgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>30 (17.1%)<br />
+100 (57.1%)<br />
+45 (25.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFUAAABDCAQAAABHc4FXAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAAr0lEQVRo3u3ZwQ1AQBBAUSt6VIR66EGVXGedkJ3lJ//fRCLvMJIdyjFQGr8GSP22KV5sjwZ3Kfm8CJrqW/Pth+z5zkugAZAqlZJUqZSkSqUkNaPLebX/KfR+JZ6zOxzrHxZ1oAEAUatZXf/3/SLM5Os1sEf1Sw4aAKlSKUmVSkmqVEogqrtVq9ytsmu8W2X+dmu6W+W+lKABkCqVklSplKRKpSQ1I+oa+O9AAyA1oxOb3RIh+7BLDwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3724,27 +3765,33 @@ IQR (CV) : 22.8 (0.4)</td>
 7. graduate or professional</td>
 <td>0 ( 0.0%)<br />
 0 ( 0.0%)<br />
-15 (20.0%)<br />
-5 ( 6.7%)<br />
-20 (26.7%)<br />
-20 (26.7%)<br />
-15 (20.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC8AAACUCAQAAACpI7iRAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAyklEQVRo3u3ZWw5AMBCFYRV7tAjrsQir5HWKTFOdXkb+40kkXxjSk0Y4p5qZq+rO+ekUx27yIqToezjw8PDw8IPwQRZUMCGl6Hs4EW9T5b3uHh4eHh6+H0/XKlnkyZeu3dSJLvHpmokfieu+Zw8PDw//I/623qfW79z4rvJE126FD6R2bfmb8P1hwsPDw/+Ip2uVjL5tfomYceG2+Zn44/A9e3h4ePiWPF2rhK6NQtfCw8PDD8lT5Ur4HQwPDw8Pb5CWXWsf37OvzF8o6S/IosGeFAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+30 (17.1%)<br />
+20 (11.4%)<br />
+25 (14.3%)<br />
+55 (31.4%)<br />
+45 (25.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAACUCAQAAACZr6mwAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDPbbUr9AAAA60lEQVRo3u3ZwQ2DMBBEURzRY4pIPSmCKuEUaZ2D5fWajTX5kxMHeMJrySNSzi0rjzRJlNpO83tPH5x9uuYCQkFBQUFBDafYg7dMf7x9uuYCVtT8GrPCW0FBQUFBQXlCtwhmtxe+bvFyrvdeXz67bzzcb6U5KygoKCiolHydV/5TqD+aNcbRLbxdokm1ukV8ipqbHQoKCgoqJXSLYNasMZ+M1hn3J5LxjaM5KygoKKh/pugWwazdLVwxMxn++6Un9SbTnBUUFBQUVEqoMcFM7hatbxpTu0V70pqbHQoKCgoqJb/qFvdGc1aJ1AX25jAzVpeLqQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>D_employmentStatus<br />
 [factor]</td>
-<td>1. Other<br />
-2. Retired<br />
-3. Working full-time<br />
-4. Working part-time</td>
-<td>5 ( 6.7%)<br />
-20 (26.7%)<br />
-40 (53.3%)<br />
-10 (13.3%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABXCAQAAAA5HQqeAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAA0klEQVRo3u3aQQrCQBBEUUdyRw/hefQOnjLZ9kQRMt1J1cD/u+DmwSQwBbb15t1dDQB4dkt8eH+9kM+mQEXG0v/06J4+Ct0u+yMGCFAdQIDqAAJUBzDb7j7ocAPsa/H2Krk+/yia5jriV8lIrt0xfzfJSNVvsf0RAwSoDiBAdQABqgOYjU0y0lSbxB54wmgqKLxr5aMpX/+h2h8xQIDqAAJUBxCgOoDZGE0jMZoqOzyarv4/3MHRdP1HZH/EAAGqAwhQHUCA6uyBc20Sx+yPGGC2DY0zF/ZZp+tnAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>1. A homemaker or stay-at-ho<br />
+2. Other<br />
+3. Retired<br />
+4. Student<br />
+5. Unemployed and looking fo<br />
+6. Working full-time<br />
+7. Working part-time</td>
+<td>5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+15 ( 8.6%)<br />
+5 ( 2.9%)<br />
+5 ( 2.9%)<br />
+110 (62.9%)<br />
+30 (17.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF0AAACUCAQAAABbn+00AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABKUlEQVR42u3aUWrCQBiFUVPco4voeuoeusr6ImUSVGILM/fPnO8tbweZES7J8nOq2sdoAHqtzu3D9X7wP5fRrGe1N3Pzq19Ol9G63RU+MOjo6PGho6PHh44+C/28fvwe7Xmjpd0dsePotxcrqVKF6auz/hU/q9vManT0+NDR0eNDR0ePzzbtlW06uofbdFvmVt1c00fLNPXqFj4w6Ojo8aGjo8eHjj4L3azu1UFmtfemAfRKoaOjx4eOjh4fOvosdNu0VwfZpoXpZnUAvVLo6OjxoaOjx4eO/la2aa9s09Ht+hw5qOZM7/gcOaf1n0jhA4OOjh4fOjp6fOjos9DN6l4dZFb/Y5uOfrv65206/lYUPjDo6OjxoaOjx4eOPgv9KNu0VoUPDPqIbsDZKCd8IJ7uAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3758,14 +3805,14 @@ IQR (CV) : 22.8 (0.4)</td>
 5. $75,000-$99,999<br />
 6. $100,000-$149,999<br />
 7. $150,000 or more</td>
-<td>5 ( 6.7%)<br />
-20 (26.7%)<br />
-15 (20.0%)<br />
-10 (13.3%)<br />
-5 ( 6.7%)<br />
-15 (20.0%)<br />
-5 ( 6.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC8AAACUCAQAAACpI7iRAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAA00lEQVRo3u3ZWw5AMBCFYRV7tAjrYQ9WyevUZWR6wTT/eRPJFxmNo4Stq5m+qu6cH+TBcroRU7CTEhniU2N0tGZfve/Zw8PDwzfEH573+U/4OEF2S0I1XUSKDc1+LvNOJWasVnlK4sXhe/bw8PDwb/J0rZK/d62+sc7s2qel4Hv28PDw8A3xVLkSc9faPlobu9Z6b3wvTHh4ePiGeLpWybdVnvK3+ZbnbzM8PDz8dzxdq+Rv2+Zj+EQNDw8PD0+Vq2FfCw8PDw9fIG92bfn4nn1lfgduSil30mQ7fwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>10 ( 5.7%)<br />
+15 ( 8.6%)<br />
+35 (20.0%)<br />
+35 (20.0%)<br />
+20 (11.4%)<br />
+35 (20.0%)<br />
+25 (14.3%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAACUCAQAAABVNpNbAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAzElEQVRo3u3Yyw2DMBCEYRulxxSRekgPqZKckJaHzW4EYqL95wQHPok18sjUqZyX4URLGHvYm/dqgK96DEwtrJSnuf7c+5pgYGBgsaz2s/geZlPtTunYWDexz//JzMZGI3uKZYMtC2WOf1F0ZwYGBqaJ0QHxuDqgGzMbRwf0slww3ZmBgYElwJIUCh0ABgYGtpMkHXBXoRz/XnIXimdpdGcGBgamidEB8XCoAAMDA9tJkkL5oQPa54FwB/SmqvtpgIGBJcCu6wCp19TFvn2mKKET18HSAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3778,13 +3825,13 @@ IQR (CV) : 22.8 (0.4)</td>
 4. 45-54<br />
 5. 55-64<br />
 6. 65+ years</td>
-<td>5 ( 6.7%)<br />
-15 (20.0%)<br />
-5 ( 6.7%)<br />
-20 (26.7%)<br />
-20 (26.7%)<br />
-10 (13.3%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC8AAACACAQAAAAxZPgcAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAyklEQVRo3u3Y0Q2DMAxF0abKjh2CecoOnbL8xiUYOSEptu77Q0hHyIl4hPR9jMxzqO6cz+XFuluIJdnJEsny1ktcfbqf3vfs4eHh4QPxP+/7/je8TCq7paGaKinFQLN/N3xT6WWvVvl5zraC79nDw8PDz+TpWiX/7dqWY/Mhz7EZHh4ePixPlSvpPtfWJnLA28+1+8jV870x4eHh4QPxdK0SqlyEKoeHh4dvC12r5G5da/tpbexa69L7nj08PDx8IH5mlV8f37MfzG/FeyM3H7VzUQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>25 (14.3%)<br />
+30 (17.1%)<br />
+30 (17.1%)<br />
+50 (28.6%)<br />
+30 (17.1%)<br />
+10 ( 5.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADEAAACACAQAAAAIA0lHAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAzElEQVRo3u3XUQ6CMBCEYUq4I4fwPHIHTylPJFtJ6FRpbXb/eTMoX3CbzJLeU+vMzQUnxGI/bNJgHqn8HXujJb+0Fn/8qn4KH7OAgICACE589EV9G5STbD8JdSbG3tXhLJ5Ve5uyJpwIZT04oh8MH7OAgICAGJmgu8XQ3WJ8zAICAgIiOMF6IOaH7r6M+UO+7u6r5BP1cWghICAgghN0t5ix1wNe7SEgICACEXS3mH93t9rOFUTe3XeN3scsICAgIIITvdeDNvExiw7EDtiZI6JEl5XpAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3796,36 +3843,36 @@ IQR (CV) : 22.8 (0.4)</td>
 3. No preference<br />
 4. Independent<br />
 5. Republican</td>
-<td>15 (20.0%)<br />
+<td>55 (31.4%)<br />
+5 ( 2.9%)<br />
 0 ( 0.0%)<br />
-0 ( 0.0%)<br />
-25 (33.3%)<br />
-35 (46.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABsCAQAAABj2TzsAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAA2klEQVRo3u3awQ3CMAxGYYKyY4dgHtiBKdurg5Bcp3H9H967IST4VBfJqGn7Q6tnNQBQtG5ffCZuqFe7jrBf28e3tuBHfddcFpPcyAABAgSoOkCAAGX3sw+t32+iNbutLVj+prIGuZFpg94C/xq1r5BCgAABAlQdIECAsmOn9tIGsVMDAgQIECBAgADVJwdiyfcannXk7NSx4yoXD6P4RR/nyI0MECBAgKoDBAhQdhxG+Zf0Ti0HumHJP5G5V9KXfL/xhyQ3MkCAAAGqDhAgQNlpL/kKyY0MkNcBfWsZl5ZD95UAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+45 (25.7%)<br />
+70 (40.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABsCAQAAABwDnwYAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAA1UlEQVRo3u3ayw2FIBCFYTH0SBHWoz1YpW5cDMoCyOgh8Z+dj1y+cEgcuYZj0tYsHh/AFO3B5r4gllA6a4eJ+aXkOvxecY88AgAAAAAAAADArR+oeYL7VrDdSej+mbayY8ojkAOyNbBec7N8lcVzBpJzW9oM+L4AAAAAAAAAOYCeUB7BWIBVsHM91gwAAAAAAAAAAH4JoCkt7hP2V/sOo+uf1z2vNfIIAAAAAAAAAABsVMojkAOcm9LKMlm/+kVlufKFLo8AAAAAAAAAADBWU6ooeQQATuJGG14QbpuoAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>D_politicsSocial<br />
 [numeric]</td>
-<td>Mean (sd) : 44.9 (32.4)<br />
+<td>Mean (sd) : 41 (31.5)<br />
 min &lt; med &lt; max:<br />
 0 &lt; 41 &lt; 100<br />
-IQR (CV) : 60 (0.7)</td>
-<td>14 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABNElEQVR42u3cQWrbUBhG0ePiPXYP7XqSPWSV7eQbuBBDhGVcyL0z418P6cDz5CFf/ih+vPoG/o9iQAzrevvh/e4Pxe/Lq2/0/G4f9vrvVz8/veDj1Xf89NoUiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGFdH7n47ZQzz6OrHJu/P+1m+iGGs848j65ybP4r020KxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiwJfPMN8OvtF+dP6Zq5zIcMZh68eTj2wfqU2BGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYM4HJ7Wvr+rf6C/NfNW7mXb/Xkd2tTIIYVA/gLwUQeFppB8pYAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+IQR (CV) : 62 (0.8)</td>
+<td>25 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABSUlEQVR42u3bQWrbUBhG0ePiPXYP7XqSPWSV7eQbOJCElEhx2t47M8ZCOvDMz5N0+aX4du8T+BrFgBjW9fbD46t/FD8v9z7R47u92Ovzr76/+IOne5/x6bUoEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMazrxw/x2T2c8LzeX8hwxvN6LQrEsGJADCsGxLBiQAzrQ+PTMfPcGVPhpzIcNc/d/y2OFgViWDEghhUDYlgx4LTdp4dD3oA/4ihvHONmODuJ4aWB6OmPx6TPG85aFIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgx49+7TMZtqX7d3Mtz/LuO5tSgQw4oBMawYEMOKATGsy+14+PiPz4rP+3FzK/fyX135q7UoEMOKAfwGF/UeHrZL/ugAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>D_politicsFiscal<br />
 [numeric]</td>
-<td>Mean (sd) : 47 (31.3)<br />
+<td>Mean (sd) : 42.5 (31.7)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 46 &lt; 100<br />
-IQR (CV) : 45 (0.7)</td>
-<td>13 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABOklEQVR42u3cTW7aUBiG0UPFHruHdj3JHrrKZvIOqBQiuTgiUp5nxo/N9ZEukw9z+av48ewFfI1iQAzrevvg9e4Xxe/Lsxd6frcXe/33pZ/vHvDn2Sv+9NoUiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGFdHzn45dDM8+W0n1Icmah+8Kk3Z3mI4ejM8967jz5//hrbFIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYCHZ5j3Om9se+Ts/3/T7CcxvDc+Pe+m1vNvmm1TIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA7jcTkVfv9VfkP+6GfxevtWV361NgRhWDOANS2wZ7sSTevkAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+0 &lt; 43 &lt; 100<br />
+IQR (CV) : 46 (0.7)</td>
+<td>24 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABT0lEQVR42u3bW07CUBRA0YVhjs5Bx6NzcJT6cz5qQo1Iebr3H5DSdiWXnDSX3afi6doXcBvFgBim/fLF++oPxevu2he6fcub3X//6PngAR/XvuKz16JADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQw7Q/5eC3h9kPcRLD4+yHaFEghikGxDDFgBimGBDDFANOniKP6W2z/ywcM6r/cNbFt1yQYX30Pvb9bc66rEWBGKYYEMMUA2KYYkAM05nGp+0mxrtmODS53fKD2hYFYphiQAxTDIhhigExTDHgws8it2ptVP/7roq7ZNh+V0WLAjFMMSCGKQbEMMWAGKYY8Osp8t6eNJ+J4VE2Ba/VokAMUwyIYYoBMUwxIIYpBrBbTsnvDz4yf+9l8Rx796/ufLUWBWKYYgBfdTocjiUOjKMAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3837,12 +3884,12 @@ IQR (CV) : 45 (0.7)</td>
 3. B1-2<br />
 4. B1-3<br />
 5. B1-4</td>
-<td>15 (20.0%)<br />
-15 (20.0%)<br />
-15 (20.0%)<br />
-15 (20.0%)<br />
-15 (20.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAABsCAQAAACs9wgvAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAg0lEQVRo3u3VMQ6AIAxG4dZ4R+/gffQOnFIWh8bg0AaSEt6/OfglMPD0kX7bOlqJsd1+3IELPPUHEzmcVBl3TDAwMDDfPu9ZiSnv1D6uGgDs/5Pc2RUpMkEBAwPLgdEA/2gAGBgYWGOLBIUGgIGBgTW2SAMIin9gYGBgvo0LSqpj5sUq7wQbjDdP7oAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>35 (20.0%)<br />
+35 (20.0%)<br />
+35 (20.0%)<br />
+35 (20.0%)<br />
+35 (20.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAABsCAQAAACs9wgvAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAg0lEQVRo3u3VMQ6AIAxG4dZ4R+/gffQOnFIWh8bg0AaSEt6/OfglMPD0kX7bOlqJsd1+3IELPPUHEzmcVBl3TDAwMDDfPu9ZiSnv1D6uGgDs/5Pc2RUpMkEBAwPLgdEA/2gAGBgYWGOLBIUGgIGBgTW2SAMIin9gYGBgvo0LSqpj5sUq7wQbjDdP7oAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3851,9 +3898,9 @@ IQR (CV) : 45 (0.7)</td>
 [factor]</td>
 <td>1. B0<br />
 2. B1</td>
-<td>15 (20.0%)<br />
-60 (80.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHIAAAAvCAQAAACVxFbfAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAnElEQVRo3u3YzQmFMBAAYSP2aBHWoz1YpV434sGfQ3R2vpsIjzewETZl6/j61n/ASCOvG+LD8uCATqV1wrmYMtSvxps/tbZuuSTFuBpJYSSFkRRGUhhJYSSFkRSHffIf++FdJW7QH13yH4ldKcY1RWR1JmfSTXM4ey8vsr6q/oCmGFcjKYykMJLCSAojKYykMJIi30UWVYpxNZJiB2ytDEzCaK2iAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>35 (20.0%)<br />
+140 (80.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHIAAAAvCAQAAACVxFbfAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAnElEQVRo3u3YzQmFMBAAYSP2aBHWoz1YpV434sGfQ3R2vpsIjzewETZl6/j61n/ASCOvG+LD8uCATqV1wrmYMtSvxps/tbZuuSTFuBpJYSSFkRRGUhhJYSSFkRSHffIf++FdJW7QH13yH4ldKcY1RWR1JmfSTXM4ey8vsr6q/oCmGFcjKYykMJLCSAojKYykMJIi30UWVYpxNZJiB2ytDEzCaK2iAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3865,12 +3912,12 @@ IQR (CV) : 45 (0.7)</td>
 3. C<br />
 4. B<br />
 5. A</td>
-<td>15 (20.0%)<br />
-15 (20.0%)<br />
-15 (20.0%)<br />
-15 (20.0%)<br />
-15 (20.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAABsCAQAAACs9wgvAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAg0lEQVRo3u3VMQ6AIAxG4dZ4R+/gffQOnFIWh8bg0AaSEt6/OfglMPD0kX7bOlqJsd1+3IELPPUHEzmcVBl3TDAwMDDfPu9ZiSnv1D6uGgDs/5Pc2RUpMkEBAwPLgdEA/2gAGBgYWGOLBIUGgIGBgTW2SAMIin9gYGBgvo0LSqpj5sUq7wQbjDdP7oAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>35 (20.0%)<br />
+35 (20.0%)<br />
+35 (20.0%)<br />
+35 (20.0%)<br />
+35 (20.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAABsCAQAAACs9wgvAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAg0lEQVRo3u3VMQ6AIAxG4dZ4R+/gffQOnFIWh8bg0AaSEt6/OfglMPD0kX7bOlqJsd1+3IELPPUHEzmcVBl3TDAwMDDfPu9ZiSnv1D6uGgDs/5Pc2RUpMkEBAwPLgdEA/2gAGBgYWGOLBIUGgIGBgTW2SAMIin9gYGBgvo0LSqpj5sUq7wQbjDdP7oAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3879,9 +3926,9 @@ IQR (CV) : 45 (0.7)</td>
 [factor]</td>
 <td>1. scroll<br />
 2. engage</td>
-<td>36 (48.0%)<br />
-39 (52.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAE8AAAAvCAQAAAAIyV9XAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAjElEQVRYw+3XQQqAIBCF4Sa8Y4foPHUHT1mraBTbWDIv+N9KJeSDmcCxY1LOHA2ANy7Jb/bARlztWnlEKj9agnD54Vy8uPDgwYMHTyrw4MFrpnrv5b5bhsX829S6r/kyXiReXHFe0XubxkzuekxkFLpT/pzixYUHDx48eFKBBw9eM38ahfQiXlx4b3IC9PsMTAZuMRIAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>79 (45.1%)<br />
+96 (54.9%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFIAAAAvCAQAAADamVUPAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAkElEQVRYw+3Y2wmAMAxGYSPd0SGcR3dwSn1NxUKR0P6Bc968IB+kQtXuRb91NgDkyIo/OCcs0N2+z3tKqS9tg4lX110pxg0SpFogQaoFEqRaIKN67Sf79nejM78Dtt+Pic+7Uow7BbJak4fSnwK39iZ/iLWqX+AU4wYJUi2QINUCCVItkFHl+xBTLcW4QUb1AFG2DEwBWGDbAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3894,25 +3941,25 @@ IQR (CV) : 45 (0.7)</td>
 4. business<br />
 5. news<br />
 6. political</td>
-<td>12 (16.0%)<br />
-2 ( 2.7%)<br />
-14 (18.7%)<br />
-18 (24.0%)<br />
-8 (10.7%)<br />
-21 (28.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAACACAQAAADnwSJ5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAA4ElEQVRo3u2YSw7CMAwFCeode4ieB+7AKWEBEnb5xHETiJt5uyqSR8mLOmrT9dA2x8bzdwCY5MPZXMiSvq3KMZNemk3jLwU7iN8BAAAAAAwBWPmg5E1vS5L2Se4xOnLmzjo4Pfa21Dqr1x3MRu27AfUDAAAAAEMAcHI2/3GyNRZ3uz7E77FdiPgdAAAAAMAQAKSfzSYn67w39AYn63xqL/41BQAAAIAhADg5m36k7/1hbpS+v/z4HQAAAABADwCcnE0/Ti6KOOtqH+LP6IsSvwMAAAAAGALwW+m3SPwOmgNuW10jTszhkgUAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>18 (10.3%)<br />
+7 ( 4.0%)<br />
+39 (22.3%)<br />
+45 (25.7%)<br />
+27 (15.4%)<br />
+39 (22.3%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAACACAQAAAA1kSghAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAz0lEQVRo3u3YUQ6DIBBFUTHusYvoeuweusr61ThSICOCndH7/ozxJAyGFw2foVfGbrJTepIXr8Lgn0HDSWDa3npkHnnbGgg0NDT0/ejovK45l3MJshdURVKM1C4w61msR1ezanqt3Rbb6XPW0NDQ0EdCN0b5RzfuS6pJlZ+k5aQ33+esoaGhoY3S1G5pIPXdmFp4k278ZrtTPl8+aGhoaKM03RjFWu3qfuVW1K52q33OGhoaGvpI6MYo1rrxN/yuhYaGhvZLn1W7beNz1h3pBXUiI6Ko7s1PAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>PRE_ID_CONF<br />
 [numeric]</td>
-<td>Mean (sd) : 23.2 (14.1)<br />
+<td>Mean (sd) : 41.8 (20.8)<br />
 min &lt; med &lt; max:<br />
-1 &lt; 23 &lt; 49<br />
-IQR (CV) : 22 (0.6)</td>
-<td>49 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABUklEQVR42u3bUU7CQBRA0YNxj+5B1wN7cJX68z5qFENJLRDv/SOEMpxkYKalhw/F060HcB/FgBim5+WD09kvirfDmoMeP7Y4yl+3HOTz16defnzB++q3eNnkKPvVpEAMUwyIYYoBMUwxIIYpBsQwxYAYphjwbYd5i44bbe8fnGG77f31NSkQwxQDYphiQAzTrj+Yx5VXCvc70b8rw9r1wX7riSYFYphiQAxTDIhhigExTDEghikGxDDFgBimCzfaa88U3E+/jHxx1uJChnM7/9tfYbh+7MuaFIhhigExTDEghukuLuyvbftVzEMyrFnFXLaGaVIghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxQAOy//WnR72doFrel3cSHD4V5/8bE0KxDDFAD4BccIfHhu8sPcAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+1 &lt; 45 &lt; 77<br />
+IQR (CV) : 32 (0.5)</td>
+<td>77 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABVUlEQVR42u3aUU7CQBRA0YNhj+5B16N7cJX68z4ao4BQsOK9f4SklAMzZcrs3hUPv30C2ygGxDDtlw92v302X/RyZPJ6Pvuklwfen3uQ2/V44Lm3lV6jQYEYphgQwxQDYphiQAxTDIhhigExTDFgEyvMY0vpf8Jwm6X04RoUiGGKATFMMSCGKQbEMMWAGKYYcLM1xfWWT4eOfPr/mzdbWn2/fLps8bTOcRsUiGGKATFMMSCGKQbEMK3282kLt9k3wLCF2+wrMVxvD+LW+/Rt+Muf6CU1RSKGKQb88Erxty+KqzHc7wTaoEAMUwzYyG6Xa3VkSl/8Jr5rhtOn9AYFYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYdsvtQa93u/3zq54We592/+qdf1uDAjFMMYAPM1IcuqWqx3wAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3923,23 +3970,23 @@ IQR (CV) : 22 (0.6)</td>
 2. gen-x<br />
 3. millennial<br />
 4. gen-z</td>
-<td>12 (16.0%)<br />
-36 (48.0%)<br />
-22 (29.3%)<br />
-5 ( 6.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEoAAABXCAQAAAAJkRu/AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAyklEQVRo3u3awQ2DMBBEUYzoMUVQD+khVSbXxQdi8Fr+hz83FAmetEaaRSnfhZd1NkBUT7Z48W4+YHvJhsRHb+efXk03+GSLqiDHJ0qUKFGiRIkCBImq+tToptSWEhtfep28kejgj++YuQSGMT3q6Pk5n2Xk+ESJEiVKlChRgCBRdvSr4Ds6EjVscej5/D9oceh7YZDjEyVKlChRokQBgkS5OFzFxeFJ/iwO+f/+uY2qF4dZxx45PlGiRIkSJUoUIPyOTglyfKJa8wOQbBf2scBNwQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>24 (13.7%)<br />
+70 (40.0%)<br />
+66 (37.7%)<br />
+15 ( 8.6%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABXCAQAAAAes4t2AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAt0lEQVRo3u3ZwQmAMAyFYSvd0SGcR3dwSr2mWmjE2NfDn5uI5MMEfGo6J23N4v4ApmwPdsdCrOl7U9sml6eWxqVH+B2QjwAAAAAAAAAAcMsD8c/7ViWbTgLCjqtsz7FGsPV6STC3+mUmjKhyz+QjAAAAAAAAAACQCeUjkAM6h9LnZ86uobS24vIRAAAAAAAAAAAIpfIRyAGuUBrxx9wFqIfSfxdTPgIAAAAAAABADhgrEypKPgIAF8dpF/aJ2wAqAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>PRE_AGE_CONF<br />
 [numeric]</td>
-<td>Mean (sd) : 22.7 (11.7)<br />
+<td>Mean (sd) : 37 (17.8)<br />
 min &lt; med &lt; max:<br />
-1 &lt; 23 &lt; 42<br />
-IQR (CV) : 18 (0.5)</td>
-<td>42 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABTUlEQVR42u3bUY4SQQBF0YOZPboHXc+4B1epP++DzKQJYxAcvPcPSJrmJAVdVc3pl+LLo0/g3ygGxLBezh+cbnzw1wtfPN9v/WYf7vzkXv74KFf19eD5n482eFODAjGsGBDDigExrL/8g3nc650mM9ddnzyM4fiK4ravXFeDAjGsGBDDigExrBgQw4oBMawYEMOKAW9mmJcnv0dT1ntNme/GcDz9vTxl/SzL8Mc1KBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawYEMP6wJ1wz7AfcQOGz78bcVyDAjGsGBDDigExrBgQw4oBMawYEMOKAQ/8y9m9urA8cHaD49MzXLc80KBADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAM63S+jP/jiW/5e9+3s32K03/1yQ9rUCCGFQP4DbKXGop5c80iAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+1 &lt; 40 &lt; 69<br />
+IQR (CV) : 25 (0.5)</td>
+<td>69 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABS0lEQVR42u3aQW7TUBhG0RPUPXYPsB7YA6uEyTcwSCVN5SZVuXcWWYr9jmwP/ufLL8WXR1/AxygGxLCejj8uj76a9f3qC+vbCZd6PMnTm//lXXv+59Gfp5+vhwIxrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGs0wf01/cYzthlOHsn4x32KZ6vHD9jl+Hsczxku+Y1d8x9ewjDPe6X2+oViRhWDIhhxYAYVgyIYcWAGFYMiGHFgBhWDIhhxYAY1h9DuPtMle/TK9ZyWMlfs8iPNyV8a7et5OaR7MebKp/RzQyf53451isSMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw7ocP2z78Sm/cnupr4fvIi//1cpfrIcCMawYwG86ExqKUr8kngAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -3949,118 +3996,118 @@ IQR (CV) : 18 (0.5)</td>
 <td>1. Other<br />
 2. Female<br />
 3. Male</td>
-<td>4 ( 5.3%)<br />
-17 (22.7%)<br />
-54 (72.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGgAAABDCAQAAADafojfAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAxElEQVRo3u3YQQrCMBQGYSO9o4fwPHqHnlK3LxVEayGT3/lWLd1kICnktccpy3n0Agz6t6Clvtw3B+raRi/vM3XZS//pUp7X0evcJW7LGURnEJ1BdAbRGURnEJ1BdJv70Jx3oKrV294kF9QXtSFuy8UFdWfo9sPUkTJQeTMk+QbnZxK35QyiM4jOIDqD6AyiM4guLsiZApEzhZkcNlMYqpyVg2YKI/U/srgtZxCdQXQG0RlEZxCdQXQG0WUPSRLEbTmD6J6v7BIhuqEwNwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>5 ( 2.9%)<br />
+52 (29.7%)<br />
+118 (67.4%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGIAAABDCAQAAADNXBgWAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAxklEQVRo3u3YQQqDMBBAUVO8o4foedo7eEq7KSVxYUGM8zP8t3OXj0lgUrZpfI/oBRiRKWKuP97fA/Is0cv6rz7Luz+xTEv06k5IsZ2MoDCCwggKIyiMoDCCwgiKuf1co9dzSqknpAEGup+DyW5MKSKaM/G69CXtvueG3cG+7pngzisixXYygsIICiMojKAwgsIIihQRztiRnLGJOs7YnVV7v9uM3Vd7AaXYTkZQGEFhBIURFEZQGEFhBEW+h4JRpdhORlB8AL87Ec1O+wOhAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>PRE_GENDER_CONF<br />
 [numeric]</td>
-<td>Mean (sd) : 20 (13.3)<br />
+<td>Mean (sd) : 33.6 (18.5)<br />
 min &lt; med &lt; max:<br />
-1 &lt; 19 &lt; 45<br />
-IQR (CV) : 21.5 (0.7)</td>
-<td>45 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABT0lEQVR42u3aUUrDQBRA0VPpHt2Drqfdg6vUn/cRkRSsKYl6718JLZMDMx2SOb0rnvYewDGKATFM5+WH682F4vW092C3bXmz58+Xnle/9Lb3qB9akwIxTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAM0/nnP7He5cZ5iWOdlngow/p5iaOdlmhSIIYpBmyyNlw2PWG6z7K6yRK57UK4x7LapEAMUwyIYXrwLnK9bf9ffi3DsbbZTQrEMMWAGKYYEMMUA2KYdts+3dPGO8/F04tfxbC+87znyrImBWKYYkAM0zeWyGM9IdiN4VhPCLatSYEYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMM4LR8I3f9w6/nvvayOOZx+ld3vlqTAjFMMYAPjrIcIoeYN38AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+1 &lt; 34 &lt; 67<br />
+IQR (CV) : 30 (0.6)</td>
+<td>67 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABS0lEQVR42u3bUWrbQABF0eOSPXYP7XqaPWSV7c/7cAOpnVg4Jr33zxgk+TAj0Ix1+q349tkX8BjFgBjW0/mH011O+euK29HPO1zK+WU8ffgoN/T9wvcvd7+iT2G43KURc/RoeVCGf4+X40dLt0jEsGJADCsGxLBiQAwrBsSwYkAMKwbEsP560D5iXeiaY9ze5bO8b0Xi1XrDEetC91hbOvocTQrEsGJADCsGxLBiQAwrBsSwYsAH9jDv8+j08AyPtyl/RE0KxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADOtB37y7vSt2187+MvhlGd63u9akQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBnA63/F8/pIvF77Vj7Ot3NN/9cvfrEmBGFYM4A9tVBqKS7A5yQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>PRE_DESIGN<br />
 [numeric]</td>
-<td>Mean (sd) : 45.3 (27.8)<br />
+<td>Mean (sd) : 39.8 (27.1)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 38 &lt; 100<br />
-IQR (CV) : 41.5 (0.6)</td>
-<td>44 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABW0lEQVR42u3by03DQBRA0RNEj/QA9YQeqBI2b2EkB2Fwfsq9u0SKP0eacTS2D5+Kp2sfwG0UA2KYnpcfDht/fDw5sbxt3dQVWh7885+3Al5Wv/249hlurkGBGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphjw77XIU60v1t7uQu2ZGNaWam95obZBgRimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUww4212r9Y47vdi15SbgD/tcbOWiDKfevtj6/T57XdagQAxTDPjl3LDX1Hbe/nOUv5wi7+PVsr8/VdGgQAxTDIhh+jZF3scV4ewM93JF2L8GBWKYYkAMUwyIYYoBMUwxIIYpBsQwxYAYpovetdqr/ddF7pJh/1WRBgVimGJADFMMiGGKATFMMYDD8n/p+0PdvHtdPAl3eKgzP1mDAjFMMYAv4z8etqmcBaEAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+0 &lt; 34 &lt; 100<br />
+IQR (CV) : 40 (0.7)</td>
+<td>72 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABc0lEQVR42u3bW27aUBRA0UWVOXYO7XjSOWSU6c/5cCUsQQHbcfb+I1IQrHAu149cPhU/9n4BxygGxDC9LR9c7vzl99WF5fe9T7VDyxf/9t/PAn5e/enH3u/w7hoKxDDFgIfXhrWuL57HXThfxHBt6TzywtlQIIYpBsQwxYAYphgQwxQDbtxFvp/+hOWNm+mznFdYq6FADFMMiGGKATFMMSCGKQbEMMWAGKZ/Dq3OfyR5E8P5jyTXaigQwxQDYphiQAxTDHjZbR7PaMvbDQ/MsOVmblOGtb/v/vdEbcpw3K16SyRimGJADFMMiGGKATFMMeDgxxT39chW/UQMj/z7QkOBg3wa9r9MdAiG/Y88Gwoc5NPw2lZHbvEN8g0Ybhm5hgIxTDEghikGxDDFgBimGBDDFANimGJADFMM+KLnG55/7vJLMjz/3GVDgRimGBDDFANimGJADFMM4LLcl/7Z/QL7lv1aXMO8fKt3vlpDgRimGMBfiuUixr/tiZoAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>PRE_DATA<br />
 [numeric]</td>
-<td>Mean (sd) : 41.7 (25.5)<br />
+<td>Mean (sd) : 36 (24.6)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 39 &lt; 100<br />
-IQR (CV) : 35 (0.6)</td>
-<td>47 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABX0lEQVR42u3bQW7aUBRA0UPFHruHdj1kD11lM3kDqwIJJ7j+Ue6dgcCCI/0v82wufxU/zv4AaxQDYpiu2weXnW++PdxYfu891AltP/z1w0cBP+8+++fsb7i7FgVimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwx4NNXrV7RCpcAF2BY4RJgiwIxTDHgsL3h/ra37l0PBzHc2/RWvuuhRYEYphgQwxQDYphiQAxTDHjyLPL2on8bvOo4JzG8aiJw/lzhUS0KxDDFgEVmkfs6YoT7BRmO2GpbFIhhigH/7A3rnuX9V4aVz/OOrUWBGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBiw+kt07Btr5+s0ce2mGvUOg+/ffPXOUFgVimGJADFMMiGGKATFMMSCGKQbEMMWAGKbL9if627e6zePXZt5w+Vbf/GEtCsQwxQDeAblqILqwv8TiAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+0 &lt; 33 &lt; 100<br />
+IQR (CV) : 32 (0.7)</td>
+<td>72 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABcUlEQVR42u3cQW7aUBRA0UOVPXYP7XrSPWSV6eQN3AhLcSHYOPfOQALBEf/rfZC5vCt+7P0CjlEMiGF6Wd64bHzw6+rG8nvrU+3Q8sW//PezgJ9X733b+x1urkWBGKYYcPPesNb1zfO4G+cXMVzbOo+8cbYoEMMUA2KYYkAMUwz4MDc894nxbgznOTHeyLDW68m/svwkw9k/JW2RiGGKATFMMSCGKQbEMMWAGKYYEMP0Rb9TXG/tnLr/txkPZTjuObVFgRimGBDDFANimGJADFMMiGGKATFMDz1arbX/yfMQDPufPFsUiGGKATFMMSCGKQbEMMWAg0yRaz1uyD40w+OG7BYFYphiQAxTDIhhigEHnxu2dcuwdSKGWy6JfkqG+1/r85QM9x+y2yIRwxQDYphiQAxTDIhhigFPOkVua3X0Xhy5vgHDZ0bvFgVimGJADFMMiGGKAVyWs8Wfk/+fz7/9WoxPl2/1zldrUSCGKQbwF4EMI57OEp3NAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>PRE_POLITICS<br />
 [numeric]</td>
-<td>Mean (sd) : 51.4 (19.9)<br />
+<td>Mean (sd) : 48 (21)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 51 &lt; 100<br />
-IQR (CV) : 19 (0.4)</td>
-<td>41 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABaUlEQVR42u3cQW7aUBRA0UOVPXYP7XrSPXSV7eQNXCmOImLsX3LvDAbYHOl9fYzh9kfx7eoTWKMYEMP0sn1wu+QUXneXp58PPaHtYV/ufpUD+/7ms79PPIOGAjFMJw7F68JblFPXhuvXgL0aCsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYsMhdsnvt3UJ4/E3ESzOcdwNhQ4EYphgQwxQDYphiQAxTDIhhigExTDEghikGfPB6w1W/ol6MYeVfUB5TQ4EYpk9eizzvouljj/pJhmvWjOOP2lAghulB31Os/F8NJzK8Nb0r7zIaCsQwxYDFv8o9oncW681m6+kZPrbZaigQw/RUQ3H/pu2pGO7ftDUUiGH6Zyj+tw9ED2J4/kuvezUUiGGKAdy2q+KvL7VE/th8tLp9qXe+W0OBGKYYwF/wMiLCUxo9QgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+0 &lt; 50 &lt; 100<br />
+IQR (CV) : 24.5 (0.4)</td>
+<td>69 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABa0lEQVR42u3bQVLiUBRA0UOXe3QP3evRPbhKnbxBijIWooGEvneGA4in8pL/qXB6V/y59wHsoxgQw/S0fHHa9KNeVi9D/7b94JWWh/N09btc0fOnf327h8FZDQVimGJADFMMiGGKATFMMeDGq8i11pbZt1tk74Lh/ovshgIxTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAfPhe5t19P3YlhDw927oJh2273EPGuGW53rl3E8PLwP+S+8Gx4lGvAWt0wEcMUA2KYYsBm64aj3WI3YvjsBrvn22tDgRimGBDDtOsd5lq/vwE/JMPvb/QaCsQwHXIovtMX69nFleThGS67kjQUODsbjrYhOu/64z8bimN/53j9hq6hQAxTDIhhigExTDEghum0XHi9HnwV+b3+LrZWp//qP1+toUAMUwzgAy9PIsI2IcP6AAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>PRE_TRUST<br />
 [numeric]</td>
-<td>Mean (sd) : 55.5 (21.4)<br />
+<td>Mean (sd) : 57 (21.4)<br />
 min &lt; med &lt; max:<br />
 0 &lt; 55 &lt; 100<br />
-IQR (CV) : 17 (0.4)</td>
-<td>41 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABX0lEQVR42u3cQU7CUBRA0YNxj+xB14N7cJU6eYOa0KQoQtF7Z3QA9STv51u/HD4UT/e+gX0UA2KYnpcvDne5hdPq8vT6qze0/Njnb7/LFTuevfp+wztoKBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYCbnm847fi02U2Pedz/OMdaDQVimHZx9mmttdXk+kfDds1wu7WkoUAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAzTrh/CrXXZXzy2PLl8SIa1Z5THs1e31FAghikGxDDFgBimGBDDFANimL5spi/9spk9n2b6AcPlJwquv7u/Tw0FYphiQAxTDIhhesiHcJe1urtZ7IX+AcOWvVBDgRimGLB5bfg7v0T9iGG//xBynRoKxDAdlkP/9sdXgK+9LLZPh3/1k6/WUCCGKQbwCaJzHyYhlDICAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+IQR (CV) : 24.5 (0.4)</td>
+<td>68 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABaUlEQVR42u3bTW7aUBhA0UOVPXYP7XrSPWSV6eQbWBVPIikYA/fOYADmiPfjJ/n0qfhx7ws4RjEghult++J0l0t4X05Pv296Qduvffv2p1yxn2ff/djxChoUiGGKATFMMSCGKQbsum94P/Bd3K7bp/tvk1Y1KBDDFANimGJADFMMOMixy6rVhuv6p1KHZthvu9WgQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMOPhZ5KrrH9U+JMP1j2obFIhhigExTDHgQVeKVecX0kuW0adiOLeQXraMNigQwxQDYphiQAxTDIhhigExTDEghikGxDD91432vZ61PxjDkR8i+1oNCtzs9OnIz1zuyPD947CnYjhSy3/mZhp/AYZLpvGmSMQwxYB/5oZHW+ZuxLCeTp5lt7iqQYEYphgQwxQDYphiQAxTDIhhigExTKftTeWfl7rD/LU5hDu91C9f1qBADFMM4C+8lSEuDbJB6gAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>PRE_ALIGN<br />
 [numeric]</td>
-<td>Mean (sd) : 53.8 (20.7)<br />
+<td>Mean (sd) : 52.5 (20.7)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 51 &lt; 94<br />
-IQR (CV) : 18.5 (0.4)</td>
-<td>36 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABaElEQVR42u3cQW7aUBRA0UOVPXYP7XrSPWSV6eQNrAhLThrsn+beGQzgc6SHDd9we1X8uHoBaxQDYpietjdulyzhefft6fdDF7R92qcPP8on9vPuvS8nrqChQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMJ24efe88KUUp+5hXr9XuVdDgRimGBDDFANimGJADFMMiGGKATFMMWCRq2Tf1yMuLv6CDI/4wN5QIIYpBsQwxYAYphgQwxQDYphiQAzT0h+tztv8XZrhvK3fhgIxTDEghikGxDDFgBimGPDmLPKqf1m5vjcn0+teufjYGgrEMMWAGKYYcPhrl71D6VoH0vurPLLGgwxf40B6b5XH1thQYPHvIj+n3XPjzbB8A4YjA91QIIbpH4di5V/TnciwN3cfP3RdU0OBGKbbdrj//CeTfqxfm/OG27d65bs1FIhhigH8BfbXISpw/4UfAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+0 &lt; 51 &lt; 100<br />
+IQR (CV) : 13.5 (0.4)</td>
+<td>62 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABYklEQVR42u3bMXLbMBRAwVXGd8wdkvM4d/Apk+YXLKwMqbEoMHmvswobWg1AwiJuvxXfXj2ANYoBMUxv2x9uLxnC+93l6edTB7T9s28P/5Yv7Punr36cOIImBWKYYkAMUww49UrxvvB9+6kXzNdfGO/VpEAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADNMST8ke6xkPF1+Q4RnPUDUpEMMUA2KYYkAMUwyIYYoBi99Fnnf0YGmG8w4eNCkQwxQDYphiQAxTDIhhigExTDHgSXuKlU9jn8jw+aZohbPYuxiOfh90vU99F8Pxre26Z/CP1RKJGKadS+R1V4G/jHyz3u1kuPIasGfsTQos/i/Zoz0+df8phsdv2poUiGGKATFMMSCGKQbEMN22N16/LruBeqQfm63V7b9653drUiCGKQbwB+2lIebBI+DyAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>PRE_BEAUTY<br />
 [numeric]</td>
-<td>Mean (sd) : 48.9 (28.5)<br />
+<td>Mean (sd) : 50.7 (26.8)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 55 &lt; 100<br />
-IQR (CV) : 46.5 (0.6)</td>
-<td>50 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABZElEQVR42u3aUU7bUBBA0ZOKPbKHdj10D6yS/syHhWLJFsV5Te/9A4UoOdKMbPNuH4ofj/4AaxQDYphetj/cHv1pDvW2u85+nfoC27d5OfOHq/R697fvX3jHhgIxTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBS592ebvwrOLCDN9xuGevhgIxTDHg0274WycO/70+rcjrltJaNRSIYYoBhy+f9pbns6zOgwzPvjobCsQwxYBvusM8t1CvvKG+lOH+Sn0/9eprF3BDgRimGHDxQ7gVluECDI9fhXs1FIhhigFf3g3rLr1LGdZdeudqKBDDFANimGJADFMMiGGKAYsf+jnbyUv7zQPip2K4/yD4yAV/Q4EYphgQwxQDYphiQAxTDIhhigExTDGA2/be9PeT/A/qWD83N9q3/+qb79ZQIIYpBvAH7J8gvsjDKwsAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+0 &lt; 56 &lt; 100<br />
+IQR (CV) : 41.5 (0.5)</td>
+<td>72 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABY0lEQVR42u3bwU3jUBRA0RNEj/QA9YQepsqZzVsYCSOcCY4T7t0RWcQ54n05/ub0V/F06xM4RjEghul5+cPpJqdwXl2e3n70hJZv+3zxb7liL5+++mfHM2gocJC/hrXWxuX6w3Johv2GpaFADFMMiGGKATFMMSCG6dCXT2td/+ryLhmuf3XZUCCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoB37zfsHXPeb9Nt10Ztt/oeNl09O1rKPDfN+HOm54g23b0HTFsG5bbP86xVkOBGKYYEMP0YYk87kq+K8OR1/KfraFADNNdbuVu6Yv1bvFF7+EZvrfeNRSIYYoBMUwxIIYpBsQwxYAYphjwYN8pLr9t9FAMl++VNRSIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDdFpuAr//qn8keF08LHz6VZ98tYYCMUwxgH+6ryK+MqfCmgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>PRE_INTENT<br />
 [numeric]</td>
-<td>Mean (sd) : 45.8 (31)<br />
+<td>Mean (sd) : 42.9 (29.8)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 51 &lt; 100<br />
-IQR (CV) : 54 (0.7)</td>
-<td>50 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABXUlEQVR42u3cW07CUBRA0YVhjs5Bx6NzcJT6cz5qQo1gCgX3/gPCoyu5nPTyOHwqnm79AvZRDIhhOi4vvJ/9RvF6uPUBXN7yYI/fb3o+eYeP1esfpRYFYphiQAzT8e8Pce3eVufZ5XPrDhlsMLdaFIhhigExTDEghikGxDDFgBimGBDDtONTq7crfoSyY4YtziTXalEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMWAXu0/X3GzbMcM1N9vWalEghikGxDDFgJ1Mii37YRwvvkX58Ay/G8ctCsQwxYAYphgQwxQDYphiQAxTDPjzOcXaicupH3/tYc9xI4bzdhFvv+e4VosCMUwxIIYpBmy2CXeb4Xj5s27EcGo0bj8YL3/WFgVimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYDsvtu/P/Wfiee1l8wHj4V0e+WosCMUwxgC+FjiBO/RdcbwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+0 &lt; 39 &lt; 100<br />
+IQR (CV) : 51.5 (0.7)</td>
+<td>77 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABaElEQVR42u3azW3iYBRA0cMoPaaHTD2kh1SZbN7Co8QRCjEYz707hEDmyM98/jm9K/7cewP2UQyIYXpavnhdPVD8Pd17Q3+/5Y99+vet5y8/8HbvLd68hgIxTDEghikGxDDFgBimGPBpFbnWeWWZfZRF9oUMR19kNxSIYYoBMUwxIIYpBsQwxYAYphgQwxQDLj7D3FPnDe6tPSDDFqf9DQVimGJADFMMiGG68g/zKBfur2Q4yoX7hgI3XUVusQh+QIY9j1BDgc32hvODPYq9EcNXu/8edv61GgrEMMWAGKYdX4S75b/NjhluudxqKBDDFAN2cmzY8mD4zXcvzmt3wbDtofCSb28oEMMUA2KYYkAMUwzYybrht/r5MuxQDD+/AtpQIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDdFre6Hl9sOfer+tl8dDP6b/65as1FIhhigF8ANVkIsIfdPo9AAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>PRE_LATENCY<br />
 [numeric]</td>
-<td>Mean (sd) : 2.4 (2.6)<br />
+<td>Mean (sd) : 2.7 (3.4)<br />
 min &lt; med &lt; max:<br />
-0.3 &lt; 1.8 &lt; 18.5<br />
-IQR (CV) : 1.3 (1.1)</td>
-<td>69 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABOklEQVR42u3cQWrbUBhG0eOSPXYP7XqSPWSV7eQbqDQqhti4OPfOjLF4OvjpTX50+aX49ugF/B/FgBjWy/HD2+mD4ufl0Qu9fcebffnzq+8f/uD90Su+e20KxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwb8Ne1y1uvJONCzDANdyfDsw0BtCsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAwrBsSwYkAM68rx0LOeZXr2kwzPMj3bpkAMKwbEsGLAp0+Ks15v8vrqWxy7/1jJ4ep3YvjoIH0/PV7ve+xec/XLEevtS72C/Mfh33D5Und+Wo9IxLBiAL8BaEUXXobv0pUAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+0.3 &lt; 1.8 &lt; 32.6<br />
+IQR (CV) : 1.6 (1.3)</td>
+<td>147 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABGElEQVR42u3cS0rEUBRF0VXiHJ2Djkfn4Ci1cxolIilBKT9790JI8rIgn9Y9vShurr2An1EMiGHdnm88XfCieDhde8lf1fnN3r7ddXdw6PO11/5N9VAghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUD3s2EO+7xcHzebxye92mGvzk8r4cCMawYEMOKATGsT38wj/v+P4vjK1zU2SpO52e8ZLLw3+n+I4b/W+8GxLBiAK/njBBYAIXjrwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -4069,9 +4116,9 @@ IQR (CV) : 1.3 (1.1)</td>
 [factor]</td>
 <td>1. scroll<br />
 2. engage</td>
-<td>28 (37.3%)<br />
-47 (62.7%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFwAAAAvCAQAAADEUGW8AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAkElEQVRo3u3YsQ2AMAxEUYyyI0MwD9mBKaF1aBMHX/SvQyjoFafIxp5NM/vfAOAqKf6hBhf+tL7znlfaV0cg+x76NdmqAAcOPGmAAweeNMCBrw7/zONjZ+bImN8qOheU8HirbFVk4U3Hr+x/h1yXJy7LvWkvDtmqAAcOPGmAAweeNMCBrw5fY1lWimxVgM/OCyomDEz2Wu/oAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>72 (41.1%)<br />
+103 (58.9%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFcAAAAvCAQAAAA8sJ5LAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAi0lEQVRo3u3YQQqAMAxEUSO9o4fwPHoHT6nbxJUtmHTgz06q8BYjJLV7UcpaDYA7T5p/ONOKvNv3dz2qxaMtBXsNfylWBrhw4cKFCxcuXLjVec2745NoTszP6h0jfmK8UKwMYtzQ3WPOOxLX0ZLVsifx5xcrA1y4cOHChQsXLtzqKK+W80esDHD/zAM97gxMYMLB7wAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -4084,25 +4131,25 @@ IQR (CV) : 1.3 (1.1)</td>
 4. business<br />
 5. news<br />
 6. political</td>
-<td>8 (10.7%)<br />
-9 (12.0%)<br />
-18 (24.0%)<br />
-10 (13.3%)<br />
-9 (12.0%)<br />
-21 (28.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAACACAQAAADnwSJ5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAA1UlEQVRo3u2YUQ6DIBAFofGOHqLnae/QU+pnl0ZYlkjDwrw/Y2Sib+Mo8Qh98+i8/gSATR68C4U8Y/2icpktPbVnLvk034H/DgAAAABgCcCPD9rf+7lEaR+DtIqRa07WwUv5CrOI/xKQl34IrQPgvwMAAAAAGAGAk9WM5eRyro1tcHI5ufHw3wEAAAAALAFA+mrMTrb+KxudbO/I/5gCAAAAwBIAnKxmLOmzOQ4AAAAA0wJwspqxnFwd8axv2xz/Jh0U/x0AAAAAwBKA/0q/R/x30B1wAgGqI6JxoXyIAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>18 (10.3%)<br />
+18 (10.3%)<br />
+37 (21.1%)<br />
+21 (12.0%)<br />
+41 (23.4%)<br />
+40 (22.9%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACsAAACACAQAAAA4j1hmAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAyElEQVRo3u3XTQ5AMBCGYRV3dAjn4Q5OyYLFFP2LTtNJ3tmJeBZfpV/GHYPGjCqqMXaSD1sk6MWlKPnx5L+aA5/sfYQACwsLa5d93Lel92ponLzTkwUQHSkZznb9VZFBloqEhYWFpcs02ewui8275zK7LDZfx2wrW1hYWNgGLBU5FHZZ/m5W0GUludv6wWBhYWEbsHSZHltl3btHZFhh3bvGP2xb2cLCwsLKocv02Gpd5q+ClbrsedS2soWFhYVtwLaoyO5DsMWeuK8jomv8MlgAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>POST_ID_CONF<br />
 [numeric]</td>
-<td>Mean (sd) : 18.4 (13.7)<br />
+<td>Mean (sd) : 30.1 (17.9)<br />
 min &lt; med &lt; max:<br />
-1 &lt; 20 &lt; 42<br />
-IQR (CV) : 25.5 (0.7)</td>
-<td>42 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABZElEQVR42u3bQWrjQBBA0eeQO84dJudx7pBTzmxqoRBkYiIh2fl/Z4xBflDtlmhf/ilejr6AcxQDYphely/eby4Ub5ejL3bbll/29fNbf1Y/9HH0Ve9aQ4EYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBX85MH9/1xvH1/Q6vn45h/fj6nofXGwrEMB00FNeT/dPtsLXhiBVgvYYCMUwn/MG8v5/vNZ6C4ecrTUOBGKZdh2Lr3cF+u42d14Ztdwf77TUaCsQw3TEU65P5+H9iv4PhXHcB29ZQIIZpkx/Msz09OIjh8VeNhgIxTDEghikGxDDFgBimGBDD9CQP6Ne7cb+zeEry9Azfu99pKBDDFANimGJADFMM4LLcXbw//KPVe/q72D5dftU3X62hQAxTDOA/PN8fvq3EJTUAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+1 &lt; 33 &lt; 59<br />
+IQR (CV) : 29.5 (0.6)</td>
+<td>59 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABdklEQVR42u3bUU7bQBRA0ZOKPXYP7XpgD11l+/OkuiWIyLGJrdz7hwDJOZqXjAdz+a349ugLOEYxIIbpZfnF29U3ip+XR1/kPi1f7Mu/3/r+7od/Pfpqv6SGAjFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwx4N1Z5JF73fHA+EQMex4YNxSIYYoBMUwxIIYpBsQwxYBD7CJfN338at2W+wAM1zfJ6zfOa36zoUAMUwyIYYoBMUwx4CD7hnvaZvN1eob/N0vrTicbCuy8Gq4t2GM+gb3zUGyzZPevoUAMUwyIYYoBMUwxIIYpBsQwrdpM3/P4zbZ/lXgowz2P3xzzPz0bCmx6h3nM5f7lDMdc7rfVUCCGKQbEMJ3+gP62rn6KLbZ7T8Lw2adYQ4EYphgQw3TDW+SZ7xU2ZDjzvcKtNRSIYYoBMUwxIIYpBsQwxYAYphgQwxQDuCzvot+e4Jb6bz8WR7KXp3rlH9ZQIIYpBvAHGdomVo1Zv+QAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -4113,23 +4160,23 @@ IQR (CV) : 25.5 (0.7)</td>
 2. gen-x<br />
 3. millennial<br />
 4. gen-z</td>
-<td>8 (10.7%)<br />
-37 (49.3%)<br />
-24 (32.0%)<br />
-6 ( 8.0%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEsAAABXCAQAAADmU3CBAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAzklEQVRo3u3aUQrCMBAAUSO9o4fwPHoHT6m/22KbJrJmAjN/IuKDVdhFy/tC7DoaIOv3lvjgefBBu5dsSnzzZf3Ubeclr2zTJugQZcmSRUiWLFmEZLW02bf+vVftVeJOmL6AHhYlMwzxMfZoDMM6ucvnt/5UQ4coS5YsQrJkySIkqyV3+VoT7PJQVvKJ0fsjQ+qJ0f8Fgg5RlixZhGTJkkVIVkueGLU8MXo7cWLk/xepwvp2Yoz5EkCHKEuWLEKyZMkiBGXNsMtzgg5RVksfpncX9qgZz1kAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>13 ( 7.4%)<br />
+71 (40.6%)<br />
+71 (40.6%)<br />
+20 (11.4%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABXCAQAAAAes4t2AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAArElEQVRo3u3ZQQqDQBAEQDf4xzwi70n+kFcm13ERRMikPdTcRGGL7QVbHJ8lO7fw+gDLWi9eOwfiMX6/aF1m3d66T4++23cgHgEAAAAAAADA1Af63//zjNpOGsrP7tQ1rxXB818fCWWrDzphx2zPWTwCAAAAAAAAAJ0wHkEcoJTGIwAAAAAAAABQSuMRxAEnSmnHf/QTpbTreMYjAAAAAAAAiAOu1QkTE48A4AsjnheLNRdKKwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>POST_AGE_CONF<br />
 [numeric]</td>
-<td>Mean (sd) : 21.7 (13.7)<br />
+<td>Mean (sd) : 32.6 (17.3)<br />
 min &lt; med &lt; max:<br />
-1 &lt; 22 &lt; 46<br />
-IQR (CV) : 22.5 (0.6)</td>
-<td>46 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABbElEQVR42u3aUW7aQBRA0UPFHruHdj3JHrrK5ud9OFIsQbHDpLn3DyGQOdLM4Blf/ip+PPsC1igGxDBdty9edyeK35dnX+jxbX/s9f1bPz/8wJ9nX/HpNSgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBim6+NfcVYvn7gXtjDDZ+6FNSgQwxQDYphiQAxTDIhhigExTKf8md67G1j3XPyke4qP7gZWPhdvUCCGKQbEMMWAB1eKlzufLV13IX1wwbxvm2zdB8waFIhhigExTEufU+x1/IrzJRmOX3EaFIhhigExTEtMkffem9z3PbesH0swHDXz//vWX4MCMUwxIIbpxinyqLl81W5kWHff6JgaFIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQYscqJ9brtHTZsD/2/AcMtRU4MCMUwxIIbpsp1GX//z4/v3/dqsFJdv9ct3a1AghikG8AbN2iMq746XnQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+1 &lt; 34 &lt; 63<br />
+IQR (CV) : 26 (0.5)</td>
+<td>63 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABkklEQVR42u2bQW6DMBQFhyp3zB3a86R36CnbzZOKYtISwMGGmR1SRJyR37f9rQzfCLztPYA2UAOghnAZPwx7j6bgNlG6PjYa5vjVl8VveRHXu+evKt9iKAA1BDUAaghqANQQ1ACoIagBUENQA6CGoAZADUENgBqCGoAOuk8lZWNufVuuQw012nKGAribDbfJK6ytOsEtcxeKa/GBOp3g1jAUgBqCGgA1hJftG2reRnak4VW3kcswFIAaghoANQQ1ADsftGt0DjrU0M4SaigANQQ1AGoIagDUENQAVNs33Dr7m0a17VM7W6M5GApADWGTUPRWCSpp6K0SlBgKoMuL/f95/jLgkBqeD6mhAJqbDXutOY1p2GvFMRRAc7NhGeujdAgN66NkKAA1BDUAaggLSmT/x+pNNPR/rC4xFIAawoxQHLEWLNBwvEpQYiiAg5wp5jAR7VFb7jQa/o62oQDUENQAqCGoAVBDUAOghqAGQA1BDYAaghoANYRhfAz/PEG77Zf3Ub9hONUvf4ihANQQ1ADAD+NmKvqDArIAAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
@@ -4139,118 +4186,118 @@ IQR (CV) : 22.5 (0.6)</td>
 <td>1. Other<br />
 2. Female<br />
 3. Male</td>
-<td>4 ( 5.3%)<br />
-22 (29.3%)<br />
-49 (65.3%)</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABDCAQAAADJqcgrAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAAAwUlEQVRo3u3YQQrCQBAFUUdyRw/hefQOnjJue2IQIZlUvtRbKW66oBNo23zJdqUHMIAeYKupfnkuHoh7o8dbV8ec+p9u5fOLnvMn8StkAM0AmgE0A2gG0AygGUBb3AMZN0DV6nVz0gPsQ505foXiA7pn4LHjv1xH/SHw5ajf4riXQfwKGUAzgGYAzQCaATQDaPEB3sQEb+IzGXYTD1V2fdBNPFL/oolfIQNoBtAMoBlAM4BmAM0A2n8d9YniV8gA2htD+BIhkmoAYgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>6 ( 3.4%)<br />
+62 (35.4%)<br />
+107 (61.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFoAAABDCAQAAAC2eNraAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAAAu0lEQVRo3u3YQQ6CQBBE0R7DHTmE55E7eEpdkJgeQnDBMFNF/t8ZN2/RGMryCb8eowGglZvyh+V34M8yGrYtP3tT/dUcERHv0cI/WZ4HaNCgBQINGrRAoEHfDb15n1Z/k14reRHIzZVUdlqehyW6uunXhf/ctJzKu8O2fW0fcMvzAA0atECgQYMWCDTog9iIV8ZGHFG3jXi6dLudNuLZ6h8Iy/MADRq0QKBBgxYINOi7of2HrUuW5wG6V1/1HBIh6MsE1wAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>POST_GENDER_CONF<br />
 [numeric]</td>
-<td>Mean (sd) : 16.3 (10.8)<br />
+<td>Mean (sd) : 35 (18.1)<br />
 min &lt; med &lt; max:<br />
-1 &lt; 16 &lt; 36<br />
-IQR (CV) : 21.5 (0.7)</td>
-<td>36 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABVUlEQVR42u3cQU7CUBRA0YNhj+5B16N7cJU6eYM6EDRC+eK9M0Ig7Uneh/4SDu+Kh1sfwBrFgBim4/bB65mF4vlw68O9ZNuTPX5+6vHEy95ufdxXrKFADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYpuPv3+K6vexyl315hn3usjcUiGG62FDsM8PLM/ztX8o0FIhhigExTDEghikGxDDFgBimGLDEfsO5i7J/wrDCRVlDgRim3YZihRVgAYav53+FLZmGAjFMMWCR7w2/6dTS+/3d8D/PcJmlt6FADFMMiGGKATFMP/rAXPvyaDeG22+PXKuGAjFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwy4g/sUpzqzTbS5mXPXDN/fJmooEMMUAzhsV5Fz/yx8Xz1tlsjDvzrzL2soEMMUA/gAododKoedjKQAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+1 &lt; 37 &lt; 66<br />
+IQR (CV) : 27 (0.5)</td>
+<td>66 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABT0lEQVR42u3bUU7CQBRA0YNxj+5B16N7cJX68z4aIylKkYL3/hGSUk5mhqZTDh+Kh2ufwD6KATFMj8sXhw0O+HrCYvOyxQed3fJEH399lKM9rbz/fu3v/00XYDi/9RG19XjaJcPaiNp+PLVEIoYpBsQwxYAYpqv8YJ5ypfkPGPZ3nbnTy6e1tr7OvFGGrcdTSyRimGJADFMMiGGKATFMMSCGKQbEMMWAGKYY8OV+w+1sw16UYY+3x/6mJgVimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwx4BcPC+/v6ferMNzn9l6TAjFMMeBm/0+x3glL+eJJjbtl+NlS3qRADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxgMNyV+PtLnerj/W82K45/KtvfrQmBWKYYgCfVI0akszw77EAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>POST_DESIGN<br />
 [numeric]</td>
-<td>Mean (sd) : 44.6 (29.3)<br />
+<td>Mean (sd) : 38.6 (27.4)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 40 &lt; 100<br />
-IQR (CV) : 47 (0.7)</td>
-<td>48 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABaElEQVR42u3aUU7bQBRA0RPEHruHsh66h66y/XkfBuEqaUI8gXv/QESyjzR+jCenP4qnoy9gjWJADNPz9ofTzh+97j5AXvY+8gBtb+r5vI/8+PC3v4++k5vVokAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTGe+oN9r7wTj0c4vrmT4KucXLQrEMMWAGKYrH5GXtPK5+B0ZVp4rLQrEMMWAGKYY8GmT4vXBvnX6SQwfjcYVBuNeLQrEMMWAGKa77imO6B8za7Oh+/IM523oWhSIYYoBMUxvHpFr7QQufWl3zdW/mxRrvSa79Gr+fyfTokAMUwyIYVrin+njJ9QSDMfPpxYFYphiQAzTEo/IS7v9ZHlIhttPlhYFYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKAZy2Jx+/Dj9gv2c/N18kO32rO9+tRYEYphjAX7maIlIWgLAiAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+0 &lt; 34 &lt; 100<br />
+IQR (CV) : 39.5 (0.7)</td>
+<td>73 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABaUlEQVR42u3bQU7jQBBA0RfEHecOcB64w5xyZlMLC9FSIA7Y8P8uiET4KdUBd3P5p3j47h/gGMWAGKbH7YPL4ptelgvI8+opJ2h7UY/XPeXPu1/9+91XslsNBWKYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghunKzbtVq93Ns+1t3sjwU/Y2GwrEMMWAN2vDy13Pgx35sMibJfK+S95xF9SGAjd/YK6673idhuG9t/8R3vyrGgrEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBtzt7tPH2mcL8JZXOQTDXnesP3/rr6FADFMMiGGKAQf5pFj1dWdpDs3wdVu/DQVimGLAwdeGfVoeMtgstL+A4ZqFtqFADNMph2L/I0WnZNj/16qGAjFMMSCGKQbEMMWAGKYYEMMUA2KYYgCX7d+sryf7n5jbetrchLv8qitf1lAghikG8B++7SMqvpDV9gAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>POST_DATA<br />
 [numeric]</td>
-<td>Mean (sd) : 41.1 (27.5)<br />
+<td>Mean (sd) : 39.3 (27.3)<br />
 min &lt; med &lt; max:<br />
 0 &lt; 35 &lt; 100<br />
-IQR (CV) : 42 (0.7)</td>
-<td>52 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABZ0lEQVR42u3cUU7bQBRA0RPEHrsHWA/dQ1fZ/rwPU3mkIELswL1/RFiKjzTziEfk8lfxdPQbOEcxIIbpefvDZfFLb8sN5HV1yQO0vann6y75tfvqn6Pv5Ga1KBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUxXHt6tWp1uPtrZ5icZvsvZZosCMUwxIIbpk1vkqv0Jct758UUMexPkzPOjRYEYphgQw/RFW+R+5/0EcleG834CaVEghikGxDC92yLfDvpXm+MnyH+T4pi9/PgJ0qJADFMMuPNfkR/tflvnqRnut3W2KBDDFANimE69Ra66/QR5SIbbT5AWBWKYYkAM00Nukas++NhoM1e+FcP+AfI1c6VFgRimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA7hsn2n//lFfQf6yeUB/+VF3vqxFgRimGMA/Y/kiAn37ZdEAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+IQR (CV) : 38.5 (0.7)</td>
+<td>78 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABYklEQVR42u3bQW7iQBRAwWKUO+YOM+dJ7pBTZjZ/YUVYIoKYhry3AxkJl+jGbprTp+LPvd/AGsWAGKaX7YPTzkFvuxPIv72XPEDbk3q57CWvZ5/9uPeZ3KwGBWKYYkAMUwyIYYoBMUwxIIYpBsQwxYAYpgtvtG/RyqsWBzKsvGrRoMCXT8Pbr12t/zIo1v3Y/mwNCsQwxYAYphgQwxQDYpiuvKd4luvOKxn2rjpfzz67bg0KxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKZDd7vstbe+fdxmoCUY7r+rokGBGKYYsMjccJuumWifiMEVPxk2KBDDFANimB5wivzu1pLd4zffIA/I8N2L70uOXprhuC1FSzMcd8vVFIkYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDdNou/r4/yZ9LL+vv5neK0686890aFIhhigH8B6X5IL4Z5P4RAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>POST_POLITICS<br />
 [numeric]</td>
-<td>Mean (sd) : 40.2 (21.9)<br />
+<td>Mean (sd) : 37.6 (22.8)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 43 &lt; 93<br />
-IQR (CV) : 28 (0.5)</td>
-<td>42 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABZ0lEQVR42u3bQVIiQRBA0ceEd5w7zJxH7+ApZza5aA0rAtSGRv7fyULgRWR1UTSnf4pft34BxygGxDA9bf847fpUz8tl6O++T7xo+3KePv1fPtHvDx99vYXBuxoKxDDFgBimqy6Rq1bXkOtdQQ7BcPsrSEOBGKYYEMMUA2KYYkAMUwz44i7yaAcpN2I4wjb4e2ooEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiwG63eTzf2a3YOzF8dHB/5GP7hgIxTDEghunNEnlv6/tODOuvZn/KV7arGgrEMMWAGKYYEMMUA2KYYsBBfl2z6no/Pjo0w/W28A0FYphiQAxTDIhhigExTDHg4LvIVZedoJ+z9b5LhkvOz8/bejcUiGGKATFMMSCGKQbEMMWAGKa73Exf1vITyOazxgMwnHPM31AghikGxDCdtsvoy0PdF/lnc6U4PdQ7X9ZQIIYpBvAf0zwfllBYz0AAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+0 &lt; 39 &lt; 100<br />
+IQR (CV) : 30 (0.6)</td>
+<td>69 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABZklEQVR42u3aQXLaUBBAwSblO+YOznnIHXLKZDML2WWlAFtI4Pd2eAG4qVExfJ3+Kn7s/QaOUQyIYXpZPjht+lLn1cvQr21feKXl23m5+Vlu6OeHf/2zh8G7GgrEMMWAGKYYEMMUA2KYYkAMUwyIYfrUanW0nXEnhiPvjNfVUCCGKQbEMMWAGKYYEMMUA2KYYkAM05vV6nk2xk8xPM/GeG0NBe58or3W2jDebxQPwbD/KG7EcH6wO8s2Yvjo8z3yhbZLJGKYYkAMUwyIYYoBMUwxIIYpBsQwxYCLN8xHW5w3Ytj/h5FtaygQwxQDYphiQAxTDIhhigEHObxb635nm4dmuN9X+IYCMUwxIIYpBsQwxYAYphgQwxQDYphiwME3zK/oP+dti3X96RkuW9cfkuHrT1QfkmHt8739FuUukYhhigExTDEghikGxDCdll/Ifj/5/W5ve13sFKdv9Z+v1lAghikG8A9V5CEuJml6AwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>POST_TRUST<br />
 [numeric]</td>
-<td>Mean (sd) : 60.6 (25.6)<br />
+<td>Mean (sd) : 62.9 (26.1)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 59 &lt; 100<br />
-IQR (CV) : 32 (0.4)</td>
-<td>45 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABa0lEQVR42u3cUU7bQBRA0ZOKPbKHsp6wh66S/rwPF2GRlNQZ0nv/QEZKjvRG48HJ6U3x494vYI1iQAzT0/aH071fzZc67yxzLztva3v5kwfq+YPf/broLxsKxDDFgBimGBDDFANimGLAErvI8+69/sthu/sFGD7eBF+6Db5NDQVimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYsChZ5HnhR+zOvRI9v5Hr3s1FIhhigExTDEghikGxDDFgBimGBDDFANimJZ49um6rj232L1+84DZN2S49tzikqsbCsQwxYDF14bjDnGXZjjuCLehQAxTDIhh+tISucInIRZgWPnfcdfVUCCGKQa8Wxtut+St/CzDpwy3W/L+/psU7lNDgRimGBDDFANimGJADFMMuPhG+7ttjv8Rw6OcK+zVUCCGKQbEMMWAGKYYEMMUAzhtd8mvD75l/rOfm9P203/1zndrKBDDFAP4DX54IlJMmNQ5AAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+0 &lt; 67 &lt; 100<br />
+IQR (CV) : 33.5 (0.4)</td>
+<td>67 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABaElEQVR42u3cQW7aUBRA0UOUPXYPzXroHrrKdvIGToQl3IIx5N4ZCCQ40vvY3xanP4q3R3+AYxQDYpjelw9Oj/40/9V5ZZn7WPlay5e/e6F+XHju91XvbCgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDdOBNuPPqJZSPm2+aHpjh8t7itbuL22ooEMMUA2KYYkAMUwyIYTrA4dN58w0329/xBAzbjxZvf3TZUCCGKQYcZG24b6sL6uJ0/RswXLOgNhSIYYoBMUwxIIZpxx/M258QPSXDnhvuW2soEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAv+w1b70Tc887FHRmOcG35MTUUiGGKAXfbkj3yLvSODP/+hxKPqaFADFMMiGG6col8tpX/TgyvctC8VkOBGKYYEMMUA2KYYkAMUwyIYYoBMUwxgNPyDPrXi59Of+7n4sra6Vt989UaCsQwxQD+AinrIlL4vhkGAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>POST_ALIGN<br />
 [numeric]</td>
-<td>Mean (sd) : 60.7 (25.8)<br />
+<td>Mean (sd) : 60.3 (24.9)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 56 &lt; 100<br />
-IQR (CV) : 33 (0.4)</td>
-<td>41 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABYUlEQVR42u3cQU7CUBRA0YNxj+5B16N7cJU6eYNqaAIKpeK9MxjQcpLftK+Uw4fi4dY7sI9iQAzT4/LF4Sa78Lp6eHq56g4tN/v440+5YE9H333fcA9aFIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGHaxRDuMq3NNE+ZaN4Rw/GZ5mkTzRYFYphiwKbHhtcd3zXe9BB5+9sya7UoEMMUA2KYYkAMUwyIYYoBMUwxIIYpBtzZEO54qxf4ixnlP2A45fK+RYEYphjwJ48N15hp/kGGa8w0WxSIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhh+jKEO3/Kd90/mtjul5TfZpFrU77b/KJxu622KBDDFANimGJADFMMiGGKAb++o73nB4c2ZDjn5HsPDxOt1aJADFMMiGGKATFMMSCG6bA8DXy7k3PC03pejJMP/+qbr9aiQAxTDOATdkoeuhzbbBkAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+0 &lt; 58 &lt; 100<br />
+IQR (CV) : 29.5 (0.4)</td>
+<td>69 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABbUlEQVR42u3cQXLaQBRAwcblO/oO8XnsO+SUyeYvFJdVJewgCfzeDhYgGs0AGqHLH8XT0RtwjmJADNPz8sblkE14W52eXm+6Qcunff7yo/zHXj699/eOW7Ajw9uJP5R23RuOf9fXaopEDFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwnWIp97quXQvdsi5+hwzra6Evn967pQYFYphiwJ3ODde1OqUups4fwLDl5JIGBWKYYkAMUwyIYTr1B+Z+J5SemmG/00kbFIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGH65yDcUZcQOL4PxyLP+2fy29agQAxTDLjROsWZr9uxI4NvnJN2TA0KbN4b1nbzR/k+sZHh0b9PfHNuuL/J8CYMj7KXNEUihikGxDDFgBimGBDDFANimGIAl+Vvo/cH+aG0rV+LgwSXH/XKV2tQIIYpBvAX/3cgwi9D7wIAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>POST_BEAUTY<br />
 [numeric]</td>
-<td>Mean (sd) : 47.1 (31.2)<br />
+<td>Mean (sd) : 51.8 (29.7)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 47 &lt; 100<br />
-IQR (CV) : 55 (0.7)</td>
-<td>50 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABVElEQVR42u3bQU7CUBRA0YNhj+5B14N7cJU4eYOaSALSYon3zghQykk+efm0h7Pi5a9PYB/FgBim4/LBx8UfivfDLQc9ndc4ytYtT/L4/anXH9/wefNHvK5ylMfVokAMUwyIYYoBMUzH6172DJPAPed4JcNa88S2/X5aaVEghikGxDDFgBimGHD13LCnThvsIj8hwxbDXIsCMUwxIIYpBsQwxYC754Y1RpktxqEHM6wzyFw6yuP2vFoUiGGKATFMMSCG6Sn3G27r4lyy+DfrHzBcM320KBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYpode5rGH62F3wLDfO71bFIhhigExTDEghikGxDDFgBimGBDDFANimGJADNNhuSH0sdvdoS16W9xrdfhX3/xiLQrEMMUAvgD3tCC2H9N8tAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+0 &lt; 56 &lt; 100<br />
+IQR (CV) : 47.5 (0.6)</td>
+<td>73 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABXElEQVR42u3bQU7CUBRA0YNhj+5B16N7cJU6eYPG2IQSClXvnUEa+JzwS9tfTp+Kp0cP4BjFgBim8/LB6SFDeFvdPb3uOqDl256vfpUb9vzjsx93HEGTAjFMMSCGKQbEMMWAGKZDHD6ttXZ8efujy0Mz3O/oskmBGKYYEMMUA2KYYkAMUwyIYYoBMUyHPrVaa8uZ5/oqyHJZ5lcybDvzvGTrJgW+fRu2LqM9atltZ4btFzoev+x2m5oUiGG68JfibeO9QT9vv/ceY+soNzPcYp+x/x7j+ndtUiCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIbprqtW118r/FMMx13VaFIghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxgNPyPpz3w96Us0cvi79Dnv7VJ1+tSYEYphjAF1yAIyIYIhqaAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="even">
 <td>POST_INTENT<br />
 [numeric]</td>
-<td>Mean (sd) : 43.4 (36)<br />
+<td>Mean (sd) : 37.6 (34.8)<br />
 min &lt; med &lt; max:<br />
-0 &lt; 37 &lt; 100<br />
-IQR (CV) : 64 (0.8)</td>
-<td>42 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABX0lEQVR42u3cUWoiQRRA0WNwj7OHyXrMHrLKmZ/30QEbmkRjxdz7Jyp0H3hFUTae/ileHn0BaxQDYpjO2xdvuwvF6+nRF3r7tjd7/vjWn6tfeH/0Fd+9hgIxTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCG6XzsY5edM+tnObE+yPDsJ9YNBWKYYkAMUwyIYYoBh/cNP7fL/lNNm63f0zMc2/o1FIhhigExTDEghikGLL1vuHzjU5oLM3znmVdDgRimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAxU+f9rr9A2k/kuH2h3MNBWKYYkAMUwyIYYoBS+wbLgv89dQCDCs8n99QIIbpLkOxwrQvwHB92t8XWAP2aigQwxQDvrw2rLUYfv5qvsiw1qJ3fWE+UkOBGKYYEMMUA2KYYgCn7Y7jbanN0L37u/mp7/Sr7ny3hgIxTDGA/xpAIL7Lz6STAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+0 &lt; 23 &lt; 100<br />
+IQR (CV) : 61 (0.9)</td>
+<td>70 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABaElEQVR42u3cQW7aUBRA0UPFHruHdD1kD1llM3kDV8ISSrBx3HtnEQTZR3k/38hw+av49eoDOEYxIIbpuvzhfXWh+HN59YE+v+XJXv996PfdX/h49RFvXkOBGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimK6PPe22csfkWe6XfJDh7PdLNhSIYYoBMUwxIIYpBsQwPbh9+rnd1j9auNgBn57hsR1wQ4EYphgQwxQDYphiQAxTDIhh+uZm+izvWH+T4SzvWDcUOPQV5m3HL9U4MMOeI9dQ4OB/DWs9///Tj2R4/rA0FIhhOsBQ3A7wtXQbMdw/tbUl7PV70Y0Y7p3YkbfYrQ3YeW3YehX4+uvvyrD1GvD1UWwoEMMUA2KYYkAMUwyIYbosN17vB7jW26+3xYXe5b8689UaCsQwxQA+ATeLIyxZMQEzAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
 <tr class="odd">
 <td>POST_LATENCY<br />
 [numeric]</td>
-<td>Mean (sd) : 2.7 (1.3)<br />
+<td>Mean (sd) : 3.3 (2.4)<br />
 min &lt; med &lt; max:<br />
-0.6 &lt; 2.5 &lt; 6.5<br />
-IQR (CV) : 1.7 (0.5)</td>
-<td>69 distinct values</td>
-<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAwYTKwGAQxUwAAABWElEQVR42u3bQW7TUABF0RPUPbIHWE/ZA6uEyRtEVUtSakgC986iSI59lO/4f8enH4pPt96B+ygGxLCezl+cDtjg8xUnm69HfNCHO9/Rp9/eypt9vvD+91sf/ys1KBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrHfeyr3mfvUj9u472o94v/pyDQrEsGJADCsGxLBiQAwrBsSwYkAMKwbEsGJADCsGxLBiQAzrDzxkdLnL69t/+2msmzDc3+p2gwIxrBgQw4oBMawYEMOKATGsGBDDigE3mmFe7tJU/OiJ+J0y/HoqfvxEvEGBF9+Gx/nX49HrVy8Gxf2tC73e0fvZoEAMKwbEsGJADCsGxLDudE7x8a64Ij67zvxnGd53ndmgQAwrBsSwTucn1G8Ps95wRF/OfilO/9WRv1mDAjGsGMBPErQajpgRJaYAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+0.7 &lt; 2.6 &lt; 22.6<br />
+IQR (CV) : 2 (0.7)</td>
+<td>145 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAw0DFDRFCd9eAAABRUlEQVR42u3bQW7TQACG0RfUO3IHOE97B04Jm38RGlegKqUJ+b5dolnYT5oZ2Rqffiq+fPYF3EYxIIb1dP7jdDDg+XDx+H5y953f2NOfh3+9+OfHZ9/B1WtSIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYvx0PfX7Y4/SvTsk+wonYo5oUiGHFgBhWDIhhxYAYVgyIYcWAGFYM+KvvMI86eiS/509U38nwvz2QNykQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKAe9+F3nUPb+mvSLDPb+mbVIghnXFSXHU5Xpxm6vFBzO8Xi9udbX4YIbLbnM/+ecMn7GfvHEI+gz/dD7i5aHOTH97i+Fxa8NEDCsG8AtNIBn6qAD/QQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
 <td>0<br />
 (0.0%)</td>
 </tr>
