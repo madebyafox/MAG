@@ -140,9 +140,12 @@ df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds")
 
 # NEW
 
-## (FIG 6) Exploratory Factor Analysis
 
-### REPLICATE CHI
+
+
+## EXPLORATORY FACTOR ANALYSIS 
+
+### REPLICATE CHI (FIG 6) Exploratory Factor Analysis
 
 **As Reported in Section 5.3, Figure 6, here we conduct an exploratory factor analysis of the semantic differential scale questions.**
 
