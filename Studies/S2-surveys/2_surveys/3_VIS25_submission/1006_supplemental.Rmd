@@ -177,7 +177,7 @@ jmv::efa(
 
 
 
-### EFA STUDY 1-4
+### EFA STUDY 1-4 (all blocks)
 
 Exploratory Factor Analysis of data combined from Studies 1 through 4(pre-test only), including all (z-scored) semantic differential questions asked on all surveys. 
 
@@ -185,7 +185,7 @@ We use a parallel analysis method, verified by inspection of the scree plot to d
 
 #### Jamovi EFA
 
-```{r minimal-q-efa, message=FALSE}
+```{r minimal-q-efa_S14, message=FALSE}
 
 jmv::efa(
     data = df_graphs_all,
@@ -208,7 +208,7 @@ jmv::efa(
 
 #### Psych EFA
 
-```{r minimal-q-efa-psych}
+```{r minimal-q-efa-psychS14}
 
 
 
@@ -232,7 +232,73 @@ efa_result
 ```
 
 
-#### MFA Multiple Factor Analysis (Combines PCA & MCA to essentially do an EFA using continuous and categorical data)
+### EFA STUDY 1-4 (block1)
+
+Exploratory Factor Analysis of data combined from Studies 1 through 4(pre-test only), including all (z-scored) semantic differential questions asked on all surveys, but only data from block 1
+
+We use a parallel analysis method, verified by inspection of the scree plot to determine (4) factors, and see that both the KMO measure and Bartlett's test of sphericity meet the necessary pre-requisites to support this analysis.  The resultant factor loadings are described below. 
+
+#### Jamovi EFA
+
+```{r minimal-q-efa_block1, message=FALSE}
+
+## DEFINE DATA
+df <- df_graphs_all %>% filter(Assigned.Block==1) %>% droplevels()
+table(df$Assigned.Block, df$Study)/5
+
+
+## RUN EFA
+jmv::efa(
+    data = df,
+    vars = as.vector(ref_min_sd_questions_z),
+    # nFactors = 3,
+    extraction = "ml",
+    sortLoadings = TRUE,
+    screePlot = TRUE,
+    eigen = FALSE,
+    factorCor = TRUE,
+    factorSummary = FALSE,
+    modelFit = TRUE,
+    kmo = TRUE,
+    bartlett = TRUE)
+
+
+
+```
+
+
+#### Psych EFA
+
+```{r minimal-q-efa-psych_block1}
+
+
+## DEFINE DATA
+df <- df_graphs_all %>% filter(Assigned.Block==1) %>% droplevels()
+table(df$Assigned.Block, df$Study)/5
+
+df <- df %>% select(all_of(ref_min_sd_questions_z))
+
+# EFA using Maximum Likelihood extraction and Oblimin rotation
+efa_result <- fa(df, nfactors = 3, rotate = "oblimin", fm = "ml")
+
+# View communalities
+efa_result$communality
+
+# View the entire EFA output
+print(efa_result, cut = 0.3)
+
+# Optional: visualize factor diagram
+fa.diagram(efa_result)
+
+
+efa_result
+
+```
+
+
+
+
+## MFA Multiple Factor Analysis (Combines PCA & MCA to essentially do an EFA using continuous and categorical data)
 https://chatgpt.com/c/67d0e6ec-540c-8002-86ee-46536c59a368
 
 #### WORKING WORKING BLOCK 1 NUMERICAL VARS
