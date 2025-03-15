@@ -1,5 +1,5 @@
 ---
-title: "SUBMISSION 1006 — SUPPLEMENTAL REPORTING"
+title: "WIP ANALYSIS"
 author: "ANONYMIZED"
 date: "2024-02-24"
 output:
@@ -24,13 +24,6 @@ editor_options:
     wrap: 72
 ---
 
-
-#TODO PREAMBLE
-In the [SUBMISSION 1006] studies, participants completed an
-
-
-This notebook contains code to replicate quantitative analysis of data
-from studies reported in VIS submission #1006.
 
 # SETUP
 
@@ -141,7 +134,10 @@ df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds")
 # NEW
 
 
+```{r}
 
+
+```
 
 ## EXPLORATORY FACTOR ANALYSIS 
 
@@ -186,6 +182,9 @@ We use a parallel analysis method, verified by inspection of the scree plot to d
 #### Jamovi EFA
 
 ```{r minimal-q-efa_S14, message=FALSE}
+
+df <- df_graphs_all
+table(df$Study)/5
 
 jmv::efa(
     data = df_graphs_all,
@@ -251,7 +250,7 @@ table(df$Assigned.Block, df$Study)/5
 jmv::efa(
     data = df,
     vars = as.vector(ref_min_sd_questions_z),
-    # nFactors = 3,
+    nFactors = 3,
     extraction = "ml",
     sortLoadings = TRUE,
     screePlot = TRUE,
