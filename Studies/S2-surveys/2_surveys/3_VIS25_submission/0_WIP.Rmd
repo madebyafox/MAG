@@ -24,7 +24,6 @@ editor_options:
     wrap: 72
 ---
 
-
 # SETUP
 
 ### Import Packages
@@ -61,8 +60,6 @@ library(plotly) # interactive graphs
 library(paletteer) #more palettes
 library(interactions) ##easier regression ixn plots.srlsy
 library(tidygraph)
-
-
 
 #MODELLING
 library(jtools) #Social Science regression utilities
@@ -106,9 +103,21 @@ ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
 ref_sd_questions <- rownames(ref_labels)
 ref_blocks <- c(1,2,3,4,5,6)
 
+
+############## FULL QUESTION SET FOR S1_3
+ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA",
+                      "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
+                      "CHART_TRUST", "CHART_INTENT", "CHART_LIKE", "CHART_BEAUTY")
+
+ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
+                      "MAKER_POLITIC_z", "MAKER_ARGUE_z","MAKER_SELF_z","MAKER_ALIGN_z","MAKER_TRUST_z",
+                      "CHART_TRUST_z", "CHART_INTENT_z", "CHART_LIKE_z", "CHART_BEAUTY_z")
+
+
 ############## MINIMAL QUESTION SET FOR STUDY 4
 ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
 ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
+
 
 
 ```
@@ -120,6 +129,7 @@ ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_
 ############## IMPORT Study 1_3 DATA FILES
 df_participants <- readRDS("data/output/Study_1_2_3/df_participants.rds") #1 row per participant — demographic
 df_graphs <- readRDS("data/output/Study_1_2_3/df_graphs.rds") #only categorical and numeric questions
+df_graphs_z <- readRDS("data/output/Study_1_2_3/df_graphs_z.rds") #only categorical and numeric questions
 df_sd_questions_long <- readRDS("data/output/Study_1_2_3/df_sd_questions_long.rds") # only sd questions LONG
 
 
@@ -133,1306 +143,389 @@ df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds")
 
 # NEW
 
+## EXPLORATORY FACTOR ANALYSIS
+
+```{r}
+print("DATA AVAILABLE WITH FULL QUESTION SET")
+table(df_graphs$Study, df_graphs$Assigned.Block)
+
+print("DATA AVAILABLE WITH REDUCED QUESTION SET")
+table(df_graphs_all$Study, df_graphs_all$Assigned.Block)
+```
+
+Key questions to address in the EFA analysis:
+
+1.  Include full set of variables (Study 1,2,3) OR only only minimal
+    variables included in S4 as well
+2.  Include data from Study 2 and Study 4 (only block 1) ?
+3.  Do analysis just for block 1?
+4.  Do analysis just for super-powered image?
+5.  Do analysis just for data over all blocks (Study 1 + Study 3)
+
+
+
+
+PRE-REQUISISITES
+-   Bartlett’s Test of Sphericity Tests if the correlation matrix is
+    significantly different from an identity matrix (no correlations). p
+    \< 0.05 indicates sufficient correlations.
+-   Kaiser-Meyer-Olkin (KMO) Measure Assesses sampling adequacy for EFA
+    (overall and per variable). Overall KMO ≥ 0.60 is acceptable. KMO ≥
+    0.80 is meritorious. Variables with KMO \< 0.50 might need removal.
+
+OUTCOMES
+-   FACTOR LOADINGS:
+Factor loadings represent the correlation between each variable and a factor. Higher absolute loadings indicate stronger relationships between the item and the factor. ≥ 0.70	Very strong loading (ideal, but rare in practice). 0.50 – 0.70	Moderate to strong—good indicator of factor membership. 0.30 – 0.50	Weak to moderate—may be acceptable depending on context and theory. < 0.30	Weak—often considered too low to retain, unless justified theoretically.
+
+    
+-   (h^2) H2: COMMUNALITY: indicates the proportion of variance in a variable that is explained by the extracted factors. It ranges from 0 to 1 (or 0% to 100% if expressed as a percentage). Think of it as shared variance: how much of a variable's variance is accounted for by the common factors.
+-   Communality Value	Interpretation: ≥ 0.60	Excellent—variable is well explained by the factors. 0.40 – 0.60	Acceptable in many cases, especially in social sciences. < 0.40	Low—variable may not fit well in the factor model. Consider revising or dropping it (but consider theory first).
+
+- (u²): U2: UNIQUENESS: Proportion of variance unique to the variable, not explained by factors.
+- com: com: COMPLEXITY: Complexity (com) measures how many factors a variable meaningfully loads onto.com Value	Meaning
+1.0	The variable loads strongly on one factor (simple structure). > 1.0	The variable loads on multiple factors, with complexity increasing as it spreads across more factors.
+Higher values (e.g., 1.5–2.5)	The variable is cross-loading across factors, making interpretation harder.
+
+
+SUMMARY
+    
+- Factor Loadings: Ideally ≥ 0.50 on one factor and low on the others.    
+- Communalities (H2): Ideally ≥ 0.40 for most items.
+- Cross-loadings: Avoid or minimize; interpret with caution.
+- Theoretical Coherence: Even if a loading is statistically "low," theory may justify its retention.    
+    
+### (1) EFA : REDUCED VARS
+
+#### !!! (1.1) EFA : REDUCED VARS : S1, S2, S3, S4(PRE) (UNBALANCED BLOCKS)
 
 ```{r}
 
+## SETUP DATA
+df <- df_graphs_all%>% select(all_of(ref_min_sd_questions_z))
+x <- ref_min_sd_questions_z
 
-```
-
-## EXPLORATORY FACTOR ANALYSIS 
-
-### REPLICATE CHI (FIG 6) Exploratory Factor Analysis
-
-**As Reported in Section 5.3, Figure 6, here we conduct an exploratory factor analysis of the semantic differential scale questions.**
-
-We use a parallel analysis method, verified by inspection of the scree plot to determine (4) factors, and see that both the KMO measure and Bartlett's test of sphericity meet the necessary pre-requisites to support this analysis.  The resultant factor loadings are described below. 
-
-(EFA on [not-zscored] SD questions from studies 1 and 3 [study 2 pilot was excluded, but included here]; changes numeric results slightly, but not the factor grouping)
-
-```{r chi-efa, message=FALSE}
-
-jmv::efa(
-    data = df_graphs,
-    vars = as.vector(ref_sd_questions),
-    nFactors = 4,
-    extraction = "ml",
-    sortLoadings = TRUE,
-    screePlot = TRUE,
-    eigen = FALSE,
-    factorCor = TRUE,
-    factorSummary = FALSE,
-    modelFit = TRUE,
-    kmo = TRUE,
-    bartlett = TRUE)
-
-```
-
-
-
-
-
-
-
-### EFA STUDY 1-4 (all blocks)
-
-Exploratory Factor Analysis of data combined from Studies 1 through 4(pre-test only), including all (z-scored) semantic differential questions asked on all surveys. 
-
-We use a parallel analysis method, verified by inspection of the scree plot to determine (4) factors, and see that both the KMO measure and Bartlett's test of sphericity meet the necessary pre-requisites to support this analysis.  The resultant factor loadings are described below. 
-
-#### Jamovi EFA
-
-```{r minimal-q-efa_S14, message=FALSE}
-
-df <- df_graphs_all
-table(df$Study)/5
-
-jmv::efa(
-    data = df_graphs_all,
-    vars = as.vector(ref_min_sd_questions_z),
-    nFactors = 4,
-    extraction = "ml",
-    sortLoadings = TRUE,
-    screePlot = TRUE,
-    eigen = FALSE,
-    factorCor = TRUE,
-    factorSummary = FALSE,
-    modelFit = TRUE,
-    kmo = TRUE,
-    bartlett = TRUE)
-
-
-
-```
-
-
-#### Psych EFA
-
-```{r minimal-q-efa-psychS14}
-
-
-
-df <- df_graphs_all %>% select(all_of(ref_min_sd_questions_z))
-
-# EFA using Maximum Likelihood extraction and Oblimin rotation
-efa_result <- fa(df, nfactors = 3, rotate = "oblimin", fm = "ml")
-
-# View communalities
-efa_result$communality
-
-# View the entire EFA output
-print(efa_result, cut = 0.3)
-
-# Optional: visualize factor diagram
-fa.diagram(efa_result)
-
-
-efa_result
-
-```
-
-
-### EFA STUDY 1-4 (block1)
-
-Exploratory Factor Analysis of data combined from Studies 1 through 4(pre-test only), including all (z-scored) semantic differential questions asked on all surveys, but only data from block 1
-
-We use a parallel analysis method, verified by inspection of the scree plot to determine (4) factors, and see that both the KMO measure and Bartlett's test of sphericity meet the necessary pre-requisites to support this analysis.  The resultant factor loadings are described below. 
-
-#### Jamovi EFA
-
-```{r minimal-q-efa_block1, message=FALSE}
-
-## DEFINE DATA
-df <- df_graphs_all %>% filter(Assigned.Block==1) %>% droplevels()
-table(df$Assigned.Block, df$Study)/5
-
-
-## RUN EFA
+## RUN EFA JAMOVI STYLE
 jmv::efa(
     data = df,
-    vars = as.vector(ref_min_sd_questions_z),
-    nFactors = 3,
+    vars = as.vector(x),
+    # nFactors = 3,
     extraction = "ml",
-    sortLoadings = TRUE,
+    sortLoadings = FALSE,
     screePlot = TRUE,
     eigen = FALSE,
     factorCor = TRUE,
-    factorSummary = FALSE,
+    factorSummary = TRUE,
     modelFit = TRUE,
     kmo = TRUE,
     bartlett = TRUE)
 
 
-
-```
-
-
-#### Psych EFA
-
-```{r minimal-q-efa-psych_block1}
-
-
-## DEFINE DATA
-df <- df_graphs_all %>% filter(Assigned.Block==1) %>% droplevels()
-table(df$Assigned.Block, df$Study)/5
-
-df <- df %>% select(all_of(ref_min_sd_questions_z))
-
-# EFA using Maximum Likelihood extraction and Oblimin rotation
-efa_result <- fa(df, nfactors = 3, rotate = "oblimin", fm = "ml")
-
-# View communalities
-efa_result$communality
-
-# View the entire EFA output
-print(efa_result, cut = 0.3)
-
-# Optional: visualize factor diagram
-fa.diagram(efa_result)
-
-
-efa_result
-
-```
-
-
-
-
-## MFA Multiple Factor Analysis (Combines PCA & MCA to essentially do an EFA using continuous and categorical data)
-https://chatgpt.com/c/67d0e6ec-540c-8002-86ee-46536c59a368
-
-#### WORKING WORKING BLOCK 1 NUMERICAL VARS
-```{r}
-
-library(FactoMineR)
-library(factoextra)
-
-
-################################### DEFINE DATA just block 1 NUMERIC
-df_b1 <- df_graphs %>% 
-  # replace - in stimlus index to _
-  mutate(
-    STIMULUS= str_replace(STIMULUS,"-","_"),
-    STIMULUS = factor(STIMULUS)
-  ) %>% 
-  # keep only common stimulus
-  filter(Assigned.Block==1) %>% 
-  # drop cols we're not going to use
-  select(-contains("LATENCY")) %>% 
-  select(-contains("CONF"))  %>% 
-  select(-c(duration.min:D_politicsFiscal)) %>% 
-  select(-c(BLOCK, STIMULUS_CATEGORY)) %>% 
-  select(-c(ENCOUNTER:MAKER_GENDER))
-  
-
-## PIVOT to wide dataframe (1 row per participant)
-df_wide_b1 <- df_b1 %>% 
-  pivot_wider(
-    names_from = STIMULUS , 
-    values_from = c(MAKER_DESIGN:CHART_TRUST)
-  )  %>% 
-  select(-PID)
-
-
-
-
-
-################################## CALC. GROUP STRUCTURE
-
-## get image ids
-# Extract unique image identifiers from the original dataset
-image_ids <- unique(df_b1$STIMULUS) %>% droplevels()
-# Print to verify
-print(image_ids)
-
-# Assign columns to images
-group_list <- lapply(image_ids, function(img) {
-  which(grepl(paste0("_", img, "$"), colnames(df_wide_b1)))  # Match all variables for this image
-})
-# Name groups using image identifiers
-names(group_list) <- image_ids
-
-#compute group sizes
-group_sizes <- sapply(group_list, length)
-
-# Print for verification
-print(group_sizes)  # Should sum to ncol(df_wide_b1)
-
-# Verify group assignments
-print_group_columns <- function(group_indices, group_name) {
-  if (length(group_indices) == 0) {
-    cat("\n", group_name, "has no assigned columns!\n")
-  } else {
-    cat("\n", group_name, "Column Names:\n")
-    print(colnames(df_wide_b1)[group_indices])
-  }
-}
-
-# Print columns for each group
-lapply(seq_along(group_list), function(i) {
-  print_group_columns(group_list[[i]], names(group_list)[i])
-})
-
-
-
-################## RUN THE MFA
-mfa_block <- MFA(
-  df_wide_b1, 
-  group = group_sizes, 
-  type = rep("c", length(group_sizes)),  
-  graph = TRUE
-)
-
-
-
-
-
-
-```
-
-
-
-
-
-
-
-
-#### NOT WORKING WORKING BLOCK 1 ALL VARS
-```{r}
-
-library(FactoMineR)
-library(factoextra)
-
-
-################################### DEFINE DATA just block 1
-df_b1 <- df_graphs %>% 
-  # replace - in stimlus index to _
-  mutate(
-    STIMULUS= str_replace(STIMULUS,"-","_"),
-    STIMULUS = factor(STIMULUS)
-  ) %>% 
-  # keep only common stimulus
-  filter(Assigned.Block==1) %>% 
-  # drop cols we're not going to use
-  select(-contains("LATENCY")) %>% 
-  select(-contains("CONF"))  %>% 
-  select(-c(duration.min:D_politicsFiscal)) %>% 
-  select(-c(BLOCK, STIMULUS_CATEGORY))
-  
-
-## PIVOT to wide dataframe (1 row per participant)
-df_wide_b1 <- df_b1 %>% 
-  pivot_wider(
-    names_from = STIMULUS , 
-    values_from = c(ENCOUNTER:CHART_TRUST)
-  )  %>% 
-  select(-PID)
-
-
-################################## CALC. GROUP STRUCTURE
-
-## get image ids
-# Extract unique image identifiers from the original dataset
-image_ids <- unique(df_b1$STIMULUS) %>% droplevels()
-# Print to verify
-print(image_ids)
-
-# Assign columns to images
-group_list <- lapply(image_ids, function(img) {
-  which(grepl(paste0("_", img, "$"), colnames(df_wide_b1)))  # Match all variables for this image
-})
-# Name groups using image identifiers
-names(group_list) <- image_ids
-
-#compute group sizes
-group_sizes <- sapply(group_list, length)
-
-# Print for verification
-print(group_sizes)  # Should sum to ncol(df_wide_b1)
-
-# Verify group assignments
-print_group_columns <- function(group_indices, group_name) {
-  if (length(group_indices) == 0) {
-    cat("\n", group_name, "has no assigned columns!\n")
-  } else {
-    cat("\n", group_name, "Column Names:\n")
-    print(colnames(df_wide_b1)[group_indices])
-  }
-}
-
-# Print columns for each group
-lapply(seq_along(group_list), function(i) {
-  print_group_columns(group_list[[i]], names(group_list)[i])
-})
-
-
-
-
-
-mfa_block <- MFA(
-  df_wide_b1, 
-  group = group_sizes, 
-  type = rep("FAMD", length(group_sizes)),  
-  graph = FALSE
-)
-
-
-
-
-### TROUBLESHOOT 123
-print("Checking group_sizes:")
-print(group_sizes)  # Should be a numeric vector
-print(paste("Sum of group_sizes:", sum(group_sizes)))
-print(paste("Number of columns in df_wide_b1:", ncol(df_wide_b1)))
-print(sum(group_sizes) == ncol(df_wide_b1))  # Should return TRUE
-
-### TROUBLESHOOT 124
-assigned_columns <- unlist(group_list)  # All column indices assigned to groups
-all_columns <- 1:ncol(df_wide_b1)  # All columns in the dataset
-
-# Find unassigned columns
-unassigned_columns <- setdiff(all_columns, assigned_columns)
-print("Unassigned Columns:")
-print(colnames(df_wide_b1)[unassigned_columns])  # Should return an empty list
-
-### TROUBLESHOOT 125
-print(is.numeric(group_sizes))  # Should return TRUE
-
-
-### TROUBLESHOOT 126
-mfa_test <- tryCatch({
-  print("Running MFA with:")
-  print(paste("Number of columns in df_wide_b1:", ncol(df_wide_b1)))
-  print(paste("Group sizes:", toString(group_sizes)))
-  print(paste("Sum of group sizes:", sum(group_sizes)))
-
-  MFA(
-    df_wide_b1, 
-    group = group_sizes, 
-    type = rep("FAMD", length(group_sizes)), 
-    graph = FALSE
-  )
-}, error = function(e) {
-  print("MFA Failed! Here is the error message:")
-  print(e)
-  return(NULL)
-})
-
-
-## 126
-str(df_wide_b1)  # Check all variable types
-#127
-df_wide_b1 <- as.data.frame(df_wide_b1)
-
-
-mfa_block <- MFA(
-  df_wide_b1, 
-  group = group_sizes, 
-  type = rep("FAMD", length(group_sizes)),  
-  graph = FALSE
-)
-
-#make sure names are null
-names(group_sizes) <- NULL
-types <- rep("FAMD", length(group_sizes))
-type2 <- rep("m",length(group_sizes))
-# ## DEBUG MODE
-debugonce(MFA)  # Opens MFA for interactive debugging
-
-mfa_test <- MFA(
-  base = df_wide_b1, 
-  group = group_sizes,  
-  type = type2,
-  graph = FALSE
-)
-
-
-
-
-
-```
-
-
-
-
-
-##### ONLY BLOCK 1
-
-```{r block_1_mfa}
-
-library(FactoMineR)
-library(factoextra)
-
-
-################################### DEFINE DATA just block 1
-df_b1 <- df_graphs %>% 
-  # replace - in stimlus index to _
-  mutate(
-    STIMULUS= str_replace(STIMULUS,"-","_"),
-    STIMULUS = factor(STIMULUS)
-  ) %>% 
-  # keep only common stimulus
-  filter(Assigned.Block==1) %>% 
-  # drop cols we're not going to use
-  select(-contains("LATENCY")) %>% 
-  select(-contains("CONF"))  %>% 
-  select(-c(duration.min:D_politicsFiscal)) %>% 
-  select(-c(BLOCK, STIMULUS_CATEGORY))
-  
-
-## PIVOT to wide dataframe (1 row per participant)
-df_wide_b1 <- df_b1 %>% 
-  pivot_wider(
-    names_from = STIMULUS , 
-    values_from = c(ENCOUNTER:CHART_TRUST)
-  )  %>% 
-  select(-PID)
-
-
-################################# DEFINE GROUPS BY IMAGE
-group_list <- list(
-  grep("_B0_0$", colnames(df_wide_b1)),  # All responses for B0_0
-  grep("_B1_1$", colnames(df_wide_b1)),  # All responses for B1_1
-  grep("_B1_2$", colnames(df_wide_b1)),  # All responses for B1_2
-  grep("_B1_3$", colnames(df_wide_b1)),  # All responses for B1_3
-  grep("_B1_4$", colnames(df_wide_b1))   # All responses for B1_4
-)
-
-# Compute group sizes
-group_sizes <- sapply(group_list, length)
-print(sum(group_sizes)) ==ncol(df_wide_b1)  # Should sum to ncol(data_mfa_block)
-
-
-## VERIFY
-# Function to print column names instead of indices
-print_group_columns <- function(group_indices, group_name) {
-  if (length(group_indices) == 0) {
-    cat("\n", group_name, "has no assigned columns!\n")
-  } else {
-    cat("\n", group_name, "Column Names:\n")
-    print(colnames(df_wide_b1)[group_indices])
-  }
-}
-
-# Print column names for each image block
-print_group_columns(group_list[[1]], "Image B0_0")
-print_group_columns(group_list[[2]], "Image B1_1")
-print_group_columns(group_list[[3]], "Image B1_2")
-print_group_columns(group_list[[4]], "Image B1_3")
-print_group_columns(group_list[[5]], "Image B1_4")
-
-
-
-################################ RUN THE MFA
-mfa_block <- MFA(
-  df_wide_b1, 
-  group = group_sizes, 
-  type = rep("FAMD", length(group_sizes)), 
-  graph = FALSE
-)
-
-mfa_test <- MFA(
-  df_wide_b1[, 1:10],  # Minimal dataset
-  group = c(5, 5),  # Two groups
-  type = rep("FAMD", 2), 
-  graph = FALSE
-)
-
-### TROUBLESHOOT FACTOMINE
-print("Structure of df_wide_b1:")
-str(df_wide_b1)  # Print detailed structure
-
-print("First few rows of df_wide_b1:")
-print(head(df_wide_b1, 5))  # Print first few rows
-
-print("Group sizes being passed to MFA:")
-print(group_sizes)
-
-print("Sum of group_sizes:")
-print(sum(group_sizes))
-
-print("Number of columns in df_wide_b1:")
-print(ncol(df_wide_b1))
-
-print("Matching sum(group_sizes) and ncol(df_wide_b1):")
-print(sum(group_sizes) == ncol(df_wide_b1))
-
-## FORCE DEBUGGING
-mfa_test <- tryCatch({
-  print("Running MFA with:")
-  print(paste("Number of columns in df_wide_b1:", ncol(df_wide_b1)))
-  print(paste("Group sizes:", toString(group_sizes)))
-  print(paste("Sum of group sizes:", sum(group_sizes)))
-  
-  MFA(
-    df_wide_b1, 
-    group = group_sizes, 
-    type = rep("FAMD", length(group_sizes)), 
-    graph = FALSE
-  )
-}, error = function(e) {
-  print("MFA Failed! Here is the error message:")
-  print(e)
-  return(NULL)
-})
-
-
-## VARS w/ zero variance?
-zero_variance_vars <- sapply(df_wide_b1, function(col) length(unique(na.omit(col))) == 1)
-print(names(zero_variance_vars[zero_variance_vars == TRUE]))  # Should return an empty list
-
-
-### try numeric datat only
-numeric_data <- df_wide_b1 %>% select(where(is.numeric))
-
-mfa_numeric <- MFA(
-  numeric_data, 
-  group = rep(ncol(numeric_data), 1),  # One group containing all numeric variables
-  type = "c",  # "c" means continuous numeric data
-  graph = FALSE
-)
-
-##verify numeric_data
-print(ncol(numeric_data))  # Should be > 0
-print(colnames(numeric_data))  # Should list the numeric variables
-
-
-mfa_numeric <- MFA(
-  numeric_data, 
-  group = ncol(numeric_data),  # Single group containing all numeric variables
-  type = "c",  # "c" means continuous numeric data
-  graph = FALSE
-)
-pca_numeric <- PCA(numeric_data, graph = FALSE)
-mfa_tiny <- MFA(
-  numeric_data[, 1:5],  # Only first 5 variables
-  group = c(5),  # One group with 5 variables
-  type = "c", 
-  graph = FALSE
-)
-
-print(dim(numeric_data[, 1:5]))  # Should return something like [95, 5]
-print(str(numeric_data[, 1:5]))  # Should confirm it contains <dbl> values
-numeric_subset <- as.data.frame(numeric_data[, 1:5])  # Ensure it is a dataframe
-mfa_test <- MFA(
-  as.data.frame(numeric_data[, 1:5]),  # Force it to be a dataframe
-  group = c(5),  # One group of 5 variables
-  type = "c",  
-  graph = FALSE
-)
-
-
-
-```
-```{r synthetic-data}
-library(FactoMineR)
-
-# Create a small, artificial dataset with numeric variables
-set.seed(123)
-synthetic_data <- data.frame(
-  Var1 = rnorm(100),
-  Var2 = rnorm(100),
-  Var3 = rnorm(100),
-  Var4 = rnorm(100),
-  Var5 = rnorm(100)
-)
-
-# Define a simple group structure
-synthetic_groups <- c(2, 3)  # Two groups: first 2 vars, last 3 vars
-
-# Run MFA on synthetic data
-mfa_synthetic <- MFA(
-  synthetic_data, 
-  group = synthetic_groups, 
-  type = rep("c", length(synthetic_groups)), 
-  graph = TRUE
-)
-
-
-
-
-###### TROUBLESHOOT MY DATA
-print("Structure of synthetic_data:")
-str(synthetic_data)
-
-print("Structure of numeric_data:")
-str(numeric_data)
-numeric_data <- as.data.frame(numeric_data)
-
-
-## try again
-# mfa_numeric <- MFA(
-#   numeric_data, 
-#   group = ncol(numeric_data),  # Single group containing all numeric variables
-#   type = "c",  # "c" means continuous numeric data
-#   graph = FALSE
-# )
+## RUN EFA PSYCH PACKAGE
+# df <- df_graphs_all %>% select(all_of(ref_min_sd_questions_z))
 # 
-# ## check for extremems
-# summary(numeric_data)
+# # EFA using Maximum Likelihood extraction and Oblimin rotation
+# efa_result <- fa(df, 
+#                  nfactors = 3, 
+#                  rotate = "oblimin", 
+#                  fm = "ml")
 # 
-# 
-# ## DEBUG MODE
-# debugonce(MFA)  # This will open an interactive debugger when MFA runs
-# 
-# mfa_numeric <- MFA(
-#   numeric_data,
-#   group = ncol(numeric_data),
-#   type = "c",
-#   graph = FALSE
-# )
-
-
-##TRACE MODE
-# trace(MFA, edit = TRUE)  # This will allow us to modify MFA before running it
-# 
-# mfa_numeric <- MFA(
-#   numeric_data, 
-#   group = ncol(numeric_data),  
-#   type = "c",  
-#   graph = FALSE
-# )
-
-
-####### FIX GROUPS
-image_names <- unique(df_b1$STIMULUS) %>% droplevels()  # Get unique image names
-print(image_names)  # Verify it contains B0_0, B1_1, B1_2, B1_3, B1_4
-
-group_list <- lapply(image_names, function(img) {
-  which(grepl(paste0("_", img, "$"), colnames(numeric_data)))  # Find all columns related to each image
-})
-
-# Convert to a named list for clarity
-names(group_list) <- image_names
-
-
-group_sizes <- sapply(group_list, length)
-print(group_sizes)  # Should sum to ncol(numeric_data)
-
-print_group_columns <- function(group_indices, group_name) {
-  if (length(group_indices) == 0) {
-    cat("\n", group_name, "has no assigned columns!\n")
-  } else {
-    cat("\n", group_name, "Column Names:\n")
-    print(colnames(numeric_data)[group_indices])
-  }
-}
-
-lapply(seq_along(group_list), function(i) {
-  print_group_columns(group_list[[i]], names(group_list)[i])
-})
-
-mfa_block <- MFA(
-  numeric_data, 
-  group = group_sizes, 
-  type = rep("c", length(group_sizes)),  
-  graph = TRUE
-)
-
+# # View the entire EFA output
+# print(efa_result, cut = 0.3)
+# # View entire result w/o cutoff
+# # efa_result
+# # Optional: visualize factor diagram
+# fa.diagram(efa_result)
 
 ```
 
 
-
-##### ONLY B0-0
-
-
+#### (1.2) EFA : REDUCED VARS : S1, S3 (BALANCED BLOCKS)
 
 ```{r}
 
-library(FactoMineR)
-library(factoextra)
+## SETUP DATA
+df <- df_graphs_all%>% filter(Study %in% c("Study1","Study3"))
+# table(df$Study, df$Assigned.Block)
+x <- ref_min_sd_questions_z
+
+## RUN EFA JAMOVI STYLE
+jmv::efa(
+    data = df,
+    vars = as.vector(x),
+    # nFactors = 3,
+    extraction = "ml",
+    sortLoadings = FALSE,
+    screePlot = TRUE,
+    eigen = FALSE,
+    factorCor = TRUE,
+    factorSummary = TRUE,
+    modelFit = TRUE,
+    kmo = TRUE,
+    bartlett = TRUE)
 
 
-################################### DEFINE DATA just b0_0
-df_0 <- df_graphs %>% 
-  # replace - in stimlus index to _
-  mutate(
-    STIMULUS= str_replace(STIMULUS,"-","_"),
-    STIMULUS = factor(STIMULUS)
-  ) %>% 
-  # keep only common stimulus
-  filter(STIMULUS=="B0_0") %>% 
-  # drop cols we're not going to use
-  select(-contains("LATENCY")) %>% 
-  select(-contains("CONF"))  
-
-## PIVOT to wide dataframe (1 row per participant)
-data_wide_0 <- df_0 %>% 
-  pivot_wider(
-    names_from = STIMULUS , 
-    values_from = c(ENCOUNTER:CHART_TRUST)
-  ) %>% 
-  select(-c(PID:STIMULUS_CATEGORY))
-  # #move supp vars to end
-  # relocate(
-  #   PID:STIMULUS_CATEGORY, .after = CHART_TRUST_B0_0 
-  # )
-
-group_sizes <- 1  # All variables belong to one group
-
-
-##########################
-
-################################### DEFINE ALL
-df <- df_graphs %>% 
-  # replace - in stimlus index to _
-  mutate(
-    STIMULUS= str_replace(STIMULUS,"-","_"),
-    STIMULUS = factor(STIMULUS)
-  ) %>% 
-  # drop cols we're not going to use
-  select(-contains("LATENCY")) %>% 
-  select(-contains("CONF"))  
-
-## PIVOT to wide dataframe (1 row per participant)
-data_wide <- df %>% 
-  pivot_wider(
-    names_from = STIMULUS , 
-    values_from = c(ENCOUNTER:CHART_TRUST)
-  ) %>% 
-  select(-c(PID:STIMULUS_CATEGORY))
-  # #move supp vars to end
-  # relocate(
-  #   PID:STIMULUS_CATEGORY, .after = CHART_TRUST_B0_0 
-  # )
-
-
-
-##########################
-
-## RUN THE MFA WITH NO GROUPING STRUCTURE B/C JUST 1 IMAGE AND NO
-## PLAUSIBLY MEAININGFUL GROUPS
-mfa_common <- MFA(
-  data_wide_0, 
-  group = group_sizes,  # Treating all variables as a single group
-  type = "FAMD",  # Allows both numeric & categorical variables
-  graph = FALSE
-)
-
-print("Group sizes being passed to MFA:")
-print(group_sizes)
-
-
-```
-
-```{r troubleshoot-factominer}
-
-# Select only numeric variables (PCA does not support factors)
-numeric_mfa <- data_wide %>% select(where(is.numeric))
-pca_test <- PCA(numeric_mfa, graph = TRUE)
-## RUNS CORRECTLY
-
-
-famd_test <- FAMD(data_wide_0, graph = TRUE)
-famd_test <- FAMD(data_wide, graph = TRUE)
-## RUNS ON THE B0_O ONLY, BUT NOT DATA_WIDE
-
-
-## 54 check infinite values
-print(any(sapply(data_wide, function(col) any(is.infinite(col), na.rm = TRUE))))  # Should return FALSE
-## 55 check missing data
-na_counts <- colSums(is.na(data_wide))
-na_percentage <- na_counts / nrow(data_wide) * 100
-print(na_percentage[na_percentage > 50])  # Show columns where >50% of data is missing
-
-##lots of missing data so
-
-
-
-# ## do imputations
+## RUN EFA PSYCH PACKAGE
+# df <- df_graphs_all %>% select(all_of(ref_min_sd_questions_z))
 # 
-# install.packages("missMDA")  # Install if not already installed
-# library(missMDA)
+# # EFA using Maximum Likelihood extraction and Oblimin rotation
+# efa_result <- fa(df, 
+#                  nfactors = 3, 
+#                  rotate = "oblimin", 
+#                  fm = "ml")
 # 
-# # Perform PCA-based imputation for missing data
-# imputed_data <- imputePCA(data_wide, method = "Regularized", ncp = 2)$completeObs
-
-
-```
-
-##### ATTEMPS WITH TOO MUCH MISSING DATA
-```{r mfa}
-
-
-library(FactoMineR)
-library(factoextra)
-
-
-################################### DEFINE DATA 
-df <- df_graphs %>% 
-  # replace - in stimlus index to _
-  mutate(
-    STIMULUS= str_replace(STIMULUS,"-","_"),
-    STIMULUS = factor(STIMULUS)
-  )
-
-## PIVOT to wide dataframe (1 row per participant)
-data_wide <- df %>% 
-  # drop cols we're not going to use
-  select(-contains("LATENCY")) %>% 
-  select(-contains("CONF"))  %>% 
-  pivot_wider(
-    names_from = STIMULUS , 
-    values_from = c(ENCOUNTER:CHART_TRUST)
-  ) %>% 
-  #move supp vars to end
-  relocate(
-    PID:STIMULUS_CATEGORY, .after = `CHART_TRUST_B6_4` 
-  )
-
-
-
-################################# DEFINE GROUPS
-#### structure by embellishment categories, 
-####b/c structure by block was too sparse and wouldn't run
-
-### Step 1: Extract Unique Image-Category Mapping from df
-
-# Extract unique STIMULUS (image number) to STIMULUS_CATEGORY (embellishment category) mapping
-# Extract the last character (which indicates the category)
-stimulus_mapping <- df %>%
-  select(STIMULUS, STIMULUS_CATEGORY) %>%
-  distinct() %>%
-  mutate(
-    Stimulus_Number = as.numeric(str_extract(STIMULUS, "\\d+$"))  # Extract last digit
-  )
-
-# Print to verify
-print(stimulus_mapping)
-
-### Step 2: Identify Images in Each Category
-
-# Extract image numbers for each embellishment category
-common_image <- stimulus_mapping$STIMULUS[stimulus_mapping$STIMULUS_CATEGORY == "F"]
-category_A_images <- stimulus_mapping$STIMULUS[stimulus_mapping$STIMULUS_CATEGORY == "A"]
-category_B_images <- stimulus_mapping$STIMULUS[stimulus_mapping$STIMULUS_CATEGORY == "B"]
-category_C_images <- stimulus_mapping$STIMULUS[stimulus_mapping$STIMULUS_CATEGORY == "C"]
-category_D_images <- stimulus_mapping$STIMULUS[stimulus_mapping$STIMULUS_CATEGORY == "D"]
-
-# Print to check if the correct images are assigned
-print(common_image)
-print(category_A_images)
-print(category_B_images)
-print(category_C_images)
-print(category_D_images)
-
-
-
-### Step 3: Extract Column Names in data_wide
-# Convert STIMULUS into valid image indices
-stimulus_to_index <- setNames(1:25, stimulus_mapping$STIMULUS)
-
-# Map category images to their respective indices
-common_image_indices <- stimulus_to_index[common_image]
-category_A_indices <- stimulus_to_index[category_A_images]
-category_B_indices <- stimulus_to_index[category_B_images]
-category_C_indices <- stimulus_to_index[category_C_images]
-category_D_indices <- stimulus_to_index[category_D_images]
-
-# Function to print column names
-print_category_columns <- function(image_indices, category_name) {
-  if (length(image_indices) == 0) {
-    cat("\n", category_name, "has no assigned images!\n")
-  } else {
-    cat("\n", category_name, "Column Names:\n")
-    valid_indices <- unlist(lapply(image_indices, function(img) seq(img, 15 * 25, by = 25)))  
-    print(colnames(data_wide)[valid_indices])
-  }
-}
-
-# Print column names for each category
-print_category_columns(common_image_indices, "Common Image")
-print_category_columns(category_A_indices, "Category A")
-print_category_columns(category_B_indices, "Category B")
-print_category_columns(category_C_indices, "Category C")
-print_category_columns(category_D_indices, "Category D")
-#######
-
-
-################### DEFINE SUPPLEMENTARY VARIABLES
-
-## 1. Remove vars not going to be used
-data_mfa <- data_wide %>% 
-  select(-c(PID,duration.min,Assigned.Block,D_gender,D_education, D_employmentStatus,D_income,BLOCK)) 
-  
-
-
-supplementary_vars <- c("Sample","Study","Distribution","PLATFORM","D_gender_collapsed","D_education_collapsed","D_age","D_politicalParty","D_politicsSocial","D_politicsFiscal","STIMULUS_CATEGORY")
-
-# Get indices of supplementary columns
-sup_vars_indices <- which(colnames(data_mfa) %in% supplementary_vars)
-
-####### TEMP JUST DROP THE SUPP VARS
-data_mfa <- data_wide %>% 
-  select(-c(PID:STIMULUS_CATEGORY))
-
-
-###################### RUN MFA
-mfa_result <- MFA(
-  data_mfa, 
-  group = list(common_image_indices, category_A_indices, category_B_indices, category_C_indices, category_D_indices), 
-  type = rep("FAMD", 5),  # Since all groups contain mixed data
-  graph = FALSE
-)
-
-# Scree plot to check variance explained
-fviz_screeplot(mfa_result, addlabels = TRUE)
-
-# Factor contributions
-fviz_contrib(mfa_result, "var", axes = 1)
-fviz_contrib(mfa_result, "var", axes = 2)
-
-# Factor map to visualize how embellishment categories relate to latent dimensions
-fviz_mfa_var(mfa_result, "group", repel = TRUE)
-
-# Individual factor map (participants)
-fviz_mfa_ind(mfa_result, repel = TRUE)
-
-
-
-
-
+# # View the entire EFA output
+# print(efa_result, cut = 0.3)
+# # View entire result w/o cutoff
+# # efa_result
+# # Optional: visualize factor diagram
+# fa.diagram(efa_result)
 
 ```
 
+
+
+
+### (2) EFA : FULL VARS
+
+#### (2.1) EFA : FULL VARS : S1,S3 (BALANCED BLOCKS)
 ```{r}
 
-## MFA TROUBLESHOOTING
+## SETUP DATA
+df <- df_graphs_z%>% filter(Study %in% c("Study1","Study3"))
+table(df$Study, df$Assigned.Block)
+x <- ref_sd_questions_z
+
+## RUN EFA JAMOVI STYLE
+jmv::efa(
+    data = df,
+    vars = as.vector(x),
+    # nFactors = 3,
+    extraction = "ml",
+    sortLoadings = FALSE,
+    screePlot = TRUE,
+    eigen = FALSE,
+    factorCor = TRUE,
+    factorSummary = TRUE,
+    modelFit = TRUE,
+    kmo = TRUE,
+    bartlett = TRUE)
 
 
-## 1 check group list, should be list of 5, each with numeric indices
-group_list <- list(common_image_indices, category_A_indices, category_B_indices, category_C_indices, category_D_indices)
-print(group_list)
-
-##save
-g <- group_list
-
-## 2 Are indices numeric?
-print(sapply(group_list, is.numeric))  # Should return TRUE for all
-
-
-## 3 Ensure no NA values
-print(any(is.na(unlist(group_list))))  # Should return FALSE
-
-## 4 Ensure indices exist in data_Wide
-max_col <- ncol(data_mfa)  # Total number of columns
-valid_indices <- all(unlist(group_list) > 0 & unlist(group_list) <= max_col)
-print(valid_indices)  # Should return TRUE
-
-## 5 Run with verified groups
-# mfa_result <- MFA(
-#   data_mfa,
-#   group = group_list,
-#   type = rep("FAMD", length(group_list)),
-#   graph = FALSE
-# )
-#Error in 1:group[1] : NA/NaN argument
-
-## 6 debug how mfa sees group
-str(group_list)
-#### RETURNED
-# List of 5
-#  $ : Named int 1
-#   ..- attr(*, "names")= chr "B0_0"
-#  $ : Named int [1:6] 2 6 10 14 18 22
-#   ..- attr(*, "names")= chr [1:6] "B1_1" "B2_1" "B3_1" "B4_1" ...
-#  $ : Named int [1:6] 3 7 11 15 19 23
-#   ..- attr(*, "names")= chr [1:6] "B1_2" "B2_2" "B3_2" "B4_2" ...
-#  $ : Named int [1:6] 4 8 12 16 20 24
-#   ..- attr(*, "names")= chr [1:6] "B1_3" "B2_3" "B3_3" "B4_3" ...
-#  $ : Named int [1:6] 5 9 13 17 21 25
-#   ..- attr(*, "names")= chr [1:6] "B1_4" "B2_4" "B3_4" "B4_4" ...
-##FIX
-group_list <- lapply(group_list, unlist)  # Flatten nested lists
-str(group_list)
-
-### !!!!!! THIS fixed the. group list issue
-group_list <- lapply(group_list, function(g) as.numeric(unname(g)))
-str(group_list)
-
-## TRY TO RUN
-# mfa_result <- MFA(
-#   data_mfa,
-#   group = group_list,
-#   type = rep("FAMD", length(group_list)),
-#   graph = FALSE
-# )
-
-
-## check group list again
-print(group_list)  # Check its structure
-print(length(group_list))  # Should return 5 (since there are 5 groups)
-print(sapply(group_list, length))  # Should return the number of columns in each group
-
-## check group_list nas
-any(is.na(unlist(group_list)))  # Should return FALSE
-
-## check group_list contains column counts not indices
-group_sizes <- sapply(group_list, length)  # Convert from indices to counts
-print(group_sizes)  # Verify that this prints numbers summing to ncol(data_mfa)
-
-## NOW TRY MFA with group sizes instead of group list
-# mfa_result <- MFA(
-#   data_mfa, 
-#   group = group_sizes,  # Group sizes instead of raw indices
-#   type = rep("FAMD", length(group_sizes)), 
-#   graph = FALSE
-# )
-
-# Error in names(list.type.var[[1]]) <- colnames(base)[1:group[1]] : 
-#   attempt to set an attribute on NULL
-
-
-##1 Verify no empty groups
-print(group_sizes)  # Should print 5 numbers > 0
-print(any(group_sizes == 0))  # Should return FALSE
-
-## check group_sizes matches ncol(data_mfa)
-print(sum(group_sizes))  # Should equal ncol(data_mfa)
-print(ncol(data_mfa))  # Should match sum(group_sizes)
-## ^^ THIS WAS A PROBLEM
-
-
-## 1. Fix group_sizes to capture columns
-group_sizes <- sapply(group_list, function(g) length(g) * 15)  # Multiply by 15 questions per image
-print(sum(group_sizes))  # Should return 375
-print(ncol(data_mfa))  # Should also return 375
-
-### now run
-# mfa_result <- MFA(
-#   data_mfa, 
-#   group = group_sizes,  # Now correctly reflecting column counts
-#   type = rep("FAMD", length(group_sizes)), 
-#   graph = FALSE
-# )
-
-
-# 1 confirm no missing cols
-print(ncol(data_mfa))  # Should be 375
-print(colnames(data_mfa))  # Check if column names look correct
-
-
-#### VERIFY QUESTIONS
-unique_questions <- unique(gsub("_B\\d+_\\d+", "", colnames(data_mfa)))
-print(unique_questions)
-
-
-#### 2 ADJUST GROUP LIST BASED ON QUESTIONS
-# Get question prefixes
-question_prefixes <- unique(gsub("_B\\d+_\\d+", "", colnames(data_mfa)))
-
-# Create new group list based on actual column names
-group_list <- lapply(question_prefixes, function(prefix) {
-  grep(paste0("^", prefix), colnames(data_mfa))  # Find all columns matching each question prefix
-})
-
-# Verify the structure of the new groups
-print(group_list)
-
-###### 3 ENSURE group sizes match new groups
-group_sizes <- sapply(group_list, length)  # Get column counts per question type
-print(sum(group_sizes))  # Should return 375
-print(ncol(data_mfa))  # Should also return 375
-
-
-
-##### 4 RUN MFA AGAIN
-# mfa_result <- MFA(
-#   data_mfa, 
-#   group = group_sizes,  # Corrected groups based on actual question types
-#   type = rep("FAMD", length(group_sizes)), 
-#   graph = FALSE
-# )
-
-## try only one grup
-# mfa_test <- MFA(
-#   data_mfa, 
-#   group = c(group_sizes[1]),  # Only the first group
-#   type = "FAMD", 
-#   graph = FALSE
-# )
-
-### CHECK PROBLEMS WITH data_mfa
-
-
-### 1. data type
-str(data_mfa)  # Print data types of each column
-glimpse(data_mfa)
-
-###2. nulls
-any(sapply(data_mfa, is.null))  # Should return FALSE
-
-###3. no NA onlys
-print(any(rowSums(is.na(data_mfa)) == ncol(data_mfa)))  # Should return FALSE
-print(any(colSums(is.na(data_mfa)) == nrow(data_mfa)))  # Should return FALSE
-
-## 4. group sizes match
-group_sizes <- sapply(group_list, function(g) sum(colnames(data_mfa) %in% colnames(data_mfa)[g]))
-print(sum(group_sizes))  # Should match ncol(data_mfa)
-print(ncol(data_mfa))
-
-## try again
-# mfa_result <- MFA(
-#   data_mfa, 
-#   group = group_sizes, 
-#   type = rep("FAMD", length(group_sizes)), 
-#   graph = FALSE
-# )
-
-print("Group sizes:")
-print(group_sizes)
-
-print("First few rows of data_mfa:")
-print(head(data_mfa[, 1:10]))  # Print first 10 columns
-
-print(any(is.na(group_sizes)))  # Should return FALSE
-print(any(group_sizes == 0))  # Should return FALSE
-
-print(sum(group_sizes))
-print(ncol(data_mfa))
-
+## RUN EFA PSYCH PACKAGE
+# df <- df_graphs_all %>% select(all_of(ref_min_sd_questions_z))
+# 
+# # EFA using Maximum Likelihood extraction and Oblimin rotation
+# efa_result <- fa(df, 
+#                  nfactors = 3, 
+#                  rotate = "oblimin", 
+#                  fm = "ml")
+# 
+# # View the entire EFA output
+# print(efa_result, cut = 0.3)
+# # View entire result w/o cutoff
+# # efa_result
+# # Optional: visualize factor diagram
+# fa.diagram(efa_result)
 
 ```
 
-```{r troubleshoot-factors}
-#summary(data_mfa)  # Check how factors are structured
-##^^ COME BACK TO THAT
-
-all_factors <- all(sapply(data_mfa, is.factor))
-print(all_factors)  # Should return FALSE (meaning there are some numeric variables)
-
-
-#### try numeric mfa
-numeric_mfa <- data_mfa %>% select(where(is.numeric))
-
-# mfa_test <- MFA(
-#   numeric_mfa, 
-#   group = group_sizes, 
-#   type = rep("FAMD", length(group_sizes)), 
-#   graph = FALSE
-# )
-
-
-## any factors with only one level?
-single_level_factors <- sapply(data_mfa, function(col) if(is.factor(col)) length(unique(col)) else NA)
-print(single_level_factors[single_level_factors == 1])  # Should return an empty list
 
 
 
-## 20
-na_factors <- sapply(data_mfa, function(col) if(is.factor(col)) all(is.na(col)) else FALSE)
-print(names(na_factors[na_factors == TRUE]))  # This should return the names of any fully NA factors
-
-##21
-single_level_factors <- sapply(data_mfa, function(col) if(is.factor(col)) length(unique(na.omit(col))) else NA)
-print(single_level_factors[single_level_factors == 1])  # Should return an empty list
-
-#21
-single_level_factors <- sapply(data_mfa, function(col) {
-  if (is.factor(col)) length(unique(na.omit(col))) else NA
-})
-
-print(single_level_factors)  # Now it should return actual numbers
 
 
 
-na_counts <- colSums(is.na(data_mfa))
-total_rows <- nrow(data_mfa)
-
-na_percentage <- na_counts / total_rows * 100
-print(na_percentage[na_percentage > 50])  # Show columns where >50% of values are NA
-
-
-```
-
-```{r not_working_mfa_too_sparse}
-################### PREPARE GROUPS
-
-# Define parameters
-num_questions <- 15  # Number of survey questions
-num_images <- 25     # Total images
-
-# Generate column indices for each image
-image_groups <- lapply(1:num_images, function(img) {
-  seq(img, num_questions * num_images, by = num_images)
-})
-
-# Define MFA groups: 1 group for the common image, 6 groups for the image blocks
-common_image_group <- image_groups[[1]]  # Img1 (common image)
-block_1_group <- unlist(image_groups[2:5])   # Images 2-5
-block_2_group <- unlist(image_groups[6:9])   # Images 6-9
-block_3_group <- unlist(image_groups[10:13]) # Images 10-13
-block_4_group <- unlist(image_groups[14:17]) # Images 14-17
-block_5_group <- unlist(image_groups[18:21]) # Images 18-21
-block_6_group <- unlist(image_groups[22:25]) # Images 22-25
-
-# Create the final MFA group list
-groups <- list(common_image_group, block_1_group, block_2_group, 
-               block_3_group, block_4_group, block_5_group, block_6_group)
-
-
-# Sanity check grouping
-# Loop through each group and print the corresponding column names
-for (i in seq_along(groups)) {
-  cat("\nGroup", i, "Column Names:\n")
-  print(colnames(d)[groups[[i]]])  # Extract column names using indices
-}
 
 
 
-################### DEFINE SUPPLEMENTARY VARIABLES
+## QUICK TRUST MODEL
 
-## 1. Remove vars not going to be used
-data_mfa <- data_wide %>% 
-  select(-c(PID,duration.min,Assigned.Block,D_gender,D_education, D_employmentStatus,D_income,BLOCK)) %>% 
+### (1) FULL VARIABLES STUDY 1, STUDY 2, STUDY3 (not stimulus balanced)
+```{r}
+
+#### Setup Data
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  # filter(STIMULUS != "B0-0") %>% 
+  select(PID, Study, Assigned.Block, STIMULUS,STIMULUS_CATEGORY, MAKER_ID, MAKER_TRUST, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_DATA) %>% 
+  mutate(
+    TRUST_z = datawizard::standardise(CHART_TRUST),
+    BEAUTY_z = datawizard::standardise(CHART_BEAUTY),
+    INTENT_z = datawizard::standardise(CHART_INTENT),
+    DATA_z = datawizard::standardise(MAKER_DATA)
+  ) %>% 
   droplevels()
 
+table(df$Study, df$Assigned.Block)
 
-supplementary_vars <- c("Sample","Study","Distribution","PLATFORM","D_gender_collapsed","D_education_collapsed","D_age","D_politicalParty","D_politicsSocial","D_politicsFiscal","STIMULUS_CATEGORY")
+################## FIT MODEL
+f.BxID <-  "TRUST ~ BEAUTY X INTENT + DATA (1|PID)"
+mm.BxID <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + DATA_z + (1|PID), data = df)
+summary(mm.BxID)
+car::Anova(mm.BxID, type=3) #type 3 tests for interaction model
 
-# Get indices of supplementary columns
-sup_vars_indices <- which(colnames(data_mfa) %in% supplementary_vars)
+################## COMPARE MODEL
+# compare_performance(mm.BxID, mm.BxI, rank = TRUE)
+# anova(mm.BxID, mm.BxI)
 
-
-################### RUN MFA
-mfa_result <- MFA(
-  data_mfa, 
-  group = groups, 
-  type = rep("FAMD", length(groups)), 
-  ind.sup = sup_vars_indices,  # Specify supplementary individual variables
-  graph = FALSE
-)
-
-
-###### TROUBLESHOOTING
-# ERROR: Error in 1:group[1] : NA/NaN argument
-## 1790 rows, 386 columns
-colSums(is.na(data_mfa))  # Count NAs per column #shouldn't have any cols with all NA
-rowSums(is.na(data_mfa))  # Count NAs per participant # shouldn't have any rows with all NA
-
-## run on subset
-mfa_test <- MFA(
-  data_mfa[1:50, ], 
-  group = groups, 
-  type = rep("FAMD", length(groups)), 
-  graph = FALSE
-)
-
-##check how nas are stored
-sum(data_mfa == "NA", na.rm = TRUE)  # Count "NA" stored as text
-sum(is.na(data_mfa))  # Count actual NA values
-
-
-
-
-# Remove participants who have more than 50% missing values
-data_mfa_subset <- data_mfa[rowMeans(is.na(data_mfa)) < 0.5, ]
-
-# Check how many rows remain
-print(dim(data_mfa_subset))
-
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.BxID, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <-  plot_model(mm.BxID, type = "pred", terms = c("BEAUTY_Z", "DATA_Z","INTENT_Z")) + theme_minimal()
+(g <- (e/p) + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID))
 
 ```
+
+
+
+
+
+### (2) MINIMUM VARIABLES STUDY 1, STUDY 2, STUDY3, STUDY 4A (not stimulus balanced)
+```{r}
+
+#### Setup Data
+df <- df_graphs_all
+table(df$Study, df$Assigned.Block)
+# %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  # filter(STIMULUS != "B0-0") %>% 
+
+################## FIT MODEL
+f.2 <-  "TRUST ~ BEAUTY X INTENT + DATA (1|PID)"
+mm.2 <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + DATA_z + (1|PID), data = df)
+summary(mm.2)
+car::Anova(mm.2, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+# compare_performance(mm.BxID, mm.2, rank = TRUE)
+# anova(mm.BxID, mm.2)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.2, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <-  plot_model(mm.2, type = "pred", terms = c("BEAUTY_z", "DATA_z","INTENT_z")) + theme_minimal()
+(g <- (e/p) + plot_annotation(title = f.2, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID))
+
+```
+
+
+### (3) MINIMUM VARIABLES STUDY 1, STUDY3, STUDY 4A (not stimulus balanced) — NO STUDY 2
+```{r}
+
+#### Setup Data
+df <- df_graphs_all %>% filter(Study != "Study2")
+table(df$Study, df$Assigned.Block)
+# %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  # filter(STIMULUS != "B0-0") %>% 
+
+################## FIT MODEL
+f.3 <-  "TRUST ~ BEAUTY X INTENT + DATA (1|PID)"
+mm.3 <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + DATA_z + (1|PID), data = df)
+summary(mm.3)
+car::Anova(mm.3, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+# compare_performance(mm.BxID, mm.2, rank = TRUE)
+# anova(mm.BxID, mm.2)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.3, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <-  plot_model(mm.3, type = "pred", terms = c("BEAUTY_z", "DATA_z","INTENT_z")) + theme_minimal()
+(g <- (e/p) + plot_annotation(title = f.3, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+### (3) MINIMUM VARIABLES STUDY 1, STUDY3  (stimulus balanced) — NO STUDY 2, 4
+```{r}
+
+#### Setup Data
+df <- df_graphs_all %>% filter(Study %nin% c("Study4","Study2"))
+table(df$Study, df$Assigned.Block)
+# %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  # filter(STIMULUS != "B0-0") %>% 
+
+################## FIT MODEL
+f.4 <-  "TRUST ~ BEAUTY X INTENT + DATA (1|PID)"
+mm.4 <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + DATA_z + (1|PID), data = df)
+summary(mm.4)
+car::Anova(mm.4, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+# compare_performance(mm.BxID, mm.2, rank = TRUE)
+# anova(mm.BxID, mm.2)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.3, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <-  plot_model(mm.3, type = "pred", terms = c("BEAUTY_z", "DATA_z","INTENT_z")) + theme_minimal()
+(g <- (e/p) + plot_annotation(title = f.3, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID))
+
+```
+
+### (TODO 3WAY INTERACTION)
+
+### !!!! (5) STUDY 1, 3, 3WAY (works for S1,S3 and S1,S3,S4)
+```{r}
+
+#### Setup Data
+df <- df_graphs_all %>% filter(Study %nin% c("Study2"))
+table(df$Study, df$Assigned.Block)
+# %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  # filter(STIMULUS != "B0-0") %>% 
+
+################## FIT MODEL
+# f.4 <-  "TRUST ~ BEAUTY X INTENT + DATA (1|PID)"
+mm <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z*ALIGN_z + DATA_z + (1|PID), data = df)
+summary(mm)
+car::Anova(mm, type=3) #type 3 tests for interaction model
+
+
+
+plot_model(mm, type = "pred", terms = c("BEAUTY_z", "DATA_z","INTENT_z")) + theme_minimal()
+### THIS IS THE GOOD ONE
+plot_model(mm, type = "pred", terms = c("BEAUTY_z", "INTENT_z","ALIGN_z")) + theme_minimal()
+plot_model(mm, type = "pred", terms = c("BEAUTY_z", "INTENT_z","ALIGN_z","DATA_z")) + theme_minimal()
+
+################## COMPARE MODEL
+# compare_performance(mm.BxID, mm.2, rank = TRUE)
+# anova(mm.BxID, mm.2)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <-  plot_model(mm, type = "pred", terms = c("BEAUTY_z", "DATA_z","INTENT_z")) + theme_minimal()
+(g <- (e/p) + plot_annotation(title = "", caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID))
+
+```
+
+
+
+
+
+
+
+
+
+# OLD
 
 # AGGREGATED DATA
 
@@ -1458,19 +551,17 @@ a.desc.duration <- psych::describe(df %>% pull(duration.min))
 
 **As Reported in Section 5.1.2 Procedure :**
 
-STUDY 1, TUMBLR Across the TUMBLR sample (S1), responses from (n = `r t.desc.duration$n` )
-participants ranged from `r round(t.desc.duration$min,0)` to
-`r round(t.desc.duration$max,0)` minutes, with a mean response time of
-`r round(t.desc.duration$mean,0)` minutes, SD =
-`r (round(t.desc.duration$sd,0))`.
+STUDY 1, TUMBLR Across the TUMBLR sample (S1), responses from (n =
+`r t.desc.duration$n` ) participants ranged from
+`r round(t.desc.duration$min,0)` to `r round(t.desc.duration$max,0)`
+minutes, with a mean response time of `r round(t.desc.duration$mean,0)`
+minutes, SD = `r (round(t.desc.duration$sd,0))`.
 
-
-STUDY 2, PROLIFIC Across the PROLIFIC sample (S2), responses from (n = `r p.desc.duration$n` )
-participants ranged from `r round(p.desc.duration$min,0)` to
-`r round(p.desc.duration$max,0)` minutes, with a mean response time of
-`r round(p.desc.duration$mean,0)` minutes, SD =
-`r (round(p.desc.duration$sd,0))`.
-
+STUDY 2, PROLIFIC Across the PROLIFIC sample (S2), responses from (n =
+`r p.desc.duration$n` ) participants ranged from
+`r round(p.desc.duration$min,0)` to `r round(p.desc.duration$max,0)`
+minutes, with a mean response time of `r round(p.desc.duration$mean,0)`
+minutes, SD = `r (round(p.desc.duration$sd,0))`.
 
 Across the combined sample, responses from (n = `r a.desc.duration$n` )
 participants ranged from `r round(a.desc.duration$min,0)` to
@@ -1514,24 +605,20 @@ were recruited from US-located English speaking users of TUMBLR (n =
 `r t_participants`) and PROLIFIC (n = `r p_participants`).
 
 `r p_participants` individuals from PROLIFIC participated in Study 2, (
-`r round(desc.gender.p["Female"],2)*100`% Female,# 
+`r round(desc.gender.p["Female"],2)*100`% Female,#
 `r round(desc.gender.p["Male"],2)*100`% Male,
-`r round(desc.gender.p["Non-binary / third gender"],2)*100`%
-Non-binary, `r round(desc.gender.p["Prefer not to say"],2)*100` %
-Prefer Not to Say,
+`r round(desc.gender.p["Non-binary / third gender"],2)*100`% Non-binary,
+`r round(desc.gender.p["Prefer not to say"],2)*100` % Prefer Not to Say,
 `r round(desc.gender.p["Prefer to self-describe"],2)*100`% Prefer to
 Self Describe).
-
 
 `r t_participants` individuals from Tumblr participated in Study 2, (
 `r round(desc.gender.t["Female"],2)*100`% Female,
 `r round(desc.gender.t["Male"],2)*100`% Male,
-`r round(desc.gender.t["Non-binary / third gender"],2)*100`%
-Non-binary, `r round(desc.gender.t["Prefer to self-describe"],2)*100`%
-Prefer to Self Describe,
-`r round(desc.gender.t["Prefer not to say"],2)*100`% Prefer Not to
-Say. Other).
-
+`r round(desc.gender.t["Non-binary / third gender"],2)*100`% Non-binary,
+`r round(desc.gender.t["Prefer to self-describe"],2)*100`% Prefer to
+Self Describe, `r round(desc.gender.t["Prefer not to say"],2)*100`%
+Prefer Not to Say. Other).
 
 ```{r demo-sample-cleanup}
 rm(df, df.p, desc.gender.p, p_participants, df.t, desc.gender.t, t_participants)
@@ -1644,8 +731,8 @@ if(GRAPH_SAVE){
 differential scale survey questions for each stimulus in randomization
 block #2**
 
-
 ### BLOCK 2 GRAPHS
+
 ```{r plot_halfeye_sds_BLOCK2, warning=FALSE}
 
 
@@ -1705,8 +792,8 @@ for (s in stimuli){
 graphs
 ```
 
-
 ### BLOCK 1 GRAPHS
+
 ```{r plot_halfeye_sds_BLOCK1, warning=FALSE}
 
 
@@ -1776,9 +863,9 @@ What predicts CHART-TRUST? Recent work in psychology (Lin & Thorton,
 2021) suggests that beauty is a strong predictor of trust. However, from
 our free response data, we have reason to believe the relationship is
 not this simple. For example, some participants explained that very
-aesthetically pleasing images were likely meant to be persuasive and thus were
-less trustworthy. Similarly, we observed that participants frequently
-talked about a maker's data competency in relation to their
+aesthetically pleasing images were likely meant to be persuasive and
+thus were less trustworthy. Similarly, we observed that participants
+frequently talked about a maker's data competency in relation to their
 trustworthiness. On this basis, we expect that in predicting
 `CHART_TRUST`: (1) there will be a significant interaction between
 `CHART_BEAUTY` and `CHART_INTENT`, and (2) that `MAKER_DATA`
@@ -1902,7 +989,8 @@ A model predicting `CHART-TRUST` by a linear combination of
 
 Further, model comparisons indicate that MODEL 2 (including
 `CHART_INTENT`) is a significantly better fit to the data
-($\chi^2(1) = 448 , p < 0.001$) than MODEL 1 including `CHART_BEAUTY` alone. 
+($\chi^2(1) = 448 , p < 0.001$) than MODEL 1 including `CHART_BEAUTY`
+alone.
 
 **Model 2 supports our claim that social attributions (in this case, an
 inference about the communicative intent of the chart) *also* predict
@@ -1913,9 +1001,10 @@ trustworthy.**
 #### M3 \| TRUST \~ BEAUTY X INTENT
 
 Here we fit a model with `CHART_INTENT` as an **interaction** with
-`CHART_BEAUTY`, and compare with the previous model (with the simple linear combination of the two predictors) 
-to determine whether simply affecting `CHART_TRUST`, the social attribution of `CHART_INTENT` **moderates** the effect of
-`CHART_BEAUTY` on `CHART_TRUST`.
+`CHART_BEAUTY`, and compare with the previous model (with the simple
+linear combination of the two predictors) to determine whether simply
+affecting `CHART_TRUST`, the social attribution of `CHART_INTENT`
+**moderates** the effect of `CHART_BEAUTY` on `CHART_TRUST`.
 
 -   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
 
@@ -1973,8 +1062,9 @@ A model predicting `CHART-TRUST` by a linear **interaction** of
     chart_intent)
 
 Further, model comparisons indicate that MODEL 3 (an interaction rather
-than MODEL 2 with a linear combination of `CHART_BEAUTY` and `CHART_INTENT`) is a
-significantly better fit to the data ($\chi^2(1)=48.5 , p < 0.001$).
+than MODEL 2 with a linear combination of `CHART_BEAUTY` and
+`CHART_INTENT`) is a significantly better fit to the data
+($\chi^2(1)=48.5 , p < 0.001$).
 
 **Model 3 supports our claim that social attributions (in this case, an
 inference about the communicative intent of the chart) *also* predict
@@ -2042,33 +1132,37 @@ variance explained by fixed effects alone:
     ($\chi^2(1) = 44, p <.001$)
 
     The model coefficients indicates that for every 1 standard deviation
-    increase in `MAKER_DATA`, `CHART-TRUST` decreases on average by
-    0.19 SD (less expertise/more layperson corresponds to lower trust). For every 1 standard deviation
-    increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
-    0.38 SD (more beauty corresponds to more trust). For every 1
-    standard deviation increase in `CHART_INTENT`, (where LOW values
-    correspond to intent to INFORM and high values correspond to intent
-    to PERSUADE) `CHART-TRUST` decreases on average by 0.37 SD (
-    persuasive corresponds to less trust; informative corresponds to more trust). The significant interaction
-    term indicates the difference in slope between the main effects for `CHART_BEAUTY` and `CHART_INTENT`,
-    that is to say, that the effect of `CHART_BEAUTY` on `CHART_TRUST`
-    is **moderated** such that the effect of `CHART_BEAUTY` is
-    *minimized* when `CHART_INTENT` is attributed as more informative
-    (lower values on chart_intent) than persuasive (higher values on
-    chart_intent)
+    increase in `MAKER_DATA`, `CHART-TRUST` decreases on average by 0.19
+    SD (less expertise/more layperson corresponds to lower trust). For
+    every 1 standard deviation increase in `CHART-BEAUTY`, `CHART-TRUST`
+    increases on average by 0.38 SD (more beauty corresponds to more
+    trust). For every 1 standard deviation increase in `CHART_INTENT`,
+    (where LOW values correspond to intent to INFORM and high values
+    correspond to intent to PERSUADE) `CHART-TRUST` decreases on average
+    by 0.37 SD ( persuasive corresponds to less trust; informative
+    corresponds to more trust). The significant interaction term
+    indicates the difference in slope between the main effects for
+    `CHART_BEAUTY` and `CHART_INTENT`, that is to say, that the effect
+    of `CHART_BEAUTY` on `CHART_TRUST` is **moderated** such that the
+    effect of `CHART_BEAUTY` is *minimized* when `CHART_INTENT` is
+    attributed as more informative (lower values on chart_intent) than
+    persuasive (higher values on chart_intent)
 
-Further, model comparisons indicate that MODEL 4 (adding a simple main effect of `MAKER_DATA`) is a
-significantly better fit to the data than MODEL 3 without the `MAKER_DATA` fixed effect ($\chi^2(1)=89.1 , p < 0.001$) . 
+Further, model comparisons indicate that MODEL 4 (adding a simple main
+effect of `MAKER_DATA`) is a significantly better fit to the data than
+MODEL 3 without the `MAKER_DATA` fixed effect
+($\chi^2(1)=89.1 , p < 0.001$) .
 
-**Model 4 supports our claim that social attributions (in this case, _both_ an
-inference about the communicative intent of the chart and inference about the data analysis skill of the maker) *also* predict
-beauty, and in fact can change (in the case of intent, moderate) the effect of beauty on
-trust.**
-
+**Model 4 supports our claim that social attributions (in this case,
+*both* an inference about the communicative intent of the chart and
+inference about the data analysis skill of the maker) *also* predict
+beauty, and in fact can change (in the case of intent, moderate) the
+effect of beauty on trust.**
 
 #### (FIG 9) Predicting Trust
 
-**Here we produce the visualization and model parameters table reported in Figure 9.**
+**Here we produce the visualization and model parameters table reported
+in Figure 9.**
 
 ```{r best-fit-model}
 
