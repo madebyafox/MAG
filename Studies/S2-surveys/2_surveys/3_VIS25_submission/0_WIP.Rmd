@@ -925,17 +925,17 @@ effect of beauty on trust.**
 #### VARIANCE PARTITION 
 ```{r}
 
-install.packages("variancePartition")
-library(variancePartition)
-
-# Mixed model using lmer
-model <- mm.BxIxAD
-
-# Partition variance
-vp <- fitExtractVarPartModel(model, df)
-
-# Plot variance contributions
-plotVarPart(vp)
+# install.packages("variancePartition")
+# library(variancePartition)
+# 
+# # Mixed model using lmer
+# model <- mm.BxIxAD
+# 
+# # Partition variance
+# vp <- fitExtractVarPartModel(model, df)
+# 
+# # Plot variance contributions
+# plotVarPart(vp)
 
 
 
@@ -959,6 +959,156 @@ print(result)
 ```
 
 
+#### CONSISTENCY CHECK S4
+Here we see whether the model is also significant in Study 4 (pretest only)
+
+
+
+TL;DR:
+
+1.  **ALIGNMENT moderates INTENT** (more alignment mitigates differences
+    in trust based on intent; the more aligned the values are the less
+    difference there is in trust based on intent to inform vs. to
+    persuade) 2.
+
+2.  **INTENT moderates BEAUTY** (more beauty mitigates differences in
+    trust based on intent; the more beautiful the less difference there
+    is in trust based on intent to inform or persuade)
+
+3.  **MAIN EFFECT DATA** (less professional =\> less trustworthy)
+
+4.  **MAIN EFFECT INTENT** (more persuasive =\> less trustworthy)
+
+5.  **MAIN EFFECT ALIGNMENT** (more aligned =\> more trustworthy)
+
+6.  **MAIN EFFECT BEAUTY** (more beautify =\> more trustworthy)
+
+Here we test whether the specification of the best fitting model to predict trust is also a good fit to the data from Study 4 (pre-tests) [note, this study was only run on block #1]
+
+```{r, m7_study4}
+
+
+## SETUP DATAFRAME
+df <- df_graphs_all %>% 
+  # filter only Study 1 and 3
+  filter(Study == "Study4")
+print("Data in Model")
+table(df$Study, df$Assigned.Block)
+
+
+################## FIT MODEL
+f.BxIxAD <-  "TRUST ~ BEAUTY X INTENT + INTENT X ALIGN + DATA + (1|PID)"
+mm.BxIxAD <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + INTENT_z*ALIGN_z + DATA_z + (1|PID), data = df)
+summary(mm.BxIxAD)
+car::Anova(mm.BxIxAD, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+# compare_performance(mm.BxIxAD, mm.BxIDA, mm.BxID, rank = TRUE)
+# anova(mm.BxIxAD, mm.BxIDA)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.BxIxAD, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p1 <- plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","INTENT_z","DATA_z")) + theme_minimal()
+p2 <- plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z","INTENT_z","DATA_z")) + theme_minimal()
+(g <- (e/p1/p2) + plot_annotation(title = "STUDY 4 | TRUST MODEL", caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxIxAD))
+
+
+
+## see each two-way interaction
+print("two-way interaction")
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="sig ixn intent x beauty", caption="INTENT matters MORE less beautiful")
+plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="sig ixn intent align",
+                                                                                                caption = "ALIGN matters MORE for persuasive than informative")
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "ALIGN_z")) + theme_minimal() + labs(subtitle ="NO IXN beauty align", caption = "MAIN EFFECT ALIGN; more aligned more trustworthy")
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="MAIN EFFECT DATA", caption = "MAIN EFFECT DATA; more professional = more trustworthy")
+
+
+```
+
+A model predicting `CHART-TRUST` explains 59% variance in `CHART_TRUST`,
+with 51% variance explained by fixed effects alone:
+
+1.  A significant main effect of `CHART_BEAUTY`
+    ($\chi^2(1) = 34, p <.001$) For every in 1 standard deviation
+    increase in `CHART_BEAUTY` trustworthiness increases by 0.1 SD on
+    average.
+
+2.  A significant main effect of `CHART_INTENT`
+    ($\chi^2(1) = 146, p <.001$). For every 1 standard deviation
+    increase in `CHART_INTENT`, (where LOW values correspond to intent
+    to INFORM and high values correspond to intent to PERSUADE)
+    `CHART-TRUST` decreases on average by 0.23 SD ( persuasive
+    corresponds to less trust; informative corresponds to more trust).
+
+3.  A significant main effect of `MAKER_ALIGN`
+    ($\chi^2(1) = 578, p <.001$). For every in 1 standard deviation
+    increase in `MAKER_ALIGN` (more values shared) `CHART-TRUST`
+    increases on average by 0.5 SD (more alignment corresponds with more
+    trust).
+
+4.  A significant main effect of `MAKER_DATA`
+    ($\chi^2(1) = 81, p <.001$). The model standardized beta
+    coefficients indicates that for every 1 standard deviation increase
+    `MAKER_DATA` (more layperson, less professional), `CHART-TRUST`
+    decreases on average by 0.17 SD (less professional corresponds with
+    less trust).
+
+5.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
+    ($\chi^2(1) = 31, p <.001$). The significant interaction term
+    indicates the difference in slope between the main effects for
+    `CHART_BEAUTY` and `CHART_INTENT`, that is to say, that the effect
+    of `CHART_BEAUTY` on `CHART_TRUST` is **moderated** such that the
+    effect of `CHART_BEAUTY` is *minimized* when `CHART_INTENT` is
+    attributed as more informative (lower values on chart_intent) than
+    persuasive (higher values on chart_intent)
+
+6.  A significant interaction between `CHART_INTENT` and `CHART_ALIGN`
+    ($\chi^2(1) = 31, p <.001$) The significant interaction term
+    indicates that the difference in slope between the main effects for
+    `CHART_INTENT` and `MAKER_ALIGN`, that is to say that the effect of
+    intent on trust is moderated such that the effect of intent on trust
+    is minimized the the more aligned a viewer feels with the maker. For
+    less alignment, there is a greater difference in trust for
+    persuasive vs. informative images; when the alignment is high, the
+    trustworthiness of persuasive and informative images converge.
+
+    The significant interaction term indicates the difference in slope
+    between the main effects for `CHART_BEAUTY` and `CHART_INTENT`, that
+    is to say, that the effect of `CHART_BEAUTY` on `CHART_TRUST` is
+    **moderated** such that the effect of `CHART_BEAUTY` is *minimized*
+    when `CHART_INTENT` is attributed as more informative (lower values
+    on chart_intent) than persuasive (higher values on chart_intent)
+
+Further, model comparisons indicate that MODEL 6 (adding a simple main
+effect of `MAKER_ALIGN`) is a significantly better fit to the data than
+MODEL 4 without the fixed effect ($\chi^2(1)= 529 , p < 0.001$) .
+
+**Model 6 supports our claim that social attributions (in this case,
+*both* an inference about the communicative intent of the chart and
+inference about the data analysis skill of the maker and the extent to
+which the maker's values align with the participants') *also* predict
+beauty, and in fact can change (in the case of intent, moderate) the
+effect of beauty on trust.**
+
+
+#### EMBELLISHMENT CATEGORY
+see claims by Alebri et al 2024 
+Are more embellished graphs rated as more beautiful?
+
+```{r}
+
+
+## Does embellishment category predict trust?
+## 1. check b00 embellishment category <-- remove B00 b/c its oversampled
+## 
+
+
+
+```
+
+
 
 #### (FIG 9) Predicting Trust
 
@@ -974,6 +1124,15 @@ p + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = 
 tab_model(mm.BxID)
 
 ```
+
+
+
+
+
+## [STUDY 4] MODELLING CHANGE
+
+
+## TODO EVALUATE MOVE TO STASH
 
 ### (1) FULL VARIABLES STUDY 1, STUDY 2, STUDY3 (not stimulus balanced)
 
@@ -1102,10 +1261,6 @@ p <-  plot_model(mm.3, type = "pred", terms = c("BEAUTY_z", "DATA_z","INTENT_z")
 (g <- (e/p) + plot_annotation(title = f.3, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID))
 
 ```
-
-### (TODO 3WAY INTERACTION)
-
-### todo embellishment category
 
 ### !!!! (5) STUDY 1, 3, 3WAY (works for S1,S3 and S1,S3,S4)
 
