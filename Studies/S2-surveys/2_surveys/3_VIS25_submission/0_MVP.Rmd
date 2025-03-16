@@ -149,7 +149,12 @@ df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds")
 
 ## (1) EFA | Exploratory Factor Analysis (S1,S2 minimal vars)
 
-Exploratory Factor Analysis of Studies 1 & 2  (blocks balanced) including the minimal SD questions
+**As Reported in Section TODO, Figure TODO, here we conduct an exploratory factor analysis of the semantic differential scale questions.**
+
+This analysis was performed on the combined dataset from Study 1 (Tumblr) and Study 2 (Prolific). Both studies were run on all 6 stimulus blocks, meaning the data are balanced across all stimuli. 
+
+We use a parallel analysis method, verified by inspection of the scree plot to determine (f=4) factors, and see that both the KMO measure and Bartlett's test of sphericity meet the necessary pre-requisites to support this analysis.  The resultant factor loadings are described below.
+
 ```{r efa}
 
 ## SETUP DATA

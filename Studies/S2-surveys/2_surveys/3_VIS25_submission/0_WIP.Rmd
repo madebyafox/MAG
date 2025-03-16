@@ -153,56 +153,69 @@ print("DATA AVAILABLE WITH REDUCED QUESTION SET")
 table(df_graphs_all$Study, df_graphs_all$Assigned.Block)
 ```
 
-Key questions to address in the EFA analysis:
+**PRE-REQUISISITES**
 
-1.  Include full set of variables (Study 1,2,3) OR only only minimal
-    variables included in S4 as well
-2.  Include data from Study 2 and Study 4 (only block 1) ?
-3.  Do analysis just for block 1?
-4.  Do analysis just for super-powered image?
-5.  Do analysis just for data over all blocks (Study 1 + Study 3)
+1.  **Bartlett’s Test of Sphericity:** Tests if the correlation matrix
+    is significantly different from an identity matrix (no
+    correlations). p \< 0.05 indicates sufficient correlations.
 
-PRE-REQUISISITES - Bartlett’s Test of Sphericity Tests if the
-correlation matrix is significantly different from an identity matrix
-(no correlations). p \< 0.05 indicates sufficient correlations. -
-Kaiser-Meyer-Olkin (KMO) Measure Assesses sampling adequacy for EFA
-(overall and per variable). Overall KMO ≥ 0.60 is acceptable. KMO ≥ 0.80
-is meritorious. Variables with KMO \< 0.50 might need removal.
+2.  **Kaiser-Meyer-Olkin (KMO) Measure:** Assesses sampling adequacy for
+    EFA (overall and per variable). Overall KMO ≥ 0.60 is acceptable.
+    KMO ≥ 0.80 is meritorious. Variables with KMO \< 0.50 might need
+    removal.
 
-OUTCOMES - FACTOR LOADINGS: Factor loadings represent the correlation
-between each variable and a factor. Higher absolute loadings indicate
-stronger relationships between the item and the factor. ≥ 0.70 Very
-strong loading (ideal, but rare in practice). 0.50 – 0.70 Moderate to
-strong—good indicator of factor membership. 0.30 – 0.50 Weak to
-moderate—may be acceptable depending on context and theory. \< 0.30
-Weak—often considered too low to retain, unless justified theoretically.
+**OUTCOMES**
 
--   (h\^2) H2: COMMUNALITY: indicates the proportion of variance in a
-    variable that is explained by the extracted factors. It ranges from
-    0 to 1 (or 0% to 100% if expressed as a percentage). Think of it as
-    shared variance: how much of a variable's variance is accounted for
-    by the common factors.
+1.  **FACTOR LOADINGS**: Factor loadings represent the correlation
+    between each variable and a factor.
 
--   Communality Value Interpretation: ≥ 0.60 Excellent—variable is well
-    explained by the factors. 0.40 – 0.60 Acceptable in many cases,
-    especially in social sciences. \< 0.40 Low—variable may not fit well
-    in the factor model. Consider revising or dropping it (but consider
-    theory first).
+    -   Higher absolute loadings indicate stronger relationships between
+        the item and the factor.
 
--   (u²): U2: UNIQUENESS: Proportion of variance unique to the variable,
-    not explained by factors.
+    -   ≥ 0.70 Very strong loading (ideal, but rare in practice).
 
--   com: com: COMPLEXITY: Complexity (com) measures how many factors a
-    variable meaningfully loads onto.com Value Meaning 1.0 The variable
-    loads strongly on one factor (simple structure). \> 1.0 The variable
-    loads on multiple factors, with complexity increasing as it spreads
-    across more factors. Higher values (e.g., 1.5–2.5) The variable is
-    cross-loading across factors, making interpretation harder.
+    -   0.50 – 0.70 Moderate to strong—good indicator of factor
+        membership.
 
-SUMMARY
+    -   0.30 – 0.50 Weak to moderate—may be acceptable depending on
+        context and theory.
 
--   Factor Loadings: Ideally ≥ 0.50 on one factor and low on the
-    others.\
+    -   \< 0.30 Weak—often considered too low to retain, unless
+        justified theoretically.
+
+2.  **COMMUNALITY** (h\^2) H2: indicates the proportion of variance in a
+    variable that is explained by the extracted factors.
+
+    -   It ranges from 0 to 1 (or 0% to 100% if expressed as a
+        percentage). Think of it as shared variance: how much of a
+        variable's variance is accounted for by the common factors.
+
+    -    ≥ 0.60 Excellent—variable is well explained by the factors.
+
+    -   0.40 – 0.60 Acceptable in many cases, especially in social
+        sciences.
+
+    -   \< 0.40 Low—variable may not fit well in the factor model.
+        Consider revising or dropping it (but consider theory first).
+
+3.  **UNIQUENESS** (u²): U2: Proportion of variance unique to the
+    variable, not explained by factors.
+
+4.  **COMPLEXITY**: Complexity (com) measures how many factors a
+    variable meaningfully loads onto.com Value Meaning
+
+    -   1.0 The variable loads strongly on one factor (simple
+        structure).
+
+    -   \> 1.0 The variable loads on multiple factors, with complexity
+        increasing as it spreads across more factors.
+
+    -   Higher values (e.g., 1.5–2.5) The variable is cross-loading
+        across factors, making interpretation harder.
+
+**SUMMARY**
+
+-   Factor Loadings: Ideally ≥ 0.50 on one factor and low on the others.
 -   Communalities (H2): Ideally ≥ 0.40 for most items.
 -   Cross-loadings: Avoid or minimize; interpret with caution.
 -   Theoretical Coherence: Even if a loading is statistically "low,"
@@ -342,7 +355,7 @@ jmv::efa(
 
 ## [2] MODELLING TRUST
 
-### Setup Data (S1,S3 balanced)
+#### SETUP MODEL DATA (S1,S3 balanced)
 
 ```{r hypo-trust_beauty_intent-data}
 
@@ -393,6 +406,7 @@ e <- plot_model(mm.B, type = "est", show.intercept = TRUE,show.p=TRUE, show.valu
 p <- plot_model(mm.B, type = "pred", terms = "BEAUTY_z") +  theme_minimal()
 (g <- (e+p) + plot_annotation(title = f.B))
 
+
 ```
 
 A model predicting `TRUST` by `BEAUTY` explains 22% variance in
@@ -404,6 +418,7 @@ deviation increase in `BEAUTY`, `CHART-TRUST` increases on average by
 
 **Model 1 supports the argument of Lin & Thorton (2021) that graphs
 judged to be more attractive are also judged as more trustworthy.**
+
 
 #### M2 \| TRUST \~ BEAUTY + INTENT
 
@@ -439,7 +454,9 @@ p <- plot_model(mm.BI, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme
 (g <- (e+p) + plot_annotation(title = f.B, caption="low intent = inform, high intent = persuade"))
 
 
-
+################## ALT PLOTS
+plot_model(mm.BI, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal()
+plot_model(mm.BI, type = "pred", terms = c("INTENT_z","BEAUTY_z")) + theme_minimal()
 ```
 
 A model predicting `TRUST` by a linear combination of `BEAUTY` and
@@ -502,6 +519,11 @@ e <- plot_model(mm.BxI, type = "est", show.intercept = TRUE,show.p=TRUE, show.va
 ## PLOT MODEL PREDICTIONS
 p <- plot_model(mm.BxI, type = "int", terms = c("INTENT_z","BEAUTY_z"),mdrt.values = "all") + theme_minimal()
 (g <- (e+p) + plot_annotation(title = f.BxI, caption="low intent = inform, high intent = persuade", subtitle = f.BxI))
+
+
+################## ALT PLOTS
+plot_model(mm.BxI, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal()
+plot_model(mm.BxI, type = "pred", terms = c("INTENT_z","BEAUTY_z")) + theme_minimal()
 
 ```
 
@@ -576,9 +598,14 @@ anova(mm.BxID, mm.BxI)
 ## PLOT MODEL COEFFICIENTS
 e <- plot_model(mm.BxID, type = "est", show.intercept = TRUE,show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
 ## PLOT MODEL PREDICTIONS
-p <- plot_model(mm.BxID, type = "pred", terms = c("BEAUTY_z","INTENT_z", "DATA_z")) + theme_minimal()
+p <- plot_model(mm.BxID, type = "pred", terms = c("BEAUTY_z", "DATA_z","INTENT_z")) + theme_minimal()
 (g <- (e/p) + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID))
 
+
+################## ALT PLOTS
+# plot_model(mm.BxID, type = "pred", terms = c("BEAUTY_z", "INTENT_z","DATA_z")) + theme_minimal()
+# plot_model(mm.BxID, type = "pred", terms = c("INTENT_z","BEAUTY_z","DATA_z")) + theme_minimal()
+plot_model(mm.BxID, type = "pred", terms = c("INTENT_z","DATA_z","BEAUTY_z")) + theme_minimal()
 
 ```
 
@@ -664,13 +691,11 @@ p <- plot_model(mm.BxIxD, type = "pred", terms = c("BEAUTY_z","INTENT_z", "DATA_
 (g <- (e/p) + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxIxD))
 
 
-
-## see each two-way interaction
-print("two-way interaction")
+################## ALT PLOTS
 plot_model(mm.BxIxD, type = "pred", terms = c("INTENT_z", "BEAUTY_z")) + theme_minimal() + labs(subtitle ="sig ixn beauty x intent")
 plot_model(mm.BxIxD, type = "pred", terms = c("INTENT_z", "DATA_z")) + theme_minimal() + labs(subtitle ="sig ixn data x intent")
 plot_model(mm.BxIxD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="NO IXN BEAUTY x DATA")
-
+plot_model(mm.BxIxD, type = "pred", terms = c("BEAUTY_z","DATA_z", "INTENT_z")) + theme_minimal()
 ```
 
 Here we see that the three-way interaction between BEAUTY X INTENT X
@@ -727,7 +752,6 @@ p2 <- plot_model(mm.BxIDA, type = "pred", terms = c("DATA_z","ALIGN_z")) + theme
 
 
 ## see each two-way interaction
-print("two-way interaction")
 # plot_model(mm.BxIxD, type = "pred", terms = c("INTENT_z", "BEAUTY_z")) + theme_minimal() + labs(subtitle ="sig ixn beauty x intent")
 # plot_model(mm.BxIxD, type = "pred", terms = c("INTENT_z", "DATA_z")) + theme_minimal() + labs(subtitle ="sig ixn data x intent")
 # plot_model(mm.BxIxD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="NO IXN BEAUTY x DATA")
@@ -854,9 +878,9 @@ plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z", "INTENT_z")) + theme_m
 plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "ALIGN_z")) + theme_minimal() + labs(subtitle ="NO IXN beauty align", caption = "MAIN EFFECT ALIGN; more aligned more trustworthy")
 plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="MAIN EFFECT DATA", caption = "MAIN EFFECT DATA; more professional = more trustworthy")
 
-
 ```
 
+TODO INTERPRETATION 
 A model predicting `CHART-TRUST` explains 59% variance in `CHART_TRUST`,
 with 51% variance explained by fixed effects alone:
 
@@ -915,75 +939,96 @@ Further, model comparisons indicate that MODEL 6 (adding a simple main
 effect of `MAKER_ALIGN`) is a significantly better fit to the data than
 MODEL 4 without the fixed effect ($\chi^2(1)= 529 , p < 0.001$) .
 
-**Model 6 supports our claim that social attributions (in this case,
+**Model 7 supports our claim that social attributions (in this case,
 *both* an inference about the communicative intent of the chart and
 inference about the data analysis skill of the maker and the extent to
 which the maker's values align with the participants') *also* predict
 beauty, and in fact can change (in the case of intent, moderate) the
 effect of beauty on trust.**
 
-#### VARIANCE PARTITION 
-```{r}
-
-# install.packages("variancePartition")
-# library(variancePartition)
-# 
-# # Mixed model using lmer
-# model <- mm.BxIxAD
-# 
-# # Partition variance
-# vp <- fitExtractVarPartModel(model, df)
-# 
-# # Plot variance contributions
-# plotVarPart(vp)
 
 
+
+#### M8 \| TRUST \~ BEAUTY X INTENT + INTENT X ALIGN (REMOVE DATA)
+
+HERE we test whether we really actually need the DATA main effect 
+
+```{r, m8}
+
+################## FIT MODEL
+f.BxIxA <-  "TRUST ~ BEAUTY X INTENT + INTENT X ALIGN + (1|PID)"
+mm.BxIxA <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + INTENT_z * ALIGN_z + (1|PID), data = df)
+summary(mm.BxIxA)
+car::Anova(mm.BxIxA, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxIxA, mm.BxIxAD, rank = TRUE)
+anova(mm.BxIxA, mm.BxIxAD)
 
 ```
 
-#### PARTIAL R2 ANALYSIS
+Yes, model 7 is better
+
+
+
+#### RE-RUN THIS PARTIAL R2 ANALYSIS
+
+
 ```{r}
-install.packages("partR2")
+## <!-- https://chatgpt.com/c/67d6271c-15dc-800e-9e81-aa2b07a84d52 -->
+
+## CAUTION THIS TAKES A VERY LONG TIME TO RUN 
+
+# install.packages("partR2")
 library(partR2)
+library(future)
+library(furrr)
+
+## setup multiple cores to 
+plan(multisession, workers = 4)
 
 # Mixed model
 model <- mm.BxIxAD
 
-# Run partR2 (you specify the predictors you're interested in)
-result <- partR2(mm.BxIxAD, partvars = c("BEAUTY_z","INTENT_z","ALIGN_z","DATA_z"), nboot = 1000)
+######## GROUP PREDICTORS
 
-# View results
-print(result)
+# run Partial R2
+result <- partR2(
+  model,
+  partbatch = list(
+    "BEAUTY" = "BEAUTY_z",
+    "ALIGN" = "ALIGN_z",
+    "INTENT" = "INTENT_z",
+    "DATA" = "DATA_z",
+    "BEAUTY:INTENT" = "BEAUTY_z:INTENT_z",
+    "ALIGNN:INTENT" = "INTENT_z:ALIGN_z"
+  ),
+  nboot = 1000
+)
+
+# Print
+summary(result, sort = TRUE)
+saveRDS(result, file = "models/mm.BxIxAD_partR2_batched.rds")
+
 
 
 ```
 
 
+
+
 #### CONSISTENCY CHECK S4
-Here we see whether the model is also significant in Study 4 (pretest only)
 
-
+Here we see whether the model is also significant in Study 4 (pretest
+only)
 
 TL;DR:
 
-1.  **ALIGNMENT moderates INTENT** (more alignment mitigates differences
-    in trust based on intent; the more aligned the values are the less
-    difference there is in trust based on intent to inform vs. to
-    persuade) 2.
+NO. 
 
-2.  **INTENT moderates BEAUTY** (more beauty mitigates differences in
-    trust based on intent; the more beautiful the less difference there
-    is in trust based on intent to inform or persuade)
-
-3.  **MAIN EFFECT DATA** (less professional =\> less trustworthy)
-
-4.  **MAIN EFFECT INTENT** (more persuasive =\> less trustworthy)
-
-5.  **MAIN EFFECT ALIGNMENT** (more aligned =\> more trustworthy)
-
-6.  **MAIN EFFECT BEAUTY** (more beautify =\> more trustworthy)
-
-Here we test whether the specification of the best fitting model to predict trust is also a good fit to the data from Study 4 (pre-tests) [note, this study was only run on block #1]
+Here we test whether the specification of the best fitting model to
+predict trust is also a good fit to the data from Study 4 (pre-tests)
+[note, this study was only run on block #1]
 
 ```{r, m7_study4}
 
@@ -1008,129 +1053,78 @@ car::Anova(mm.BxIxAD, type=3) #type 3 tests for interaction model
 
 ################## PLOT MODEL
 ## PLOT MODEL COEFFICIENTS
-e <- plot_model(mm.BxIxAD, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
-## PLOT MODEL PREDICTIONS
-p1 <- plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","INTENT_z","DATA_z")) + theme_minimal()
-p2 <- plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z","INTENT_z","DATA_z")) + theme_minimal()
-(g <- (e/p1/p2) + plot_annotation(title = "STUDY 4 | TRUST MODEL", caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxIxAD))
-
+plot_model(mm.BxIxAD, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
 
 
 ## see each two-way interaction
 print("two-way interaction")
-plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="sig ixn intent x beauty", caption="INTENT matters MORE less beautiful")
-plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="sig ixn intent align",
-                                                                                                caption = "ALIGN matters MORE for persuasive than informative")
-plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "ALIGN_z")) + theme_minimal() + labs(subtitle ="NO IXN beauty align", caption = "MAIN EFFECT ALIGN; more aligned more trustworthy")
-plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="MAIN EFFECT DATA", caption = "MAIN EFFECT DATA; more professional = more trustworthy")
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="", caption="")
+plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="",
+                                                                                                caption = "")
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "ALIGN_z")) + theme_minimal() + labs(subtitle ="", caption = "")
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="", caption = "")
 
 
 ```
 
-A model predicting `CHART-TRUST` explains 59% variance in `CHART_TRUST`,
-with 51% variance explained by fixed effects alone:
+No, the model does not constintute a good fit for the Study 4 (pretest) data (only block 1). In this model, INTENT and DATA are no longer significant main effects, and neither interaction is significant either.  
 
-1.  A significant main effect of `CHART_BEAUTY`
-    ($\chi^2(1) = 34, p <.001$) For every in 1 standard deviation
-    increase in `CHART_BEAUTY` trustworthiness increases by 0.1 SD on
-    average.
-
-2.  A significant main effect of `CHART_INTENT`
-    ($\chi^2(1) = 146, p <.001$). For every 1 standard deviation
-    increase in `CHART_INTENT`, (where LOW values correspond to intent
-    to INFORM and high values correspond to intent to PERSUADE)
-    `CHART-TRUST` decreases on average by 0.23 SD ( persuasive
-    corresponds to less trust; informative corresponds to more trust).
-
-3.  A significant main effect of `MAKER_ALIGN`
-    ($\chi^2(1) = 578, p <.001$). For every in 1 standard deviation
-    increase in `MAKER_ALIGN` (more values shared) `CHART-TRUST`
-    increases on average by 0.5 SD (more alignment corresponds with more
-    trust).
-
-4.  A significant main effect of `MAKER_DATA`
-    ($\chi^2(1) = 81, p <.001$). The model standardized beta
-    coefficients indicates that for every 1 standard deviation increase
-    `MAKER_DATA` (more layperson, less professional), `CHART-TRUST`
-    decreases on average by 0.17 SD (less professional corresponds with
-    less trust).
-
-5.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
-    ($\chi^2(1) = 31, p <.001$). The significant interaction term
-    indicates the difference in slope between the main effects for
-    `CHART_BEAUTY` and `CHART_INTENT`, that is to say, that the effect
-    of `CHART_BEAUTY` on `CHART_TRUST` is **moderated** such that the
-    effect of `CHART_BEAUTY` is *minimized* when `CHART_INTENT` is
-    attributed as more informative (lower values on chart_intent) than
-    persuasive (higher values on chart_intent)
-
-6.  A significant interaction between `CHART_INTENT` and `CHART_ALIGN`
-    ($\chi^2(1) = 31, p <.001$) The significant interaction term
-    indicates that the difference in slope between the main effects for
-    `CHART_INTENT` and `MAKER_ALIGN`, that is to say that the effect of
-    intent on trust is moderated such that the effect of intent on trust
-    is minimized the the more aligned a viewer feels with the maker. For
-    less alignment, there is a greater difference in trust for
-    persuasive vs. informative images; when the alignment is high, the
-    trustworthiness of persuasive and informative images converge.
-
-    The significant interaction term indicates the difference in slope
-    between the main effects for `CHART_BEAUTY` and `CHART_INTENT`, that
-    is to say, that the effect of `CHART_BEAUTY` on `CHART_TRUST` is
-    **moderated** such that the effect of `CHART_BEAUTY` is *minimized*
-    when `CHART_INTENT` is attributed as more informative (lower values
-    on chart_intent) than persuasive (higher values on chart_intent)
-
-Further, model comparisons indicate that MODEL 6 (adding a simple main
-effect of `MAKER_ALIGN`) is a significantly better fit to the data than
-MODEL 4 without the fixed effect ($\chi^2(1)= 529 , p < 0.001$) .
-
-**Model 6 supports our claim that social attributions (in this case,
-*both* an inference about the communicative intent of the chart and
-inference about the data analysis skill of the maker and the extent to
-which the maker's values align with the participants') *also* predict
-beauty, and in fact can change (in the case of intent, moderate) the
-effect of beauty on trust.**
-
-
-#### EMBELLISHMENT CATEGORY
-see claims by Alebri et al 2024 
-Are more embellished graphs rated as more beautiful?
-
-```{r}
-
-
-## Does embellishment category predict trust?
-## 1. check b00 embellishment category <-- remove B00 b/c its oversampled
-## 
-
-
-
-```
-
-
-
-#### (FIG 9) Predicting Trust
+#### TODO MAIN FIGURE (FIG 9) Predicting Trust
 
 **Here we produce the visualization and model parameters table reported
 in Figure 9.**
 
 ```{r best-fit-model}
 
+## SET BEST MODEL
+best <- mm.BxIxAD
+
+################## PRINT MODEL TABLE
+(t <- tab_model(best))
+
 ################## PLOT MODEL
-p + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID)
+## PLOT MODEL COEFFICIENTS
+(e <- plot_model(best, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal())
+## PLOT MODEL PREDICTIONS
+(p <- plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z")) + theme_minimal())
+(p <- plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal())
+# plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal()
+# plot_model(best, type = "pred", terms = c("ALIGN_z","INTENT_z","BEAUTY_z")) + theme_minimal()
+# plot_model(best, type = "pred", terms = c("ALIGN_z","BEAUTY_z","INTENT_z")) + theme_minimal()
 
-################## PRINT MODEL
-tab_model(mm.BxID)
+# plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z","DATA_z")) + theme_minimal()
+# plot_model(best, type = "pred", terms = c("ALIGN_z","INTENT_z","BEAUTY_z","DATA_z")) + theme_minimal()
+# 
+# plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z")) + theme_minimal()
+# plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal()
 
+
+# ## (1) BEAUTY X INTENT
+# plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z")) + theme_minimal()
+# # (2) ALIGN X INTENT
+# plot_model(best, type = "pred", terms = c("ALIGN_z","INTENT_z")) + theme_minimal()
+# # (3) MAIN EFFECTS
+# plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal()
+
+################## PLOT MODEL
+p + plot_annotation(title = f.BxIxAD, caption="INTENT [inform <--> persuade] \n ALIGN[does NOT share <--> DOES share my values]")
+
+##TODO LOOK INTO EMMEANS ??
+## DECIDE WHICH PLOT CAN BE BEST ANNOTATED TO MAKE THE POINT
+## https://strengejacke.github.io/ggeffects/articles/introduction_plotmethod.html
 ```
-
-
-
-
 
 ## [STUDY 4] MODELLING CHANGE
 
+### DESCRIBE change in attitudes
+
+#### By Question?
+
+#### By Stimuli?
+
+### CHANGE in trust?
+
+### CHANGE in encounter?
 
 ## TODO EVALUATE MOVE TO STASH
 
