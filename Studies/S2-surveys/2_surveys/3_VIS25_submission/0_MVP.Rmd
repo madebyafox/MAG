@@ -26,6 +26,176 @@ editor_options:
 
 # TODO 
 
+# SETUP
+
+### Import Packages
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(psych) #describe() & efa
+library(tidyverse) #all the things
+library(magrittr) #special pipes like %<>%
+library(summarytools) #data quality
+library(lubridate) #dealing with dates
+library(tinytable) ##sparkline tables 
+library(webshot2) ##saving sparkline tables
+
+#EDA
+library(qacBase)
+
+#VIZ
+library(ggformula) #regression syntax viz
+library(ggstatsplot) #dummies
+library(gghalves) #half boxplots 
+library(GGally) #extends ggplot for EDA 
+library(corrplot) #sophisticated correlation plots
+library(ggeasy) #easy labelling
+library(ggh4x) #guides [dual axes]
+library(patchwork) #multi-plot layout
+library(ggdist) #raincloud plots and other distributionals
+library(viridis) #color palettes
+library(RColorBrewer) #color palettes
+library(plotly) # interactive graphs
+library(paletteer) #more palettes
+library(interactions) ##easier regression ixn plots.srlsy
+library(tidygraph)
+
+#MODELLING
+library(jtools) #Social Science regression utilities
+library(easystats) #modelling helpers
+library(see)
+library(sjPlot)
+library(lme4)
+library(lmerTest) #for CIs in glmer
+# library(mixed) ## utilities for glmers 
+library(jmv) ## jamovi EFA
+
+
+#STATISTICAL TESTS 
+library(kSamples) #AD K-SAMPLE TEST (for distribution comparison)
+library(rstatix) #FRIEDMAN'S TESTS and effect sizes 
+
+#CONFIG
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+n_blocks = 6
+
+## IMPORTANT 
+GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
+source("graphing_functions.R") #import graphing palettes and custom functions
+
+```
+
+### Import References
+
+```{r import-refs, message=FALSE, warning = FALSE}
+
+############## IMPORT REFERENCE FILES
+ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
+ref_labels <- readRDS("data/input/REFERENCE/ref_labels.rds")
+
+
+############## SETUP Graph Labels
+ref_stim_id <- levels(ref_stimuli$ID)
+ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
+ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
+ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
+ref_sd_questions <- rownames(ref_labels)
+ref_blocks <- c(1,2,3,4,5,6)
+
+
+############## FULL QUESTION SET FOR S1_3
+ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA",
+                      "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
+                      "CHART_TRUST", "CHART_INTENT", "CHART_LIKE", "CHART_BEAUTY")
+
+ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
+                      "MAKER_POLITIC_z", "MAKER_ARGUE_z","MAKER_SELF_z","MAKER_ALIGN_z","MAKER_TRUST_z",
+                      "CHART_TRUST_z", "CHART_INTENT_z", "CHART_LIKE_z", "CHART_BEAUTY_z")
+
+
+############## MINIMAL QUESTION SET FOR STUDY 4
+ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
+ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
+
+
+
+```
+
+### Import Data
+
+```{r import-data, message=FALSE, warning = FALSE}
+
+############## IMPORT Study 1_3 DATA FILES
+df_participants <- readRDS("data/output/Study_1_2_3/df_participants.rds") #1 row per participant — demographic
+df_graphs <- readRDS("data/output/Study_1_2_3/df_graphs.rds") #only categorical and numeric questions
+df_graphs_z <- readRDS("data/output/Study_1_2_3/df_graphs_z.rds") #only categorical and numeric questions
+df_sd_questions_long <- readRDS("data/output/Study_1_2_3/df_sd_questions_long.rds") # only sd questions LONG
+
+
+############## IMPORT Study 4 DATA FILES
+
+
+
+############## IMPORT COMBINED DATA FILES
+df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds") 
+```
+
+
+
+# ANALYSES (Study 1, Study 2)
+
+## (1) EFA | Exploratory Factor Analysis (S1,S2 minimal vars)
+
+Exploratory Factor Analysis of Studies 1 & 2  (blocks balanced) including the minimal SD questions
+```{r efa}
+
+## SETUP DATA
+df <- df_graphs_all %>% filter(Study %in% c("Study1","Study3"))
+x <- ref_min_sd_questions_z
+print("Dataset for EFA")
+table(df$Study, df$Assigned.Block)
+
+
+## RUN EFA JAMOVI STYLE
+jmv::efa(
+    data = df,
+    vars = as.vector(x),
+    # nFactors = 3,
+    extraction = "ml",
+    sortLoadings = FALSE,
+    screePlot = TRUE,
+    eigen = FALSE,
+    factorCor = TRUE,
+    factorSummary = TRUE,
+    modelFit = TRUE,
+    kmo = TRUE,
+    bartlett = TRUE)
+
+
+## RUN EFA PSYCH PACKAGE
+# df <- df_graphs_all %>% select(all_of(ref_min_sd_questions_z))
+# 
+# # EFA using Maximum Likelihood extraction and Oblimin rotation
+# efa_result <- fa(df, 
+#                  nfactors = 3, 
+#                  rotate = "oblimin", 
+#                  fm = "ml")
+# 
+# # View the entire EFA output
+# print(efa_result, cut = 0.3)
+# # View entire result w/o cutoff
+# # efa_result
+# # Optional: visualize factor diagram
+# fa.diagram(efa_result)
+
+```
+
+
+## (2) MODELLING | Predicting TRUST
+
 
 # SESSION
 
