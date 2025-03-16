@@ -977,38 +977,38 @@ Yes, model 7 is better
 ```{r}
 ## <!-- https://chatgpt.com/c/67d6271c-15dc-800e-9e81-aa2b07a84d52 -->
 
-## CAUTION THIS TAKES A VERY LONG TIME TO RUN 
+## CAUTION THIS TAKES A VERY LONG TIME TO RUN (5H even on 4 cores?)
 
-# install.packages("partR2")
-library(partR2)
-library(future)
-library(furrr)
-
-## setup multiple cores to 
-plan(multisession, workers = 4)
-
-# Mixed model
-model <- mm.BxIxAD
+# # install.packages("partR2")
+# library(partR2)
+# library(future)
+# library(furrr)
+# 
+# ## setup multiple cores to 
+# plan(multisession, workers = 4)
+# 
+# # Mixed model
+# model <- mm.BxIxAD
 
 ######## GROUP PREDICTORS
 
 # run Partial R2
-result <- partR2(
-  model,
-  partbatch = list(
-    "BEAUTY" = "BEAUTY_z",
-    "ALIGN" = "ALIGN_z",
-    "INTENT" = "INTENT_z",
-    "DATA" = "DATA_z",
-    "BEAUTY:INTENT" = "BEAUTY_z:INTENT_z",
-    "ALIGNN:INTENT" = "INTENT_z:ALIGN_z"
-  ),
-  nboot = 1000
-)
+# result <- partR2(
+#   model,
+#   partbatch = list(
+#     "BEAUTY" = "BEAUTY_z",
+#     "ALIGN" = "ALIGN_z",
+#     "INTENT" = "INTENT_z",
+#     "DATA" = "DATA_z",
+#     "BEAUTY:INTENT" = "BEAUTY_z:INTENT_z",
+#     "ALIGNN:INTENT" = "INTENT_z:ALIGN_z"
+#   ),
+#   nboot = 1000
+# )
 
 # Print
-summary(result, sort = TRUE)
-saveRDS(result, file = "models/mm.BxIxAD_partR2_batched.rds")
+# summary(result, sort = TRUE)
+# saveRDS(result, file = "models/mm.BxIxAD_partR2.rds")
 
 
 
