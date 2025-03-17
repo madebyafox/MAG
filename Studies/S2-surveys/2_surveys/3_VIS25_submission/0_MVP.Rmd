@@ -116,7 +116,7 @@ ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
                       "CHART_TRUST_z", "CHART_INTENT_z", "CHART_LIKE_z", "CHART_BEAUTY_z")
 
 
-############## MINIMAL QUESTION SET FOR STUDY 4
+############## MINIMAL QUESTION SET FOR Study 3
 ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
 ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
 
@@ -129,13 +129,13 @@ ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_
 ```{r import-data, message=FALSE, warning = FALSE}
 
 ############## IMPORT Study 1_3 DATA FILES
-df_participants <- readRDS("data/output/Study_1_2_3/df_participants.rds") #1 row per participant — demographic
-df_graphs <- readRDS("data/output/Study_1_2_3/df_graphs.rds") #only categorical and numeric questions
-df_graphs_z <- readRDS("data/output/Study_1_2_3/df_graphs_z.rds") #only categorical and numeric questions
-df_sd_questions_long <- readRDS("data/output/Study_1_2_3/df_sd_questions_long.rds") # only sd questions LONG
+df_participants <- readRDS("data/output/Study_1_2/df_participants.rds") #1 row per participant — demographic
+df_graphs <- readRDS("data/output/Study_1_2/df_graphs.rds") #only categorical and numeric questions
+df_graphs_z <- readRDS("data/output/Study_1_2/df_graphs_z.rds") #only categorical and numeric questions
+df_sd_questions_long <- readRDS("data/output/Study_1_2/df_sd_questions_long.rds") # only sd questions LONG
 
 
-############## IMPORT Study 4 DATA FILES
+############## IMPORT Study 3 DATA FILES
 
 
 
@@ -159,7 +159,7 @@ We use a parallel analysis method, verified by inspection of the scree plot to d
 
 ## SETUP DATA
 df <- df_graphs_all %>% 
-  filter(Study %in% c("Study1","Study3")) 
+  filter(Study %in% c("Study1","Study2")) 
   # %>% filter(STIMULUS !="B0-0") ## filtering out B0-0 doesn't change factors
   
 x <- ref_min_sd_questions_z

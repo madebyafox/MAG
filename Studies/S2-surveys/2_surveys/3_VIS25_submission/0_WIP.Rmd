@@ -104,7 +104,7 @@ ref_sd_questions <- rownames(ref_labels)
 ref_blocks <- c(1,2,3,4,5,6)
 
 
-############## FULL QUESTION SET FOR S1_3
+############## FULL QUESTION SET FOR S1_2
 ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA",
                       "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
                       "CHART_TRUST", "CHART_INTENT", "CHART_LIKE", "CHART_BEAUTY")
@@ -114,7 +114,7 @@ ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
                       "CHART_TRUST_z", "CHART_INTENT_z", "CHART_LIKE_z", "CHART_BEAUTY_z")
 
 
-############## MINIMAL QUESTION SET FOR STUDY 4
+############## MINIMAL QUESTION SET FOR Study 3
 ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
 ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
 
@@ -127,13 +127,13 @@ ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_
 ```{r import-data, message=FALSE, warning = FALSE}
 
 ############## IMPORT Study 1_3 DATA FILES
-df_participants <- readRDS("data/output/Study_1_2_3/df_participants.rds") #1 row per participant — demographic
-df_graphs <- readRDS("data/output/Study_1_2_3/df_graphs.rds") #only categorical and numeric questions
-df_graphs_z <- readRDS("data/output/Study_1_2_3/df_graphs_z.rds") #only categorical and numeric questions
-df_sd_questions_long <- readRDS("data/output/Study_1_2_3/df_sd_questions_long.rds") # only sd questions LONG
+df_participants <- readRDS("data/output/Study_1_2/df_participants.rds") #1 row per participant — demographic
+df_graphs <- readRDS("data/output/Study_1_2/df_graphs.rds") #only categorical and numeric questions
+df_graphs_z <- readRDS("data/output/Study_1_2/df_graphs_z.rds") #only categorical and numeric questions
+df_sd_questions_long <- readRDS("data/output/Study_1_2/df_sd_questions_long.rds") # only sd questions LONG
 
 
-############## IMPORT Study 4 DATA FILES
+############## IMPORT Study 3 DATA FILES
 
 
 
@@ -231,6 +231,7 @@ table(df_graphs_all$Study, df_graphs_all$Assigned.Block)
 df <- df_graphs_all%>% select(all_of(ref_min_sd_questions_z))
 x <- ref_min_sd_questions_z
 
+
 ## RUN EFA JAMOVI STYLE
 jmv::efa(
     data = df,
@@ -265,13 +266,13 @@ jmv::efa(
 
 ```
 
-#### !!! (1.2) EFA : REDUCED VARS : S1, S3 (BALANCED BLOCKS)
+#### !!! (1.2) EFA : REDUCED VARS : S1, S2 (BALANCED BLOCKS)
 
 ```{r}
 
 ## SETUP DATA
-df <- df_graphs_all%>% filter(Study %in% c("Study1","Study3"))
-# table(df$Study, df$Assigned.Block)
+df <- df_graphs_all%>% filter(Study %in% c("Study1","Study2"))
+table(df$Study, df$Assigned.Block)
 x <- ref_min_sd_questions_z
 
 ## RUN EFA JAMOVI STYLE
@@ -310,14 +311,15 @@ jmv::efa(
 
 ### (2) EFA : FULL VARS
 
-#### (2.1) EFA : FULL VARS : S1,S3 (BALANCED BLOCKS)
+#### (2.1) EFA : FULL VARS : S1,S2 (BALANCED BLOCKS)
 
 ```{r}
 
 ## SETUP DATA
-df <- df_graphs_z%>% filter(Study %in% c("Study1","Study3"))
+df <- df_graphs_z%>% filter(Study %in% c("Study1","Study2"))
 table(df$Study, df$Assigned.Block)
 x <- ref_sd_questions_z
+print(x)
 
 ## RUN EFA JAMOVI STYLE
 jmv::efa(
@@ -360,8 +362,8 @@ jmv::efa(
 ```{r hypo-trust_beauty_intent-data}
 
 df <- df_graphs_all %>% 
-  # filter only Study 1 and 3
-  filter(Study %nin% c("Study2","Study4"))
+  # filter only Study 1 and 2
+  filter(Study %nin% c("Study0","Study3"))
 print("Data in Model")
 table(df$Study, df$Assigned.Block)
 
@@ -1020,58 +1022,6 @@ summary(partialR, sort = TRUE)
 
 
 
-#### CONSISTENCY CHECK S4
-
-Here we see whether the model is also significant in Study 4 (pretest
-only)
-
-TL;DR:
-
-NO. 
-
-Here we test whether the specification of the best fitting model to
-predict trust is also a good fit to the data from Study 4 (pre-tests)
-[note, this study was only run on block #1]
-
-```{r, m7_study4}
-
-
-## SETUP DATAFRAME
-df <- df_graphs_all %>% 
-  # filter only Study 1 and 3
-  filter(Study == "Study4")
-print("Data in Model")
-table(df$Study, df$Assigned.Block)
-
-
-################## FIT MODEL
-f.BxIxAD <-  "TRUST ~ BEAUTY X INTENT + INTENT X ALIGN + DATA + (1|PID)"
-mm.BxIxAD <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + INTENT_z*ALIGN_z + DATA_z + (1|PID), data = df)
-summary(mm.BxIxAD)
-car::Anova(mm.BxIxAD, type=3) #type 3 tests for interaction model
-
-################## COMPARE MODEL
-# compare_performance(mm.BxIxAD, mm.BxIDA, mm.BxID, rank = TRUE)
-# anova(mm.BxIxAD, mm.BxIDA)
-
-################## PLOT MODEL
-## PLOT MODEL COEFFICIENTS
-plot_model(mm.BxIxAD, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
-
-
-## see each two-way interaction
-print("two-way interaction")
-plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="", caption="")
-plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="",
-                                                                                                caption = "")
-plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "ALIGN_z")) + theme_minimal() + labs(subtitle ="", caption = "")
-plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="", caption = "")
-
-
-```
-
-No, the model does not constintute a good fit for the Study 4 (pretest) data (only block 1). In this model, INTENT and DATA are no longer significant main effects, and neither interaction is significant either.  
-
 #### TODO MAIN FIGURE (FIG 9) Predicting Trust
 
 **Here we produce the visualization and model parameters table reported
@@ -1125,10 +1075,64 @@ ggsave(plot = g, path="figs/models", filename =paste0("TRUST_model.png"), units 
 
 ##TODO LOOK INTO EMMEANS ??
 ## DECIDE WHICH PLOT CAN BE BEST ANNOTATED TO MAKE THE POINT
+## ADD RAW DATA POINTS TO PLOT
 ## https://strengejacke.github.io/ggeffects/articles/introduction_plotmethod.html
 ```
 
-## [STUDY 4] MODELLING CHANGE
+#### CONSISTENCY CHECK S4
+
+Here we see whether the model is also significant in Study 3 (pretest
+only)
+
+TL;DR:
+
+NO. 
+
+Here we test whether the specification of the best fitting model to
+predict trust is also a good fit to the data from Study 3 (pre-tests)
+[note, this study was only run on block #1]
+
+```{r, m7_study4}
+
+
+## SETUP DATAFRAME
+df <- df_graphs_all %>% 
+  # filter only Study 1 and 3
+  filter(Study == "Study3")
+print("Data in Model")
+table(df$Study, df$Assigned.Block)
+
+
+################## FIT MODEL
+f.s3 <-  "TRUST ~ BEAUTY X INTENT + INTENT X ALIGN + DATA + (1|PID)"
+mm.s3 <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + INTENT_z*ALIGN_z + DATA_z + (1|PID), data = df)
+summary(mm.s3)
+car::Anova(mm.s3, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+# compare_performance(mm.BxIxAD, mm.BxIDA, mm.BxID, rank = TRUE)
+# anova(mm.BxIxAD, mm.BxIDA)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+plot_model(mm.s3, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+
+
+## see each two-way interaction
+# print("two-way interaction")
+# plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="", caption="")
+# plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="",
+# plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "ALIGN_z")) + theme_minimal() + labs(subtitle ="", caption = "")
+# plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="", caption = "")
+
+
+```
+
+No, the model does not constintute a good fit for the Study 3 (pretest) data (only block 1). In this model, INTENT and DATA are no longer significant main effects, and neither interaction is significant either.  
+
+
+
+## [Study 3] MODELLING CHANGE
 
 ### DESCRIBE change in attitudes
 
@@ -1142,7 +1146,7 @@ ggsave(plot = g, path="figs/models", filename =paste0("TRUST_model.png"), units 
 
 ## TODO EVALUATE MOVE TO STASH
 
-### (1) FULL VARIABLES STUDY 1, STUDY 2, STUDY3 (not stimulus balanced)
+### (1) FULL VARIABLES STUDY 1, Study 0, Study2 (not stimulus balanced)
 
 ```{r}
 
@@ -1180,7 +1184,7 @@ p <-  plot_model(mm.BxID, type = "pred", terms = c("BEAUTY_Z", "DATA_Z","INTENT_
 
 ```
 
-### (2) MINIMUM VARIABLES STUDY 1, STUDY 2, STUDY3, STUDY 4A (not stimulus balanced)
+### (2) MINIMUM VARIABLES STUDY 1, Study 0, Study2, Study 3A (not stimulus balanced)
 
 ```{r}
 
@@ -1210,7 +1214,7 @@ p <-  plot_model(mm.2, type = "pred", terms = c("BEAUTY_z", "DATA_z","INTENT_z")
 
 ```
 
-### (3) MINIMUM VARIABLES STUDY 1, STUDY3, STUDY 4A (not stimulus balanced) — NO STUDY 2
+### (3) MINIMUM VARIABLES STUDY 1, Study2, Study 3A (not stimulus balanced) — NO Study 0
 
 ```{r}
 
@@ -1240,7 +1244,7 @@ p <-  plot_model(mm.3, type = "pred", terms = c("BEAUTY_z", "DATA_z","INTENT_z")
 
 ```
 
-### (3) MINIMUM VARIABLES STUDY 1, STUDY3 (stimulus balanced) — NO STUDY 2, 4
+### (3) MINIMUM VARIABLES STUDY 1, Study2 (stimulus balanced) — NO Study 2, 4
 
 ```{r}
 
