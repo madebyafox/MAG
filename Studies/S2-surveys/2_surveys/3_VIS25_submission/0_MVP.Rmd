@@ -117,6 +117,7 @@ ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
 
 
 ############## MINIMAL QUESTION SET FOR Study 3
+ref_labels_min <- readRDS("data/input/REFERENCE/ref_labels_S3.rds")
 ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
 ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
 
@@ -133,6 +134,7 @@ df_participants <- readRDS("data/output/Study_1_2/df_participants.rds") #1 row p
 df_graphs <- readRDS("data/output/Study_1_2/df_graphs.rds") #only categorical and numeric questions
 df_graphs_z <- readRDS("data/output/Study_1_2/df_graphs_z.rds") #only categorical and numeric questions
 df_sd_questions_long <- readRDS("data/output/Study_1_2/df_sd_questions_long.rds") # only sd questions LONG
+df_questions_long <- readRDS("data/output/Study_1_2/df_questions_long.rds") # includes categoricals 
 
 
 ############## IMPORT Study 3 DATA FILES
@@ -141,6 +143,7 @@ df_sd_questions_long <- readRDS("data/output/Study_1_2/df_sd_questions_long.rds"
 
 ############## IMPORT COMBINED DATA FILES
 df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds") 
+df_sd_questions_long_all <- readRDS("data/output/COMBINED/df_sd_questions_long_ALL.rds") # only sd questions LONG
 ```
 
 
@@ -203,6 +206,203 @@ jmv::efa(
 
 
 ## (2) MODELLING | Predicting TRUST
+
+
+## (0) DESCRIPTIVES | PLOTS
+
+### [1] Semantic Differential Questions (Studies 1, 2 3(pre-post))
+
+This plots the concicse set of semantic differential questions for BLOCK 1 stimuli for Study 1,2,3 faceting by pre/post on study 4, as a stacked ridgeplot
+
+```{r plot_ridglines_sds_questions_stimulus_studies_block1_pre_post}
+  
+#### DENSITY RIDGES#############################################################################
+#### loop over questions and stimuli, vertically stack studies, color by sample
+
+## DEFINE DF
+df <- df_sd_questions_long_all%>% 
+  #only block 1 for balanced data
+  filter(Assigned.Block==1) %>% 
+  #drop pilot data
+  filter(Study != "Study0") %>% 
+  #for Study 3 ONLY, set SAMPLE = TIME (for graphing purpose)
+  mutate(
+    Sample = case_when(Study =="Study3" ~ TIME ,
+                       .default = Sample)) %>% 
+  mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
+  droplevels()
+  
+  
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+stimuli <- levels(df$STIMULUS)
+questions <- ref_min_sd_questions #has qs in right order
+labels <- ref_labels_min
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+for (s in stimuli){
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% filter(QUESTION ==q) %>% 
+    group_by(Study,Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = Study, fill = Sample, color = Sample, )) +
+      geom_density_ridges2(scale = 1, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            jittered_points = TRUE,
+            position = position_points_jitter(width = 0.5, height = 0),
+            point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 4,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      guides(
+        y = guide_axis_manual(labels = labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = labels[q,"right"]),
+        # x.sec = guide_axis_manual(position = "top", title = q, breaks = NULL)
+        ) +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + easy_remove_legend() 
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  p <- x[[1]] / x[[2]] /x[[3]] / x[[4]] /x[[5]] / x[[6]] /x[[7]] 
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS 
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/MVP/FIG_Descriptives", filename =paste0("FULL_STUDY_STACK_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+
+}## END LOOP OVER STIMULI
+
+
+```
+
+### [2] Categorical Variables Plots (Study 1,2)
+
+```{r maker-id-confidence}
+
+df <- df_graphs %>% 
+  #remove study pilot
+  filter(Study!="Study0")
+
+## D
+## PROPORTIONAL BAR PLOT
+## GGSTATSPLOT
+##############################
+#hack for consistent ordering of ggstats bar plot
+dx <- df %>% mutate( MAKER_ID = fct_rev(MAKER_ID) )
+S <-   ggbarstats( data = dx, x = MAKER_ID, y = Study,
+                   legend.title = "MAKER ID",
+                   label.args = list(alpha = 1, fill = "white", size=0), ## suppress the labels
+                   results.subtitle	 = FALSE) + 
+    scale_fill_manual(values = my_palettes(name="reds", direction = "1")) +
+    theme_minimal() +
+    labs( title = "MAKERID by Study",  x = "SAMPLE", y="PROPORTION") + 
+    theme(aspect.ratio = 1)
+##############################
+
+
+## B
+## x = Study, facet = stimulus 
+# df <- df_questions_long %>% 
+#   #filter block 1 only
+#   filter(Assigned.Block==1) %>% 
+#   #filter studies 1 & 2
+#   filter(Study %in% c("Study1","Study2")) %>% 
+#   #filter only maker id Q
+#   filter(QUESTION=="MAKER_ID")
+
+########################### BARPLOTS OF MAKER ID
+
+## SETUP DATA 
+ df <- df_graphs %>% 
+  select(PID, Assigned.Block, Study, STIMULUS, ENCOUNTER, MAKER_ID, MAKER_AGE,MAKER_GENDER) %>% 
+  filter(Study %in% c("Study1", "Study2")) %>%
+  filter(Assigned.Block ==1) %>% 
+  #reorder stimuli
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
+
+
+######## FACETED BARPLOT MAKER
+(ID <-  df %>% 
+  ggplot(aes(x=Study, fill=MAKER_ID)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="reds", direction = "1"))+
+   facet_grid( .~ STIMULUS) + 
+   coord_flip()
+)
+   
+######## FACETED BARPLOT AGE
+(AGE <- df %>% 
+  ggplot(aes(x=Study, fill=MAKER_AGE)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="lightblues", direction = "1"))+
+   facet_grid( .~ STIMULUS) + 
+   coord_flip()
+) 
+   
+######## FACETED BARPLOT GENDER
+(GENDER <-  df %>% 
+  ggplot(aes(x=Study, fill=MAKER_GENDER)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1"))+
+   facet_grid( .~ STIMULUS) + 
+   coord_flip()
+)   
+   
+######## FACETED BARPLOT ENCOUNTER
+(ENCOUNTER <-  df %>% 
+  ggplot(aes(x=Study, fill=ENCOUNTER)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "1"))+
+   facet_grid( .~ STIMULUS) + 
+   coord_flip()
+)
+
+
+
+if(GRAPH_SAVE){
+  
+ggsave(plot = ID, path="figs/MVP/FIG_Descriptives", filename =paste0("MAKER_by_study.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = AGE, path="figs/MVP/FIG_Descriptives", filename =paste0("AGE_by_study.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = GENDER, path="figs/MVP/FIG_Descriptives", filename =paste0("GENDER_by_study.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = ENCOUNTER, path="figs/MVP/FIG_Descriptives", filename =paste0("ENCOUNTER_by_study.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+}
+
+
+```
+
+
 
 
 # SESSION
