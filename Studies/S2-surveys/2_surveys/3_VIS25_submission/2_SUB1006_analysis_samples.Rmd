@@ -118,24 +118,26 @@ ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
 ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
 
 
-
-
 ############## SETUP Graph Labels
 ref_stim_id <- levels(ref_stimuli$ID)
 ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
 ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
 ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
-ref_sd_questions <- rownames(ref_labels)
-ref_sd_questions_abs <- rownames(ref_labels_abs)
 ref_min_sd_questions <-  c("MAKER_DESIGN","MAKER_DATA","MAKER_POLITIC", "MAKER_ALIGN","CHART_INTENT","MAKER_TRUST","CHART_BEAUTY")  
-ref_s4_sd_questions <-  c("DESIGN","DATA","POLITICS", "ALIGN","INTENT","TRUST","BEAUTY")  
+ref_s3_sd_questions <-  c("DESIGN","DATA","POLITICS", "ALIGN","INTENT","TRUST","BEAUTY")  
+
 
 ref_labels <- readRDS("data/input/REFERENCE/ref_labels.rds")
-ref_labels_min <- readRDS("data/input/REFERENCE/ref_labels_S4.rds")
+ref_labels_min <- readRDS("data/input/REFERENCE/ref_labels_S3.rds")
 ref_labels_abs <- readRDS("data/input/REFERENCE/ref_labels_abs.rds")
 
 # ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
 ref_blocks <- c(1,2,3,4,5,6)
+
+
+ref_sd_questions <- rownames(ref_labels)
+ref_sd_questions_abs <- rownames(ref_labels_abs)
+
 
 ```
 
@@ -148,55 +150,65 @@ TODO:: return to these and remove unneeded files
 ```{r import-data}
 
 # 1 row per participant — wide
-df_data <- readRDS("data/output/Study_1_2_3/df_data.rds")
+# df_data <- readRDS("data/output/Study_1_2/df_data.rds")
 
 
 # 1 row per participant — demographic
-df_participants <- readRDS("data/output/Study_1_2_3/df_participants.rds")
-df_participants_S4 <- readRDS("data/output/Study_4/df_participants_S4.rds")
+df_participants <- readRDS("data/output/Study_1_2/df_participants.rds")
+df_participants_S3 <- readRDS("data/output/Study_3/df_participants_S3.rds")
 df_participants_all <- readRDS("data/output/COMBINED/df_participants_ALL.rds")
 
 # sd questions LONG
-df_sd_questions_long <- readRDS("data/output/Study_1_2_3/df_sd_questions_long.rds")
-df_sd_questions_long_S4 <- readRDS("data/output/Study_4/df_sd_questions_long_S4.rds")
+df_sd_questions_long <- readRDS("data/output/Study_1_2/df_sd_questions_long.rds")
+df_sd_questions_long_S3 <- readRDS("data/output/Study_3/df_sd_questions_long_S3.rds")
 df_sd_questions_long_all <- readRDS("data/output/COMBINED/df_sd_questions_long_ALL.rds")
 
+
 ## FILTER BLOCK1
-df_b1_sd_questions_long <- df_sd_questions_long %>% 
-  filter(Assigned.Block==1) %>% 
-  filter(QUESTION %in% ref_min_sd_questions) %>% droplevels()
-                                                                                         
-df_b1_sd_questions_long_S4 <- df_sd_questions_long_S4 %>% 
-  filter(Assigned.Block==1) %>% 
-  filter(TIME =="PRE") %>% select(-TIME) %>% droplevels()
+# df_b1_sd_questions_long <- df_sd_questions_long %>% 
+#   filter(Assigned.Block==1) %>% 
+#   filter(QUESTION %in% ref_min_sd_questions) %>% droplevels()
+#                                                                                          
+# df_b1_sd_questions_long_S3 <- df_sd_questions_long_S3 %>%
+#   filter(Assigned.Block==1) %>%
+#   filter(TIME =="PRE") %>% select(-TIME) %>% droplevels()
+# 
+# ## THIS INCLUDES PRE/POST IN THE 'SAMPLE COLUMNS'
+# df_b1_sd_questions_long <- rbind(df_b1_sd_questions_long, df_b1_sd_questions_long_S3) %>% 
+#   mutate(
+#     QUESTION = str_replace_all(QUESTION, "MAKER_POLITIC","POLITICS"),
+#     QUESTION = str_replace_all(QUESTION, "MAKER_",""),
+#     QUESTION = str_replace_all(QUESTION, "CHART_","")
+#   )
+# 
+# 
+# ### WRANGLE LONG DF WHERE S3 PRE/POST STORED IN SAMPLE
+# df_b1_sd_questions_long_S3 <- df_sd_questions_long_S3 %>% 
+#   filter(Assigned.Block==1) %>% 
+#   mutate(Sample = TIME) %>% 
+#   droplevels()
+# 
+# # all questions LONG
 
-df_b1_sd_questions_long <- rbind(df_b1_sd_questions_long, df_b1_sd_questions_long_S4) %>% 
-  mutate(
-    QUESTION = str_replace_all(QUESTION, "MAKER_POLITIC","POLITICS"),
-    QUESTION = str_replace_all(QUESTION, "MAKER_",""),
-    QUESTION = str_replace_all(QUESTION, "CHART_","")
-  )
 
-
-# all questions LONG
-df_graphs <- readRDS("data/output/Study_1_2_3/df_graphs.rds")
+df_graphs <- readRDS("data/output/Study_1_2/df_graphs.rds")
 
 
 
 
 
 ### CREATE BLOCK 1 DATAFRAMES (bc data/blue collar was only run on Block 1)
-df_b1_data <- df_data %>% filter(Assigned.Block==1) %>% droplevels()
+# df_b1_data <- df_data %>% filter(Assigned.Block==1) %>% droplevels()
 
 
-## FILTER FOR BLOCK 1 PARTICIPANTS AND JOIN S1_3 & S4
-df_b1_participants <- df_participants %>% filter(Assigned.Block==1) %>% droplevels()
-df_b1_participants_S4 <- df_participants_S4 %>% filter(Assigned.Block==1) %>% droplevels()
-df_b1_participants <- rbind(df_b1_participants, df_b1_participants_S4)
-
-
-df_b1_sds_long <- df_sd_questions_long%>% filter(Assigned.Block==1) %>% droplevels()
-df_b1_graphs <- df_graphs %>%  filter(Assigned.Block==1) %>% droplevels()
+## FILTER FOR BLOCK 1 PARTICIPANTS AND JOIN S1_2 & S3
+# df_b1_participants <- df_participants %>% filter(Assigned.Block==1) %>% droplevels()
+# df_b1_participants_S3 <- df_participants_S3 %>% filter(Assigned.Block==1) %>% droplevels()
+# df_b1_participants <- rbind(df_b1_participants, df_b1_participants_S3)
+# 
+# 
+# df_b1_sds_long <- df_sd_questions_long%>% filter(Assigned.Block==1) %>% droplevels()
+# df_b1_graphs <- df_graphs %>%  filter(Assigned.Block==1) %>% droplevels()
 
 
 ############## IMPORT DATA FILES
@@ -249,7 +261,7 @@ df_b1_graphs <- df_graphs %>%  filter(Assigned.Block==1) %>% droplevels()
 
 
 print("df_b1_participants")
-table(df_b1_participants$Assigned.Block, df_b1_participants$Sample, df_b1_participants$Study)
+table(df_b1_participants$Study, df_b1_participants$Assigned.Block)
 
 
 ```
@@ -376,6 +388,103 @@ MOCKUP (FIG 1) MAIN DESCRIPTIVES FIGURE (QUESTIONS + BLOCK 1 AGGREGATED)
 ## BLOCK 1 Question by Stimulus by Study (vertical facet)
 
 
+### S1_S2_S3(PRE-POST) stacked density ridges
+```{r plot_ridglines_sds_questions_stimulus_studies_block1_pre_post}
+  
+#### DENSITY RIDGES#############################################################################
+#### loop over questions and stimuli, vertically stack studies, color by sample
+
+## DEFINE DF
+df <- df_sd_questions_long_all%>% 
+  #only block 1 for balanced data
+  filter(Assigned.Block==1) %>% 
+  #drop pilot data
+  filter(Study != "Study0") %>% 
+  #for Study 3 ONLY, set SAMPLE = TIME (for graphing purpose)
+  mutate(
+    Sample = case_when(Study =="Study3" ~ TIME ,
+                       .default = Sample)) %>% 
+  mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
+  droplevels()
+  
+  
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+stimuli <- levels(df$STIMULUS)
+questions <- ref_s3_sd_questions #has qs in right order
+labels <- ref_labels_min
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+for (s in stimuli){
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% filter(QUESTION ==q) %>% 
+    group_by(Study,Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = Study, fill = Sample, color = Sample, )) +
+      geom_density_ridges2(scale = 1, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            jittered_points = TRUE,
+            position = position_points_jitter(width = 0.5, height = 0),
+            point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 4,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      guides(
+        y = guide_axis_manual(labels = labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = labels[q,"right"]),
+        # x.sec = guide_axis_manual(position = "top", title = q, breaks = NULL)
+        ) +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + easy_remove_legend() 
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  p <- x[[1]] / x[[2]] /x[[3]] / x[[4]] /x[[5]] / x[[6]] /x[[7]] 
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS 
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/MVP/FIG_Descriptives", filename =paste0("FULL_STUDY_STACK_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+
+}## END LOOP OVER STIMULI
+
+
+```
+
+
+
+
+
+
+
 ### S1_S4 studies stacked density ridges
 ```{r plot_ridglines_sds_questions_stimulus_studies_block1}
   
@@ -388,7 +497,7 @@ df <- df_sd_questions_long_all %>% filter(Assigned.Block==1) %>% droplevels()
 ## DEFINE REFS
 n_q <- length(levels(df$QUESTION))
 stimuli <- levels(df$STIMULUS)
-questions <- ref_s4_sd_questions #has qs in right order
+questions <- ref_s3_sd_questions #has qs in right order
 labels <- ref_labels_min
 
 ## SET INITIAL VALUES
@@ -458,7 +567,7 @@ for (s in stimuli){
 
 
 
-### S1_S3 studies stacked density ridges
+### S1_S3 studies stacked density ridges (PRE ONLY)
 
 In this version, we don't use Study 2 pilot and rename S4 as S3
 ```{r plot_ridglines_sds_questions_stimulus_studies_block1}
@@ -469,12 +578,12 @@ In this version, we don't use Study 2 pilot and rename S4 as S3
 ## DEFINE DF
 df <- df_sd_questions_long_all %>% filter(Assigned.Block==1) %>% droplevels()
 # filter out Study 2 (data/blue collar pilot)
-df <- df %>% filter(Study!="Study2") %>% droplevels()
+df <- df %>% filter(Study!="Study0") %>% droplevels()
 
 ## DEFINE REFS
 n_q <- length(levels(df$QUESTION))
 stimuli <- levels(df$STIMULUS)
-questions <- ref_s4_sd_questions #has qs in right order
+questions <- ref_s3_sd_questions #has qs in right order
 labels <- ref_labels_min
 
 ## SET INITIAL VALUES
@@ -614,7 +723,7 @@ if(GRAPH_SAVE == TRUE) {
 ```
 
 
-```{r block1_sds_study4fake, message=FALSE, warning = FALSE}
+```{r block1_sds_Study3fake, message=FALSE, warning = FALSE}
  
  ### FAKE STUDY 4
  (fake <-d %>% filter(STUDY=="Study_2") %>% 
