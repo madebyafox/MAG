@@ -158,10 +158,13 @@ We use a parallel analysis method, verified by inspection of the scree plot to d
 ```{r efa}
 
 ## SETUP DATA
-df <- df_graphs_all %>% filter(Study %in% c("Study1","Study3"))
+df <- df_graphs_all %>% 
+  filter(Study %in% c("Study1","Study3")) 
+  # %>% filter(STIMULUS !="B0-0") ## filtering out B0-0 doesn't change factors
+  
 x <- ref_min_sd_questions_z
 print("Dataset for EFA")
-table(df$Study, df$Assigned.Block)
+addmargins(table(df$Study, df$Assigned.Block)/5)
 
 
 ## RUN EFA JAMOVI STYLE

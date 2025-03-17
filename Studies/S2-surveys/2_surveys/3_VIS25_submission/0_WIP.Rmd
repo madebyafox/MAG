@@ -1079,15 +1079,14 @@ in Figure 9.**
 ## SET BEST MODEL
 best <- mm.BxIxAD
 
-################## PRINT MODEL TABLE
-(t <- tab_model(best))
+
 
 ################## PLOT MODEL
 ## PLOT MODEL COEFFICIENTS
 (e <- plot_model(best, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal())
 ## PLOT MODEL PREDICTIONS
 (p <- plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z")) + theme_minimal())
-(p <- plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal())
+# (p <- plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal())
 # plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal()
 # plot_model(best, type = "pred", terms = c("ALIGN_z","INTENT_z","BEAUTY_z")) + theme_minimal()
 # plot_model(best, type = "pred", terms = c("ALIGN_z","BEAUTY_z","INTENT_z")) + theme_minimal()
@@ -1107,7 +1106,18 @@ best <- mm.BxIxAD
 # plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal()
 
 ################## PLOT MODEL
-p + plot_annotation(title = f.BxIxAD, caption="INTENT [inform <--> persuade] \n ALIGN[does NOT share <--> DOES share my values]")
+g <- (e / p) + plot_annotation(title = f.BxIxAD, caption="INTENT [inform <--> persuade] \n ALIGN[does NOT share <--> DOES share my values]")
+
+
+################## PRINT MODEL TABLE
+(t <- tab_model(best, file = "tab.html"))
+# library(webshot)
+webshot("tab.html", "figs/models/TRUST_model_table.png")
+############
+ggsave(plot= e, path="figs/models", filename = "TRUST_model_coefficients.png",units = c("in"), width = 8, height = 8,bg='#ffffff')
+ggsave(plot = g, path="figs/models", filename =paste0("TRUST_model.png"), units = c("in"), width = 8, height = 10,bg='#ffffff'   )
+
+
 
 ##TODO LOOK INTO EMMEANS ??
 ## DECIDE WHICH PLOT CAN BE BEST ANNOTATED TO MAKE THE POINT
