@@ -1593,19 +1593,19 @@ border-radius: 0px;
 </div>
 
 
-<p><em>This notebook contains code to combine data from Study 1, Study
-2, Study 3, and Study 4 of the MAGIC-VIS project to a single single
+<p><em>This notebook contains code to combine data from Study 0, Study
+1, Study 2, and Study 3 of the MAGIC-VIS project to a single single
 normalized dataset of (valid) participant responses.</em></p>
 <p><strong>NOTE</strong> This file can only be executed <em>after</em>
 the study specific wrangling files have been run, as those notebooks
 transform the data from raw qualtrics format to a standardized
 format.</p>
-<p><strong>NOTE</strong> Data from Study 4 are only included at the
+<p><strong>NOTE</strong> Data from Study 3 are only included at the
 ‘pre-test’ (graph-text-obscured) stage. Data from the post-test are
 excluded, as this data was not gathered in the other studies.</p>
 <p>Four types of files are generated: (1) Participant-level : 1 row per
 participant (2) Graph-level : 1 row per participantXgraph (5 graphs per
-participant; except Study 4, 5 graphs per participant X 2 times
+participant; except Study 3, 5 graphs per participant X 2 times
 (pre-post)) (3) Question-level : 1 row per
 participantXgraphXquestion</p>
 <div id="import-configuration-files" class="section level2" number="1">
@@ -1648,7 +1648,7 @@ files.</em></p>
 <pre class="r"><code>############## BUILD LABELS
 ref_stim_id &lt;- levels(ref_stimuli$ID)
 
-### SD questions on Studies S1, S2, S3
+### SD questions on Studies S1, S2
 ref_sd_questions &lt;- c(&quot;MAKER_DESIGN&quot;,&quot;MAKER_DATA&quot;,
                       &quot;MAKER_POLITIC&quot;, &quot;MAKER_ARGUE&quot;,&quot;MAKER_SELF&quot;,&quot;MAKER_ALIGN&quot;,&quot;MAKER_TRUST&quot;,
                       &quot;CHART_TRUST&quot;, &quot;CHART_INTENT&quot;, &quot;CHART_LIKE&quot;, &quot;CHART_BEAUTY&quot;)
@@ -1656,49 +1656,49 @@ ref_sd_questions_z &lt;- c(&quot;MAKER_DESIGN_z&quot;,&quot;MAKER_DATA_z&quot;,
                       &quot;MAKER_POLITIC_z&quot;, &quot;MAKER_ARGUE_z&quot;,&quot;MAKER_SELF_z&quot;,&quot;MAKER_ALIGN_z&quot;,&quot;MAKER_TRUST_z&quot;,
                       &quot;CHART_TRUST_z&quot;, &quot;CHART_INTENT_z&quot;, &quot;CHART_LIKE_z&quot;, &quot;CHART_BEAUTY_z&quot;)
 
-## SD questions on Study4
+## SD questions on Study3
 ref_min_sd_questions &lt;-  c(&quot;DESIGN&quot;,&quot;DATA&quot;,&quot;POLITICS&quot;, &quot;TRUST&quot;,&quot;ALIGN&quot;,&quot;BEAUTY&quot;,&quot;INTENT&quot;)
 ref_min_sd_questions_z &lt;-  c(&quot;DESIGN_z&quot;,&quot;DATA_z&quot;,&quot;POLITICS_z&quot;, &quot;TRUST_z&quot;,&quot;ALIGN_z&quot;,&quot;BEAUTY_z&quot;,&quot;INTENT_z&quot;)
 
 
 ### USEFUL CODE FOR TROUBLESHOOTING COMPARING DF STRUCTURE
 #dataframe column comparisons 
-# x &lt;- janitor::compare_df_cols(df1, df4)</code></pre>
+# x &lt;- janitor::compare_df_cols(df1, df3)</code></pre>
 </div>
 <div id="import-wrangled-data" class="section level2" number="3">
 <h2><span class="header-section-number">3</span> IMPORT Wrangled
 Data</h2>
 <p>We want to include in this dataset only responses from participants
 who saw <em>message-obscured</em> stimuli. Thus we include participants
-from Studies 1-3, and for Study 4, on the <em>pre-test</em> scores,
+from Studies 1-2, and for Study 3, on the <em>pre-test</em> scores,
 which reflect answers to questions when participants viewed the
 message-obscured version of the graph.</p>
 <pre class="r"><code>## IMPORT STUDIES 1-3 FILES
-df_participants_s13 &lt;- readRDS(&quot;data/output/Study_1_2_3/df_participants.rds&quot;)
-df_graphs_s13 &lt;- readRDS(&quot;data/output/Study_1_2_3/df_graphs_z.rds&quot;) #zscore version has both raw and zscores
-df_sd_questions_long_s13 &lt;- readRDS(&quot;data/output/Study_1_2_3/df_sd_questions_long.rds&quot;)
-df_sd_questions_long_s13_z &lt;- readRDS(&quot;data/output/Study_1_2_3/df_sd_questions_long_z.rds&quot;)
+df_participants_s12 &lt;- readRDS(&quot;data/output/Study_1_2/df_participants.rds&quot;)
+df_graphs_s12 &lt;- readRDS(&quot;data/output/Study_1_2/df_graphs_z.rds&quot;) #zscore version has both raw and zscores
+df_sd_questions_long_s12 &lt;- readRDS(&quot;data/output/Study_1_2/df_sd_questions_long.rds&quot;)
+df_sd_questions_long_s12_z &lt;- readRDS(&quot;data/output/Study_1_2/df_sd_questions_long_z.rds&quot;)
 
 
-## IMPORT STUDY 4 FILES
-df_participants_s4 &lt;- readRDS(&quot;data/output/Study_4/df_participants_S4.rds&quot;)
-df_graphs_s4 &lt;- readRDS(&quot;data/output/Study_4/df_graphs_z_S4.rds&quot;) #zscore version has both raw and zscores
-df_sd_questions_long_s4 &lt;- readRDS(&quot;data/output/Study_4/df_sd_questions_long_S4.rds&quot;)
-df_sd_questions_long_s4_z &lt;- readRDS(&quot;data/output/Study_4/df_sd_questions_long_z_S4.rds&quot;)</code></pre>
+## IMPORT Study 3 FILES
+df_participants_s3 &lt;- readRDS(&quot;data/output/Study_3/df_participants_S3.rds&quot;)
+df_graphs_s3 &lt;- readRDS(&quot;data/output/Study_3/df_graphs_z_S3.rds&quot;) #zscore version has both raw and zscores
+df_sd_questions_long_s3 &lt;- readRDS(&quot;data/output/Study_3/df_sd_questions_long_S3.rds&quot;)
+df_sd_questions_long_s3_z &lt;- readRDS(&quot;data/output/Study_3/df_sd_questions_long_z_S3.rds&quot;)</code></pre>
 </div>
 <div id="join-participant-level-files" class="section level2" number="4">
 <h2><span class="header-section-number">4</span> JOIN PARTICIPANT level
 files</h2>
 <pre class="r"><code>## ASSIGN DFS
-df1 &lt;- df_participants_s13
-df4 &lt;- df_participants_s4
+df1 &lt;- df_participants_s12
+df3 &lt;- df_participants_s3
 
 #dataframe column comparisons 
-# x &lt;- janitor::compare_df_cols(df1, df4)
+# x &lt;- janitor::compare_df_cols(df1, df3)
 #x
 
 ## JOIN DFS 
-df &lt;- rbind(df1,df4)
+df &lt;- rbind(df1,df3)
 
 
 ## PRINT
@@ -1708,28 +1708,28 @@ print(&quot;PARTICIPANTS BY STUDY AND BLOCK&quot;)</code></pre>
 <pre><code>##         
 ##            1   2   3   4   5   6 Sum
 ##   Study1  15  12  12  14  13  12  78
-##   Study2  40   0   0   0   0   0  40
-##   Study3  40  40  40  40  40  40 240
-##   Study4  40   0   0   0   0   0  40
+##   Study2  40  40  40  40  40  40 240
+##   Study3  40   0   0   0   0   0  40
+##   Study0  40   0   0   0   0   0  40
 ##   Sum    135  52  52  54  53  52 398</code></pre>
 <pre class="r"><code>## WRITE FILE
 saveRDS(df, file = &quot;data/output/COMBINED/df_participants_ALL.rds&quot;)
 
 ## CLEANUP
-rm(df, df1, df4)</code></pre>
+rm(df, df1, df3)</code></pre>
 </div>
 <div id="join-graph-level-files" class="section level2" number="5">
 <h2><span class="header-section-number">5</span> JOIN GRAPH level
 Files</h2>
 <pre class="r"><code>## WRANGLE STUDIES 1_3, 
-df1 &lt;- df_graphs_s13 %&gt;% 
+df1 &lt;- df_graphs_s12 %&gt;% 
   # Retain only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
          STIMULUS_CATEGORY, STIMULUS, BLOCK, ENCOUNTER, MAKER_ID, MAKER_AGE, MAKER_GENDER, 
          MAKER_DESIGN_z:CHART_TRUST_z) %&gt;% 
-  # Filter out questions dropped from Study 4
+  # Filter out questions dropped from Study 3
   select(-c(&quot;MAKER_ARGUE_z&quot;,&quot;MAKER_SELF_z&quot;,&quot;CHART_LIKE_z&quot;,&quot;CHART_TRUST_z&quot;))  %&gt;% 
-  # Rename questions to match Study 4 and get rid of magicwizard transform for raw z value
+  # Rename questions to match Study 3 and get rid of magicwizard transform for raw z value
   mutate(
     DESIGN_z = as.numeric(MAKER_DESIGN_z),
     DATA_z = as.numeric(MAKER_DATA_z),
@@ -1748,8 +1748,8 @@ df1 &lt;- df_graphs_s13 %&gt;%
   # Drop levels
   droplevels()
 
-## STUDY 4, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
-df4 &lt;- df_graphs_s4%&gt;% 
+## Study 3, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
+df3 &lt;- df_graphs_s3%&gt;% 
   # Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
         STIMULUS_CATEGORY, STIMULUS, BLOCK, 
@@ -1782,7 +1782,7 @@ df4 &lt;- df_graphs_s4%&gt;%
   droplevels()
   
 ## JOIN STUDIES
-df &lt;- rbind(df1, df4)
+df &lt;- rbind(df1, df3)
 
 ## PRINT 
 print(&quot;PARTICIPANTS BY STUDY AND STIMULUS&quot;)</code></pre>
@@ -1791,34 +1791,34 @@ print(&quot;PARTICIPANTS BY STUDY AND STIMULUS&quot;)</code></pre>
 <pre><code>##         
 ##          B0-0 B1-1 B1-2 B1-3 B1-4 B2-1 B2-2 B2-3 B2-4 B3-1 B3-2 B3-3 B3-4 B4-1
 ##   Study1   78   15   15   15   15   12   12   12   12   12   12   12   12   14
-##   Study2   40   40   40   40   40    0    0    0    0    0    0    0    0    0
-##   Study3  240   40   40   40   40   40   40   40   40   40   40   40   40   40
-##   Study4   40   40   40   40   40    0    0    0    0    0    0    0    0    0
+##   Study2  240   40   40   40   40   40   40   40   40   40   40   40   40   40
+##   Study0   40   40   40   40   40    0    0    0    0    0    0    0    0    0
+##   Study3   40   40   40   40   40    0    0    0    0    0    0    0    0    0
 ##   Sum     398  135  135  135  135   52   52   52   52   52   52   52   52   54
 ##         
 ##          B4-2 B4-3 B4-4 B5-1 B5-2 B5-3 B5-4 B6-1 B6-2 B6-3 B6-4  Sum
 ##   Study1   14   14   14   13   13   13   13   12   12   12   12  390
-##   Study2    0    0    0    0    0    0    0    0    0    0    0  200
-##   Study3   40   40   40   40   40   40   40   40   40   40   40 1200
-##   Study4    0    0    0    0    0    0    0    0    0    0    0  200
+##   Study2   40   40   40   40   40   40   40   40   40   40   40 1200
+##   Study0    0    0    0    0    0    0    0    0    0    0    0  200
+##   Study3    0    0    0    0    0    0    0    0    0    0    0  200
 ##   Sum      54   54   54   53   53   53   53   52   52   52   52 1990</code></pre>
 <pre class="r"><code>## WRITE FILE
 saveRDS(df, file = &quot;data/output/COMBINED/df_graphs_ALL.rds&quot;)
 
 ## CLEANUP
-rm(df, df1, df4)</code></pre>
+rm(df, df1, df3)</code></pre>
 </div>
 <div id="join-sd-question-long-files" class="section level2" number="6">
 <h2><span class="header-section-number">6</span> JOIN SD QUESTION LONG
 Files</h2>
 <pre class="r"><code>## WRANGLE STUDIES 1_3, 
-df1 &lt;- df_sd_questions_long_s13 %&gt;% 
+df1 &lt;- df_sd_questions_long_s12 %&gt;% 
   # Retain only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
          STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value) %&gt;% 
-  # Filter out questions dropped from Study 4
+  # Filter out questions dropped from Study 3
   filter(QUESTION %nin% c(&quot;MAKER_ARGUE&quot;,&quot;MAKER_SELF&quot;,&quot;CHART_LIKE&quot;,&quot;CHART_TRUST&quot;)) %&gt;% 
-  # Rename questions to match Study 4
+  # Rename questions to match Study 3
   mutate(
     QUESTION = str_replace(QUESTION, &quot;MAKER_&quot;,&quot;&quot;), #strip MAKER_ prefix
     QUESTION = str_replace(QUESTION, &quot;CHART_&quot;,&quot;&quot;), #strip CHART_ prefix
@@ -1828,8 +1828,8 @@ df1 &lt;- df_sd_questions_long_s13 %&gt;%
   # Drop levels
   droplevels()
 
-## STUDY 4, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
-df4 &lt;- df_sd_questions_long_s4 %&gt;% 
+## Study 3, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
+df3 &lt;- df_sd_questions_long_s3 %&gt;% 
   #Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %&gt;% 
@@ -1841,7 +1841,7 @@ df4 &lt;- df_sd_questions_long_s4 %&gt;%
   droplevels()
 
 ## JOIN STUDIES
-df &lt;- rbind(df1, df4)
+df &lt;- rbind(df1, df3)
 
 
 ## PRINT 
@@ -1885,6 +1885,39 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ## 
 ##           
 ##             B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
+##   DESIGN     240    40    40    40    40    40    40    40    40    40    40
+##   DATA       240    40    40    40    40    40    40    40    40    40    40
+##   POLITICS   240    40    40    40    40    40    40    40    40    40    40
+##   TRUST      240    40    40    40    40    40    40    40    40    40    40
+##   ALIGN      240    40    40    40    40    40    40    40    40    40    40
+##   BEAUTY     240    40    40    40    40    40    40    40    40    40    40
+##   INTENT     240    40    40    40    40    40    40    40    40    40    40
+##   Sum       1680   280   280   280   280   280   280   280   280   280   280
+##           
+##             B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
+##   DESIGN      40    40    40    40    40    40    40    40    40    40    40
+##   DATA        40    40    40    40    40    40    40    40    40    40    40
+##   POLITICS    40    40    40    40    40    40    40    40    40    40    40
+##   TRUST       40    40    40    40    40    40    40    40    40    40    40
+##   ALIGN       40    40    40    40    40    40    40    40    40    40    40
+##   BEAUTY      40    40    40    40    40    40    40    40    40    40    40
+##   INTENT      40    40    40    40    40    40    40    40    40    40    40
+##   Sum        280   280   280   280   280   280   280   280   280   280   280
+##           
+##             B6-2  B6-3  B6-4   Sum
+##   DESIGN      40    40    40  1200
+##   DATA        40    40    40  1200
+##   POLITICS    40    40    40  1200
+##   TRUST       40    40    40  1200
+##   ALIGN       40    40    40  1200
+##   BEAUTY      40    40    40  1200
+##   INTENT      40    40    40  1200
+##   Sum        280   280   280  8400
+## 
+## , ,  = Study0
+## 
+##           
+##             B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
 ##   DESIGN      40    40    40    40    40     0     0     0     0     0     0
 ##   DATA        40    40    40    40    40     0     0     0     0     0     0
 ##   POLITICS    40    40    40    40    40     0     0     0     0     0     0
@@ -1915,39 +1948,6 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   Sum          0     0     0  1400
 ## 
 ## , ,  = Study3
-## 
-##           
-##             B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
-##   DESIGN     240    40    40    40    40    40    40    40    40    40    40
-##   DATA       240    40    40    40    40    40    40    40    40    40    40
-##   POLITICS   240    40    40    40    40    40    40    40    40    40    40
-##   TRUST      240    40    40    40    40    40    40    40    40    40    40
-##   ALIGN      240    40    40    40    40    40    40    40    40    40    40
-##   BEAUTY     240    40    40    40    40    40    40    40    40    40    40
-##   INTENT     240    40    40    40    40    40    40    40    40    40    40
-##   Sum       1680   280   280   280   280   280   280   280   280   280   280
-##           
-##             B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
-##   DESIGN      40    40    40    40    40    40    40    40    40    40    40
-##   DATA        40    40    40    40    40    40    40    40    40    40    40
-##   POLITICS    40    40    40    40    40    40    40    40    40    40    40
-##   TRUST       40    40    40    40    40    40    40    40    40    40    40
-##   ALIGN       40    40    40    40    40    40    40    40    40    40    40
-##   BEAUTY      40    40    40    40    40    40    40    40    40    40    40
-##   INTENT      40    40    40    40    40    40    40    40    40    40    40
-##   Sum        280   280   280   280   280   280   280   280   280   280   280
-##           
-##             B6-2  B6-3  B6-4   Sum
-##   DESIGN      40    40    40  1200
-##   DATA        40    40    40  1200
-##   POLITICS    40    40    40  1200
-##   TRUST       40    40    40  1200
-##   ALIGN       40    40    40  1200
-##   BEAUTY      40    40    40  1200
-##   INTENT      40    40    40  1200
-##   Sum        280   280   280  8400
-## 
-## , ,  = Study4
 ## 
 ##           
 ##             B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
@@ -2016,32 +2016,32 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 <pre><code>##         
 ##          B0-0 B1-1 B1-2 B1-3 B1-4 B2-1 B2-2 B2-3 B2-4 B3-1 B3-2 B3-3 B3-4 B4-1
 ##   Study1  546  105  105  105  105   84   84   84   84   84   84   84   84   98
-##   Study2  280  280  280  280  280    0    0    0    0    0    0    0    0    0
-##   Study3 1680  280  280  280  280  280  280  280  280  280  280  280  280  280
-##   Study4  280  280  280  280  280    0    0    0    0    0    0    0    0    0
+##   Study2 1680  280  280  280  280  280  280  280  280  280  280  280  280  280
+##   Study0  280  280  280  280  280    0    0    0    0    0    0    0    0    0
+##   Study3  280  280  280  280  280    0    0    0    0    0    0    0    0    0
 ##         
 ##          B4-2 B4-3 B4-4 B5-1 B5-2 B5-3 B5-4 B6-1 B6-2 B6-3 B6-4
 ##   Study1   98   98   98   91   91   91   91   84   84   84   84
-##   Study2    0    0    0    0    0    0    0    0    0    0    0
-##   Study3  280  280  280  280  280  280  280  280  280  280  280
-##   Study4    0    0    0    0    0    0    0    0    0    0    0</code></pre>
+##   Study2  280  280  280  280  280  280  280  280  280  280  280
+##   Study0    0    0    0    0    0    0    0    0    0    0    0
+##   Study3    0    0    0    0    0    0    0    0    0    0    0</code></pre>
 <pre class="r"><code>## WRITE FILE
 saveRDS(df, file = &quot;data/output/COMBINED/df_sd_questions_long_ALL.rds&quot;)
 
 ## CLEANUP
-rm(df, df1, df4)</code></pre>
+rm(df, df1, df3)</code></pre>
 </div>
 <div id="join-sd-question-long-files-z-scored" class="section level2" number="7">
 <h2><span class="header-section-number">7</span> JOIN SD QUESTION LONG
 Files (Z-SCORED)</h2>
 <pre class="r"><code>## WRANGLE STUDIES 1_3, 
-df1 &lt;- df_sd_questions_long_s13_z %&gt;% 
+df1 &lt;- df_sd_questions_long_s12_z %&gt;% 
   # Retain only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
          STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value) %&gt;% 
-  # Filter out questions dropped from Study 4
+  # Filter out questions dropped from Study 3
   filter(QUESTION %nin% c(&quot;MAKER_ARGUE_z&quot;,&quot;MAKER_SELF_z&quot;,&quot;CHART_LIKE_z&quot;,&quot;CHART_TRUST_z&quot;))  %&gt;% 
-  # Rename questions to match Study 4
+  # Rename questions to match Study 3
   mutate(
     QUESTION = str_replace(QUESTION, &quot;MAKER_&quot;,&quot;&quot;), #strip MAKER_ prefix
     QUESTION = str_replace(QUESTION, &quot;CHART_&quot;,&quot;&quot;), #strip CHART_ prefix
@@ -2051,8 +2051,8 @@ df1 &lt;- df_sd_questions_long_s13_z %&gt;%
   # Drop levels
   droplevels()
 
-## STUDY 4, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
-df4 &lt;- df_sd_questions_long_s4_z %&gt;% 
+## STUDY 3, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
+df3 &lt;- df_sd_questions_long_s3_z %&gt;% 
   #Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %&gt;% 
@@ -2064,7 +2064,7 @@ df4 &lt;- df_sd_questions_long_s4_z %&gt;%
   droplevels()
 
 ## JOIN STUDIES
-df &lt;- rbind(df1, df4)
+df &lt;- rbind(df1, df3)
 
 ## PRINT 
 print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
@@ -2107,6 +2107,39 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ## 
 ##             
 ##               B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
+##   DESIGN_z     240    40    40    40    40    40    40    40    40    40    40
+##   DATA_z       240    40    40    40    40    40    40    40    40    40    40
+##   POLITICS_z   240    40    40    40    40    40    40    40    40    40    40
+##   TRUST_z      240    40    40    40    40    40    40    40    40    40    40
+##   ALIGN_z      240    40    40    40    40    40    40    40    40    40    40
+##   BEAUTY_z     240    40    40    40    40    40    40    40    40    40    40
+##   INTENT_z     240    40    40    40    40    40    40    40    40    40    40
+##   Sum         1680   280   280   280   280   280   280   280   280   280   280
+##             
+##               B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
+##   DESIGN_z      40    40    40    40    40    40    40    40    40    40    40
+##   DATA_z        40    40    40    40    40    40    40    40    40    40    40
+##   POLITICS_z    40    40    40    40    40    40    40    40    40    40    40
+##   TRUST_z       40    40    40    40    40    40    40    40    40    40    40
+##   ALIGN_z       40    40    40    40    40    40    40    40    40    40    40
+##   BEAUTY_z      40    40    40    40    40    40    40    40    40    40    40
+##   INTENT_z      40    40    40    40    40    40    40    40    40    40    40
+##   Sum          280   280   280   280   280   280   280   280   280   280   280
+##             
+##               B6-2  B6-3  B6-4   Sum
+##   DESIGN_z      40    40    40  1200
+##   DATA_z        40    40    40  1200
+##   POLITICS_z    40    40    40  1200
+##   TRUST_z       40    40    40  1200
+##   ALIGN_z       40    40    40  1200
+##   BEAUTY_z      40    40    40  1200
+##   INTENT_z      40    40    40  1200
+##   Sum          280   280   280  8400
+## 
+## , ,  = Study0
+## 
+##             
+##               B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
 ##   DESIGN_z      40    40    40    40    40     0     0     0     0     0     0
 ##   DATA_z        40    40    40    40    40     0     0     0     0     0     0
 ##   POLITICS_z    40    40    40    40    40     0     0     0     0     0     0
@@ -2137,39 +2170,6 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   Sum            0     0     0  1400
 ## 
 ## , ,  = Study3
-## 
-##             
-##               B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
-##   DESIGN_z     240    40    40    40    40    40    40    40    40    40    40
-##   DATA_z       240    40    40    40    40    40    40    40    40    40    40
-##   POLITICS_z   240    40    40    40    40    40    40    40    40    40    40
-##   TRUST_z      240    40    40    40    40    40    40    40    40    40    40
-##   ALIGN_z      240    40    40    40    40    40    40    40    40    40    40
-##   BEAUTY_z     240    40    40    40    40    40    40    40    40    40    40
-##   INTENT_z     240    40    40    40    40    40    40    40    40    40    40
-##   Sum         1680   280   280   280   280   280   280   280   280   280   280
-##             
-##               B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
-##   DESIGN_z      40    40    40    40    40    40    40    40    40    40    40
-##   DATA_z        40    40    40    40    40    40    40    40    40    40    40
-##   POLITICS_z    40    40    40    40    40    40    40    40    40    40    40
-##   TRUST_z       40    40    40    40    40    40    40    40    40    40    40
-##   ALIGN_z       40    40    40    40    40    40    40    40    40    40    40
-##   BEAUTY_z      40    40    40    40    40    40    40    40    40    40    40
-##   INTENT_z      40    40    40    40    40    40    40    40    40    40    40
-##   Sum          280   280   280   280   280   280   280   280   280   280   280
-##             
-##               B6-2  B6-3  B6-4   Sum
-##   DESIGN_z      40    40    40  1200
-##   DATA_z        40    40    40  1200
-##   POLITICS_z    40    40    40  1200
-##   TRUST_z       40    40    40  1200
-##   ALIGN_z       40    40    40  1200
-##   BEAUTY_z      40    40    40  1200
-##   INTENT_z      40    40    40  1200
-##   Sum          280   280   280  8400
-## 
-## , ,  = Study4
 ## 
 ##             
 ##               B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
@@ -2238,15 +2238,15 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 <pre><code>##         
 ##          B0-0 B1-1 B1-2 B1-3 B1-4 B2-1 B2-2 B2-3 B2-4 B3-1 B3-2 B3-3 B3-4 B4-1
 ##   Study1  546  105  105  105  105   84   84   84   84   84   84   84   84   98
-##   Study2  280  280  280  280  280    0    0    0    0    0    0    0    0    0
-##   Study3 1680  280  280  280  280  280  280  280  280  280  280  280  280  280
-##   Study4  560  560  560  560  560    0    0    0    0    0    0    0    0    0
+##   Study2 1680  280  280  280  280  280  280  280  280  280  280  280  280  280
+##   Study0  280  280  280  280  280    0    0    0    0    0    0    0    0    0
+##   Study3  560  560  560  560  560    0    0    0    0    0    0    0    0    0
 ##         
 ##          B4-2 B4-3 B4-4 B5-1 B5-2 B5-3 B5-4 B6-1 B6-2 B6-3 B6-4
 ##   Study1   98   98   98   91   91   91   91   84   84   84   84
-##   Study2    0    0    0    0    0    0    0    0    0    0    0
-##   Study3  280  280  280  280  280  280  280  280  280  280  280
-##   Study4    0    0    0    0    0    0    0    0    0    0    0</code></pre>
+##   Study2  280  280  280  280  280  280  280  280  280  280  280
+##   Study0    0    0    0    0    0    0    0    0    0    0    0
+##   Study3    0    0    0    0    0    0    0    0    0    0    0</code></pre>
 <pre class="r"><code>## WRITE FILE
 saveRDS(df, file = &quot;data/output/COMBINED/df_sd_questions_long_ALL_z.rds&quot;)</code></pre>
 </div>

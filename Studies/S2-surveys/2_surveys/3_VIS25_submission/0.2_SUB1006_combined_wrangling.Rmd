@@ -42,15 +42,15 @@ n_blocks = 6 #number of stimulus blocks in study design
 
 ```
 
-*This notebook contains code to combine data from Study 1, Study 2, Study 3, and Study 4 of the MAGIC-VIS project to a single single normalized dataset of (valid) participant responses.* 
+*This notebook contains code to combine data from Study 0, Study 1, Study 2, and Study 3 of the MAGIC-VIS project to a single single normalized dataset of (valid) participant responses.* 
 
 **NOTE** This file can only be executed _after_ the study specific wrangling files have been run, as those notebooks transform the data from raw qualtrics format to a standardized format. 
 
-**NOTE** Data from Study 4 are only included at the 'pre-test' (graph-text-obscured) stage. Data from the post-test are excluded, as this data was not gathered in the other studies.  
+**NOTE** Data from Study 3 are only included at the 'pre-test' (graph-text-obscured) stage. Data from the post-test are excluded, as this data was not gathered in the other studies.  
 
 Four types of files are generated: 
 (1) Participant-level : 1 row per participant
-(2) Graph-level : 1 row per participantXgraph (5 graphs per participant; except Study 4, 5 graphs per participant X 2 times (pre-post))
+(2) Graph-level : 1 row per participantXgraph (5 graphs per participant; except Study 3, 5 graphs per participant X 2 times (pre-post))
 (3) Question-level : 1 row per participantXgraphXquestion 
 
 ## IMPORT Configuration Files
@@ -97,7 +97,7 @@ ref_surveys <- read_csv("data/input/REFERENCE/studies.csv", col_names = TRUE) %>
 ############## BUILD LABELS
 ref_stim_id <- levels(ref_stimuli$ID)
 
-### SD questions on Studies S1, S2, S3
+### SD questions on Studies S1, S2
 ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA",
                       "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
                       "CHART_TRUST", "CHART_INTENT", "CHART_LIKE", "CHART_BEAUTY")
@@ -105,34 +105,34 @@ ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
                       "MAKER_POLITIC_z", "MAKER_ARGUE_z","MAKER_SELF_z","MAKER_ALIGN_z","MAKER_TRUST_z",
                       "CHART_TRUST_z", "CHART_INTENT_z", "CHART_LIKE_z", "CHART_BEAUTY_z")
 
-## SD questions on Study4
+## SD questions on Study3
 ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
 ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
 
 
 ### USEFUL CODE FOR TROUBLESHOOTING COMPARING DF STRUCTURE
 #dataframe column comparisons 
-# x <- janitor::compare_df_cols(df1, df4)
+# x <- janitor::compare_df_cols(df1, df3)
 
 ```
 
 ## IMPORT Wrangled Data
 
-We want to include in this dataset only responses from participants who saw _message-obscured_ stimuli. Thus we include participants from Studies 1-3, and for Study 4, on the _pre-test_ scores, which reflect answers to questions when participants viewed the message-obscured version of the graph. 
+We want to include in this dataset only responses from participants who saw _message-obscured_ stimuli. Thus we include participants from Studies 1-2, and for Study 3, on the _pre-test_ scores, which reflect answers to questions when participants viewed the message-obscured version of the graph. 
 ```{r import-wrangled}
 
 ## IMPORT STUDIES 1-3 FILES
-df_participants_s13 <- readRDS("data/output/Study_1_2_3/df_participants.rds")
-df_graphs_s13 <- readRDS("data/output/Study_1_2_3/df_graphs_z.rds") #zscore version has both raw and zscores
-df_sd_questions_long_s13 <- readRDS("data/output/Study_1_2_3/df_sd_questions_long.rds")
-df_sd_questions_long_s13_z <- readRDS("data/output/Study_1_2_3/df_sd_questions_long_z.rds")
+df_participants_s12 <- readRDS("data/output/Study_1_2/df_participants.rds")
+df_graphs_s12 <- readRDS("data/output/Study_1_2/df_graphs_z.rds") #zscore version has both raw and zscores
+df_sd_questions_long_s12 <- readRDS("data/output/Study_1_2/df_sd_questions_long.rds")
+df_sd_questions_long_s12_z <- readRDS("data/output/Study_1_2/df_sd_questions_long_z.rds")
 
 
-## IMPORT STUDY 4 FILES
-df_participants_s4 <- readRDS("data/output/Study_4/df_participants_S4.rds")
-df_graphs_s4 <- readRDS("data/output/Study_4/df_graphs_z_S4.rds") #zscore version has both raw and zscores
-df_sd_questions_long_s4 <- readRDS("data/output/Study_4/df_sd_questions_long_S4.rds")
-df_sd_questions_long_s4_z <- readRDS("data/output/Study_4/df_sd_questions_long_z_S4.rds")
+## IMPORT Study 3 FILES
+df_participants_s3 <- readRDS("data/output/Study_3/df_participants_S3.rds")
+df_graphs_s3 <- readRDS("data/output/Study_3/df_graphs_z_S3.rds") #zscore version has both raw and zscores
+df_sd_questions_long_s3 <- readRDS("data/output/Study_3/df_sd_questions_long_S3.rds")
+df_sd_questions_long_s3_z <- readRDS("data/output/Study_3/df_sd_questions_long_z_S3.rds")
 ```
 
 
@@ -143,15 +143,15 @@ df_sd_questions_long_s4_z <- readRDS("data/output/Study_4/df_sd_questions_long_z
 
 
 ## ASSIGN DFS
-df1 <- df_participants_s13
-df4 <- df_participants_s4
+df1 <- df_participants_s12
+df3 <- df_participants_s3
 
 #dataframe column comparisons 
-# x <- janitor::compare_df_cols(df1, df4)
+# x <- janitor::compare_df_cols(df1, df3)
 #x
 
 ## JOIN DFS 
-df <- rbind(df1,df4)
+df <- rbind(df1,df3)
 
 
 ## PRINT
@@ -162,7 +162,7 @@ addmargins(table(df$Study, df$Assigned.Block))
 saveRDS(df, file = "data/output/COMBINED/df_participants_ALL.rds")
 
 ## CLEANUP
-rm(df, df1, df4)
+rm(df, df1, df3)
 
 ```
 
@@ -172,14 +172,14 @@ rm(df, df1, df4)
 ```{r join-graphs}
 
 ## WRANGLE STUDIES 1_3, 
-df1 <- df_graphs_s13 %>% 
+df1 <- df_graphs_s12 %>% 
   # Retain only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
          STIMULUS_CATEGORY, STIMULUS, BLOCK, ENCOUNTER, MAKER_ID, MAKER_AGE, MAKER_GENDER, 
          MAKER_DESIGN_z:CHART_TRUST_z) %>% 
-  # Filter out questions dropped from Study 4
+  # Filter out questions dropped from Study 3
   select(-c("MAKER_ARGUE_z","MAKER_SELF_z","CHART_LIKE_z","CHART_TRUST_z"))  %>% 
-  # Rename questions to match Study 4 and get rid of magicwizard transform for raw z value
+  # Rename questions to match Study 3 and get rid of magicwizard transform for raw z value
   mutate(
     DESIGN_z = as.numeric(MAKER_DESIGN_z),
     DATA_z = as.numeric(MAKER_DATA_z),
@@ -198,8 +198,8 @@ df1 <- df_graphs_s13 %>%
   # Drop levels
   droplevels()
 
-## STUDY 4, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
-df4 <- df_graphs_s4%>% 
+## Study 3, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
+df3 <- df_graphs_s3%>% 
   # Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
         STIMULUS_CATEGORY, STIMULUS, BLOCK, 
@@ -232,7 +232,7 @@ df4 <- df_graphs_s4%>%
   droplevels()
   
 ## JOIN STUDIES
-df <- rbind(df1, df4)
+df <- rbind(df1, df3)
 
 ## PRINT 
 print("PARTICIPANTS BY STUDY AND STIMULUS")
@@ -242,7 +242,7 @@ addmargins(table(df$Study, df$STIMULUS))
 saveRDS(df, file = "data/output/COMBINED/df_graphs_ALL.rds")
 
 ## CLEANUP
-rm(df, df1, df4)
+rm(df, df1, df3)
 
 ```
 
@@ -253,13 +253,13 @@ rm(df, df1, df4)
 ```{r join-sds}
 
 ## WRANGLE STUDIES 1_3, 
-df1 <- df_sd_questions_long_s13 %>% 
+df1 <- df_sd_questions_long_s12 %>% 
   # Retain only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
          STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value) %>% 
-  # Filter out questions dropped from Study 4
+  # Filter out questions dropped from Study 3
   filter(QUESTION %nin% c("MAKER_ARGUE","MAKER_SELF","CHART_LIKE","CHART_TRUST")) %>% 
-  # Rename questions to match Study 4
+  # Rename questions to match Study 3
   mutate(
     QUESTION = str_replace(QUESTION, "MAKER_",""), #strip MAKER_ prefix
     QUESTION = str_replace(QUESTION, "CHART_",""), #strip CHART_ prefix
@@ -269,8 +269,8 @@ df1 <- df_sd_questions_long_s13 %>%
   # Drop levels
   droplevels()
 
-## STUDY 4, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
-df4 <- df_sd_questions_long_s4 %>% 
+## Study 3, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
+df3 <- df_sd_questions_long_s3 %>% 
   #Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %>% 
@@ -282,7 +282,7 @@ df4 <- df_sd_questions_long_s4 %>%
   droplevels()
 
 ## JOIN STUDIES
-df <- rbind(df1, df4)
+df <- rbind(df1, df3)
 
 
 ## PRINT 
@@ -294,7 +294,7 @@ table(df$Study, df$STIMULUS)
 saveRDS(df, file = "data/output/COMBINED/df_sd_questions_long_ALL.rds")
 
 ## CLEANUP
-rm(df, df1, df4)
+rm(df, df1, df3)
 
 ```
 
@@ -303,13 +303,13 @@ rm(df, df1, df4)
 ```{r join-sds-z}
 
 ## WRANGLE STUDIES 1_3, 
-df1 <- df_sd_questions_long_s13_z %>% 
+df1 <- df_sd_questions_long_s12_z %>% 
   # Retain only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
          STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value) %>% 
-  # Filter out questions dropped from Study 4
+  # Filter out questions dropped from Study 3
   filter(QUESTION %nin% c("MAKER_ARGUE_z","MAKER_SELF_z","CHART_LIKE_z","CHART_TRUST_z"))  %>% 
-  # Rename questions to match Study 4
+  # Rename questions to match Study 3
   mutate(
     QUESTION = str_replace(QUESTION, "MAKER_",""), #strip MAKER_ prefix
     QUESTION = str_replace(QUESTION, "CHART_",""), #strip CHART_ prefix
@@ -319,8 +319,8 @@ df1 <- df_sd_questions_long_s13_z %>%
   # Drop levels
   droplevels()
 
-## STUDY 4, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
-df4 <- df_sd_questions_long_s4_z %>% 
+## STUDY 3, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
+df3 <- df_sd_questions_long_s3_z %>% 
   #Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %>% 
@@ -332,7 +332,7 @@ df4 <- df_sd_questions_long_s4_z %>%
   droplevels()
 
 ## JOIN STUDIES
-df <- rbind(df1, df4)
+df <- rbind(df1, df3)
 
 ## PRINT 
 print("PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS")
