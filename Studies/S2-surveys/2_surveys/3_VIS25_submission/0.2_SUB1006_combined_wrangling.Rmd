@@ -252,6 +252,8 @@ rm(df, df1, df3)
 
 ```{r join-sds}
 
+## KEEP TIME COLUMN FOR GRAPHING
+
 ## WRANGLE STUDIES 1_3, 
 df1 <- df_sd_questions_long_s12 %>% 
   # Retain only cols needed for modelling
@@ -264,7 +266,8 @@ df1 <- df_sd_questions_long_s12 %>%
     QUESTION = str_replace(QUESTION, "MAKER_",""), #strip MAKER_ prefix
     QUESTION = str_replace(QUESTION, "CHART_",""), #strip CHART_ prefix
     QUESTION = str_replace(QUESTION, "POLITIC","POLITICS"), 
-    QUESTION = factor(QUESTION, levels = ref_min_sd_questions) #set factor order
+    QUESTION = factor(QUESTION, levels = ref_min_sd_questions), #set factor order
+    TIME = "PRE" #INDICATES measuremeent was on obscured graph 
   ) %>% 
   # Drop levels
   droplevels()
@@ -274,21 +277,23 @@ df3 <- df_sd_questions_long_s3 %>%
   #Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %>% 
-  # Filter out responses from the POST test
-  filter(TIME=="PRE") %>% 
-  # Drop time
-  select(-TIME) %>% 
+  ######### OLD CODE 
+  # # Filter out responses from the POST test
+  # filter(TIME=="PRE") %>% 
+  # # Drop time
+  # select(-TIME) %>% 
   # Drop levels
   droplevels()
 
 ## JOIN STUDIES
-df <- rbind(df1, df3)
+df <- rbind(df1, df3) %>% 
+  mutate(TIME=factor(TIME))
 
 
 ## PRINT 
-print("PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS")
+print("PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS AND time")
 addmargins(table(df$QUESTION, df$STIMULUS, df$Study))
-table(df$Study, df$STIMULUS)
+table(df$Study, df$STIMULUS, df$TIME)
 
 ## WRITE FILE
 saveRDS(df, file = "data/output/COMBINED/df_sd_questions_long_ALL.rds")
@@ -314,8 +319,9 @@ df1 <- df_sd_questions_long_s12_z %>%
     QUESTION = str_replace(QUESTION, "MAKER_",""), #strip MAKER_ prefix
     QUESTION = str_replace(QUESTION, "CHART_",""), #strip CHART_ prefix
     QUESTION = str_replace(QUESTION, "POLITIC","POLITICS"), 
-    QUESTION = factor(QUESTION, levels = ref_min_sd_questions_z) #set factor order
-  ) %>% 
+    QUESTION = factor(QUESTION, levels = ref_min_sd_questions_z), #set factor order
+    TIME = "PRE"
+    ) %>% 
   # Drop levels
   droplevels()
 
@@ -324,24 +330,28 @@ df3 <- df_sd_questions_long_s3_z %>%
   #Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %>% 
-  # Filter out responses from the POST test
-  filter(TIME=="PRE") %>% 
-  # Drop time
-  select(-TIME) %>% 
+  # # Filter out responses from the POST test
+  # filter(TIME=="PRE") %>% 
+  # # Drop time
+  # select(-TIME) %>% 
   # Drop levels
   droplevels()
 
 ## JOIN STUDIES
-df <- rbind(df1, df3)
+df <- rbind(df1, df3) %>% 
+  mutate(TIME=factor(TIME))
 
 ## PRINT 
 print("PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS")
 addmargins(table(df$QUESTION, df$STIMULUS, df$Study))
-table(df$Study, df$STIMULUS)
+table(df$Study, df$STIMULUS, df$TIME)
 
 
 ## WRITE FILE
 saveRDS(df, file = "data/output/COMBINED/df_sd_questions_long_ALL_z.rds")
+
+#cleanup
+rm(df1, df3, df)
 
 ```
 

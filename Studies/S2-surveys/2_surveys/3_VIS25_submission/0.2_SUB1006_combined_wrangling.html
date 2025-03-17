@@ -1811,7 +1811,9 @@ rm(df, df1, df3)</code></pre>
 <div id="join-sd-question-long-files" class="section level2" number="6">
 <h2><span class="header-section-number">6</span> JOIN SD QUESTION LONG
 Files</h2>
-<pre class="r"><code>## WRANGLE STUDIES 1_3, 
+<pre class="r"><code>## KEEP TIME COLUMN FOR GRAPHING
+
+## WRANGLE STUDIES 1_3, 
 df1 &lt;- df_sd_questions_long_s12 %&gt;% 
   # Retain only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
@@ -1823,7 +1825,8 @@ df1 &lt;- df_sd_questions_long_s12 %&gt;%
     QUESTION = str_replace(QUESTION, &quot;MAKER_&quot;,&quot;&quot;), #strip MAKER_ prefix
     QUESTION = str_replace(QUESTION, &quot;CHART_&quot;,&quot;&quot;), #strip CHART_ prefix
     QUESTION = str_replace(QUESTION, &quot;POLITIC&quot;,&quot;POLITICS&quot;), 
-    QUESTION = factor(QUESTION, levels = ref_min_sd_questions) #set factor order
+    QUESTION = factor(QUESTION, levels = ref_min_sd_questions), #set factor order
+    TIME = &quot;PRE&quot; #INDICATES measuremeent was on obscured graph 
   ) %&gt;% 
   # Drop levels
   droplevels()
@@ -1833,20 +1836,22 @@ df3 &lt;- df_sd_questions_long_s3 %&gt;%
   #Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %&gt;% 
-  # Filter out responses from the POST test
-  filter(TIME==&quot;PRE&quot;) %&gt;% 
-  # Drop time
-  select(-TIME) %&gt;% 
+  ######### OLD CODE 
+  # # Filter out responses from the POST test
+  # filter(TIME==&quot;PRE&quot;) %&gt;% 
+  # # Drop time
+  # select(-TIME) %&gt;% 
   # Drop levels
   droplevels()
 
 ## JOIN STUDIES
-df &lt;- rbind(df1, df3)
+df &lt;- rbind(df1, df3) %&gt;% 
+  mutate(TIME=factor(TIME))
 
 
 ## PRINT 
-print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
-<pre><code>## [1] &quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;</code></pre>
+print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS AND time&quot;)</code></pre>
+<pre><code>## [1] &quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS AND time&quot;</code></pre>
 <pre class="r"><code>addmargins(table(df$QUESTION, df$STIMULUS, df$Study))</code></pre>
 <pre><code>## , ,  = Study1
 ## 
@@ -1951,14 +1956,14 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ## 
 ##           
 ##             B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
-##   DESIGN      40    40    40    40    40     0     0     0     0     0     0
-##   DATA        40    40    40    40    40     0     0     0     0     0     0
-##   POLITICS    40    40    40    40    40     0     0     0     0     0     0
-##   TRUST       40    40    40    40    40     0     0     0     0     0     0
-##   ALIGN       40    40    40    40    40     0     0     0     0     0     0
-##   BEAUTY      40    40    40    40    40     0     0     0     0     0     0
-##   INTENT      40    40    40    40    40     0     0     0     0     0     0
-##   Sum        280   280   280   280   280     0     0     0     0     0     0
+##   DESIGN      80    80    80    80    80     0     0     0     0     0     0
+##   DATA        80    80    80    80    80     0     0     0     0     0     0
+##   POLITICS    80    80    80    80    80     0     0     0     0     0     0
+##   TRUST       80    80    80    80    80     0     0     0     0     0     0
+##   ALIGN       80    80    80    80    80     0     0     0     0     0     0
+##   BEAUTY      80    80    80    80    80     0     0     0     0     0     0
+##   INTENT      80    80    80    80    80     0     0     0     0     0     0
+##   Sum        560   560   560   560   560     0     0     0     0     0     0
 ##           
 ##             B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN       0     0     0     0     0     0     0     0     0     0     0
@@ -1971,27 +1976,27 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   Sum          0     0     0     0     0     0     0     0     0     0     0
 ##           
 ##             B6-2  B6-3  B6-4   Sum
-##   DESIGN       0     0     0   200
-##   DATA         0     0     0   200
-##   POLITICS     0     0     0   200
-##   TRUST        0     0     0   200
-##   ALIGN        0     0     0   200
-##   BEAUTY       0     0     0   200
-##   INTENT       0     0     0   200
-##   Sum          0     0     0  1400
+##   DESIGN       0     0     0   400
+##   DATA         0     0     0   400
+##   POLITICS     0     0     0   400
+##   TRUST        0     0     0   400
+##   ALIGN        0     0     0   400
+##   BEAUTY       0     0     0   400
+##   INTENT       0     0     0   400
+##   Sum          0     0     0  2800
 ## 
 ## , ,  = Sum
 ## 
 ##           
 ##             B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
-##   DESIGN     398   135   135   135   135    52    52    52    52    52    52
-##   DATA       398   135   135   135   135    52    52    52    52    52    52
-##   POLITICS   398   135   135   135   135    52    52    52    52    52    52
-##   TRUST      398   135   135   135   135    52    52    52    52    52    52
-##   ALIGN      398   135   135   135   135    52    52    52    52    52    52
-##   BEAUTY     398   135   135   135   135    52    52    52    52    52    52
-##   INTENT     398   135   135   135   135    52    52    52    52    52    52
-##   Sum       2786   945   945   945   945   364   364   364   364   364   364
+##   DESIGN     438   175   175   175   175    52    52    52    52    52    52
+##   DATA       438   175   175   175   175    52    52    52    52    52    52
+##   POLITICS   438   175   175   175   175    52    52    52    52    52    52
+##   TRUST      438   175   175   175   175    52    52    52    52    52    52
+##   ALIGN      438   175   175   175   175    52    52    52    52    52    52
+##   BEAUTY     438   175   175   175   175    52    52    52    52    52    52
+##   INTENT     438   175   175   175   175    52    52    52    52    52    52
+##   Sum       3066  1225  1225  1225  1225   364   364   364   364   364   364
 ##           
 ##             B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN      52    52    54    54    54    54    53    53    53    53    52
@@ -2004,16 +2009,33 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   Sum        364   364   378   378   378   378   371   371   371   371   364
 ##           
 ##             B6-2  B6-3  B6-4   Sum
-##   DESIGN      52    52    52  1990
-##   DATA        52    52    52  1990
-##   POLITICS    52    52    52  1990
-##   TRUST       52    52    52  1990
-##   ALIGN       52    52    52  1990
-##   BEAUTY      52    52    52  1990
-##   INTENT      52    52    52  1990
-##   Sum        364   364   364 13930</code></pre>
-<pre class="r"><code>table(df$Study, df$STIMULUS)</code></pre>
-<pre><code>##         
+##   DESIGN      52    52    52  2190
+##   DATA        52    52    52  2190
+##   POLITICS    52    52    52  2190
+##   TRUST       52    52    52  2190
+##   ALIGN       52    52    52  2190
+##   BEAUTY      52    52    52  2190
+##   INTENT      52    52    52  2190
+##   Sum        364   364   364 15330</code></pre>
+<pre class="r"><code>table(df$Study, df$STIMULUS, df$TIME)</code></pre>
+<pre><code>## , ,  = POST
+## 
+##         
+##          B0-0 B1-1 B1-2 B1-3 B1-4 B2-1 B2-2 B2-3 B2-4 B3-1 B3-2 B3-3 B3-4 B4-1
+##   Study1    0    0    0    0    0    0    0    0    0    0    0    0    0    0
+##   Study2    0    0    0    0    0    0    0    0    0    0    0    0    0    0
+##   Study0    0    0    0    0    0    0    0    0    0    0    0    0    0    0
+##   Study3  280  280  280  280  280    0    0    0    0    0    0    0    0    0
+##         
+##          B4-2 B4-3 B4-4 B5-1 B5-2 B5-3 B5-4 B6-1 B6-2 B6-3 B6-4
+##   Study1    0    0    0    0    0    0    0    0    0    0    0
+##   Study2    0    0    0    0    0    0    0    0    0    0    0
+##   Study0    0    0    0    0    0    0    0    0    0    0    0
+##   Study3    0    0    0    0    0    0    0    0    0    0    0
+## 
+## , ,  = PRE
+## 
+##         
 ##          B0-0 B1-1 B1-2 B1-3 B1-4 B2-1 B2-2 B2-3 B2-4 B3-1 B3-2 B3-3 B3-4 B4-1
 ##   Study1  546  105  105  105  105   84   84   84   84   84   84   84   84   98
 ##   Study2 1680  280  280  280  280  280  280  280  280  280  280  280  280  280
@@ -2046,8 +2068,9 @@ df1 &lt;- df_sd_questions_long_s12_z %&gt;%
     QUESTION = str_replace(QUESTION, &quot;MAKER_&quot;,&quot;&quot;), #strip MAKER_ prefix
     QUESTION = str_replace(QUESTION, &quot;CHART_&quot;,&quot;&quot;), #strip CHART_ prefix
     QUESTION = str_replace(QUESTION, &quot;POLITIC&quot;,&quot;POLITICS&quot;), 
-    QUESTION = factor(QUESTION, levels = ref_min_sd_questions_z) #set factor order
-  ) %&gt;% 
+    QUESTION = factor(QUESTION, levels = ref_min_sd_questions_z), #set factor order
+    TIME = &quot;PRE&quot;
+    ) %&gt;% 
   # Drop levels
   droplevels()
 
@@ -2056,15 +2079,16 @@ df3 &lt;- df_sd_questions_long_s3_z %&gt;%
   #Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %&gt;% 
-  # Filter out responses from the POST test
-  filter(TIME==&quot;PRE&quot;) %&gt;% 
-  # Drop time
-  select(-TIME) %&gt;% 
+  # # Filter out responses from the POST test
+  # filter(TIME==&quot;PRE&quot;) %&gt;% 
+  # # Drop time
+  # select(-TIME) %&gt;% 
   # Drop levels
   droplevels()
 
 ## JOIN STUDIES
-df &lt;- rbind(df1, df3)
+df &lt;- rbind(df1, df3) %&gt;% 
+  mutate(TIME=factor(TIME))
 
 ## PRINT 
 print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
@@ -2234,8 +2258,10 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   BEAUTY_z      52    52    52  2190
 ##   INTENT_z      52    52    52  2190
 ##   Sum          364   364   364 15330</code></pre>
-<pre class="r"><code>table(df$Study, df$STIMULUS)</code></pre>
-<pre><code>##         
+<pre class="r"><code>table(df$Study, df$STIMULUS, df$TIME)</code></pre>
+<pre><code>## , ,  = PRE
+## 
+##         
 ##          B0-0 B1-1 B1-2 B1-3 B1-4 B2-1 B2-2 B2-3 B2-4 B3-1 B3-2 B3-3 B3-4 B4-1
 ##   Study1  546  105  105  105  105   84   84   84   84   84   84   84   84   98
 ##   Study2 1680  280  280  280  280  280  280  280  280  280  280  280  280  280
@@ -2248,7 +2274,10 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   Study0    0    0    0    0    0    0    0    0    0    0    0
 ##   Study3    0    0    0    0    0    0    0    0    0    0    0</code></pre>
 <pre class="r"><code>## WRITE FILE
-saveRDS(df, file = &quot;data/output/COMBINED/df_sd_questions_long_ALL_z.rds&quot;)</code></pre>
+saveRDS(df, file = &quot;data/output/COMBINED/df_sd_questions_long_ALL_z.rds&quot;)
+
+#cleanup
+rm(df1, df3, df)</code></pre>
 </div>
 
 
