@@ -62,6 +62,7 @@ library(plotly) # interactive graphs
 library(paletteer) #more palettes
 library(interactions) ##easier regression ixn plots.srlsy
 library(tidygraph)
+library(ggsankey) ## sankey plots for study 3 categorical change
 
 #MODELLING
 library(jtools) #Social Science regression utilities
@@ -125,6 +126,24 @@ ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_
 
 ```
 
+## Define Factor Orders
+
+*Define order of factors for multiple-choice variables*
+
+```{r define-factor-orders}
+
+## set order of several factor vars used in plots 
+order_times = c("PRE","POST")
+order_study = c("Study1","Study2","Study3","Study0") ##NEW for VIS
+order_sample = c("TUMBLR","DATACOLLAR","BLUECOLLAR", "GENERAL") ## NEW for VIS
+order_distribution = c("TUMBLR","PROLIFIC")
+order_maker = c("individual","organization","education","business","news","political")
+order_age = c("boomer", "gen-x","millennial","gen-z")
+order_gender = c("Other","Female","Male" )
+order_encounter = c("scroll", "engage")
+
+```
+
 ### Import Data
 
 ```{r import-data, message=FALSE, warning = FALSE}
@@ -138,7 +157,7 @@ df_questions_long <- readRDS("data/output/Study_1_2/df_questions_long.rds") # in
 
 
 ############## IMPORT Study 3 DATA FILES
-
+df_graphs_s3 <- readRDS("data/output/Study_3/df_graphs_s3.rds") #only categorical and numeric questions
 
 
 ############## IMPORT COMBINED DATA FILES
@@ -308,38 +327,6 @@ for (s in stimuli){
 
 ```{r maker-id-confidence}
 
-df <- df_graphs %>% 
-  #remove study pilot
-  filter(Study!="Study0")
-
-## D
-## PROPORTIONAL BAR PLOT
-## GGSTATSPLOT
-##############################
-#hack for consistent ordering of ggstats bar plot
-dx <- df %>% mutate( MAKER_ID = fct_rev(MAKER_ID) )
-S <-   ggbarstats( data = dx, x = MAKER_ID, y = Study,
-                   legend.title = "MAKER ID",
-                   label.args = list(alpha = 1, fill = "white", size=0), ## suppress the labels
-                   results.subtitle	 = FALSE) + 
-    scale_fill_manual(values = my_palettes(name="reds", direction = "1")) +
-    theme_minimal() +
-    labs( title = "MAKERID by Study",  x = "SAMPLE", y="PROPORTION") + 
-    theme(aspect.ratio = 1)
-##############################
-
-
-## B
-## x = Study, facet = stimulus 
-# df <- df_questions_long %>% 
-#   #filter block 1 only
-#   filter(Assigned.Block==1) %>% 
-#   #filter studies 1 & 2
-#   filter(Study %in% c("Study1","Study2")) %>% 
-#   #filter only maker id Q
-#   filter(QUESTION=="MAKER_ID")
-
-########################### BARPLOTS OF MAKER ID
 
 ## SETUP DATA 
  df <- df_graphs %>% 
@@ -401,6 +388,208 @@ ggsave(plot = ENCOUNTER, path="figs/MVP/FIG_Descriptives", filename =paste0("ENC
 
 
 ```
+
+
+
+
+
+### [3] Sankey Categorical Variables Change (Study 3)
+
+
+#### MAKER
+```{r SANKEY-ID}
+
+### FILTER FOR ONLY ID QUESTION
+df <- df_graphs_s3 %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0"))) %>% 
+  select(PRE_ID, POST_ID, STIMULUS, PID) %>% 
+  mutate(
+    PRE_ID = factor(PRE_ID, levels = order_maker),
+    POST_ID = factor(POST_ID, levels = order_maker)
+  )
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_ID, POST_ID, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels=order_maker),
+    next_node= factor(next_node, levels=order_maker),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "1"), guide = guide_legend(reverse = TRUE)) + 
+  # scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE, alpha = 1) +
+  labs(title = "CHANGE in MAKER ID by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "MAKER",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/MVP/FIG_Descriptives", filename =paste0("S3_ID_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+```
+
+#### AGE
+```{r SANKEY-AGE}
+
+### FILTER FOR ONLY AGE QUESTION
+df <- df_graphs_s3 %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0"))) %>% 
+  select(PRE_AGE, POST_AGE, STIMULUS, PID) 
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_AGE, POST_AGE, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels=order_age),
+    next_node= factor(next_node,order_age),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in AGE by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "AGE",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/MVP/FIG_Descriptives", filename =paste0("S3_AGE_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+#### GENDER
+```{r SANKEY-GENDER}
+
+### FILTER FOR ONLY GENDER QUESTION
+df <- df_graphs_s3 %>% 
+  select(PRE_GENDER, POST_GENDER, STIMULUS, PID) %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_GENDER, POST_GENDER, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels = rev(order_gender)),
+    next_node= factor(next_node, levels = rev(order_gender)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in GENDER by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "GENDER",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/MVP/FIG_Descriptives", filename =paste0("S3_GENDER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+
+
+
+
+#### ENCOUNTER
+```{r SANKEY-ENCOUNTER}
+
+### FILTER FOR ONLY GENDER QUESTION
+df <- df_graphs_s3 %>% 
+  select(PRE_ENCOUNTER, POST_ENCOUNTER, STIMULUS, PID) %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_ENCOUNTER, POST_ENCOUNTER, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels = rev(order_encounter)),
+    next_node= factor(next_node, levels = rev(order_encounter)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in ENCOUNTER by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "ENCOUNTER",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/MVP/FIG_Descriptives", filename =paste0("S3_ENCOUNTER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+
+
+
 
 
 
