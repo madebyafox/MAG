@@ -1010,7 +1010,10 @@ Yes, model 7 is better
 # summary(result, sort = TRUE)
 # saveRDS(result, file = "models/mm.BxIxAD_partR2.rds")
 
-
+## LOAD PARTIAL R ANALYSIS 
+partialR <- readRDS("models/mm.BxIxAD_partR2.rds") # only sd questions LONG
+# Print
+summary(partialR, sort = TRUE)
 
 ```
 
@@ -1078,6 +1081,7 @@ in Figure 9.**
 
 ## SET BEST MODEL
 best <- mm.BxIxAD
+f.best <- f.BxIxAD
 
 
 
@@ -1087,7 +1091,7 @@ best <- mm.BxIxAD
 ## PLOT MODEL PREDICTIONS
 (p <- plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z")) + theme_minimal())
 # (p <- plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal())
-# plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal()
+plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal()
 # plot_model(best, type = "pred", terms = c("ALIGN_z","INTENT_z","BEAUTY_z")) + theme_minimal()
 # plot_model(best, type = "pred", terms = c("ALIGN_z","BEAUTY_z","INTENT_z")) + theme_minimal()
 
@@ -1099,14 +1103,14 @@ best <- mm.BxIxAD
 
 
 # ## (1) BEAUTY X INTENT
-# plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z")) + theme_minimal()
-# # (2) ALIGN X INTENT
-# plot_model(best, type = "pred", terms = c("ALIGN_z","INTENT_z")) + theme_minimal()
-# # (3) MAIN EFFECTS
-# plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal()
+plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z")) + theme_minimal()
+## (2) ALIGN X INTENT
+plot_model(best, type = "pred", terms = c("ALIGN_z","INTENT_z")) + theme_minimal()
+##  (3) MAIN EFFECTS
+plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal()
 
 ################## PLOT MODEL
-g <- (e / p) + plot_annotation(title = f.BxIxAD, caption="INTENT [inform <--> persuade] \n ALIGN[does NOT share <--> DOES share my values]")
+g <- (e / p) + plot_annotation(title = f.best, caption="INTENT [inform <--> persuade] \n ALIGN[does NOT share <--> DOES share my values]")
 
 
 ################## PRINT MODEL TABLE
