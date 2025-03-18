@@ -106,8 +106,8 @@ ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
                       "CHART_TRUST_z", "CHART_INTENT_z", "CHART_LIKE_z", "CHART_BEAUTY_z")
 
 ## SD questions on Study3
-ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
-ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
+ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS","ALIGN","INTENT","TRUST","BEAUTY")
+ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "ALIGN_z","INTENT_z","TRUST_z","BEAUTY_z")
 
 
 ### USEFUL CODE FOR TROUBLESHOOTING COMPARING DF STRUCTURE

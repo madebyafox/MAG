@@ -120,8 +120,10 @@ ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
 
 ref_cat_questions <- c("ENCOUNTER","ID","AGE","GENDER")
 ref_conf_questions <- c("ID_CONF","AGE_CONF","GENDER_CONF")
-ref_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
-ref_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
+
+ref_sd_questions <-  c("DESIGN","DATA","POLITICS","ALIGN","INTENT","TRUST","BEAUTY")
+ref_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "ALIGN_z","INTENT_z","TRUST_z","BEAUTY_z")
+
 ref_sd_questions_wide <- c("PRE_DESIGN",
                            "PRE_DATA",
                            "PRE_POLITICS", 
