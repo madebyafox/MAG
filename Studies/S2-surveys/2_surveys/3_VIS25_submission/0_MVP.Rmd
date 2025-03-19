@@ -107,6 +107,7 @@ ref_sd_questions <- rownames(ref_labels)
 ref_blocks <- c(1,2,3,4,5,6)
 
 
+
 ############## FULL QUESTION SET FOR S1_3
 ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA",
                       "MAKER_POLITIC", "MAKER_ARGUE","MAKER_SELF","MAKER_ALIGN","MAKER_TRUST",
@@ -119,8 +120,8 @@ ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
 
 ############## MINIMAL QUESTION SET FOR Study 3
 ref_labels_min <- readRDS("data/input/REFERENCE/ref_labels_S3.rds")
-ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
-ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
+ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS","ALIGN","INTENT","TRUST","BEAUTY")
+ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "ALIGN_z","INTENT_z","TRUST_z","BEAUTY_z")
 
 
 

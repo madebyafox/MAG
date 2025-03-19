@@ -117,6 +117,11 @@ ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
 ############## MINIMAL QUESTION SET FOR Study 3
 ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
 ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
+ref_min_conf_questions <- c("ID_CONF","AGE_CONF","GENDER_CONF")
+ref_min_cat_questions <- c("ENCOUNTER","ID","AGE","GENDER")
+ref_min_free_questions <- c("EXPLAIN")
+
+
 
 
 
@@ -134,11 +139,13 @@ df_sd_questions_long <- readRDS("data/output/Study_1_2/df_sd_questions_long.rds"
 
 
 ############## IMPORT Study 3 DATA FILES
-
-
+df_questions_s3 <- readRDS("data/output/Study_3/df_questions_S3.rds")
+df_graphs_s3 <- readRDS("data/output/Study_3/df_graphs_s3.rds") #only categorical and numeric questions
+df_graphs_z_s3 <- readRDS("data/output/Study_3/df_graphs_z_s3.rds") #only categorical and numeric questions
 
 ############## IMPORT COMBINED DATA FILES
-df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds") 
+df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds")
+
 ```
 
 # NEW
@@ -875,10 +882,30 @@ p2 <- plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z","INTENT_z","DATA_
 ## see each two-way interaction
 print("two-way interaction")
 plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="sig ixn intent x beauty", caption="INTENT matters MORE less beautiful")
-plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="sig ixn intent align",
-                                                                                                caption = "ALIGN matters MORE for persuasive than informative")
+plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="sig ixn intent align")
+                                                                                                
+plot_model(mm.BxIxAD, type = "pred", terms = c("INTENT_z","ALIGN_z")) + theme_minimal() 
+
 plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "ALIGN_z")) + theme_minimal() + labs(subtitle ="NO IXN beauty align", caption = "MAIN EFFECT ALIGN; more aligned more trustworthy")
 plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="MAIN EFFECT DATA", caption = "MAIN EFFECT DATA; more professional = more trustworthy")
+
+## plot all combinations
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z")) + theme_minimal() # facet align
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal() # facet intent
+
+plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z","INTENT_z","BEAUTY_z")) + theme_minimal() # facet intent
+plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z","BEAUTY_z","INTENT_z")) + theme_minimal() # facet intent
+
+plot_model(mm.BxIxAD, type = "pred", terms = c("INTENT_z","BEAUTY_z","ALIGN_z")) + theme_minimal() # facet intent
+plot_model(mm.BxIxAD, type = "pred", terms = c("INTENT_z","ALIGN_z","BEAUTY_z")) + theme_minimal() # facet intent
+
+
+
+### PLOT WITH DATA EFFECT 
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z","DATA_z")) + theme_minimal() # facet align
+
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z","DATA_z")) + theme_minimal() # facet intent
+
 
 ```
 
@@ -1132,7 +1159,176 @@ No, the model does not constintute a good fit for the Study 3 (pretest) data (on
 
 
 
-## [Study 3] MODELLING CHANGE
+## [3] MODELLING CHANGE
+
+What predicts change in attitude?
+
+### RECORD CHANGE
+```{r}
+
+# SETUP DATA FRAMES AND RECORD CHANGES FROM PRE-POST
+
+## CATEGORICALS
+df_cat <- df_questions_s3 %>% 
+  filter( QUESTION %nin% ref_min_sd_questions) %>% 
+  filter( QUESTION %nin% ref_min_conf_questions) %>% 
+  filter( QUESTION %nin% ref_min_free_questions) %>% 
+  filter( QUESTION != "LATENCY") %>%  
+  droplevels() %>% 
+  mutate(
+    #set logical, did the value change?
+    CHANGE_RAW = PRE!=POST,
+    CHANGE_ABS = abs(CHANGE_RAW)
+  )
+
+  
+## CONF QUESTIONS
+df_conf <- df_questions_s3 %>% 
+  filter( QUESTION %in% ref_min_conf_questions) %>% 
+  droplevels() %>% 
+  mutate(
+    POST = as.numeric(POST),
+    PRE = as.numeric(PRE),
+    ## calculate change
+    CHANGE_RAW = POST - PRE,
+    ## calculate absolute values
+    # PRE_abs = abs(PRE - 50),
+    # POST_abs = abs(POST - 50),
+    CHANGE_ABS = abs(CHANGE_RAW)
+  )
+
+## SD QUESTIONS
+df_sd <- df_questions_s3 %>% 
+  filter( QUESTION %in% ref_min_sd_questions) %>% 
+  droplevels() %>% 
+  mutate(
+     POST = as.numeric(POST),
+      PRE = as.numeric(PRE),
+      ## calculate change
+      CHANGE_RAW = POST - PRE,
+      ## calculate absolute values
+      # PRE_abs = abs(PRE - 50),
+      # POST_abs = abs(POST - 50),
+      CHANGE_ABS = abs(CHANGE_RAW)
+  )
+
+
+df_all <- rbind(df_cat,df_conf, df_sd) %>% 
+  pivot_wider(
+    names_from = QUESTION,
+    names_glue = "{QUESTION}_{.value}",
+    values_from = c(PRE,POST,CHANGE_RAW,CHANGE_ABS)
+  ) %>% mutate(
+    ID_CHANGE = as.logical(ID_CHANGE_RAW),
+    ID_CHANGE = as.factor(ID_CHANGE),
+    ENCOUNTER_CHANGE = as.logical(ENCOUNTER_CHANGE_RAW),
+    ENCOUNTER_CHANGE = as.factor(ENCOUNTER_CHANGE)
+  )
+
+
+
+```
+
+### MODEL CHANGE IN TRUST BY CATEGORICALS — CONTINUE THIS 
+```{r}
+
+df <- df_all 
+
+## model 
+m.1 <- lmer(TRUST_CHANGE_RAW ~ ALIGN_CHANGE_RAW + INTENT_CHANGE_RAW + (1|PID), data = df)
+summary(m.1)
+anova(m.1)
+performance(m.1)
+plot_model(m.1, type = "pred", terms=c("ALIGN_CHANGE_RAW","INTENT_CHANGE_ABS")) + labs(title = f.1)
+plot_model(m.1, type = "pred", terms=c("STIMULUS","QUESTION")) + labs(title = f.1)
+
+```
+
+### MODEL ENCOUNTER
+```{r}
+
+df <- df_all
+
+## glmer 
+m.1 <- glmer( data = df, ENCOUNTER_CHANGE ~ STIMULUS + (1|PID),
+              family = "binomial")
+summary(m.1)
+performance(m.1)
+
+
+## glmer 
+m.2 <- glmer( data = df, ENCOUNTER_CHANGE ~ STIMULUS + ID_CHANGE + (1|PID),
+              family = "binomial")
+summary(m.2)
+compare_performance(m.1, m.2, rank =TRUE)
+
+
+####### EXPLORATORY VISUALIZATIONS 
+
+
+
+
+```
+
+
+
+
+# !! USEFUL !! MODEL CHANGE IN ATTITUDE (SDS ONLY)
+
+```{r}
+
+df <- df_sd %>% 
+  mutate(
+    QUESTION = factor(QUESTION, levels=c("BEAUTY","DESIGN","DATA","POLITICS","ALIGN","TRUST","INTENT"))
+  )
+
+## linear model
+f.1 <- "CHANGE ~ QUESTION + STIMULUS"
+m.1 <- lmer(data = df, CHANGE_ABS ~ QUESTION + STIMULUS + (1|PID))
+summary(m.1)  
+anova(m.1)
+performance(m.1)
+plot_model(m.1, type = "pred", terms=c("QUESTION","STIMULUS")) + labs(title = f.1)
+plot_model(m.1, type = "pred", terms=c("STIMULUS","QUESTION")) + labs(title = f.1)
+
+## ixn model
+f.2 <- "CHANGE ~ QUESTION * STIMULUS"
+m.2 <- lmer(data = df, CHANGE_ABS ~ QUESTION * STIMULUS + (1|PID))
+summary(m.2)  
+anova(m.2)
+performance(m.2)
+plot_model(m.2, type = "pred", terms=c("QUESTION","STIMULUS")) + labs(title = f.2)
+plot_model(m.2, type = "pred", terms=c("STIMULUS","QUESTION")) + labs(title = f.2)
+  
+## compare models
+compare_performance(m.1, m.2, rank = TRUE)
+anova(m.1, m.2)
+
+```
+
+
+
+
+
+
+### MODEL CHANGE IN ATTITUDE (incl categoricals and conf)
+```{r}
+
+ref_sd_change = data.frame(ref_min_sd_questions)
+ref_sd_change <- ref_sd_change %>% 
+  mutate(
+    QUESTION = ref_min_sd_questions,
+    RAW = paste0(QUESTION,"_CHANGE_RAW"),
+    ABS = paste0(QUESTION,"_CHANGE_ABS")
+  ) %>% select(-ref_min_sd_questions)
+
+
+
+```
+
+
+
+
 
 ### DESCRIBE change in attitudes
 
