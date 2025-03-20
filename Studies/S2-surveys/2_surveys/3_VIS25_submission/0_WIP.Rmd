@@ -283,7 +283,7 @@ table(df$Study, df$Assigned.Block)
 x <- ref_min_sd_questions_z
 
 ## RUN EFA JAMOVI STYLE
-jmv::efa(
+(ef <- jmv::efa(
     data = df,
     vars = as.vector(x),
     # nFactors = 3,
@@ -296,7 +296,7 @@ jmv::efa(
     modelFit = TRUE,
     kmo = TRUE,
     bartlett = TRUE)
-
+)
 
 ## RUN EFA PSYCH PACKAGE
 # df <- df_graphs_all %>% select(all_of(ref_min_sd_questions_z))
@@ -313,6 +313,9 @@ jmv::efa(
 # # efa_result
 # # Optional: visualize factor diagram
 # fa.diagram(efa_result)
+
+## SAVE EFA
+saveRDS(ef, file = "models/EFA_S1_S2_minimal.rds")
 
 ```
 
@@ -906,6 +909,8 @@ plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z","
 
 plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z","DATA_z")) + theme_minimal() # facet intent
 
+f.best <- f.BxIxAD
+m.best <- mm.BxIxAD
 
 ```
 
@@ -999,53 +1004,102 @@ anova(mm.BxIxA, mm.BxIxAD)
 Yes, model 7 is better
 
 
+#### M9 \| TRUST \~ BEAUTY X INTENT + INTENT X ALIGN + DATA+ MAKER_ID
 
-#### RE-RUN THIS PARTIAL R2 ANALYSIS
+HERE we test whether the MAKER_ID is predictive
+
+```{r, m9}
+
+################## FIT MODEL
+f.BxIxADM <-  "TRUST ~ BEAUTY X INTENT + INTENT X ALIGN + DATA + MAKER + (1|PID)"
+mm.BxIxADM <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + INTENT_z * ALIGN_z + DATA_z + ID + (1|PID), data = df)
+summary(mm.BxIxADM)
+car::Anova(mm.BxIxADM, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxIxADM, mm.BxIxAD, rank = TRUE)
+anova(mm.BxIxADM, mm.BxIxAD)
+
+## TWO TERMS
+print("two-way interaction")
+plot_model(mm.BxIxADM, type = "pred", terms = c("ID","BEAUTY_z")) + theme_minimal() 
+plot_model(mm.BxIxADM, type = "pred", terms = c("ID", "ALIGN_z")) + theme_minimal()
+plot_model(mm.BxIxADM, type = "pred", terms = c("ID","INTENT_z")) + theme_minimal() 
+plot_model(mm.BxIxADM, type = "pred", terms = c("ID","DATA_z")) + theme_minimal() 
 
 
-```{r}
-## <!-- https://chatgpt.com/c/67d6271c-15dc-800e-9e81-aa2b07a84d52 -->
 
-## CAUTION THIS TAKES A VERY LONG TIME TO RUN (5H even on 4 cores?)
+## THREE TERMS
+plot_model(mm.BxIxADM, type = "pred", terms = c("BEAUTY_z","INTENT_z","ID","ALIGN_z")) + theme_minimal() # facet align
 
-# # install.packages("partR2")
-# library(partR2)
-# library(future)
-# library(furrr)
-# 
-# ## setup multiple cores to 
-# plan(multisession, workers = 4)
-# 
-# # Mixed model
-# model <- mm.BxIxAD
-
-######## GROUP PREDICTORS
-
-# run Partial R2
-# result <- partR2(
-#   model,
-#   partbatch = list(
-#     "BEAUTY" = "BEAUTY_z",
-#     "ALIGN" = "ALIGN_z",
-#     "INTENT" = "INTENT_z",
-#     "DATA" = "DATA_z",
-#     "BEAUTY:INTENT" = "BEAUTY_z:INTENT_z",
-#     "ALIGNN:INTENT" = "INTENT_z:ALIGN_z"
-#   ),
-#   nboot = 1000
-# )
-
-# Print
-# summary(result, sort = TRUE)
-# saveRDS(result, file = "models/mm.BxIxAD_partR2.rds")
-
-## LOAD PARTIAL R ANALYSIS 
-partialR <- readRDS("models/mm.BxIxAD_partR2.rds") # only sd questions LONG
-# Print
-summary(partialR, sort = TRUE)
 
 ```
 
+#### M10 (FIGURE OUT MAKER) \| TRUST \~ BEAUTY BEAUTY * INTENT + INTENT*ALIGN + DATA + (1|PID)
+
+```{r, m10}
+
+
+################## FIT MODEL
+f.BI.IA.AM.D <-  "TRUST ~ BEAUTY X INTENT + INTENT X ALIGN + ALIGN*MAKER + DATA + (1|PID)"
+mm.BI.IA.AM.D <- lmer(TRUST_z ~ BEAUTY_z *INTENT_z + INTENT_z * ALIGN_z + ALIGN_z*ID + DATA_z + (1|PID), data = df)
+summary(mm.BI.IA.AM.D)
+car::Anova(mm.BI.IA.AM.D, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxIxADM, mm.BI.IA.AM.D, rank = TRUE)
+anova(mm.BxIxADM, mm.BI.IA.AM.D)
+
+## TWO TERMS
+print("two-way interaction")
+plot_model(mm.BI.IA.AM.D, type = "pred", terms = c("ID","BEAUTY_z")) + theme_minimal() + labs(title = f.BI.IA.AM.D)
+plot_model(mm.BI.IA.AM.D, type = "pred", terms = c("ID", "ALIGN_z")) + theme_minimal()+ labs(title = f.BI.IA.AM.D)
+plot_model(mm.BI.IA.AM.D, type = "pred", terms = c("ALIGN_z","ID")) + theme_minimal()+ labs(title = f.BI.IA.AM.D)
+plot_model(mm.BI.IA.AM.D, type = "pred", terms = c("ID","INTENT_z")) + theme_minimal() + labs(title = f.BI.IA.AM.D)
+plot_model(mm.BI.IA.AM.D, type = "pred", terms = c("ID","DATA_z")) + theme_minimal() + labs(title = f.BI.IA.AM.D)
+
+
+
+## THREE TERMS
+plot_model(mm.BI.IA.AM.D, type = "pred", terms = c("BEAUTY_z","ID","ALIGN_z")) + theme_minimal() + labs(title = f.BI.IA.AM.D)
+
+## plot this with the raw data 
+df %>% ggplot(aes(x=ALIGN_z, y= TRUST_z, color = ID))  + 
+  geom_point() + 
+  facet_wrap(~ID) + 
+  geom_line(stat="lm")
+
+```
+- MAKER_ID not sign ixn w/ beauty
+- MAKER_ID not sign ixn w/ intent
+- MAKER_ID D yes SIG ixn w/ align
+- TECHNICALLY THE ALIGN*MAKER is a sig better fit BUT this model is far too complicated to report AND it is only explains a miniscule amount more variance
+
+#### M11 \| TRUST \~ BEAUTY * MAKER 
+
+```{r, m11}
+
+################## FIT MODEL
+f.BxM <-  "TRUST_z ~ BEAUTY_z * ID + (1|PID)"
+mm.BxM <- lmer(TRUST_z ~ BEAUTY_z * ID + (1|PID), data = df)
+summary(mm.BxM)
+car::Anova(mm.BxM, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxM, mm.BxMxIxAD, rank = TRUE)
+anova(mm.BxM, mm.BxMxIxAD)
+
+## TWO TERMS
+print("two-way interaction")
+plot_model(mm.BxM, type = "pred", terms = c("ID","BEAUTY_z")) + theme_minimal() + labs(title = f.BxM)
+
+```
+BEAUTY DOES INTERACT WITH MAKER (ALONE)
+#### RE-RUN THIS PARTIAL R2 ANALYSIS with new best model
+
+
+
+- I explored means-centering vs. z-scoring, as well as running the model on the original response scales, and demonstrated that the plots are the same (as expected) and z-scoring makes the coefficients interpretable as 1SD difference and main effects as value of that variable when all other vars are held at their mean
 
 
 
@@ -1057,9 +1111,12 @@ in Figure 9.**
 ```{r best-fit-model}
 
 ## SET BEST MODEL
-best <- mm.BxIxAD
+m.best <- mm.BxIxAD
 f.best <- f.BxIxAD
+name="BxIxAD"
 
+## SAVE BEST MODEL
+saveRDS(m.best, file = paste0("models/TRUST_bestfit_","BxIxAD",".rds"))
 
 
 ################## PLOT MODEL
@@ -1069,6 +1126,15 @@ f.best <- f.BxIxAD
 (p <- plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z")) + theme_minimal())
 # (p <- plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal())
 plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal()
+
+
+## USE GGEFFECTS TO SIMPLIFY PLOT BY SPECIFYING WHICH VALUES OF THE CONTINUOUS VAR TO TAKE THE MARGINALS AT
+# pred <- ggeffects::predict_response(best, terms = c("BEAUTY_z","ALIGN_z[-3,3]","INTENT_z","DATA_z[-2,2]"))
+# plot(pred)
+
+
+
+
 # plot_model(best, type = "pred", terms = c("ALIGN_z","INTENT_z","BEAUTY_z")) + theme_minimal()
 # plot_model(best, type = "pred", terms = c("ALIGN_z","BEAUTY_z","INTENT_z")) + theme_minimal()
 
@@ -1080,7 +1146,7 @@ plot_model(best, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + th
 
 
 # ## (1) BEAUTY X INTENT
-plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z")) + theme_minimal()
+plot_model(best, type = "pred", terms = c("BEAUTY_z","INTENT_z"),show.data=TRUE) + theme_minimal()
 ## (2) ALIGN X INTENT
 plot_model(best, type = "pred", terms = c("ALIGN_z","INTENT_z")) + theme_minimal()
 ##  (3) MAIN EFFECTS
@@ -1099,11 +1165,55 @@ ggsave(plot= e, path="figs/models", filename = "TRUST_model_coefficients.png",un
 ggsave(plot = g, path="figs/models", filename =paste0("TRUST_model.png"), units = c("in"), width = 8, height = 10,bg='#ffffff'   )
 
 
-
 ##TODO LOOK INTO EMMEANS ??
 ## DECIDE WHICH PLOT CAN BE BEST ANNOTATED TO MAKE THE POINT
 ## ADD RAW DATA POINTS TO PLOT
 ## https://strengejacke.github.io/ggeffects/articles/introduction_plotmethod.html
+```
+### CALCULATE PARTIAL R2
+
+```{r}
+## <!-- https://chatgpt.com/c/67d6271c-15dc-800e-9e81-aa2b07a84d52 -->
+
+## CAUTION THIS TAKES A VERY LONG TIME TO RUN (5H even on 4 cores?)
+
+# # install.packages("partR2")
+# library(partR2)
+# library(future)
+# library(furrr)
+# # 
+# # ## setup multiple cores to 
+# plan(multisession, workers = 4)
+# # 
+# # # Mixed model
+# model <- m.best
+# 
+# ######## GROUP PREDICTORS
+# 
+# # run Partial R2
+# result <- partR2(
+#   model,
+#   partbatch = list(
+#     "BEAUTY" = "BEAUTY_z",
+#     "ALIGN" = "ALIGN_z",
+#     "INTENT" = "INTENT_z",
+#     "DATA" = "DATA_z",
+#     "BEAUTY:INTENT" = "BEAUTY_z:INTENT_z",
+#     "ALIGN:INTENT" = "INTENT_z:ALIGN_z"
+#   ),
+#   nboot = 1000
+# )
+
+# Print
+# summary(result, sort = TRUE)
+# saveRDS(result, file = "models/TRUST_bestfit_mm.BxIxAD_partR2.rds")
+
+
+## LOAD PARTIAL R ANALYSIS 
+# partialR <- readRDS("models/TRUST_bestfit_mm.BxIxAD_partR2.rds") # only sd questions LONG
+# Print
+# summary(partialR, sort = TRUE)
+
 ```
 
 #### CONSISTENCY CHECK S4
