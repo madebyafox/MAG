@@ -135,7 +135,7 @@ ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "ALIGN_z","INTENT
 
 ## set order of several factor vars used in plots 
 order_times = c("PRE","POST")
-order_study = c("Study1","Study2","Study3","Study0") ##NEW for VIS
+order_study = c("Study3","Study2","Study1","Study0") ##NEW for VIS
 order_sample = c("TUMBLR","DATACOLLAR","BLUECOLLAR", "GENERAL") ## NEW for VIS
 order_distribution = c("TUMBLR","PROLIFIC")
 order_maker = c("individual","organization","education","business","news","political")
@@ -228,9 +228,106 @@ jmv::efa(
 ## (2) MODELLING | Predicting TRUST
 
 
-## (0) DESCRIPTIVES | PLOTS
+## (3) DESCRIPTIVES | 
 
-### [1] Semantic Differential Questions (Studies 1, 2 3(pre-post))
+### [1] Semantic Differential (aggregated)
+
+```{r plot_ridglines_sds_questions_stimulus_studies_block1_pre_post}
+  
+#### DENSITY RIDGES#############################################################################
+#### loop over questions and stimuli, vertically stack studies, color by sample
+
+## DEFINE DF
+df <- df_sd_questions_long_all%>% 
+  #drop pilot data
+  filter(Study != "Study0") %>% 
+  #for Study 3 ONLY, set SAMPLE = TIME (for graphing purpose)
+  mutate(
+    Sample = case_when(Study =="Study3" ~ TIME ,
+                       .default = Sample)) %>% 
+  mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
+  mutate(Study = factor(Study, levels=order_study)) %>% 
+  droplevels()
+  
+print("Data in this chart")
+table(df$STIMULUS,df$Study)
+  
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+questions <- ref_min_sd_questions #has qs in right order
+labels <- ref_labels_min
+
+## SET INITIAL VALUES
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(QUESTION ==q) %>% 
+    group_by(Study,Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = Study, fill = Sample, color = Sample, )) +
+      geom_density_ridges2(scale = 0.65, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            jittered_points = TRUE,
+            position = position_points_jitter(width = 0.5, height = 0),
+            point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 4,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      guides(
+        y = guide_axis_manual(labels = labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = labels[q,"right"]),
+        # x.sec = guide_axis_manual(position = "top", title = q, breaks = NULL)
+        ) +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + easy_remove_legend() 
+    # +theme(plot.margin = unit(c(3,3,3,3), "lines"))
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- "ALL STIMULI"
+  p <- x[[1]] / x[[2]] /x[[3]] / x[[4]] /x[[5]] / x[[6]] /x[[7]]
+  # p <- cowplot::plot_grid(x[[1]] / x[[2]] /x[[3]] / x[[4]] /x[[5]] / x[[6]] /x[[7]] )
+
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS 
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/MVP/FIG_Descriptives/by_stacked", filename ="FULL_STUDY_STACK_AGGREGATED.png", units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+
+
+
+
+```
+
+
+
+
+
+### [2] Semantic Differential Questions (block1)(Studies 1, 2 3(pre-post))
 
 This plots the concicse set of semantic differential questions for BLOCK 1 stimuli for Study 1,2,3 faceting by pre/post on study 4, as a stacked ridgeplot
 
@@ -250,6 +347,7 @@ df <- df_sd_questions_long_all%>%
     Sample = case_when(Study =="Study3" ~ TIME ,
                        .default = Sample)) %>% 
   mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
+  mutate(Study = factor(Study, levels=order_study)) %>% 
   droplevels()
   
   
@@ -317,16 +415,86 @@ for (s in stimuli){
 
   ## SAVE GRAPH FOR THIS STIMULIS 
   if(GRAPH_SAVE == TRUE) {
-     ggsave(plot = p, path="figs/MVP/FIG_Descriptives", filename =paste0("FULL_STUDY_STACK_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+     ggsave(plot = p, path="figs/MVP/FIG_Descriptives/by_stacked", filename =paste0("FULL_STUDY_STACK_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
 
 }## END LOOP OVER STIMULI
 
 
 ```
 
-### [2] Categorical Variables Plots (Study 1,2)
+### [3] Categorical Variables Plots (Study 1,2) (aggregated)
 
-```{r maker-id-confidence}
+
+
+```{r categoricals_aggregated}
+
+
+## SETUP DATA 
+ df <- df_graphs %>% 
+  select(PID, Assigned.Block, Study, STIMULUS, ENCOUNTER, MAKER_ID, MAKER_AGE,MAKER_GENDER) %>% 
+  filter(Study %in% c("Study1", "Study2")) %>%
+  mutate(Study = factor(Study, levels=order_study)) %>% 
+
+  print("data in this graph")
+table(df$STIMULUS, df$Study)
+
+
+######## FACETED BARPLOT MAKER
+(ID <-  df %>% 
+  ggplot(aes(x=Study, fill=MAKER_ID)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="reds", direction = "1"))+
+   coord_flip() + 
+    labs(title="MAKER_AGGREGATED (S1,S2)")
+)
+   
+######## FACETED BARPLOT AGE
+(AGE <- df %>% 
+  ggplot(aes(x=Study, fill=MAKER_AGE)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="lightblues", direction = "1"))+
+   coord_flip()+
+    labs(title="AGE_AGGREGATED (S1,S2)")
+) 
+   
+######## FACETED BARPLOT GENDER
+(GENDER <-  df %>% 
+  ggplot(aes(x=Study, fill=MAKER_GENDER)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1"))+
+   coord_flip()+
+    labs(title="GENDER_AGGREGATED (S1,S2)")
+)   
+   
+######## FACETED BARPLOT ENCOUNTER
+(ENCOUNTER <-  df %>% 
+  ggplot(aes(x=Study, fill=ENCOUNTER)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "1"))+
+   coord_flip()+
+    labs(title="ENCOUNTER_AGGREGATED (S1,S2)")
+)
+
+
+
+if(GRAPH_SAVE){
+  
+ggsave(plot = ID, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("MAKER_aggregated.png"), units = c("in"), width = 6, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = AGE, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("AGE_aggregated.png"), units = c("in"), width = 6, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = GENDER, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("GENDER_aggregated.png"), units = c("in"), width = 6, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = ENCOUNTER, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("ENCOUNTER_aggregated.png"), units = c("in"), width = 6, height = 2 ,  bg='#ffffff'  )
+}
+
+
+```
+
+### [4] Categorical Variables Plots (block1)
+
+
+```{r categoricals_by_stimulus}
 
 
 ## SETUP DATA 
@@ -334,6 +502,7 @@ for (s in stimuli){
   select(PID, Assigned.Block, Study, STIMULUS, ENCOUNTER, MAKER_ID, MAKER_AGE,MAKER_GENDER) %>% 
   filter(Study %in% c("Study1", "Study2")) %>%
   filter(Assigned.Block ==1) %>% 
+  mutate(Study = factor(Study, levels=order_study)) %>% 
   #reorder stimuli
   mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
 
@@ -344,7 +513,9 @@ for (s in stimuli){
     geom_bar(position="fill") + 
     scale_fill_manual(values = my_palettes(name="reds", direction = "1"))+
    facet_grid( .~ STIMULUS) + 
-   coord_flip()
+   coord_flip() +
+   labs(title="MAKER_BY_STIMULUS_B1")
+
 )
    
 ######## FACETED BARPLOT AGE
@@ -353,7 +524,8 @@ for (s in stimuli){
     geom_bar(position="fill") + 
     scale_fill_manual(values = my_palettes(name="lightblues", direction = "1"))+
    facet_grid( .~ STIMULUS) + 
-   coord_flip()
+   coord_flip() + 
+    labs(title="AGE_BY_STIMULUS_B1")
 ) 
    
 ######## FACETED BARPLOT GENDER
@@ -362,7 +534,8 @@ for (s in stimuli){
     geom_bar(position="fill") + 
     scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1"))+
    facet_grid( .~ STIMULUS) + 
-   coord_flip()
+   coord_flip()+
+   labs(title="GENDER_BY_STIMULUS_B1")
 )   
    
 ######## FACETED BARPLOT ENCOUNTER
@@ -371,20 +544,21 @@ for (s in stimuli){
     geom_bar(position="fill") + 
     scale_fill_manual(values = my_palettes(name="encounter", direction = "1"))+
    facet_grid( .~ STIMULUS) + 
-   coord_flip()
+   coord_flip() + 
+   labs(title="ENCOUNTER_ID_BY_STIMULUS_B1")
 )
 
 
 
 if(GRAPH_SAVE){
   
-ggsave(plot = ID, path="figs/MVP/FIG_Descriptives", filename =paste0("MAKER_by_study.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+ggsave(plot = ID, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("MAKER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
   
-ggsave(plot = AGE, path="figs/MVP/FIG_Descriptives", filename =paste0("AGE_by_study.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+ggsave(plot = AGE, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("AGE_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
   
-ggsave(plot = GENDER, path="figs/MVP/FIG_Descriptives", filename =paste0("GENDER_by_study.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+ggsave(plot = GENDER, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("GENDER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
   
-ggsave(plot = ENCOUNTER, path="figs/MVP/FIG_Descriptives", filename =paste0("ENCOUNTER_by_study.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+ggsave(plot = ENCOUNTER, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("ENCOUNTER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
 }
 
 
@@ -394,7 +568,7 @@ ggsave(plot = ENCOUNTER, path="figs/MVP/FIG_Descriptives", filename =paste0("ENC
 
 
 
-### [3] Sankey Categorical Variables Change (Study 3)
+### [5] Sankey Categorical Variables Change (Study 3)
 
 
 #### MAKER
@@ -405,8 +579,8 @@ df <- df_graphs_s3 %>%
   mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0"))) %>% 
   select(PRE_ID, POST_ID, STIMULUS, PID) %>% 
   mutate(
-    PRE_ID = factor(PRE_ID, levels = order_maker),
-    POST_ID = factor(POST_ID, levels = order_maker)
+    PRE_ID = factor(PRE_ID, levels = rev(order_maker)),
+    POST_ID = factor(POST_ID, levels = rev(order_maker))
   )
 
 ### {GGSANKEY} ################################
@@ -418,8 +592,8 @@ ds <- df %>%
   ##custom from ggsankey
   make_long(PRE_ID, POST_ID, value=STIMULUS) %>% 
   mutate(
-    node = factor(node, levels=order_maker),
-    next_node= factor(next_node, levels=order_maker),
+    node = factor(node, levels=rev(order_maker)),
+    next_node= factor(next_node, levels=rev(order_maker)),
     match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
   ) 
 
@@ -430,10 +604,9 @@ ds <- df %>%
                fill = node
                ))+
   geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
-  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
-          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
-  scale_fill_manual(values = my_palettes(name="reds", direction = "1"), guide = guide_legend(reverse = TRUE)) + 
-  # scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE, alpha = 1) +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "1"), guide = guide_legend(reverse = TRUE)) +
   labs(title = "CHANGE in MAKER ID by STIMULUS", 
        x = "TIME", y = "(count)", fill = "MAKER",
        caption = "") + 
@@ -442,7 +615,7 @@ ds <- df %>%
 #############################################
 
 if(GRAPH_SAVE == TRUE) {
-    ggsave(plot = S, path="figs/MVP/FIG_Descriptives", filename =paste0("S3_ID_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+    ggsave(plot = S, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("S3_ID_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
   }
 ```
 
@@ -475,8 +648,8 @@ ds <- df %>%
                fill = node
                ))+
   geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
-  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
-          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
   scale_fill_manual(values = my_palettes(name="lightblues", direction = "1"), guide = guide_legend(reverse = TRUE)) +
   labs(title = "CHANGE in AGE by STIMULUS", 
        x = "TIME", y = "(count)", fill = "AGE",
@@ -487,7 +660,7 @@ ds <- df %>%
 
 
 if(GRAPH_SAVE == TRUE) {
-    ggsave(plot = S, path="figs/MVP/FIG_Descriptives", filename =paste0("S3_AGE_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+    ggsave(plot = S, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("S3_AGE_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
   }
 
 ```
@@ -521,8 +694,8 @@ ds <- df %>%
                fill = node
                ))+
   geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
-  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
-          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
   scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
   labs(title = "CHANGE in GENDER by STIMULUS", 
        x = "TIME", y = "(count)", fill = "GENDER",
@@ -533,7 +706,7 @@ ds <- df %>%
 
 
 if(GRAPH_SAVE == TRUE) {
-    ggsave(plot = S, path="figs/MVP/FIG_Descriptives", filename =paste0("S3_GENDER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+    ggsave(plot = S, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("S3_GENDER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
   }
 
 ```
@@ -571,8 +744,8 @@ ds <- df %>%
                fill = node
                ))+
   geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
-  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
-          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
   scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
   labs(title = "CHANGE in ENCOUNTER by STIMULUS", 
        x = "TIME", y = "(count)", fill = "ENCOUNTER",
@@ -583,7 +756,7 @@ ds <- df %>%
 
 
 if(GRAPH_SAVE == TRUE) {
-    ggsave(plot = S, path="figs/MVP/FIG_Descriptives", filename =paste0("S3_ENCOUNTER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+    ggsave(plot = S, path="figs/MVP/FIG_Descriptives/categoricals", filename =paste0("S3_ENCOUNTER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
   }
 
 ```

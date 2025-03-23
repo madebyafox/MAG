@@ -1450,6 +1450,104 @@ ref_sd_change <- ref_sd_change %>%
 
 ### CHANGE in encounter?
 
+
+# GENERATE GRAPHS
+### [1] SAVE Qs Semantic Differential (aggregated)
+```{r plot_ridglines_sds_questions_stimulus_studies_block1_pre_post}
+  
+#### DENSITY RIDGES#############################################################################
+#### loop over questions and stimuli, vertically stack studies, color by sample
+
+## DEFINE DF
+df <- df_sd_questions_long_all%>% 
+  #drop pilot data
+  filter(Study != "Study0") %>% 
+  #for Study 3 ONLY, set SAMPLE = TIME (for graphing purpose)
+  mutate(
+    Sample = case_when(Study =="Study3" ~ TIME ,
+                       .default = Sample)) %>% 
+  mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
+  mutate(Study = factor(Study, levels=order_study)) %>% 
+  droplevels()
+  
+print("Data in this chart")
+table(df$STIMULUS,df$Study)
+  
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+questions <- ref_min_sd_questions #has qs in right order
+labels <- ref_labels_min
+
+## SET INITIAL VALUES
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(QUESTION ==q) %>% 
+    group_by(Study,Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = Study, fill = Sample, color = Sample, )) +
+      geom_density_ridges2(scale = 0.65, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            jittered_points = TRUE,
+            position = position_points_jitter(width = 0.5, height = 0),
+            point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 5,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      guides(
+        y = guide_axis_manual(labels = labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = labels[q,"right"]),
+        # x.sec = guide_axis_manual(position = "top", title = q, breaks = NULL)
+        ) +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + easy_remove_legend() 
+  
+  
+    
+    ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+    title <- paste0("ALL STIMULI_",q)
+    p <- x[[i]] + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")  
+    
+    ## SAVE GRAPH FOR THIS STIMULIS 
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/MVP/FIG_Descriptives/by_question", filename =paste0("FULL_STUDY_AGGREGATED_",q,".png"), units = c("in"), width = 8, height = 8,  bg='#ffffff'  )}
+      
+    
+  }## END loop over questions
+```
+
+
+
+
+
+
+
+
+
+
 ## TODO EVALUATE MOVE TO STASH
 
 ### (1) FULL VARIABLES STUDY 1, Study 0, Study2 (not stimulus balanced)
