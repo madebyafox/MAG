@@ -1,0 +1,868 @@
+---
+title: "SUBMISSION 1006 — Study 3 Analysis"
+author: "ANONYMIZED"
+date: "2024-02-24"
+output:
+  html_document:
+    theme: flatly
+    code_folding: hide
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    toc_depth: 6
+  pdf_document:
+    toc: yes
+    toc_depth: '5'
+always_allow_html: yes
+font-family: DejaVu Sans
+mainfont: DejaVu Sans
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(psych) #describe()
+library(tidyverse) #all the things
+library(magrittr) #special pipes like %<>%
+library(summarytools) #data quality
+library(lubridate) #dealing with dates
+library(tinytable) ##sparkline tables 
+library(webshot2) ##saving sparkline tables
+
+#EDA
+library(qacBase)
+
+#VIZ
+library(kableExtra) #printing tables
+library(ggformula) #regression syntax viz
+# library(vcd) #mosaic plots
+# library(vcdExtra) #mosaic plot helpers
+library(ggstatsplot) #dummies
+library(gghalves) #half boxplots 
+library(GGally) #extends ggplot for EDA 
+library(corrplot) #sophisticated correlation plots
+library(ggeasy) #easy labelling
+library(ggh4x) #guides [dual axes]
+library(patchwork) #multi-plot layout
+library(ggdist) #raincloud plots and other distributionals
+library(ggridges) #ridge plots
+library(viridis) #color palettes
+library(RColorBrewer) #color palettes
+library(plotly) # interactive graphs
+library(paletteer) #more palettes
+library(lessR) ##very pretty donuts 
+library(ggsankey) ## ggplot2 sankey extension
+library(interactions) ##easier regression ixn plots.srlsy
+library(ggraph) ## node link diagrams
+library(tidygraph)
+
+
+
+#MODELLING
+library(jtools) #Social Science regression utilities
+library(easystats) #modelling helpers
+library(see)
+library(sjPlot)
+library(lme4)
+library(lmerTest) #for CIs in glmer
+# library(mixed) ## utilities for glmers 
+library(equatiomatic) ## extracting model formula
+library(latex2exp) ## extracting and printing model formula
+
+#STATISTICAL TESTS 
+library(kSamples) #AD K-SAMPLE TEST (for distribution comparison)
+library(rstatix) #FRIEDMAN'S TESTS and effect sizes 
+
+#CONFIG
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+n_blocks = 6
+
+## IMPORTANT 
+GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
+source("graphing_functions.R") #import graphing palettes and custom functions
+
+
+
+```
+
+
+**This notebook includes analysis and comparison of data collected in Study 4 (pre-post test design).**
+
+# SETUP
+
+*We start by importing data files previously wrangled in
+`0_SUB1006_wrangling_S3.Rmd`.*
+
+### Import References
+
+```{r import-refs, message=FALSE, warning = FALSE}
+
+############## IMPORT REFERENCE FILES
+ref_stimuli <- readRDS("data/input/REFERENCE/ref_stimuli.rds")
+ref_surveys <- readRDS("data/input/REFERENCE/ref_surveys.rds")
+ref_labels <- readRDS("data/input/REFERENCE/ref_labels_S3.rds")
+ref_labels_abs <- readRDS("data/input/REFERENCE/ref_labels_abs_S3.rds")
+
+############## SETUP Graph Labels
+ref_stim_id <- levels(ref_stimuli$ID)
+ref_cat_questions <- c("ENCOUNTER","ID","AGE","GENDER")
+ref_free_response <- c("EXPLAIN")
+ref_conf_questions <- c("ID_CONF","AGE_CONF","GENDER_CONF")
+ref_sd_questions <- rownames(ref_labels)
+ref_sd_questions_abs <- rownames(ref_labels_abs)
+  
+
+# ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
+ref_blocks <- c(1,2,3,4,5,6)
+
+```
+
+### Define Factors
+
+*Define order of factors for multiple-choice variables*
+
+```{r define-factor-orders}
+
+## set order of several factor vars used in plots 
+order_times = c("PRE","POST")
+order_study = c("Study0","Study1","Study2","Study3") ##NEW for VIS
+order_sample = c("TUMBLR","DATACOLLAR","BLUECOLLAR", "GENERAL") ## NEW for VIS
+order_distribution = c("TUMBLR","PROLIFIC")
+order_maker = c("individual","organization","education","business","news","political")
+order_age = c("boomer", "gen-x","millennial","gen-z")
+order_gender = c("Other","Female","Male" )
+order_encounter = c("scroll", "engage")
+
+```
+
+### Import Data
+
+
+```{r import-data}
+
+############## IMPORT DATA FILES
+
+# 1 row per participant — wide 
+# df_data <- readRDS("data/output/df_data.rds")
+
+# 1 row per participant — demographic
+df_participants <- readRDS("data/output/Study_3/df_participants_S3.rds")
+
+# 1 row per participant-graph 
+df_graphs <- readRDS("data/output/Study_3/df_graphs_S3.rds")
+# for modelling
+df_graphs_z <- readRDS("data/output/Study_3/df_graphs_z_S3.rds")
+
+# sd questions LONG (with pre/post in sep cols)
+df_questions_long <- readRDS("data/output/Study_3/df_questions_long_S3.rds")
+df_sd_questions_long <- readRDS("data/output/Study_3/df_sd_questions_long_S3.rds") #pre/post in sep rows as TIME
+df_questions <- readRDS("data/output/Study_3/df_questions_S3.rds") #pre/post in sep cols
+
+
+df_sd_questions_long_abs <-  readRDS("data/output/Study_3/df_sd_questions_long_abs_S3.rds")
+
+```
+
+
+
+# SAMPLE
+
+```{r describe-sample}
+
+print("df_participants")
+table(df_participants$Assigned.Block, df_participants$Study)
+
+```
+
+# EXPLORATION
+
+## PRE-POST SD Questions
+```{r block1_sds_by_sample, message=FALSE, warning = FALSE}
+
+
+### FILTER FOR ONLY SD QUESTIONS
+df <- df_sd_questions_long 
+# %>% filter(QUESTION %in% ref_sd_questions)
+
+
+############## BLOCK 1 SDs by STIMULUS 
+ df <- df %>% select(1:7, STIMULUS, QUESTION, TIME, value)  
+ d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions),
+          value = as.numeric(value)) %>%
+    group_by(STIMULUS, QUESTION,TIME) %>% 
+    mutate(m=median(value)) %>% droplevels() ## calc median for printing on graph
+  
+(x <-
+    ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = TIME, color= TIME)) +
+    # geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = FALSE) + 
+    
+    geom_density_ridges( 
+              ## ridge geometry
+              scale = 0.65, alpha = 0.25, quantile_lines = TRUE,  panel_scaling = FALSE,
+              ## rug geometry
+              jittered_points = TRUE, rel_min_height = .01,
+              point_shape = "|", point_size = 3,
+              position = position_points_jitter(height = 0)) +
+    
+    
+    scale_fill_manual(values = my_palettes(name="blackgreen", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="blackgreen", direction = "1"))+
+    facet_grid(.~STIMULUS) + 
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+    labs (title = "Attitude Shift by Stimulus", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
+    theme_minimal() 
+  # + easy_remove_legend() 
+)
+  
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_B1_SDS_by_Stimulus_ridges.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+```
+
+
+
+
+
+## PRE-POST SD ABSOLUTE VALUES
+```{r block1_sds_by_sample_ABS, message=FALSE, warning = FALSE}
+
+
+### FILTER FOR ONLY SD QUESTIONS
+df <- df_sd_questions_long_abs 
+# %>% filter(QUESTION %in% ref_sd_questions)
+
+
+############## BLOCK 1 SDs by STIMULUS 
+ df <- df %>% select(1:7, STIMULUS, QUESTION, TIME, value)  
+ d <- left_join( x = df, y = ref_labels_abs, 
+                  by = c("QUESTION" = "ref_sd_questions_abs")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions),
+          value = as.numeric(value)) %>%
+    group_by(STIMULUS, QUESTION,TIME) %>% 
+    mutate(m=median(value)) %>% droplevels() ## calc median for printing on graph
+  
+(x <-
+    ggplot(d, aes(x = value, y = fct_rev(QUESTION), fill = TIME, color= TIME)) +
+    # geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = FALSE) + 
+    
+    geom_density_ridges( 
+              ## ridge geometry
+              scale = 0.65, alpha = 0.25, quantile_lines = TRUE,  panel_scaling = FALSE,
+              ## rug geometry
+              jittered_points = TRUE, rel_min_height = .01,
+              point_shape = "|", point_size = 3,
+              position = position_points_jitter(height = 0)) +
+    
+    scale_x_continuous(limits = c(0,50))+
+    scale_fill_manual(values = my_palettes(name="blackred", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="blackred", direction = "1"))+
+    facet_grid(.~STIMULUS) + 
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels_abs$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
+    ) +
+    labs (title = "ABS VALUE Attitude Shift by Stimulus", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions_abs, x = 100, y= ref_sd_questions_abs,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+  
+    theme_minimal() 
+  # + easy_remove_legend() 
+)
+  
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_B1_SDS_by_Stimulus_ridges_ABS.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+```
+
+
+
+
+
+
+## SHIFT SDs
+```{r shift_sds, message=FALSE, warning = FALSE}
+
+
+### FILTER FOR ONLY SD QUESTIONS
+df <- df_questions %>% 
+  filter(QUESTION %in% ref_sd_questions) %>% 
+  droplevels() %>% 
+  mutate(
+    POST = as.numeric(POST),
+    PRE = as.numeric(PRE),
+    shift = POST - PRE
+  )
+
+############## BLOCK 1 SDs by SAMPLE
+ df <- df %>% select(1:7, STIMULUS, QUESTION, shift)  
+ d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions)) %>% 
+    group_by(STIMULUS, QUESTION) %>% 
+    mutate(m=median(shift)) %>% droplevels() ## calc median for printing on graph
+  
+(x <-
+    ggplot(d, aes(x = shift, y = fct_rev(QUESTION), fill = category, color= category)) +
+    # geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = FALSE) + 
+    
+    geom_density_ridges( 
+              ## ridge geometry
+              scale = 0.65, alpha = 0.25, quantile_lines = TRUE,  panel_scaling = FALSE,
+              ## rug geometry
+              jittered_points = TRUE, rel_min_height = .01,
+              point_shape = "|", point_size = 3,
+              position = position_points_jitter(height = 0)) +
+    
+    
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
+    facet_grid(.~STIMULUS) + 
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+    labs (title = "Attitude Shift by Stimulus", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
+    theme_minimal() 
+  # + easy_remove_legend() 
+)
+  
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_B1_SDS_by_Stimulus_ridges_SHIFT.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+```
+
+
+
+
+## PRE-POST Categoricals
+
+### ENCOUNTER
+```{r SANKEY-ENCOUNTER}
+
+### FILTER FOR ONLY GENDER QUESTION
+df <- df_graphs %>% 
+  select(PRE_ENCOUNTER, POST_ENCOUNTER, STIMULUS, PID) 
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_ENCOUNTER, POST_ENCOUNTER, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels = rev(order_encounter)),
+    next_node= factor(next_node, levels = rev(order_encounter)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in ENCOUNTER by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "AGE",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/study3", filename =paste0("S3_ENCOUNTER_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+
+
+
+
+
+
+### MAKER
+```{r SANKEY-ID}
+
+### FILTER FOR ONLY ID QUESTION
+df <- df_graphs %>% 
+  select(PRE_ID, POST_ID, STIMULUS, PID) 
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_ID, POST_ID, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node),
+    next_node= factor(next_node),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) +   
+  # scale_fill_viridis(discrete=TRUE, option="viridis", drop = FALSE, alpha = 1) +
+  labs(title = "CHANGE in MAKER ID by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "MAKER",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/study3", filename =paste0("S3_MAKER_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+```
+
+### AGE
+```{r SANKEY-AGE}
+
+### FILTER FOR ONLY AGE QUESTION
+df <- df_graphs %>% 
+  select(PRE_AGE, POST_AGE, STIMULUS, PID) 
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_AGE, POST_AGE, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node),
+    next_node= factor(next_node),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in AGE by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "AGE",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/study3", filename =paste0("S3_AGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+### GENDER
+```{r SANKEY-GENDER}
+
+### FILTER FOR ONLY GENDER QUESTION
+df <- df_graphs %>% 
+  select(PRE_GENDER, POST_GENDER, STIMULUS, PID) 
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_GENDER, POST_GENDER, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels = rev(order_gender)),
+    next_node= factor(next_node, levels = rev(order_gender)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+          size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in GENDER by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "AGE",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/study3", filename =paste0("S3_GENDER_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+
+
+## CONFIDENCE and CATEGORICALS
+
+### MAKER
+```{r confidence-grid}
+
+########### GRID OF SCATTERPLOTS
+df <- df_graphs %>%
+  filter(STIMULUS == "B1-3") %>% 
+  select(STIMULUS, PRE_ID, POST_ID, PRE_ID_CONF, POST_ID_CONF) %>% 
+  mutate(
+    CHANGE = (PRE_ID != POST_ID)
+  )
+
+
+(x <- df %>% ggplot(aes(x=PRE_ID_CONF, y = POST_ID_CONF, color=CHANGE)) +
+  geom_point() + 
+  scale_x_continuous(limits = c(0,100))+
+  scale_y_continuous(limits = c(0,100)) +
+  facet_grid(POST_ID ~ PRE_ID) + 
+  scale_color_manual(values = my_palettes(name="blackred", direction = "1")) + 
+  labs( title = "Confidence in Maker ID", x = "Confidence (Pre)", y = "Confidence(Post)",
+        subtitle =("ID_PRE in columns, ID_POST in rows")) + theme_clean()
+)
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_MATRIX_ID_Confidence_scatterplot.png"), units = c("in"), width = 10, height = 10,  bg='#ffffff'  )}
+```
+
+
+```{r confidence-parallels}
+
+
+### PARALLEL COORDINATES  ################################
+
+# ### FILTER FOLKS WHO DID CHANGE
+# ### FILTER FOR ONLY SD QUESTIONS
+df <- df_graphs %>%
+  select(PRE_ID, POST_ID, STIMULUS, PID, PRE_ID_CONF, POST_ID_CONF) %>%
+  filter(STIMULUS == "B1-3") %>%
+  mutate(
+    CHANGE = (PRE_ID != POST_ID)
+  ) 
+
+unit_labeller <- function(string) {
+  string=as.numeric(string)
+  labeled_string <- order_maker[string]
+  return(labeled_string)
+}
+
+(x <- df %>%  ggparcoord(
+           columns = 5:6,
+           scale = "globalminmax",
+           groupColumn = "CHANGE") + 
+           facet_grid(POST_ID~PRE_ID, labeller = labeller(POST_ID=unit_labeller, PRE_ID = unit_labeller)) +
+  scale_y_continuous(limits = c(0,100))+
+  scale_color_manual(values = my_palettes(name="blackred", direction = "1")) +
+  labs( title = "Confidence in Maker ID", subtitle ="ID_PRE in columns, ID_POST in rows", x = "TIME", y = "CONFIDENCE") + theme_clean()
+) 
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_MATRIX_ID_Confidence_parallelcords.png"), units = c("in"), width = 10, height = 10,  bg='#ffffff'  )}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+
+### AGE
+```{r confidence-grid-age}
+
+########### GRID OF SCATTERPLOTS
+df <- df_graphs %>%
+  filter(STIMULUS == "B1-3") %>% 
+  select(STIMULUS, PRE_AGE, POST_AGE, PRE_AGE_CONF, POST_AGE_CONF) %>% 
+  mutate(
+    CHANGE = (PRE_AGE != POST_AGE)
+  )
+
+
+(x <- df %>% ggplot(aes(x=PRE_AGE_CONF, y = POST_AGE_CONF, color=CHANGE)) +
+  geom_point() + 
+  scale_x_continuous(limits = c(0,100))+
+  scale_y_continuous(limits = c(0,100)) +
+  facet_grid(POST_AGE ~ PRE_AGE) + 
+  scale_color_manual(values = my_palettes(name="blackred", direction = "1")) + 
+  labs( title = "Confidence in Maker AGE", x = "Confidence (Pre)", y = "Confidence(Post)",
+        subtitle =("PRE in columns, POST in rows")) + theme_clean()
+)
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_MATRIX_AGE_Confidence_scatterplot.png"), units = c("in"), width = 10, height = 10,  bg='#ffffff'  )}
+```
+
+
+```{r confidence-parallels-age}
+
+
+### PARALLEL COORDINATES  ################################
+
+# ### FILTER FOLKS WHO DID CHANGE
+# ### FILTER FOR ONLY SD QUESTIONS
+df <- df_graphs %>%
+  select(PRE_AGE, POST_AGE, STIMULUS, PID, PRE_AGE_CONF, POST_AGE_CONF) %>%
+  filter(STIMULUS == "B1-3") %>%
+  mutate(
+    CHANGE = (PRE_AGE != POST_AGE)
+  ) 
+
+unit_labeller <- function(string) {
+  string=as.numeric(string)
+  labeled_string <- order_age[string]
+  return(labeled_string)
+}
+
+(x <- df %>%  ggparcoord(
+           columns = 5:6,
+           scale = "globalminmax",
+           groupColumn = "CHANGE") + 
+           facet_grid(POST_AGE~PRE_AGE, labeller = labeller(POST_AGE=unit_labeller, PRE_AGE = unit_labeller)) +
+  scale_y_continuous(limits = c(0,100))+
+  scale_color_manual(values = my_palettes(name="blackred", direction = "1")) +
+  labs( title = "Confidence in Maker AGE", subtitle ="PRE in columns, POST in rows", x = "TIME", y = "CONFIDENCE") + theme_clean()
+) 
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_MATRIX_AGE_Confidence_parallelcords.png"), units = c("in"), width = 10, height = 10,  bg='#ffffff'  )}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+
+
+
+
+### GENDER
+```{r confidence-grid-age}
+
+########### GRID OF SCATTERPLOTS
+df <- df_graphs %>%
+  filter(STIMULUS == "B1-3") %>% 
+  select(STIMULUS, PRE_GENDER, POST_GENDER, PRE_GENDER_CONF, POST_GENDER_CONF) %>% 
+  mutate(
+    CHANGE = (PRE_GENDER != POST_GENDER)
+  )
+
+
+(x <- df %>% ggplot(aes(x=PRE_GENDER_CONF, y = POST_GENDER_CONF, color=CHANGE)) +
+  geom_point() + 
+  scale_x_continuous(limits = c(0,100))+
+  scale_y_continuous(limits = c(0,100)) +
+  facet_grid(POST_GENDER ~ PRE_GENDER) + 
+  scale_color_manual(values = my_palettes(name="blackred", direction = "1")) + 
+  labs( title = "Confidence in Maker GENDERE", x = "Confidence (Pre)", y = "Confidence(Post)",
+        subtitle =("PRE in columns, POST in rows")) + theme_clean()
+)
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_MATRIX_GENDER_Confidence_scatterplot.png"), units = c("in"), width = 10, height = 10,  bg='#ffffff'  )}
+```
+
+
+```{r confidence-parallels-gender}
+
+
+### PARALLEL COORDINATES  ################################
+
+# ### FILTER FOLKS WHO DID CHANGE
+# ### FILTER FOR ONLY SD QUESTIONS
+df <- df_graphs %>%
+  select(PRE_GENDER, POST_GENDER, STIMULUS, PID, PRE_GENDER_CONF, POST_GENDER_CONF) %>%
+  filter(STIMULUS == "B1-3") %>%
+  mutate(
+    CHANGE = (PRE_GENDER != POST_GENDER)
+  ) 
+
+unit_labeller <- function(string) {
+  string=as.numeric(string)
+  labeled_string <- order_gender[string]
+  return(labeled_string)
+}
+
+(x <- df %>%  ggparcoord(
+           columns = 5:6,
+           scale = "globalminmax",
+           groupColumn = "CHANGE") + 
+           facet_grid(POST_GENDER~PRE_GENDER, labeller = labeller(POST_GENDER=unit_labeller, PRE_GENDER = unit_labeller)) +
+  scale_y_continuous(limits = c(0,100))+
+  scale_color_manual(values = my_palettes(name="blackred", direction = "1")) +
+  labs( title = "Confidence in Maker GENDER", subtitle ="PRE in columns, POST in rows", x = "TIME", y = "CONFIDENCE") + theme_clean()
+) 
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_MATRIX_GENDER_Confidence_parallelcords.png"), units = c("in"), width = 10, height = 10,  bg='#ffffff'  )}
+
+```
+
+# QUICK MODEL
+
+
+## SIG CHANGES?
+
+```{r anovas}
+
+df <- df_sd_questions_long %>% filter(QUESTION=="POLITICS")
+# %>% filter(QUESTION=="POLITICS")
+
+m1.aov <- aov(value ~ TIME*STIMULUS  + Error(PID), data = df)
+summary(m1.aov)
+
+# has the interaction.plot() function built-in, but it comes with a ton of parameters beginners can find confusing. The following list explains all the parameters you need to create an interaction plot:
+# x.factor - A factor variable whose levels will be on the X-axis.
+# trace.factor - The second-factor variable whose levels will be represented as traces (lines).
+# response - A numeric response variable.
+# fun - The function to compute the summary, e.g. median.
+# ylab - Y-axis label of the plot.
+# xlab - X-axis label of the plot.
+# trace.label - Label for the legend.
+# col - A vector of colors used for all traces.
+# lyt - A type of the lines drawn.
+# lwd - Width of the lines drawn.
+
+
+with (df, { interaction.plot(  
+                x.factor = STIMULUS,
+                trace.factor = TIME,
+                fun = median,
+                response = value
+              )})
+
+
+
+
+###### THE REGRESSION WAY
+df <- df_sd_questions_long %>% filter(QUESTION=="POLITICS")
+m1 <- lmer( value ~ TIME*STIMULUS + (1|PID), data = df )
+summary(m1)
+anova(m1)
+
+
+m1 <- lmer( value ~ STIMULUS*TIME + (1|PID), data = df )
+plot_model(m1, type="int", terms = c("TIME","STIMULUS")) + coord_flip()
+
+
+```
+
+## BEAUTY TRUST
+
+```{r trust-beauty}
+
+df <- df_graphs_z %>% 
+  mutate(
+    shift_TRUST = POST_TRUST - PRE_TRUST,
+    shift_BEAUTY = POST_BEAUTY - PRE_BEAUTY,
+    shift_ALIGN = POST_ALIGN - PRE_ALIGN,
+  )
+
+
+m1 <- lmer(data = df, PRE_TRUST ~ PRE_BEAUTY + PRE_ALIGN + (1|PID))
+summary(m1)
+plot_model(m1)
+
+
+m2 <- lmer(data = df, POST_TRUST ~ POST_BEAUTY + POST_ALIGN + (1|PID))
+summary(m2)
+plot_model(m2)
+
+m3 <- lmer(data = df, shift_TRUST ~ shift_BEAUTY + shift_ALIGN + (1|PID))
+summary(m3)
+plot_model(m3)
+
+
+```
+
+
+
+
