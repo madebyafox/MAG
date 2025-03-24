@@ -104,10 +104,11 @@ ref_sd_questions <- c("MAKER_DESIGN","MAKER_DATA",
 ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
                       "MAKER_POLITIC_z", "MAKER_ARGUE_z","MAKER_SELF_z","MAKER_ALIGN_z","MAKER_TRUST_z",
                       "CHART_TRUST_z", "CHART_INTENT_z", "CHART_LIKE_z", "CHART_BEAUTY_z")
-
+ref_conf_questions <- c("MAKER_CONF","AGE_CONF","GENDER_CONF")
 ## SD questions on Study3
 ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS","ALIGN","INTENT","TRUST","BEAUTY")
 ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "ALIGN_z","INTENT_z","TRUST_z","BEAUTY_z")
+ref_min_conf_questions <- c("ID_CONF","AGE_CONF","GENDER_CONF")
 
 
 ### USEFUL CODE FOR TROUBLESHOOTING COMPARING DF STRUCTURE
@@ -179,11 +180,14 @@ df1 <- df_graphs_s12 %>%
   # Retain only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
          STIMULUS_CATEGORY, STIMULUS, BLOCK, ENCOUNTER, MAKER_ID, MAKER_AGE, MAKER_GENDER, 
+         MAKER_CONF, AGE_CONF, GENDER_CONF,
          MAKER_DESIGN:CHART_TRUST,
-         MAKER_DESIGN_z:CHART_TRUST_z) %>% 
+         MAKER_CONF_z, AGE_CONF_z,GENDER_CONF_z,
+         MAKER_DESIGN_z:CHART_TRUST_z
+  ) %>% 
   # Filter out questions dropped from Study 3
   select(-c("MAKER_ARGUE_z","MAKER_SELF_z","CHART_LIKE_z","CHART_TRUST_z"))  %>% 
-  select(-c("MAKER_ARGUE","MAKER_SELF","CHART_LIKE","CHART_TRUST","MAKER_LATENCY","TOOL_CONF"))  %>% 
+  select(-c("MAKER_ARGUE","MAKER_SELF","CHART_LIKE","CHART_TRUST","MAKER_LATENCY","TOOL_CONF")) %>%
   # Rename questions to match Study 3 and get rid of magicwizard transform for raw z value
   mutate(
     DESIGN_z = as.numeric(MAKER_DESIGN_z),
@@ -192,18 +196,25 @@ df1 <- df_graphs_s12 %>%
     ALIGN_z = as.numeric(MAKER_ALIGN_z),
     TRUST_z = as.numeric(MAKER_TRUST_z),
     BEAUTY_z = as.numeric(CHART_BEAUTY_z),
-    INTENT_z = as.numeric(CHART_INTENT_z)) %>% 
+    INTENT_z = as.numeric(CHART_INTENT_z),
+    MAKER_CONF_z = as.numeric(MAKER_CONF_z),
+    AGE_CONF_z = as.numeric(AGE_CONF_z),
+    GENDER_CONF_z = as.numeric(GENDER_CONF_z)
+    ) %>% 
   rename(
     ID = MAKER_ID,
     AGE = MAKER_AGE,
     GENDER = MAKER_GENDER,
+    ID_CONF = MAKER_CONF,
     DESIGN = MAKER_DESIGN,
     DATA = MAKER_DATA,
     POLITICS = MAKER_POLITIC,
     ALIGN=MAKER_ALIGN,
     INTENT=CHART_INTENT,
     TRUST=MAKER_TRUST,
-    BEAUTY=CHART_BEAUTY
+    BEAUTY=CHART_BEAUTY,
+    ID_CONF_z = MAKER_CONF_z
+    
   ) %>% 
   # Drop old columns
   select(-c(MAKER_DESIGN_z:CHART_INTENT_z)) %>%
@@ -213,12 +224,12 @@ df1 <- df_graphs_s12 %>%
 ## Study 3, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
 df3 <- df_graphs_s3%>% 
   # Retail only cols needed for modelling
-  select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
+  select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal,
         STIMULUS_CATEGORY, STIMULUS, BLOCK, 
         # only keep pre-test columns
         contains("PRE")) %>% 
   # drop confidence 
-  select(-contains("CONF")) %>%  
+  # select(-contains("CONF")) %>%  
   # drop latency
   select(-contains("LATENCY"))%>% 
   # drop non-zscore cols 
@@ -235,7 +246,10 @@ df3 <- df_graphs_s3%>%
     ALIGN = PRE_ALIGN,
     INTENT = PRE_INTENT,
     TRUST = PRE_TRUST,
-    BEAUTY = PRE_BEAUTY
+    BEAUTY = PRE_BEAUTY,
+    ID_CONF = PRE_ID_CONF,
+    AGE_CONF = PRE_AGE_CONF,
+    GENDER_CONF = PRE_GENDER_CONF
   ) %>% 
   #get rid of magicwizard transform for raw z value
   mutate(
@@ -245,9 +259,14 @@ df3 <- df_graphs_s3%>%
     ALIGN_z = as.numeric(PRE_ALIGN_z),
     TRUST_z = as.numeric(PRE_TRUST_z),
     BEAUTY_z = as.numeric(PRE_BEAUTY_z),
-    INTENT_z = as.numeric(PRE_INTENT_z)) %>% 
+    INTENT_z = as.numeric(PRE_INTENT_z),
+    ID_CONF_z = as.numeric(PRE_ID_CONF_z),
+    AGE_CONF_z = as.numeric(PRE_AGE_CONF_z),
+    GENDER_CONF_z = as.numeric(PRE_GENDER_CONF_z)
+    ) %>% 
   # drop old columns datawizard columns
   select(-c(PRE_DESIGN_z: PRE_INTENT_z)) %>%
+  select(-c(PRE_ID_CONF_z, PRE_AGE_CONF_z, PRE_GENDER_CONF_z)) %>% 
   droplevels()
   
 ## JOIN STUDIES
