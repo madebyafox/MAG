@@ -1608,8 +1608,8 @@ participant (2) Graph-level : 1 row per participantXgraph (5 graphs per
 participant; except Study 3, 5 graphs per participant X 2 times
 (pre-post)) (3) Question-level : 1 row per
 participantXgraphXquestion</p>
-<div id="import-configuration-files" class="section level2" number="1">
-<h2><span class="header-section-number">1</span> IMPORT Configuration
+<div id="import-configuration-files" class="section level2" number="0.1">
+<h2><span class="header-section-number">0.1</span> IMPORT Configuration
 Files</h2>
 <p><em>Import files with reference information for stimuli
 <code>ref_stimuli</code> and qualtrics surveys
@@ -1640,8 +1640,8 @@ ref_surveys &lt;- read_csv(&quot;data/input/REFERENCE/studies.csv&quot;, col_nam
     Study = as.factor(Study)
 )</code></pre>
 </div>
-<div id="define-labels" class="section level2" number="2">
-<h2><span class="header-section-number">2</span> DEFINE Labels</h2>
+<div id="define-labels" class="section level2" number="0.2">
+<h2><span class="header-section-number">0.2</span> DEFINE Labels</h2>
 <p><em>Define labels used in survey questions and response options; used
 to generate labels for graphs and filtering of datasets in analysis
 files.</em></p>
@@ -1665,8 +1665,8 @@ ref_min_sd_questions_z &lt;-  c(&quot;DESIGN_z&quot;,&quot;DATA_z&quot;,&quot;PO
 #dataframe column comparisons 
 # x &lt;- janitor::compare_df_cols(df1, df3)</code></pre>
 </div>
-<div id="import-wrangled-data" class="section level2" number="3">
-<h2><span class="header-section-number">3</span> IMPORT Wrangled
+<div id="import-wrangled-data" class="section level2" number="0.3">
+<h2><span class="header-section-number">0.3</span> IMPORT Wrangled
 Data</h2>
 <p>We want to include in this dataset only responses from participants
 who saw <em>message-obscured</em> stimuli. Thus we include participants
@@ -1688,9 +1688,9 @@ df_questions_long_s3 &lt;- readRDS(&quot;data/output/Study_3/df_questions_long_S
 df_sd_questions_long_s3 &lt;- readRDS(&quot;data/output/Study_3/df_sd_questions_long_S3.rds&quot;)
 df_sd_questions_long_s3_z &lt;- readRDS(&quot;data/output/Study_3/df_sd_questions_long_z_S3.rds&quot;)</code></pre>
 </div>
-<div id="join-participant-level-files" class="section level2" number="4">
-<h2><span class="header-section-number">4</span> JOIN PARTICIPANT level
-files</h2>
+<div id="join-participant-level-files" class="section level2" number="0.4">
+<h2><span class="header-section-number">0.4</span> JOIN PARTICIPANT
+level files</h2>
 <pre class="r"><code>## ASSIGN DFS
 df1 &lt;- df_participants_s12
 df3 &lt;- df_participants_s3
@@ -1717,20 +1717,23 @@ print(&quot;PARTICIPANTS BY STUDY AND BLOCK&quot;)</code></pre>
 <pre class="r"><code>## WRITE FILE
 saveRDS(df, file = &quot;data/output/COMBINED/df_participants_ALL.rds&quot;)
 
+df_participants_all &lt;- df
 ## CLEANUP
 rm(df, df1, df3)</code></pre>
 </div>
-<div id="join-graph-level-files" class="section level2" number="5">
-<h2><span class="header-section-number">5</span> JOIN GRAPH level
+<div id="join-graph-level-files" class="section level2" number="0.5">
+<h2><span class="header-section-number">0.5</span> JOIN GRAPH level
 Files</h2>
 <pre class="r"><code>## WRANGLE STUDIES 1_3, 
 df1 &lt;- df_graphs_s12 %&gt;% 
   # Retain only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
          STIMULUS_CATEGORY, STIMULUS, BLOCK, ENCOUNTER, MAKER_ID, MAKER_AGE, MAKER_GENDER, 
+         MAKER_DESIGN:CHART_TRUST,
          MAKER_DESIGN_z:CHART_TRUST_z) %&gt;% 
   # Filter out questions dropped from Study 3
   select(-c(&quot;MAKER_ARGUE_z&quot;,&quot;MAKER_SELF_z&quot;,&quot;CHART_LIKE_z&quot;,&quot;CHART_TRUST_z&quot;))  %&gt;% 
+  select(-c(&quot;MAKER_ARGUE&quot;,&quot;MAKER_SELF&quot;,&quot;CHART_LIKE&quot;,&quot;CHART_TRUST&quot;,&quot;MAKER_LATENCY&quot;,&quot;TOOL_CONF&quot;))  %&gt;% 
   # Rename questions to match Study 3 and get rid of magicwizard transform for raw z value
   mutate(
     DESIGN_z = as.numeric(MAKER_DESIGN_z),
@@ -1743,10 +1746,17 @@ df1 &lt;- df_graphs_s12 %&gt;%
   rename(
     ID = MAKER_ID,
     AGE = MAKER_AGE,
-    GENDER = MAKER_GENDER
+    GENDER = MAKER_GENDER,
+    DESIGN = MAKER_DESIGN,
+    DATA = MAKER_DATA,
+    POLITICS = MAKER_POLITIC,
+    ALIGN=MAKER_ALIGN,
+    INTENT=CHART_INTENT,
+    TRUST=MAKER_TRUST,
+    BEAUTY=CHART_BEAUTY
   ) %&gt;% 
   # Drop old columns
-  select(-c(MAKER_DESIGN_z:CHART_INTENT_z)) %&gt;% 
+  select(-c(MAKER_DESIGN_z:CHART_INTENT_z)) %&gt;%
   # Drop levels
   droplevels()
 
@@ -1762,13 +1772,20 @@ df3 &lt;- df_graphs_s3%&gt;%
   # drop latency
   select(-contains(&quot;LATENCY&quot;))%&gt;% 
   # drop non-zscore cols 
-  select(-c(PRE_DESIGN: PRE_INTENT)) %&gt;% 
+  # select(-c(PRE_DESIGN: PRE_INTENT)) %&gt;% 
   # rename categoricals
   rename(
     ENCOUNTER = PRE_ENCOUNTER,
     ID = PRE_ID,
     AGE = PRE_AGE,
-    GENDER = PRE_GENDER
+    GENDER = PRE_GENDER,
+    DESIGN = PRE_DESIGN,
+    DATA = PRE_DATA,
+    POLITICS = PRE_POLITICS,
+    ALIGN = PRE_ALIGN,
+    INTENT = PRE_INTENT,
+    TRUST = PRE_TRUST,
+    BEAUTY = PRE_BEAUTY
   ) %&gt;% 
   #get rid of magicwizard transform for raw z value
   mutate(
@@ -1779,8 +1796,8 @@ df3 &lt;- df_graphs_s3%&gt;%
     TRUST_z = as.numeric(PRE_TRUST_z),
     BEAUTY_z = as.numeric(PRE_BEAUTY_z),
     INTENT_z = as.numeric(PRE_INTENT_z)) %&gt;% 
-  # drop old columns
-  select(-c(PRE_DESIGN_z: PRE_INTENT_z)) %&gt;% 
+  # drop old columns datawizard columns
+  select(-c(PRE_DESIGN_z: PRE_INTENT_z)) %&gt;%
   droplevels()
   
 ## JOIN STUDIES
@@ -1807,11 +1824,12 @@ print(&quot;PARTICIPANTS BY STUDY AND STIMULUS&quot;)</code></pre>
 <pre class="r"><code>## WRITE FILE
 saveRDS(df, file = &quot;data/output/COMBINED/df_graphs_ALL.rds&quot;)
 
+df_graphs_all &lt;- df
 ## CLEANUP
 rm(df, df1, df3)</code></pre>
 </div>
-<div id="join-question-long-files" class="section level2" number="6">
-<h2><span class="header-section-number">6</span> JOIN QUESTION LONG
+<div id="join-question-long-files" class="section level2" number="0.6">
+<h2><span class="header-section-number">0.6</span> JOIN QUESTION LONG
 FILES</h2>
 <p>(useful for graphs and models that need all qs in long format, not
 just the sd questions)</p>
@@ -2164,8 +2182,8 @@ saveRDS(df, file = &quot;data/output/COMBINED/df_questions_long_ALL.rds&quot;)
 ## CLEANUP
 rm(df, df1, df3)</code></pre>
 </div>
-<div id="join-sd-question-long-files" class="section level2" number="7">
-<h2><span class="header-section-number">7</span> JOIN SD QUESTION LONG
+<div id="join-sd-question-long-files" class="section level2" number="0.7">
+<h2><span class="header-section-number">0.7</span> JOIN SD QUESTION LONG
 Files</h2>
 <pre class="r"><code>## KEEP TIME COLUMN FOR GRAPHING
 
@@ -2409,8 +2427,8 @@ saveRDS(df, file = &quot;data/output/COMBINED/df_sd_questions_long_ALL.rds&quot;
 ## CLEANUP
 rm(df, df1, df3)</code></pre>
 </div>
-<div id="join-sd-question-long-files-z-scored" class="section level2" number="8">
-<h2><span class="header-section-number">8</span> JOIN SD QUESTION LONG
+<div id="join-sd-question-long-files-z-scored" class="section level2" number="0.8">
+<h2><span class="header-section-number">0.8</span> JOIN SD QUESTION LONG
 Files (Z-SCORED)</h2>
 <pre class="r"><code>## WRANGLE STUDIES 1_3, 
 df1 &lt;- df_sd_questions_long_s12_z %&gt;% 
@@ -2634,6 +2652,1071 @@ saveRDS(df, file = &quot;data/output/COMBINED/df_sd_questions_long_ALL_z.rds&quo
 
 #cleanup
 rm(df1, df3, df)</code></pre>
+</div>
+<div id="profiling" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> PROFILING</h1>
+<div id="participant-level" class="section level2" number="1.1">
+<h2><span class="header-section-number">1.1</span>
+PARTICIPANT-LEVEL</h2>
+<pre class="r"><code>dfSummary(df_participants_all,  #%&gt;% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM, 
+                      #       contains(&quot;D_&quot;), Prolific.Name:Study, contains(&quot;SCREEN_&quot;)), 
+          headings = TRUE,
+          plain.ascii  = FALSE,
+          style        = &#39;grid&#39;,
+          graph.magnif = 0.85,
+          varnumbers = FALSE,
+          valid.col    = FALSE,
+          tmp.img.dir  = &quot;/tmp&quot;)</code></pre>
+<div id="data-frame-summary" class="section level3" number="1.1.1">
+<h3><span class="header-section-number">1.1.1</span> Data Frame
+Summary</h3>
+<div id="df_participants_all" class="section level4" number="1.1.1.1">
+<h4><span class="header-section-number">1.1.1.1</span>
+df_participants_all</h4>
+<p><strong>Dimensions:</strong> 398 x 29<br />
+<strong>Duplicates:</strong> 0</p>
+<table style="width:98%;">
+<colgroup>
+<col width="23%" />
+<col width="28%" />
+<col width="18%" />
+<col width="19%" />
+<col width="8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Stats / Values</th>
+<th>Freqs (% of Valid)</th>
+<th>Graph</th>
+<th>Missing</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>PID<br />
+[factor]</td>
+<td>1. R_11XUYk3OpC3HJPM<br />
+2. R_133GgyRbPsqfxPD<br />
+3. R_18Mwg4NFTa8GyAh<br />
+4. R_1A0uAWls6AhmTfr<br />
+5. R_1aUA7MBz4XYLbkl<br />
+6. R_1azgETg5gjYGzUf<br />
+7. R_1Bc6WwJjiC9VBVn<br />
+8. R_1Cq1wvlMciQUHh8<br />
+9. R_1D2krAejiiSE3Ln<br />
+10. R_1dz1Y8zwrsbEbB6<br />
+[ 388 others ]</td>
+<td>1 ( 0.3%)<br />
+1 ( 0.3%)<br />
+1 ( 0.3%)<br />
+1 ( 0.3%)<br />
+1 ( 0.3%)<br />
+1 ( 0.3%)<br />
+1 ( 0.3%)<br />
+1 ( 0.3%)<br />
+1 ( 0.3%)<br />
+1 ( 0.3%)<br />
+388 (97.5%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIkAAADkCAQAAAAGR8/GAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAACD0lEQVR42u3YQUrDUBSG0RvpHl2Zi+gq6/TFD3nQScSc01ERSvi4cfAfr+Hs4+oH+HskCUnqtXy+bvuPZa3gSkKSkCQkCUlCkpAkJAlJQpKQJCQJSUKSkCQkiWNdjY6rn+YyawVXEpLEKcl9t9eVKwlJQpKQJCQJSUKSkCQkCUlCkpAkJAlJQpKQJCQJc/TMmKM3bK/hSkKSkCQkCUlCkpAkJAlJQpKQJCQJSUKSkCQkCUnC9jozttcNScIcHa4kJAlJQpKQJCQJSUKSkCQkCUlCkpAkJAlJQpKwvc6M7XVDkrC9hisJSUKSkCQkCUlCkpAkJAlJQpKQJCQJSUKSkCRsrzNje92QJGyv4UpCkpAkJAlJQpKQJCQJSUKSkCQkCUlCkpAkJAlJwhw9M+boDdtruJKQJCQJSUKSkCQkCUlCkpAkJAlJQpKQJCQJSUKSsL3OjO11w/YariQkCUlCkpAkJAlJQpKQJCQJSUKSkCQkCUlCkpAkbK8zY3vdkCTM0eFKQpKQJCQJSUKSkCQkCUlCkpAkJAlJQpKQJCQJ2+vM2F43JAnba7iSkCQkCUlCkpAkJAlJQpKQJCQJSUKSkCQkCUlCkjBHz4w5euOxfrnx9rq8II/zXz6vfrRLPE/fvDghSUgSkoQkIUlIEpKEJCFJSBKShCQhSUgSP/aS53u/8q8c9x3SfuPFCUlCkvgGNJw2r7qNXI8AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>Distribution<br />
+[factor]</td>
+<td>1. TUMBLR<br />
+2. PROLIFIC</td>
+<td>78 (19.6%)<br />
+320 (80.4%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHMAAAAvCAQAAAB6Bj3hAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAnElEQVRo3u3YwQmEMBBA0c1ijxZhPdqDVep1IghGD9E//91EWPbDRMiU7ZfBv/cfMNPMVkN8WG4c1Kn0TjgTY4b61dj4U2vvlouSDK2ZJGaSmEliJomZJGaSmElyuG9+5f7YqsQ79msXAbfEsiRDmySzOpszazcdzuDDldd71R/TJENrJomZJGaSmEliJomZJGaSZFx5cSUZWjNJdjNeDEwCZIgLAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>Assigned.Block<br />
+[factor]</td>
+<td>1. 1<br />
+2. 2<br />
+3. 3<br />
+4. 4<br />
+5. 5<br />
+6. 6</td>
+<td>135 (33.9%)<br />
+52 (13.1%)<br />
+52 (13.1%)<br />
+54 (13.6%)<br />
+53 (13.3%)<br />
+52 (13.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAACACAQAAAD0FmKNAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAv0lEQVRo3u3ZQQ7CIBAFUDDe0TvoefQOPaVuaRM1lCla+v6ODS/plPAT8jP1zamzdwDwXC4eGw30mt+AKV024KbZavwZAoFAIHCH4OI+nNbtUpFcXvJ59TafUxoHm+H9a4m6NX/1qhIV8UuNP0MgEAgEtkenCY9OM4tOAwQCgcBBQSUqPJWdpr3VVD52tc94/GMBBAKBwB2COk14lKhFlCggEAgE9ohOE55/7zQeu4BAIBAIjMhvS1SPjD/D7uALbmwjDQl79pcAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>EndState<br />
+[factor]</td>
+<td>1. COMPLETE</td>
+<td>388 (100.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIsAAAAbCAQAAADmdrQ3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAd0lEQVRYw+3YsQ2AIBBAUc+wIzswkDs4pZagfusj4b8KQnP5CRTEtelrzx5gTmZBZkFl3BxLPzQt+ro8j2r2bJPwEiGzILMgsyCzILMgsyCzILMgsyCzILMgsyCzILMgs6DXN9SZPU+iNqxj6X/KX14iZBZkFnQDa2gFo4qho0EAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>10<br />
+(2.5%)</td>
+</tr>
+<tr class="odd">
+<td>Sample<br />
+[factor]</td>
+<td>1. TUMBLR<br />
+2. DATACOLLAR<br />
+3. BLUECOLLAR<br />
+4. GENERAL</td>
+<td>78 (19.6%)<br />
+20 ( 5.0%)<br />
+20 ( 5.0%)<br />
+280 (70.4%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGYAAABXCAQAAABc8PjhAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAA3klEQVR42u3bQQrCQBAFUSO5o4fwPOYOnlK3PVkISRZd8623E0FS0BOYBpfPLce9+wGM+YeYtX7YThyg59IbUB95Hb96HPypd2/JTtSYGUNlDJUxVMZQGUNlDJUxVLv7DOt+ctRSb2rNl8ZT6vPnjtlr2AF03+4vxtQdwIynJ2rMjKEyhsoYKmOojKEyhsoYKncAJLE7gKgYFxpUUWNmDJUxVMZQGUNlDJUxVMZQudAgcaExgx8LjUmUs3HxXxrdxhdW1JgZQ2UMlTFUxlAZQ2UMVVRM7g5gdlFjZgzVF8yuF/bVeYYfAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>Study<br />
+[factor]</td>
+<td>1. Study1<br />
+2. Study2<br />
+3. Study3<br />
+4. Study0</td>
+<td>78 (19.6%)<br />
+240 (60.3%)<br />
+40 (10.1%)<br />
+40 (10.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAABXCAQAAADFCCFUAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAyUlEQVRo3u3ZwQmDQBBA0RjsMUWknthDqkyuqxDYNTg7A+/fRJB3GGFHl8+tWvfZAOScre3FdmKwn0sEs4Wt+1uPwUe9I7yHCg4GMjIyMnKukJGRkfs7nJdnnH9HW9rzfsiCcapWWX0wXnk/ajQD8OfuF9P+DSs4GMjIyMjIuUJGRkbuz+53VcV3v4Lk7nU15pfkMPn3uprptSw4GMjIyMjIuUJGRkbuz7p6VdbV6KyrERUcDGRkZGTkXCEjI0+r+u5Xo4KDgRzRF7iAF/YbmFRkAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>duration.sec<br />
+[numeric]</td>
+<td>Mean (sd) : 2653.7 (1463.1)<br />
+min &lt; med &lt; max:<br />
+653 &lt; 2290.5 &lt; 13654<br />
+IQR (CV) : 1525.2 (0.6)</td>
+<td>379 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABWUlEQVR42u3cQU6DUBRA0VPjHt2Drkf34Cp18gYtqK2JWKn3zkhpAif9n5JPOLwp7q59AH+jGBDDdH+8cVh9/LyaOp4ObqTjU7s/t/PDydbrtY99oxoUiGGKATFMMeCCK8Wy27yEfpvhYbF9G5fQBgVimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYpm8v7K9bPvGwx+cdfoDhFh4ZbFAghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwz4kRXtZXtc6N+AYY8L/Q0KxDDFgBimGBDDFANimDb4+7RsDy/MOmF43uT9unt4Ydbi17CHQ96i5gb8ytyw7tw96O/PJldhWN6Drk/767vUj+awU6iLZrmjbxyO93/5V68gf/yM4f/WFIkYphjAOwXHI5DGNo+BAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>duration.min<br />
+[numeric]</td>
+<td>Mean (sd) : 44.2 (24.4)<br />
+min &lt; med &lt; max:<br />
+10.9 &lt; 38.2 &lt; 227.6<br />
+IQR (CV) : 25.4 (0.6)</td>
+<td>379 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABR0lEQVR42u3cXY4SQQBG0YOZPboHXc+4B1epL98DQk/UkcmAc+8bpJvQJ6mifyqcfig+vfcXuI9iQAzr6fzF6WCD58PJ4+vJw3d+YE+/3/zz1Tvf3/sIbl6DAjGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawYEMOKATGsGBDDigExrBgQw4oBMawY8Edrn446Whj2yMvCXsnwvy0La1AghhUDYlgxIIYVA2JYMSCGFQNiWDEghhUDYlgxIIYVA2JYMSCG9cob9Ec98rOLGzI88rOLBgViWDEghhUDYlgxIIYVA2JYMSCG9cul1fOH/dfEiyvMR75K/JcaFIhh3fC2y1HXs8193o96Y4bLueZeZ5oGBWJYMSCG9cZT5HW3PlO9/OX5i88/2/N0vte3D3Uy/eUlho9bcwNiWDGAn4i8GPhV5GMoAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>D_gender_collapsed<br />
+[factor]</td>
+<td>1. female<br />
+2. male<br />
+3. other</td>
+<td>196 (49.2%)<br />
+145 (36.4%)<br />
+57 (14.3%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEsAAABDCAQAAAB+FDAMAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAqUlEQVRo3u3XQQqAIBBGYSe6Y3eo89QdPGVtNYgaM/2D93Zu4oMxGG0Pig29AbDeN6aHretFm+2CFcLUDRWzk+gQYcGCpRAsWLAUguXptG/Fsq9Uz9KF1Io/U6NUIjpEUVZ2t9ZPnxiL4440e2L4fibRIcKCBUshWLBgKSTKYpe/i12+tIJd3rOTV2E92eXb/BSiQ4QFC5ZCsGDBUgiWpz88MXQSHSIsTwc9PxGMPeD9lAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>D_gender<br />
+[factor]</td>
+<td>1. Female<br />
+2. Male<br />
+3. Non-binary / third gender<br />
+4. Prefer not to say<br />
+5. Prefer to self-describe</td>
+<td>196 (49.2%)<br />
+145 (36.4%)<br />
+40 (10.1%)<br />
+3 ( 0.8%)<br />
+14 ( 3.5%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEsAAABsCAQAAACI7ofvAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAA6UlEQVRo3u3ZQQqDMBQAUVN6x96hPY+9g6e0q0IUJP1pYkaY2bmRB4nwY9I6EbuNBsj6v3v+8B660Z7pgDVNj2GoZfMEXURZsmQRkiVLFiFZkXbz1lL3lualfCBN1a9pUS6BLiKUtdlbc9cjxiuwR047YsQ+JugiypIli5AsWbIIQVnO8qWc5Wv7eZaPTOKNWcez/NmfAnQRZcmSRUiWLFmEZEXyiFHqakeMee37Z76SxUmWLFmEZMmSRUiWrF45y0eCsg6uC869HCiwvtcF4w+x0EWUJUsWIVmyZBGSFekK1wWcoIsoK9IHDRUcsWZL+6cAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>D_gender_4_TEXT<br />
+[character]</td>
+<td>1. genderqueer<br />
+2. Agender<br />
+3. gender fluid<br />
+4. genderqueer (dislike term<br />
+5. genderqueer trans man<br />
+6. Genderqueer wlw<br />
+7. genderqueer woman<br />
+8. My sex is female, but I d<br />
+9. queer<br />
+10. She/They<br />
+[ 3 others ]</td>
+<td>2 (14.3%)<br />
+1 ( 7.1%)<br />
+1 ( 7.1%)<br />
+1 ( 7.1%)<br />
+1 ( 7.1%)<br />
+1 ( 7.1%)<br />
+1 ( 7.1%)<br />
+1 ( 7.1%)<br />
+1 ( 7.1%)<br />
+1 ( 7.1%)<br />
+3 (21.4%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAADkCAQAAABA3a4pAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAA30lEQVR42u3bSw6CMABFUWvYo4tgPbIHV6kDJwVqCpSakp4383cSquGODO/bubuf7F0AHOIH06YDHcPymfhjw/ylR5Z7/fuSgUAgMLnF7St3c8ovxDfHcBCJjYud4TPRlHHnOWSasv9Lav8MgUAgMLkOI6UpQCAQWAnssCkiVT4gEAhMTlPKpylAIBD4naaUT1OAQCCwEthhpDQFCAQCK4Gasn6DpgCBQOCxddgUkSofEAgEJqcp5dMUIBAIrAR2GKlsU7Zd5w9wyz/915ufe/s/GyAQCEyublOavOT2wQ/O1kDLqcHxzwAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>384<br />
+(96.5%)</td>
+</tr>
+<tr class="even">
+<td>D_race<br />
+[character]</td>
+<td>1. White or Caucasian<br />
+2. Black or African American<br />
+3. Asian<br />
+4. Other<br />
+5. White or Caucasian,Asian<br />
+6. White or Caucasian,Black<br />
+7. American Indian/Native Am<br />
+8. White or Caucasian,Americ<br />
+9. White or Caucasian,Other<br />
+10. Prefer not to say<br />
+[ 5 others ]</td>
+<td>268 (67.3%)<br />
+44 (11.1%)<br />
+40 (10.1%)<br />
+11 ( 2.8%)<br />
+9 ( 2.3%)<br />
+5 ( 1.3%)<br />
+4 ( 1.0%)<br />
+4 ( 1.0%)<br />
+4 ( 1.0%)<br />
+3 ( 0.8%)<br />
+6 ( 1.5%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGIAAADkCAQAAADJRTlAAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABrElEQVR42u3cQWoCQRBAUQ25o3dIzmPu4CmTrcoo4iLzu3hvNxuZj91gNdLH38P6PvZ+ARGTIj6vH34W2iBfxwcRh8Np73d70eXmacRyElEhokJEhYgKERUiKkZE3P0Uv7z3KTs7Xs9Bx7c/5v9dv/eI5TQi4mZPnJ/O2N/Z1fbyjF3e8iOWk4gKERUiKkRUiKgQUSGiwkHBnsYdFLw8Y3cn7Jdn7PZeGbGcRFSIqBBRIaJCRIWIChEVZuw9jZuxR0RsHhSUDwW23H0Tp2X+8v4kYk0iKkRUiKgQUSGiQkTFiAgz9p7M2EVm7IoRy0lEhYgKERUiKkRUiKgYEWHG3pMZu+gm4vx7XujqtgcRqxJRIaJCRIWIChEVIipEVIiocFBQYcauEFEhokJEhYgKERUiKkRUiKgwY1eYsStEVIioEFEhokJEhYgKERUiKszYFfMiHBSIECEiQ0SFiAoRFSIqRFSMiDBjV8yLMGOLECEiQ0SFiAoRFSIqRFSIqHBQULFxOfpqV6NvXI6+ohHLSUSFiAoRFSIqRFSIqBBRcRcx4Ib3VU1cTmsaEfEHAQg8PtQfwtkAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>D_education_collapsed<br />
+[factor]</td>
+<td>1. hs_or_less<br />
+2. ugrad<br />
+3. grad</td>
+<td>49 (12.3%)<br />
+278 (69.8%)<br />
+71 (17.8%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGUAAABDCAQAAAAvgANvAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAwUlEQVRo3u2aQQrDMAwE45A/9hF5T/qHvrK9yjnEtD14sszcggloQDKscHsvKayzC1AlW2WrH8/B4OxtdrlnasFbf/S4+O01u+4BQQ2mChFViKhCRBUiqhBRhYgqRE55hZ5Jrmg1h+FC4pBafVCDBal0s3Lcb79XZuKLNQWP/pIKajBViKhCRBUiqhBRhYgqRIJUzPYUzPZ0/sj2tAcJP2d73gUR1GCqEFGFiCpEVCGiChFViKhCJHVNcW+CGkwVIh9qbxIhAgk7GAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>D_education<br />
+[factor]</td>
+<td>1. NA<br />
+2. some high school or less<br />
+3. high school diploma or GE<br />
+4. some college<br />
+5. associates or technical d<br />
+6. undergradudate degree<br />
+7. graduate or professional</td>
+<td>0 ( 0.0%)<br />
+7 ( 1.8%)<br />
+42 (10.6%)<br />
+74 (18.6%)<br />
+46 (11.6%)<br />
+158 (39.7%)<br />
+71 (17.8%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAD8AAACUCAQAAACOjTl5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAA+UlEQVR42u3bwQ3CMBBE0RilR4qgHoqgynDgskEGWbE9a2n+cMrpKdmNMrJEObbM3FJ1c347wu8pWYQoej98eHh4eHh4eEFKLDhFQkbR++Hv8eJTNR+aGdTu/i6+e+/Zw8PDw8Pb8i8xT9dLTKXr1TOnAe7ny19db9ZKes8eHh4eHh5elK/vPVVTmeauV0t//2vserWM2BPvFw8eHh4eHl4Uul5iVpr9/6o542CxuWrOWUrv2cPDw8PD+/B0vcSsNHvNP1PijDuOFa/lvNzes4eHh4eHhxeFqpmYjq434pzvctcbsyXeLx48PDw8PLwoK3U9fbxnn8y/AaB1MaERORQuAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>D_employmentStatus<br />
+[factor]</td>
+<td>1. A homemaker or stay-at-ho<br />
+2. Other<br />
+3. Retired<br />
+4. Student<br />
+5. Unemployed and looking fo<br />
+6. Working full-time<br />
+7. Working part-time</td>
+<td>15 ( 3.8%)<br />
+16 ( 4.0%)<br />
+9 ( 2.3%)<br />
+33 ( 8.3%)<br />
+56 (14.1%)<br />
+205 (51.5%)<br />
+64 (16.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAE4AAACUCAQAAACXBtffAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABKElEQVR42u3ZUU6DQABFUWjYI4voeto9uEr90XagEh0CzCM998cYf06cIeGF/rPL7dIaALdHQ/nLvbiA174NqHwGhumfxu+fH21ks6KPFQ4ODg4ODg4uo9n7XMZ73E99+ebZ6OV3UumJPtZo3OTO3QIGziLOwIGDCw4ODg4OrmE2RE02xBb9uiES9kPXvfznxseKSCj6WOHg4ODg4ODgMjJwajrNwFn8DvGs3aJY+A7xrOUtjD5WODg4ODg4OLiMbIiaTrMhonH/GDjzjhs8fw6ceUc+MtHHCgcHBwcHB/dGOBuiJhtii1ZsiJ0r7lb1hti36QMZfaxwcHBwcHBwcBkZODWdZuCs3BDHfItYtSGOupnRxwoHBwcHBwcHl9F5NkRa0ccKt7Yvu30pI1MeAVgAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>D_income<br />
+[factor]</td>
+<td>1. Prefer not to say<br />
+2. Less than $25,000<br />
+3. $25,000-$49,999<br />
+4. $50,000-$74,999<br />
+5. $75,000-$99,999<br />
+6. $100,000-$149,999<br />
+7. $150,000 or more</td>
+<td>16 ( 4.0%)<br />
+64 (16.1%)<br />
+85 (21.4%)<br />
+94 (23.6%)<br />
+47 (11.8%)<br />
+60 (15.1%)<br />
+32 ( 8.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACsAAACUCAQAAACgyBjrAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAA6klEQVRo3u3aUQrCQAxF0RnpHl2E69E9uEr9UCGx6iSxGRq470ekcMCkzLNov7WMHFLUYuwi31zEoE/dS8ktLfrS8fl63ecQYGFhYeuyb+ftv+fsK12e6e5CUJFS4dmezd9FRgX6pSJ/Z7zYWrOFhYWFlaHL8thgl+msmy3UZTqf1lxrtrCwsLATWCqybdRl6w+7QZc9ordS6waDhYWFncDSZXmsqyLtv/g5KtKzzlqzhYWFhZWhy/LY0OPeuNMCj3uWtdaaLSwsLOwElopspi7z///S0GWxade6wWBhYWEnsDO6bPdDqMXeAefhKXc412tBAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>D_work_detail<br />
+[character]</td>
+<td>1. Unemployed<br />
+2. N/A<br />
+3. Student<br />
+4. homemaker<br />
+5. retired<br />
+6. graphic designer<br />
+7. IT<br />
+8. Manager<br />
+9. n/a<br />
+10. Artist<br />
+[ 338 others ]</td>
+<td>10 ( 2.5%)<br />
+6 ( 1.5%)<br />
+5 ( 1.3%)<br />
+4 ( 1.0%)<br />
+4 ( 1.0%)<br />
+3 ( 0.8%)<br />
+3 ( 0.8%)<br />
+3 ( 0.8%)<br />
+3 ( 0.8%)<br />
+2 ( 0.5%)<br />
+353 (89.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAH4AAADkCAQAAAD011gmAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABm0lEQVR42u3aTWqDUABGUS3u0UV0Pekesko7qUXTn0EhSj33zKRQ3sXXQD46LoPr5ewDFF/88abtw9vHB8DrePaxnmf7Gffw5udhPvt0B6KvffGq4lXFq4pXFa8qXkXHT/vH+9nnOdS4/XJ/4Q3j0y9jhoWO3/3N35ZhuPaCt/dlw5PQ1754VfGq4lXFq4pXFa8qXvUQ34B5aQ2Y38Xflhv1r7i9eVXxquJVxauKVxWvKl5VvIqOb8NTFb9qwIQUrypeVbyqeFXxquJVxavo+DY8VfGrNjxI8ariVcWrilcVrypeVbyKjm/DUxW/asODFK8qXlW8qnhV8ariVcWrilc1YKra8FTFq4pXFa8qXlW8qnhV8ariVW14qjY8VfGq4lXFq4pXFa8qXlW8qnhVG56q+FUDJqR4VfGq4lXFq4pXFa8qXkXHt+Gpil9ZC15v3lW8qnhV8ariVcWrilcVr6LjGzBV0/aB2PA213va/2Q++2hPdt890de+eFXxquJVxauKVxWvKl718H3+/rff8k+NwnjzE/raF696B555Of4a4gXVAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>2<br />
+(0.5%)</td>
+</tr>
+<tr class="even">
+<td>D_zipcode<br />
+[character]</td>
+<td>1. 30019<br />
+2. 11105<br />
+3. 11213<br />
+4. 11581<br />
+5. 20149<br />
+6. 27858<br />
+7. 28645<br />
+8. 32607<br />
+9. 37917<br />
+10. 60615<br />
+[ 368 others ]</td>
+<td>3 ( 0.8%)<br />
+2 ( 0.5%)<br />
+2 ( 0.5%)<br />
+2 ( 0.5%)<br />
+2 ( 0.5%)<br />
+2 ( 0.5%)<br />
+2 ( 0.5%)<br />
+2 ( 0.5%)<br />
+2 ( 0.5%)<br />
+2 ( 0.5%)<br />
+374 (94.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIUAAADkCAQAAAAcey9IAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAB7ElEQVR42u3ZsWnDUBhG0SejHTOE57F38JROYbg8GdS4sEJ0TicCQVx+pfiyPAcvl6Nf4O+QIlJknR/uzzGuy9Gv9E3zX0pXESkiRaSIFJEiUkSKSBEpIkWkiBSRIlJEiizzeHGq1WaMYbrZIUU2KW6n/qeIq4gUkSJSRIpIESkiRaSIFJEiUkSKSBEpIkWkiJk3riK2zbiKSBEpIkWkiBSRIlJEikgRKSJFpIgUkSJSRIrYNuMqIkXMvHEVkSJSRIpIESkiRaSIFJEiUkSKSBEpIkWkiG0zriJSxLYZVxEpIkWkiBSRIlJEikgRKSJFpIgUkSJSRIrYNuMqIkVsm3EVkSJSRIpIESkiRaSIFJEiUkSKSBEpIkWkiBQx88ZVxLYZVxEpIkWkiBSRIlJEikgRKSJFpIgUkSJSRIpIEdtmXEVsm3EVkSJSRIpIESkiRaSIFJEiUkSKSBEpIkWkiBSxbcZVRIqYeeMqIkWkiBSRIlJEikgRKSJFpIgUkSJSRIpIEdtmXEWkiG0zriJSRIpIESkiRaSIFJEiUkSKSBEpIkWkiBSRImbeuIqs88MJt83pQ1i3P/k5+tW+6rF58oFEikgRKSJFpIgUkSJSRIpIESkiRaSIFHnbKx6f/ZZ/YTnfcLXHBxIpIkV+AfgeLCsDRAzdAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>3<br />
+(0.8%)</td>
+</tr>
+<tr class="odd">
+<td>D_age<br />
+[factor]</td>
+<td>1. 18-24<br />
+2. 25-34<br />
+3. 35-44<br />
+4. 45-54<br />
+5. 55-64<br />
+6. 65+ years</td>
+<td>82 (20.6%)<br />
+148 (37.2%)<br />
+76 (19.1%)<br />
+65 (16.3%)<br />
+22 ( 5.5%)<br />
+5 ( 1.3%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAACACAQAAAD9/cL3AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAA40lEQVRo3u3bUQ6CMBCEYUq4I4fwPHgHTgmvW2LNdpu2G/afN6PxC5kaJkbTtczJOskNCG/ywddU+CdpXynffsuf2qvZ03jF8ToGBgYGBgYu5nE/tt5d65PkKlBPCWOkFbzjo/e6F102jz198oMbr2NgYGBgYP8wm2tYfHRcv7n0X679hWs3V8tRjNcxMDAwMDBwMYy9YTFvLvva+gHrN1f7WYj3cQIGBgYGBi6GzTUsPjp+jr3WQaeG87HX96DF6xgYGBgY2D/M5hoWH/Bxdf8pmbMrBgYGBgYGBp6SxH9TXw/fNHcjG7WRnuYAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>D_politicalParty<br />
+[factor]</td>
+<td>1. Democrat<br />
+2. Other<br />
+3. No preference<br />
+4. Independent<br />
+5. Republican</td>
+<td>189 (48.7%)<br />
+31 ( 8.0%)<br />
+12 ( 3.1%)<br />
+111 (28.6%)<br />
+45 (11.6%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEsAAABsCAQAAACI7ofvAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAA8ElEQVRo3u3aQQrCMBBA0Ua8o3fQ8+gdekpdCalY4iS18wv/77opDxJhRi3PidgpGyBrvHP98Ei9aNeywpqmSxpqXjxBD1GWLFmEZMmSRUhWpI95a+57y+aVeiAt3a/ZoloCPUQoa3G37l9XjFvC2TZXjJwPAfQQZcmSRUiWLFmEoCxn+VbO8r2tzPIZ8/sq6z3L51986CHKkiWLkCxZsgjJiuSK0eoAK8YP38v3NLoL/OWvP+M3FHqIsmTJIiRLlixCsiI5y7c6wCwPZYVWjP1+RAisGHt+HKCHKEuWLEKyZMkiJCvSEVYMTtBDlBXpBRkMHTitXgR2AAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>10<br />
+(2.5%)</td>
+</tr>
+<tr class="odd">
+<td>D_politicalParty_OTHER<br />
+[character]</td>
+<td>1. Socialist<br />
+2. leftist<br />
+3. socialist<br />
+4. Anarchist<br />
+5. Liberal<br />
+6. Progressive<br />
+7. A progressive who must vo<br />
+8. Democratic Socialist<br />
+9. Freedom and peace party<br />
+10. Green<br />
+[ 11 others ]</td>
+<td>4 (12.9%)<br />
+3 ( 9.7%)<br />
+3 ( 9.7%)<br />
+2 ( 6.5%)<br />
+2 ( 6.5%)<br />
+2 ( 6.5%)<br />
+1 ( 3.2%)<br />
+1 ( 3.2%)<br />
+1 ( 3.2%)<br />
+1 ( 3.2%)<br />
+11 (35.5%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADoAAADkCAQAAABjhv/8AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABI0lEQVR42u3cQQrCMBQEUCu9o4fwPHoHT6krIWpbNeQnlP9mJ6IPnZbMqtP90D/HAWYidC5fXL8WfJ5qofKr59e3TpsfvDX6pXk6hUKhUGj/vB1trQ6v7Uzl4Vp9Qv+Q0kna6WV1I9Vvo6/o2kZqfXnl6RQKhUKhSVDDLDQ2UmigUCgUCo2LjRSa8Z1+DrO2g2wRfR9mUZdVnk6hUCgU2j82UmjGd2ojQaFQKBRaFRspNOM7tZGgUCgUCt0PapiFZmUjxWyjRfS5kaKbzXPLQKFQKDQJaiOFxkaCQqFQKHSnqI0UmvGdGmZQKBQKhVbFRgrN+E5tJCgUCoVC94MaZqH58UlQDVL8jX89Ubw+r9dKnlsGCoVCoUnQ8RupV/J0OgR9AKfgQMvaMoVsAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>367<br />
+(92.2%)</td>
+</tr>
+<tr class="even">
+<td>D_politicsSocial<br />
+[numeric]</td>
+<td>Mean (sd) : 29.1 (27.9)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 23 &lt; 100<br />
+IQR (CV) : 48 (1)</td>
+<td>75 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABZklEQVR42u3bQW7bMBRAwXHhO/YO7XmSO/SU7eYvVCAqnDiSGfe9nWFYkMYkIRHQ5bfi26NPYI1iQAzTdfvhdXeh+Hl59Il+ftuLvf791fc3f/Dr0Wd8eE0KxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDBd7z/Erb0s/CbXiQwrv8nVpMCdo2HlYX4iw8rD/BCGlyd/o/1Ghmf51/dqiUQMUwyIYYoBMUwHPVN8tfuMgxjeus9Y+S6jSYEYphgQwxQDYphO3Yv8nI7Y81qCYe/C9i7rPbsf/7iR2xx9CYZjN3VuOXprA2KYYsAia8Ne5z2nLs1w3n54kwIxTEtPivf28bXkqRg+vufVpACX7Th6/WIbqff1Y/NMcfmvrny3JgVimGIAfwA24iLARZFEKAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>10<br />
+(2.5%)</td>
+</tr>
+<tr class="odd">
+<td>D_politicsFiscal<br />
+[numeric]</td>
+<td>Mean (sd) : 35.2 (29.1)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 35 &lt; 100<br />
+IQR (CV) : 43 (0.8)</td>
+<td>79 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABaklEQVR42u3bW07bUBRA0RXEHJlDGQ/MoaMsP+fDCFwBxc4N3fsviiI5Sz5+3DiXP4q7a2/AGsWAGKb77Yvn3QPF4+XaG/r9bb/s/eu3Ht79wO9rb/HhNRSIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGLAm+cbjuxp4YdITmRY+SGShgIxTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMeAf1yJXXmQ9kWF/kfXpxv7zfNDK9Hs8K6xA79WxAR/eG25tJz+IYd0fWr6nhgIxTDEghikGxDCd+nzDXntXJefdmSzBcP2rkoYCi+wNR/aX24DNyN0gw2dXOT4ycjfIcMSxZGmG8+5rl2Y47wzSmQIxTEsPxWf7+rHkRzF8fSG4oUAMUwyIYYoBMUwxIIbpsr3wev7hv1S+7tdmdeLyX33z3RoKxDDFAF4A3l0iwr6OAX4AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>10<br />
+(2.5%)</td>
+</tr>
+<tr class="even">
+<td>SCREEN_workMethod<br />
+[character]</td>
+<td>1. btwn-50-75<br />
+2. btwn25-50<br />
+3. less-25<br />
+4. more-75</td>
+<td>56 (14.1%)<br />
+28 ( 7.0%)<br />
+64 (16.1%)<br />
+250 (62.8%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF0AAABXCAQAAADM44EuAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAA2klEQVRo3u3ZwQ3CMBBEURulR4qgHtIDVcJ1EyI5ziEza/9/QwjpHRaUEfVbsvZQA6Dnaokv1lOH/6o6bgQu27eezQ9/dO5diQ8GOnTo9kGHDt0+6NBnoe+e132extvVuDuE8+dkUTvKwbwPtqlyiXbQ/7ep8+0nPhjo0KHbBx06dPugQ5+Fzja9q0G2aWJ6c1Yf5zC2u//yLcXly5z4YKBDh24fdOjQ7YMOfRY6s/qumNXqLs5qWeGmL81qVdsfkcQHAx06dPugQ4duH3ToXY2yTXOV+GCgK/oB24EX9uw9ARMAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>SCREEN_workFunction<br />
+[character]</td>
+<td>1. other<br />
+2. Operations<br />
+3. Education-Professional<br />
+4. Design-Creative<br />
+5. IT<br />
+6. Data-Analysis<br />
+7. Research<br />
+8. Healthcare-Professional<br />
+9. Administration-PersonalAs<br />
+10. Sales-Business-Developmen<br />
+[ 78 others ]</td>
+<td>88 (22.1%)<br />
+29 ( 7.3%)<br />
+26 ( 6.5%)<br />
+23 ( 5.8%)<br />
+20 ( 5.0%)<br />
+19 ( 4.8%)<br />
+19 ( 4.8%)<br />
+16 ( 4.0%)<br />
+15 ( 3.8%)<br />
+15 ( 3.8%)<br />
+128 (32.2%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADYAAADkCAQAAAB5uh9yAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABLklEQVR42u3cQW7CQBAEQIz4Yx7Be8IfeCW5LjGLwWl70aT6hoy2JM9I2ydPt8N+Oe5oFcZO7Y/L6gGep96T9sjT/aOvVdT1xf/VnRkMBoPB5vl1xbx6WazL1F5u0+pj+mnP/ycz+37QQc7Bd7vQQbILU3dmMBgMBhuMKTyRLHSQZANZ6CDpCdZdfRgMBoMNxnSQSD6n8GTrztPCk1+WujODwWAw2Dw6SCSf0kHSDeRJB9liVerODAaDwWDz6CCR6CCR1J0ZDAaDwQZjCk8kOggMBoPBYG9GB4mk20HyDaTbQbaZXd3Vh8FgMNhgTAeJROGJpO7MYDAYDDaPDhKJDhJJ3ZnBYDAYbDCm8ESy+PW1P6d5XZEvwPZzvwN1Vx8Gg8Fgg7FxHWTr1J3ZrtgPIKlAy8tGjkAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>SCREEN_workFunction_TEXT<br />
+[character]</td>
+<td>1. N/A<br />
+2. Unemployed<br />
+3. Student<br />
+4. n/a<br />
+5. retired<br />
+6. unemployed<br />
+7. Logistics<br />
+8. Not applicable<br />
+9. Alternative Health<br />
+10. Business services<br />
+[ 56 others ]</td>
+<td>7 ( 7.8%)<br />
+6 ( 6.7%)<br />
+5 ( 5.6%)<br />
+4 ( 4.4%)<br />
+3 ( 3.3%)<br />
+3 ( 3.3%)<br />
+2 ( 2.2%)<br />
+2 ( 2.2%)<br />
+1 ( 1.1%)<br />
+1 ( 1.1%)<br />
+56 (62.2%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFwAAADkCAQAAAC/f4vLAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABpUlEQVR42u3dTUrDYBSFYSPdYxfheuIeXGUdiUnzQ0Zfzr0870x08FBuoAeKnV4fNfu8GwBepcfyh+/dg/+a7kb+teQ91r96bv74527tQWVPBRwcPDRwcPDQwMEv9va2NvVN7LZp+eY8ZjEctLSWPZWy8NWNz5vNmbM3T+HvmzP5US17KuDg4KGBg4OHBg7eHW4sj6jFWD7dnLmL83RzZt972VMBBwcPDRwcPDRw8O5wm3NELTZnWfjhWE4eyhv4/1jOf0jLngo4OHho4ODgoYGDX8zmHJHNeWcHmzN9cR5szgqPaNlTAQcHDw0cHDw0cPCL2ZwjsjnvzOYcXdlTAQcHDw0cHDw0cPDucGN5RC3G8u7mzF+cm1f8ufMvdzMreyrg4OChgYODhwYO3h1uc47I5rwzmxMcPDRwcPDQwMHBQysLtzlH1GJz9oDPr7nMlwD3eMUrBQ4OHho4OHho4ODd4Tbn6HrAbU5w8JzAwcFDAwcHDw0c/GLG8uhOvxE1rsVJnHwjalrrD0iUPRVwcPDQwMHBQwMH7w7v8aHgSpU9FfDR/QLK7T8VZDaK1AAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>308<br />
+(77.4%)</td>
+</tr>
+<tr class="odd">
+<td>SCREEN_socialMedia<br />
+[character]</td>
+<td>1. Twitter,Reddit,LinkedIn<br />
+2. Facebook,Instagram,Reddit<br />
+3. Facebook,Twitter,Instagra<br />
+4. Facebook,Twitter,Youtube,<br />
+5. Facebook,Twitter,Youtube,<br />
+6. Facebook,Twitter,Reddit,L<br />
+7. Facebook,Twitter,Youtube,<br />
+8. Facebook,Instagram,Reddit<br />
+9. Facebook,Reddit,LinkedIn<br />
+10. Facebook,Twitter,Instagra<br />
+[ 210 others ]</td>
+<td>10 ( 2.5%)<br />
+9 ( 2.3%)<br />
+9 ( 2.3%)<br />
+8 ( 2.0%)<br />
+8 ( 2.0%)<br />
+7 ( 1.8%)<br />
+7 ( 1.8%)<br />
+6 ( 1.5%)<br />
+6 ( 1.5%)<br />
+6 ( 1.5%)<br />
+322 (80.9%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHMAAADkCAQAAAABKdOWAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABo0lEQVR42u3YQUrDYBRG0VS6xy7C9egeXKVORJJSBMES/vvOmRUnufhayHf53CZ4OfsBZMr8q+v+w/v3F/X1cvZj/Yf9r87df/O23c5+uqcYcrQyS2SWyCyRWSKzRGbJkMzr8ePH2c/zJJf9y2fibfrHL6/VVUMyD9/Nt9QWtGcLKpFZIrNEZonMEpklMktklpi8Vjdw8rIFlQw5WpklMktklsgskVkis0RmiS1odQO3oCGZDyav3uD1YPJqGnK0MktklsgskVkis0RmycxMW9BybEFVtqCSIUcrs0RmicwSmSUyS2SWzMy0BS3HFlRlCyoZcrQyS2SWyCyRWSKzRGaJzBKT1+oGTl62oJIhRyuzRGaJzBKZJTJLZJbILLEFrc4WtG22oIUNOVqZJTJLZJbILJFZIrNEZoktaHUDt6AhmSavkiFHK7NEZonMEpklMktklszMtAUtxxZUZQsqGXK0MktklsgskVkis0RmicwSk9fqBk5eD7agjN1xXo9/6WxBx1+ZIUcrs0RmicwSmSUyS2SWyCy5e98csQV1DTlamSVfWIg7FOkWBkYAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>SCREEN_socialMedia_TEXT<br />
+[character]</td>
+<td>1. Discord<br />
+2. Bluesky<br />
+3. 4chan<br />
+4. alt tech, to avoid exactl<br />
+5. blue sky<br />
+6. discord<br />
+7. Livejournal<br />
+8. mastedons,telegram<br />
+9. Monster, GlassDoor<br />
+10. nextdoor<br />
+[ 8 others ]</td>
+<td>5 (21.7%)<br />
+2 ( 8.7%)<br />
+1 ( 4.3%)<br />
+1 ( 4.3%)<br />
+1 ( 4.3%)<br />
+1 ( 4.3%)<br />
+1 ( 4.3%)<br />
+1 ( 4.3%)<br />
+1 ( 4.3%)<br />
+1 ( 4.3%)<br />
+8 (34.8%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADkAAADkCAQAAACIsUT/AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABFUlEQVR42u3cQQ6CMBQEUDHc0UN4Hr2Dp9SlxZRUGj5t6JudkfgSB9JZMb0vR+d6uDgIOacfnpXF3qfSFekPz8uvbhXga+P1Y3SJRCKRyLj8HF5bD6KaTOnhWTxpq5MqA3b5WNk+5W1TTea3z9631BhdIpFIJPJUpLkVlNXts+/eWSW/2yey0zEeEiQSiUSeirR9gtK6S3MLiUQikchsbJ+gtO7S9kEikUgkMhvbJyitu7R9kEgkEonshTS3gmL7IJFIJBLZJWn7BMX2QSKRSCSyS9L2CUrrLs0tJBKJRCKzsX2C0rpL2weJRCKRyF5Icysof73BcYckf+AOb68uZ3mHjPGQIJFIJPJUZOvtc0zG6LIB+QHNF0DLqcpusAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>375<br />
+(94.2%)</td>
+</tr>
+<tr class="odd">
+<td>PLATFORM<br />
+[factor]</td>
+<td>1. Facebook<br />
+2. Instagram<br />
+3. LinkedIn<br />
+4. Tumblr<br />
+5. Twitter/X</td>
+<td>102 (25.6%)<br />
+115 (28.9%)<br />
+8 ( 2.0%)<br />
+75 (18.8%)<br />
+98 (24.6%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADEAAABsCAQAAABphZK+AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAxUlEQVRo3u3YYQqEIBCG4Yzu2CE8T92hU9aPCMawkBxNxvf7s2wsPuQIM67bh9IZiwtGiEl+WbML4935KReawp/MWcAWfWqjFhAQEBCdE7d+sX1b5TVO9ientqxc1WAtFr25Tey56nhwJTw0NmoBAQEB0TJB707MP73b6+1X7C10evcrUSIQEBAQEJUJxoOnZN67U/p81r07rXImDy0EBAREbwRX+8S0Px6EiQ8Lin/LPx0VG7WAgICA6JyoPR6UiY1aVCAOPF8dIH3SPJIAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="graphtrial-level" class="section level2" number="1.2">
+<h2><span class="header-section-number">1.2</span>
+GRAPH/TRIAL-LEVEL</h2>
+<pre class="r"><code>dfSummary(df_graphs_all,  # %&gt;% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM,
+                      #       contains(&quot;D_&quot;), Prolific.Name:Study, contains(&quot;SCREEN_&quot;)), 
+          headings = TRUE,
+          plain.ascii  = FALSE,
+          style        = &#39;grid&#39;,
+          graph.magnif = 0.85,
+          varnumbers = FALSE,
+          valid.col    = FALSE,
+          tmp.img.dir  = &quot;/tmp&quot;)</code></pre>
+<div id="data-frame-summary-1" class="section level3" number="1.2.1">
+<h3><span class="header-section-number">1.2.1</span> Data Frame
+Summary</h3>
+<div id="df_graphs_all" class="section level4" number="1.2.1.1">
+<h4><span class="header-section-number">1.2.1.1</span>
+df_graphs_all</h4>
+<p><strong>Dimensions:</strong> 1990 x 27<br />
+<strong>Duplicates:</strong> 0</p>
+<table style="width:97%;">
+<colgroup>
+<col width="18%" />
+<col width="29%" />
+<col width="19%" />
+<col width="20%" />
+<col width="8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Stats / Values</th>
+<th>Freqs (% of Valid)</th>
+<th>Graph</th>
+<th>Missing</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>PID<br />
+[factor]</td>
+<td>1. R_11XUYk3OpC3HJPM<br />
+2. R_133GgyRbPsqfxPD<br />
+3. R_18Mwg4NFTa8GyAh<br />
+4. R_1A0uAWls6AhmTfr<br />
+5. R_1aUA7MBz4XYLbkl<br />
+6. R_1azgETg5gjYGzUf<br />
+7. R_1Bc6WwJjiC9VBVn<br />
+8. R_1Cq1wvlMciQUHh8<br />
+9. R_1D2krAejiiSE3Ln<br />
+10. R_1dz1Y8zwrsbEbB6<br />
+[ 388 others ]</td>
+<td>5 ( 0.3%)<br />
+5 ( 0.3%)<br />
+5 ( 0.3%)<br />
+5 ( 0.3%)<br />
+5 ( 0.3%)<br />
+5 ( 0.3%)<br />
+5 ( 0.3%)<br />
+5 ( 0.3%)<br />
+5 ( 0.3%)<br />
+5 ( 0.3%)<br />
+1940 (97.5%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIkAAADkCAQAAAAGR8/GAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAACD0lEQVR42u3YQUrDUBSG0RvpHl2Zi+gq6/TFD3nQScSc01ERSvi4cfAfr+Hs4+oH+HskCUnqtXy+bvuPZa3gSkKSkCQkCUlCkpAkJAlJQpKQJCQJSUKSkCQkiWNdjY6rn+YyawVXEpLEKcl9t9eVKwlJQpKQJCQJSUKSkCQkCUlCkpAkJAlJQpKQJCQJc/TMmKM3bK/hSkKSkCQkCUlCkpAkJAlJQpKQJCQJSUKSkCQkCUnC9jozttcNScIcHa4kJAlJQpKQJCQJSUKSkCQkCUlCkpAkJAlJQpKwvc6M7XVDkrC9hisJSUKSkCQkCUlCkpAkJAlJQpKQJCQJSUKSkCRsrzNje92QJGyv4UpCkpAkJAlJQpKQJCQJSUKSkCQkCUlCkpAkJAlJwhw9M+boDdtruJKQJCQJSUKSkCQkCUlCkpAkJAlJQpKQJCQJSUKSsL3OjO11w/YariQkCUlCkpAkJAlJQpKQJCQJSUKSkCQkCUlCkpAkbK8zY3vdkCTM0eFKQpKQJCQJSUKSkCQkCUlCkpAkJAlJQpKQJCQJ2+vM2F43JAnba7iSkCQkCUlCkpAkJAlJQpKQJCQJSUKSkCQkCUlCkjBHz4w5euOxfrnx9rq8II/zXz6vfrRLPE/fvDghSUgSkoQkIUlIEpKEJCFJSBKShCQhSUgSP/aS53u/8q8c9x3SfuPFCUlCkvgGNJw2r7qNXI8AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>Assigned.Block<br />
+[factor]</td>
+<td>1. 1<br />
+2. 2<br />
+3. 3<br />
+4. 4<br />
+5. 5<br />
+6. 6</td>
+<td>675 (33.9%)<br />
+260 (13.1%)<br />
+260 (13.1%)<br />
+270 (13.6%)<br />
+265 (13.3%)<br />
+260 (13.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAACACAQAAAD0FmKNAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAv0lEQVRo3u3ZQQ7CIBAFUDDe0TvoefQOPaVuaRM1lCla+v6ODS/plPAT8jP1zamzdwDwXC4eGw30mt+AKV024KbZavwZAoFAIHCH4OI+nNbtUpFcXvJ59TafUxoHm+H9a4m6NX/1qhIV8UuNP0MgEAgEtkenCY9OM4tOAwQCgcBBQSUqPJWdpr3VVD52tc94/GMBBAKBwB2COk14lKhFlCggEAgE9ohOE55/7zQeu4BAIBAIjMhvS1SPjD/D7uALbmwjDQl79pcAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>Study<br />
+[factor]</td>
+<td>1. Study1<br />
+2. Study2<br />
+3. Study0<br />
+4. Study3</td>
+<td>390 (19.6%)<br />
+1200 (60.3%)<br />
+200 (10.1%)<br />
+200 (10.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAABXCAQAAADFCCFUAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAyUlEQVRo3u3ZwQmDQBBA0RjsMUWknthDqkyuqxDYNTg7A+/fRJB3GGFHl8+tWvfZAOScre3FdmKwn0sEs4Wt+1uPwUe9I7yHCg4GMjIyMnKukJGRkfs7nJdnnH9HW9rzfsiCcapWWX0wXnk/ajQD8OfuF9P+DSs4GMjIyMjIuUJGRkbuz+53VcV3v4Lk7nU15pfkMPn3uprptSw4GMjIyMjIuUJGRkbuz7p6VdbV6KyrERUcDGRkZGTkXCEjI0+r+u5Xo4KDgRzRF7iAF/YbmFRkAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>Sample<br />
+[factor]</td>
+<td>1. TUMBLR<br />
+2. DATACOLLAR<br />
+3. BLUECOLLAR<br />
+4. GENERAL</td>
+<td>390 (19.6%)<br />
+100 ( 5.0%)<br />
+100 ( 5.0%)<br />
+1400 (70.4%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGYAAABXCAQAAABc8PjhAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAA3klEQVR42u3bQQrCQBAFUSO5o4fwPOYOnlK3PVkISRZd8623E0FS0BOYBpfPLce9+wGM+YeYtX7YThyg59IbUB95Hb96HPypd2/JTtSYGUNlDJUxVMZQGUNlDJUxVLv7DOt+ctRSb2rNl8ZT6vPnjtlr2AF03+4vxtQdwIynJ2rMjKEyhsoYKmOojKEyhsoYKncAJLE7gKgYFxpUUWNmDJUxVMZQGUNlDJUxVMZQudAgcaExgx8LjUmUs3HxXxrdxhdW1JgZQ2UMlTFUxlAZQ2UMVVRM7g5gdlFjZgzVF8yuF/bVeYYfAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>D_politicsSocial<br />
+[numeric]</td>
+<td>Mean (sd) : 29.1 (27.9)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 23 &lt; 100<br />
+IQR (CV) : 48 (1)</td>
+<td>75 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABZklEQVR42u3bQW7bMBRAwXHhO/YO7XmSO/SU7eYvVCAqnDiSGfe9nWFYkMYkIRHQ5bfi26NPYI1iQAzTdfvhdXeh+Hl59Il+ftuLvf791fc3f/Dr0Wd8eE0KxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDBd7z/Erb0s/CbXiQwrv8nVpMCdo2HlYX4iw8rD/BCGlyd/o/1Ghmf51/dqiUQMUwyIYYoBMUwHPVN8tfuMgxjeus9Y+S6jSYEYphgQwxQDYphO3Yv8nI7Y81qCYe/C9i7rPbsf/7iR2xx9CYZjN3VuOXprA2KYYsAia8Ne5z2nLs1w3n54kwIxTEtPivf28bXkqRg+vufVpACX7Th6/WIbqff1Y/NMcfmvrny3JgVimGIAfwA24iLARZFEKAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>50<br />
+(2.5%)</td>
+</tr>
+<tr class="even">
+<td>D_politicsFiscal<br />
+[numeric]</td>
+<td>Mean (sd) : 35.2 (29)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 35 &lt; 100<br />
+IQR (CV) : 43 (0.8)</td>
+<td>79 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABaklEQVR42u3bW07bUBRA0RXEHJlDGQ/MoaMsP+fDCFwBxc4N3fsviiI5Sz5+3DiXP4q7a2/AGsWAGKb77Yvn3QPF4+XaG/r9bb/s/eu3Ht79wO9rb/HhNRSIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGLAm+cbjuxp4YdITmRY+SGShgIxTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMeAf1yJXXmQ9kWF/kfXpxv7zfNDK9Hs8K6xA79WxAR/eG25tJz+IYd0fWr6nhgIxTDEghikGxDCd+nzDXntXJefdmSzBcP2rkoYCi+wNR/aX24DNyN0gw2dXOT4ycjfIcMSxZGmG8+5rl2Y47wzSmQIxTEsPxWf7+rHkRzF8fSG4oUAMUwyIYYoBMUwxIIbpsr3wev7hv1S+7tdmdeLyX33z3RoKxDDFAF4A3l0iwr6OAX4AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>50<br />
+(2.5%)</td>
+</tr>
+<tr class="odd">
+<td>STIMULUS_CATEGORY<br />
+[factor]</td>
+<td>1. F<br />
+2. D<br />
+3. C<br />
+4. B<br />
+5. A</td>
+<td>398 (20.0%)<br />
+398 (20.0%)<br />
+398 (20.0%)<br />
+398 (20.0%)<br />
+398 (20.0%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACYAAABsCAQAAACs9wgvAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAg0lEQVRo3u3VMQ6AIAxG4dZ4R+/gffQOnFIWh8bg0AaSEt6/OfglMPD0kX7bOlqJsd1+3IELPPUHEzmcVBl3TDAwMDDfPu9ZiSnv1D6uGgDs/5Pc2RUpMkEBAwPLgdEA/2gAGBgYWGOLBIUGgIGBgTW2SAMIin9gYGBgvo0LSqpj5sUq7wQbjDdP7oAAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>STIMULUS<br />
+[factor]</td>
+<td>1. B0-0<br />
+2. B1-1<br />
+3. B1-2<br />
+4. B1-3<br />
+5. B1-4<br />
+6. B2-1<br />
+7. B2-2<br />
+8. B2-3<br />
+9. B2-4<br />
+10. B3-1<br />
+[ 15 others ]</td>
+<td>398 (20.0%)<br />
+135 ( 6.8%)<br />
+135 ( 6.8%)<br />
+135 ( 6.8%)<br />
+135 ( 6.8%)<br />
+52 ( 2.6%)<br />
+52 ( 2.6%)<br />
+52 ( 2.6%)<br />
+52 ( 2.6%)<br />
+52 ( 2.6%)<br />
+792 (39.8%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAD8AAADkCAQAAACFrzS4AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABJElEQVR42u3dQYrCQBCGUSPeMYfwPHoHT6krpRMRaWOqGup9u2FwHtqR/Jsw0/2Q2TFVL86f2h+uP1wI56n3FS1yWv5q7vxTt43vvvbZ4/F4PL4Ov7rhbr2B9ja1N//u5fBTrejsX13etl7/ktvAr7fe/hdi7bPH4/F4PD4oUzMxWy8xPB6Px+Nr8LZeYiOdvakZGx6Px+PxQdl6iY109rZebHg8Ho/HB2XrJTbS2T+33t4L7+O7n7sfDvkrHx0ej8fj8TV4UzMxWy8xPB6Px+Nr8LZeYrZeYng8Ho/H1+BtvcRGOntTMzY8Ho/H44Oy9RIb6extvdjweDwej6/Bm5qJfXkMeJeaD3njfw3pb3l11f7i4fF4PB4f1EhbL77aZ5/MPwDIiD8nwzuwKAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>BLOCK<br />
+[factor]</td>
+<td>1. B0<br />
+2. B1<br />
+3. B2<br />
+4. B3<br />
+5. B4<br />
+6. B5<br />
+7. B6</td>
+<td>398 (20.0%)<br />
+540 (27.1%)<br />
+208 (10.5%)<br />
+208 (10.5%)<br />
+216 (10.9%)<br />
+212 (10.7%)<br />
+208 (10.5%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC8AAACUCAQAAACpI7iRAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAyUlEQVRo3u3YQQ5AMBCFYZXe0SGchzs4JdtBDB1t02n+t6PJt5hKH8I+lMxYVHfOR3mxGjZiDtc7EonnpSkR317Wfc8eHh4eviP+ct6/nd+pCbJbgpmRkWJHs1/yvFOJGf+s8nvOD4fv2cPDw8PX5OlaJa107Wya3MeutW6579nDw8PDd8RT5UroWnh4eHj4DKFrlbRS5bYy//yL2rbpvmcPDw8PX5Ona5W00rV8NsPDw8PDP4cqV0LXwsPDw8NnSM2uzR/fsy/MH25KKXci+MnJAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>ENCOUNTER<br />
+[factor]</td>
+<td>1. scroll<br />
+2. engage</td>
+<td>845 (42.5%)<br />
+1145 (57.5%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFYAAAAvCAQAAADTcvV1AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAi0lEQVRYw+3YQQqAMAxEUSO9o4fwPHoHT6nbxFUpNM3An51U4S1GSGrvppN9NQBshTT/cKcW+LSetzypxaMjjfoMfCNVA7BgwYIFCxYsWLAZ+c2zI1NmXsxP4l2je3K8T6oGUtjQ2avijYfr5rKFsS/xh5eqAViwYMGCBQsWLNiM6C6M1SNVA7Cz8gFy6QxMtjnQdgAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>ID<br />
+[factor]</td>
+<td>1. individual<br />
+2. organization<br />
+3. education<br />
+4. business<br />
+5. news<br />
+6. political</td>
+<td>238 (12.0%)<br />
+125 ( 6.3%)<br />
+484 (24.3%)<br />
+415 (20.9%)<br />
+379 (19.0%)<br />
+349 (17.5%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAACACAQAAADaU0MfAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAA1UlEQVRo3u3ZQQ6CQAyFYcdwRw/hefAOnlIXbApCOzNNGUv+7gzhW7yaeQHK5xYz9yA3ITzJHy8j8GfRr8vbp/Wlh3Lb+z+iAAYGBr4mvDmP285cbYo89Us3s4y0kmc8/5SpVZ+V8LZMPavMlzEwMDBwzdB58bDReY0jsmx4gLRmvfh8GQMDAwMPhSnT/Sj6Om//WdDdeUdbyfd3AwYGBh4K03nxsLNMj1+quspUW3W+jIGBgYFrhs6Lhx2dp39E7O48a835MgYGBgYeCp9TpimiyAd/ATDgI6Kb9AKLAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>AGE<br />
+[factor]</td>
+<td>1. boomer<br />
+2. gen-x<br />
+3. millennial<br />
+4. gen-z</td>
+<td>210 (10.6%)<br />
+818 (41.1%)<br />
+789 (39.6%)<br />
+173 ( 8.7%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEEAAABXCAQAAADxceBIAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAxElEQVRo3u3ZMQ6DMBBE0THyHXOInIfcIadMijQLxCsXNp7iT4cQ8pPXxQDlo9XZVgMg/FLjxSs5GM8yctm4UD3eejQeeU/cBYNBQIAAAQIECBCynPrCzF7QSon9ZWgxShNXdRvEft9LRdjwzu44NscTZzAICBAgQIAAAUIWuqNkMQgDwoL6ev6Ient9vR54g0FAgAABAgQIELJQXyWLQRgQuurr2L/2KeF/fZ19RA0GAQECBAgQIBgT3LrjmhgMAoIkfQHddBf2qzqIvQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>GENDER<br />
+[factor]</td>
+<td>1. Other<br />
+2. Female<br />
+3. Male</td>
+<td>124 ( 6.2%)<br />
+670 (33.7%)<br />
+1196 (60.1%)</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAABDCAQAAABdT2HZAAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAAAs0lEQVRo3u3YQQ5AMBBGYZXe0SGchzs4JQubGRqRqHb+5L1dY/MthnSkfVBr7A2AHLNsD+ttsOfUG3hmYdk/mtxp6y0tJjgYkCFDhgw5VpAhQ4b8vst9OeYN2ZfsfT/IClLIKgUHQ5DsZnn56T9M3aX3cV2tU+1XWnAwIEOGDBlyrCBDhtwtdr+/YvdrXZPdr0JmZhvsft/zHwXBwYAMGTJkyLGCDBky5Pepr6saCQ4G5BYdZXsSIbGu/WEAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>DESIGN<br />
+[numeric]</td>
+<td>Mean (sd) : 47.7 (28.2)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 45 &lt; 100<br />
+IQR (CV) : 45 (0.6)</td>
+<td>101 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABbklEQVR42u3bwVHbUBRA0eMMPdJDUg/0kCqTzVtoGNtDsCwJ5d4dXhjrjP7XExaXP4ofe3+AYxQDYphelj9cVnrTtxsbzq+1fsEqLT/ky5ff5W6vV177vfdx36lFgRimGBDDFANimB66YL6d5obkwbnh9eqrR54QnsLwzG6fa+tPowdm2PJca4tEDNOmi+K4d56bMhz3utKiQAxTDPiwN2w5sByrD1vkcTex59aiQAxTDIhhigExTDHg4H92udX6d6rfkmH9Ia9FgRimTy6K83wj8RDD2W+5WhSIYYoBMUwx4JtOkf/SnUv9YvQ+FcP1Q/7Mxf5UDF9/GrO9AQc5G/Yf1Q/BsP+o3qJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGcFk+p/u++0O7W/Zz8Y8El//qyG/WokAMUwzgL77UIsRdh16kAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>DATA<br />
+[numeric]</td>
+<td>Mean (sd) : 42.6 (27.3)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 39 &lt; 100<br />
+IQR (CV) : 44 (0.6)</td>
+<td>101 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABdklEQVR42u3bS1LbUBBA0eMUe2QPyXpgD6ySTHrgSkmUwUJWxL0ze+DPKV7rSTKXd8WvR3+AYxQDYpierh9cNnrRl5WB82erN9ik6w/59OVX+bDnhefeHv29P6hFgRimGBDDFAPuPFK8nGYnfucB83nx2SMfGpdrUSCGKQb8MxvWR96xzga+meE8I++ztSgQwxQDYphiQAzTjecU5zmJuovh7PuJFgVimL7pAv1yx71/sSvDcSdMiwIxTDFg59nwufa8CHRghj1HaosCMUwx4OCzYa3td6P/JcP2o7NFgRimGBDDFANimGJADFMMiGGKATFMhzi1evwd0kMwPP7+RYsCMUwxIIYpBsQwHeKAuVXL+49brlefiuHr//15KoblVveoV38lP4Dhlj1qIxIxTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMN0ub7B9/rwX6Tt2e+re5iXH/XNV2tRIIYpBvAXIt8jMhUCnksAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>POLITICS<br />
+[numeric]</td>
+<td>Mean (sd) : 47.5 (19)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 50 &lt; 100<br />
+IQR (CV) : 17 (0.4)</td>
+<td>100 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRD8RTl5AAABcElEQVR42u3bS46bUBBA0eOo95g9JOvp7CGrTCY1IBFIqNvYmL53Zg/8OXI9ngDf/ii+PfsDnKMYEMP0tnxwO/St3jeXoZ/HvvFGy4/z9uFX+UDfV5/9/QyD/2ooEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDA99ML+Vlt3PjzuvodTMDz/voeGAjFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBhx0Zvr95f7xfNAJ+rVT7mf4o+FWDQVimGJADNOnlsjXOyIcwnCGi7D3qaHASS7sb/W4+x5OzfC4kWsoEMMUA2KYYsDOI8V1doufYrjObnGrhgIn3z5tdf/d5Usy3H9E/2G4/lK4i+H6S+FOhtdu/de8Z8W4FMP6ZYHNUV/wXIphvT2D3r4BMUwxIIYpBnBbHk1+fald5I/FAfP2pb75Zg0FYphiAH8BRZYixPSEfi4AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>ALIGN<br />
+[numeric]</td>
+<td>Mean (sd) : 52.3 (18.2)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 51 &lt; 100<br />
+IQR (CV) : 16 (0.3)</td>
+<td>101 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABbElEQVR42u3cS47aQBRA0UPEHrOHZD2dPfQqk8kbWBGlJoSP3X3vDAYGjvygKAtOvxXfXv0E9lEMiGE6b2+cHvpQb8u3oZ+PfeBF26dzvvkoN/T94r3vrzD4q4YCMUwxIIYpBsQwxYAnrxtWrRZWz1tW7YLh9cuqhgIxTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYsBOrmivet4F/10zPO+Cf0OBGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwPWTb5e1wfwPwoN2nS/tGe/j17aqGAjFMMWDnO9Or7r9xf0iG+2/cNxSIYYoBMUwxIIYpBvznuuF43yQfwrCHvxy4Tw0FDrqYXnV5SK/5pnH++DDH6fbNnvPHB+L907wHXMnwGVue45th+QIM15zJfVIghikGxDDFgBim0/ZD9dfBV5H/1o/NuuH0pV75soYCMUwxgD/6NCEsR+eDIQAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>TRUST<br />
+[numeric]</td>
+<td>Mean (sd) : 57.8 (18.9)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 57 &lt; 100<br />
+IQR (CV) : 20 (0.3)</td>
+<td>98 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABaklEQVR42u3cQW7aQBiA0UeVO/YO7XnSO+SU6eZfWBUjpcExDnzfDhZgnjyDx8Zc3hU/7r0B5ygGxDC9bB9c7rIJr8vp6feXbtD2bV8+/So79vPqs28HbkGDAjFMMSCGKQbEMMWAGKYYEMMUAw5dU7ye+AzPoUur/11CreD2X3meYoW56riVZ3MDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMp75cs2r/q1nfkmH/q1kNCsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgC86F3nmOycOZLh+0vTIW89PwnCfru+FHzlt/1AMn98HmyIRwxQDYphiQAzTQ31hXm95TLs5nngCho/8DOAmhu+3dlh1495w/z+u2qemSMQwxYB/5obHmfJuYlhPeY8yFa5qUCCGKQbEMMWAGKbL9lDhz1MdN/zaLLQvT/XJlzUoEMMUA/gLKsIgwB8sZ78AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>BEAUTY<br />
+[numeric]</td>
+<td>Mean (sd) : 49.1 (28.8)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 54 &lt; 100<br />
+IQR (CV) : 47 (0.6)</td>
+<td>101 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABaElEQVR42u3bQU6DUBRA0VPjHt2Drkf34Cp18gbElKRWClXvnbUDCof8/wnQ04fi4egduI9iQAzT4/LD6ZBdeF2dnl5uukPLn328eisb9nT22/cd96BBgRimGBDDFAO+rBRHLV3H92XBPH7pWrZ2WrY/KXdx3bDWfieluQExTDHgzueGtbafOn8lw/ZTZ4MCMUwxIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDe5CbffY5adGb57YOfuFh717GtDhrWboK9/5H3CHw6K+3rmeX1NkYhh2vVxza1nkvPbv2R92pXh1jPJ9etTgwIxTDEghikGxDD9ytc8vtfq1crieuIfMFxytdKgQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBnJZvy739kb8MXdbz4oXA07868tUaFIhhigF8AiG3I5TsMj6GAAAAPXRFWHRpY2M6Y29weXJpZ2h0AENvcHlyaWdodCAyMDA3IEFwcGxlIEluYy4sIGFsbCByaWdodHMgcmVzZXJ2ZWQunmbcKQAAACN0RVh0aWNjOmRlc2NyaXB0aW9uAEdlbmVyaWMgUkdCIFByb2ZpbGUapziOAAAAAElFTkSuQmCC" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>INTENT<br />
+[numeric]</td>
+<td>Mean (sd) : 41.4 (31.2)<br />
+min &lt; med &lt; max:<br />
+0 &lt; 36 &lt; 100<br />
+IQR (CV) : 56 (0.8)</td>
+<td>101 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABZ0lEQVR42u3bW26bUBRA0eXKc+wc0vE4c+gom5/zQSUj2U0whO79Z/khWOJyMY/LH8WPvRfgGMWAGKbr8sX76o7i12XvBf36lit7/futn3e/8HvvJd68BgVimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQw3R97GO3lftgznIXzIMMZ78LpkGBGKYHB8VaZ9lnfJLhLPuMBgVimGJADNMnd5Fr3Z9Bjjt/bMRwbwY58vzRoMBmW8OW3TZ43OEbMmxx0NagQAxTDIhhigExTDHgmx43rPXv/2QOzHB7+in6+/9kVn9nwfNShmfPXH7N0eIjv/JShuOeuTzEoHh+8z8lw/5bSRMmYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMl+UFo/fdrx69srfFldPLf7XmqzUoEMMUA/gAOSojljIAXp8AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>DESIGN_z<br />
+[numeric]</td>
+<td>Mean (sd) : 0 (1)<br />
+min &lt; med &lt; max:<br />
+-1.7 &lt; -0.1 &lt; 2.1<br />
+IQR (CV) : 1.6 (1.556384e+16)</td>
+<td>173 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABYUlEQVR42u3aQU4bQRBA0eeIO3KH5DzkDjkl2dRihDTI4EE9DP/vYGGbp+4a1O7bq+LX6g9wjmJADNPT9ofbwS/+8s7g+XP0m3247Yd7+vSr3NXzzu//rTZ4U5sCMUwx4JDZ8HKB/8AOGZFHDsI1T5cvflJ8phVPl2YDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDtOzY5VxHd8sYzvUNRpsCMUwx4AOz4VwjbRnD2YbaMob17a/IR7/I+VYMX7ceG5GIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiQAzTtzp22e/Rc6mLMDx6LtWmwJvVcO1D+LsZ9hfXNY7h92tTIIYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMuMw1j/3euaywuQdzeYb77sG0KcBtu2b+/qjbLr83m+L2o/7y3doUiGGKAfwHcykfwBajIFYAAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>DATA_z<br />
+[numeric]</td>
+<td>Mean (sd) : 0 (1)<br />
+min &lt; med &lt; max:<br />
+-1.6 &lt; -0.1 &lt; 2.5<br />
+IQR (CV) : 1.6 (1.168327e+16)</td>
+<td>175 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABYElEQVR42u3aW07CUBRA0YVxjs5Bx6NzcJT6cz4akxqEkmLZ+w8SXiu9ze0ppy/F095f4D6KATFMz8sHp43f/P2XE8/b1h/255Zf7vnidzmrl5XnP/c2+FGLAjFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBm0yf3g8w499kCPdfRm3rtSgQwxQDYphiQAxTDIhhigExTDEghunG/2/4e/v8NeTuGPa5Xm1RIIYpBsQwnX2KPMLEcQOGI0wcN2HYtkuOrvXXXLuj2I3hkmPrdsdjp0jEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBvyYPh177Ho2w/qY6xiD1/VaFLjLW7mXdO3M+iAM186sWxSIYYoBMUwxIIYpBsQwxYDD7CLX++WqebHNPjzDedvsFgVimGJADFMMiGGKATFMMSCG6bTccn881F2r18U1xemhfvlqLQrEMMUAvgG5SR++S6hTewAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>POLITICS_z<br />
+[numeric]</td>
+<td>Mean (sd) : 0 (1)<br />
+min &lt; med &lt; max:<br />
+-2.5 &lt; 0.1 &lt; 2.8<br />
+IQR (CV) : 0.9 (-7.710857e+15)</td>
+<td>168 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABc0lEQVR42u3cQW7aUBRA0UPFHruHdj3JHrrKdvIGlqCFWNgYeu8sEUrsI//nz8A+/VZ8e/YBHKMYEMN0Xv5wesohfFwdTz83P5jlvz2v/isP7PvFb37tfAQtCsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQwxYAYphgQwxQDYphiwO5P5X4c9D0Juz+c/PwHka/VokAMUwzYeDYcdSDuzHA5EO8fh9cIt3u1xSFeY3Gtfe8ozQY88Gp4nTmwKcNRN0b31aJADFMMiGGKAQfePl1ru53lKoZn7RG2uyWvvBpeeY/wQIbjdHllrlkmL8+w/jvsWzFctmaQviHDmrl1k+G1vzn+8ywWV8j55off4q5w6xzOX/v4u9ZmGpyW6+DzLebAvf1YzIbTf3Xmf61FgRimGMAfuGUn7JTYzB4AAAA9dEVYdGljYzpjb3B5cmlnaHQAQ29weXJpZ2h0IDIwMDcgQXBwbGUgSW5jLiwgYWxsIHJpZ2h0cyByZXNlcnZlZC6eZtwpAAAAI3RFWHRpY2M6ZGVzY3JpcHRpb24AR2VuZXJpYyBSR0IgUHJvZmlsZRqnOI4AAAAASUVORK5CYII=" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>ALIGN_z<br />
+[numeric]</td>
+<td>Mean (sd) : 0 (1)<br />
+min &lt; med &lt; max:<br />
+-2.9 &lt; -0.1 &lt; 2.6<br />
+IQR (CV) : 0.9 (-6.566357e+15)</td>
+<td>163 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABe0lEQVR42u3cQXLCIABG4ZeOd+wd2vPYO/SUdvMvGMXRwRCgvrfThcavgJhGtwsGH6MPYI5kAGRIp/LG1v3pztWl6Lv/E1cqD+XU/CiNfd7c8zvC4ConBSBDkgGQIckAyJBkAGRIMgAyJBkAGZIMgAxJBkCGJAMgQ5IBkCHJAMiQZABkSDIAMiQZABmSDIAMSQZAhiQDIEOSAZAhyQDIkGQAZEiHXx5aq3bt7LFXzk7BMP7KWScFIEOSAZAhyQDIkGQAJtk31Dp2SzUtw7FbKicFIEOSAZAhyQDIkGQAZEgyAJ13kedlfiqk82b6eks8w7fzazkpABmSDIAMSQZAhiQDMPFJuFr9zk8uxdDv/ORuDOtsnLsyzPDv+SkYxnQ7CltWi+UZ9vnw1sSw9jqwG8Pa68BDhpl+xnAgw//7Kzcy1FptJWjZaz7BsNoIaTne5d8wn6s6oosR8iYMj0aIH7QB2MrR8rPYYvhaX8Wk2N7qld/NSQHIkGQA4A+FlCjK+2H+owAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>TRUST_z<br />
+[numeric]</td>
+<td>Mean (sd) : 0 (1)<br />
+min &lt; med &lt; max:<br />
+-3.1 &lt; 0 &lt; 2.2<br />
+IQR (CV) : 1.1 (-1.614898e+16)</td>
+<td>163 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABgUlEQVR42u3cUU6DQBRG4YPpHt2DrqfuwVXqy29C5BqakYGBnvNWH1r4ykUGkk5fGLwcvQFjJAMgQ7rNX0yHbMK9PD29d9+Y+cfemt9lw14Xf/nceQscCkCGJAMgQ5IBkCHJAMiQZABkSDIAMiQZABmSDIAMSQZAhiQDIEOSAZAhyQDIkGQAZEgyADIkGYBBnmhXVY/7+z3sH5Zh34f9DgUgQ5IBkCHJAMiQZABkSDIAMiQZABnSsEurqn6rzlMx9Ft1OhSADEkGQIYkAyBDkgGQIckAyJBkAGRIMgAypFMttKuW9yBa7kCcnuH3PYi2OxAOBbD70XAf9Kdkdh+K43+rocqhAGRIMgAyJBkAGZIMQOfrhlEvlnZm2OqKv38OBXCBFeaylsf/mzGMcx5oWbVseDSMuWh6rAsORVV5rM4GpYlhnAF4tLUjtfFoOPMAVK0ynO+b/zdDvctX++ZXGZ5jl6u8igRgms/Bx1OcB356m/3DnJ5qz//MoQBkSDIA8A1tjCfw7VI+eAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="even">
+<td>BEAUTY_z<br />
+[numeric]</td>
+<td>Mean (sd) : 0 (1)<br />
+min &lt; med &lt; max:<br />
+-1.9 &lt; 0.2 &lt; 1.8<br />
+IQR (CV) : 1.7 (1.025126e+16)</td>
+<td>173 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABV0lEQVR42u3ay23CQBRA0UNEj+khqSfpIVUmm7fwJuYjPgbu3SEkMAeeNZph96t4u/cFbKMYEMO0Xz7Y3eUSvg7cnj6vdFnLt92f/SoX7H3luZ+bXEFDgRimGBDDFANimGLARtYN660vry6zuHoAhlssrhoKxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQbEMMWAC+5F3utcemMMWziXPr+GAg+xQb/e2jAeP4gPz/D/KJ4yiA0FYphiwA3vDYfWFS/CcJlb2bVqKHDSr2HbP+ubMTz2cvkEhmf+vk9geObve71ukYhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMeIIzzLUObCouDnqfmuH4LcWGAjFMMSCGKQbEMMWAGKYYEMMUA2KYYkAMUwyIYYoBMUwxIIYpBsQw7ZZb+d8v9Wfhj8U5xe6lPvm/NRSIYYoB/AGB/R0qoCuw1QAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+<tr class="odd">
+<td>INTENT_z<br />
+[numeric]</td>
+<td>Mean (sd) : 0 (1)<br />
+min &lt; med &lt; max:<br />
+-1.5 &lt; -0.2 &lt; 1.9<br />
+IQR (CV) : 1.8 (4.764188e+16)</td>
+<td>179 distinct values</td>
+<td><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIMAAABfCAQAAABhaLy5AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfpAxgSCRGLQgnvAAABUUlEQVR42u3ay03DQBRA0RNEj/QA9UAPVAmbt7CQkENIyCTcu4vyUXzk8fgzhw/Fw7X/wBrFgBimx+2Lw+7HX484lLzs/8wSbTfl8adfftp5//3aW3dSDQrEMMWAGKYY8GWmOGY6vM++TJj3OR3u16BADFMMiGGKATFMMSCGKQbEMMWAE27C7bd/gbbe3coLMNzi5VmDAjFMMSCGKQbEMMWAGKYYcJGzyMt3/uUFN8lw/hP2BgVimGJADNOSh8i/f7K+JMPeTHD+GzcNCsQwxYAYphgQwxQDYpiucvq03vrLqzCs93hv0ZPp33fEHre5P3W3DD/b4zpEIoYpBsQwxYAYphgQwxQDYphiQAxTDIhhigExTDEghikGxDDFgBimGBDDFANimGJADFMMiGGKATFMMSCGKQZw2K6Ueltuod4le94sATv8qy3/tgYFYphiAJ+/dRomVM5aBAAAAD10RVh0aWNjOmNvcHlyaWdodABDb3B5cmlnaHQgMjAwNyBBcHBsZSBJbmMuLCBhbGwgcmlnaHRzIHJlc2VydmVkLp5m3CkAAAAjdEVYdGljYzpkZXNjcmlwdGlvbgBHZW5lcmljIFJHQiBQcm9maWxlGqc4jgAAAABJRU5ErkJggg==" /></td>
+<td>0<br />
+(0.0%)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
 </div>
 
 

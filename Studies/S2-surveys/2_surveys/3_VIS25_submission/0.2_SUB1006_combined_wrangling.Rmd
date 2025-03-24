@@ -163,6 +163,7 @@ addmargins(table(df$Study, df$Assigned.Block))
 ## WRITE FILE
 saveRDS(df, file = "data/output/COMBINED/df_participants_ALL.rds")
 
+df_participants_all <- df
 ## CLEANUP
 rm(df, df1, df3)
 
@@ -178,9 +179,11 @@ df1 <- df_graphs_s12 %>%
   # Retain only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
          STIMULUS_CATEGORY, STIMULUS, BLOCK, ENCOUNTER, MAKER_ID, MAKER_AGE, MAKER_GENDER, 
+         MAKER_DESIGN:CHART_TRUST,
          MAKER_DESIGN_z:CHART_TRUST_z) %>% 
   # Filter out questions dropped from Study 3
   select(-c("MAKER_ARGUE_z","MAKER_SELF_z","CHART_LIKE_z","CHART_TRUST_z"))  %>% 
+  select(-c("MAKER_ARGUE","MAKER_SELF","CHART_LIKE","CHART_TRUST","MAKER_LATENCY","TOOL_CONF"))  %>% 
   # Rename questions to match Study 3 and get rid of magicwizard transform for raw z value
   mutate(
     DESIGN_z = as.numeric(MAKER_DESIGN_z),
@@ -193,10 +196,17 @@ df1 <- df_graphs_s12 %>%
   rename(
     ID = MAKER_ID,
     AGE = MAKER_AGE,
-    GENDER = MAKER_GENDER
+    GENDER = MAKER_GENDER,
+    DESIGN = MAKER_DESIGN,
+    DATA = MAKER_DATA,
+    POLITICS = MAKER_POLITIC,
+    ALIGN=MAKER_ALIGN,
+    INTENT=CHART_INTENT,
+    TRUST=MAKER_TRUST,
+    BEAUTY=CHART_BEAUTY
   ) %>% 
   # Drop old columns
-  select(-c(MAKER_DESIGN_z:CHART_INTENT_z)) %>% 
+  select(-c(MAKER_DESIGN_z:CHART_INTENT_z)) %>%
   # Drop levels
   droplevels()
 
@@ -212,13 +222,20 @@ df3 <- df_graphs_s3%>%
   # drop latency
   select(-contains("LATENCY"))%>% 
   # drop non-zscore cols 
-  select(-c(PRE_DESIGN: PRE_INTENT)) %>% 
+  # select(-c(PRE_DESIGN: PRE_INTENT)) %>% 
   # rename categoricals
   rename(
     ENCOUNTER = PRE_ENCOUNTER,
     ID = PRE_ID,
     AGE = PRE_AGE,
-    GENDER = PRE_GENDER
+    GENDER = PRE_GENDER,
+    DESIGN = PRE_DESIGN,
+    DATA = PRE_DATA,
+    POLITICS = PRE_POLITICS,
+    ALIGN = PRE_ALIGN,
+    INTENT = PRE_INTENT,
+    TRUST = PRE_TRUST,
+    BEAUTY = PRE_BEAUTY
   ) %>% 
   #get rid of magicwizard transform for raw z value
   mutate(
@@ -229,8 +246,8 @@ df3 <- df_graphs_s3%>%
     TRUST_z = as.numeric(PRE_TRUST_z),
     BEAUTY_z = as.numeric(PRE_BEAUTY_z),
     INTENT_z = as.numeric(PRE_INTENT_z)) %>% 
-  # drop old columns
-  select(-c(PRE_DESIGN_z: PRE_INTENT_z)) %>% 
+  # drop old columns datawizard columns
+  select(-c(PRE_DESIGN_z: PRE_INTENT_z)) %>%
   droplevels()
   
 ## JOIN STUDIES
@@ -243,6 +260,7 @@ addmargins(table(df$Study, df$STIMULUS))
 ## WRITE FILE
 saveRDS(df, file = "data/output/COMBINED/df_graphs_ALL.rds")
 
+df_graphs_all <- df
 ## CLEANUP
 rm(df, df1, df3)
 
@@ -411,6 +429,44 @@ saveRDS(df, file = "data/output/COMBINED/df_sd_questions_long_ALL_z.rds")
 
 #cleanup
 rm(df1, df3, df)
+
+```
+
+# PROFILING
+
+## PARTICIPANT-LEVEL
+
+```{r summarytools-profile-participants, results='asis'}
+
+
+dfSummary(df_participants_all,  #%>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM, 
+                      #       contains("D_"), Prolific.Name:Study, contains("SCREEN_")), 
+          headings = TRUE,
+          plain.ascii  = FALSE,
+          style        = 'grid',
+          graph.magnif = 0.85,
+          varnumbers = FALSE,
+          valid.col    = FALSE,
+          tmp.img.dir  = "/tmp")
+
+
+```
+
+## GRAPH/TRIAL-LEVEL
+
+```{r summarytools-profile-graphs, results='asis'}
+
+
+dfSummary(df_graphs_all,  # %>% select(PID, duration.min, Distribution, Assigned.Block, PLATFORM,
+                      #       contains("D_"), Prolific.Name:Study, contains("SCREEN_")), 
+          headings = TRUE,
+          plain.ascii  = FALSE,
+          style        = 'grid',
+          graph.magnif = 0.85,
+          varnumbers = FALSE,
+          valid.col    = FALSE,
+          tmp.img.dir  = "/tmp")
+
 
 ```
 
