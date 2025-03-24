@@ -1657,8 +1657,8 @@ ref_sd_questions_z &lt;- c(&quot;MAKER_DESIGN_z&quot;,&quot;MAKER_DATA_z&quot;,
                       &quot;CHART_TRUST_z&quot;, &quot;CHART_INTENT_z&quot;, &quot;CHART_LIKE_z&quot;, &quot;CHART_BEAUTY_z&quot;)
 
 ## SD questions on Study3
-ref_min_sd_questions &lt;-  c(&quot;DESIGN&quot;,&quot;DATA&quot;,&quot;POLITICS&quot;, &quot;TRUST&quot;,&quot;ALIGN&quot;,&quot;BEAUTY&quot;,&quot;INTENT&quot;)
-ref_min_sd_questions_z &lt;-  c(&quot;DESIGN_z&quot;,&quot;DATA_z&quot;,&quot;POLITICS_z&quot;, &quot;TRUST_z&quot;,&quot;ALIGN_z&quot;,&quot;BEAUTY_z&quot;,&quot;INTENT_z&quot;)
+ref_min_sd_questions &lt;-  c(&quot;DESIGN&quot;,&quot;DATA&quot;,&quot;POLITICS&quot;,&quot;ALIGN&quot;,&quot;INTENT&quot;,&quot;TRUST&quot;,&quot;BEAUTY&quot;)
+ref_min_sd_questions_z &lt;-  c(&quot;DESIGN_z&quot;,&quot;DATA_z&quot;,&quot;POLITICS_z&quot;, &quot;ALIGN_z&quot;,&quot;INTENT_z&quot;,&quot;TRUST_z&quot;,&quot;BEAUTY_z&quot;)
 
 
 ### USEFUL CODE FOR TROUBLESHOOTING COMPARING DF STRUCTURE
@@ -1676,6 +1676,7 @@ message-obscured version of the graph.</p>
 <pre class="r"><code>## IMPORT STUDIES 1-3 FILES
 df_participants_s12 &lt;- readRDS(&quot;data/output/Study_1_2/df_participants.rds&quot;)
 df_graphs_s12 &lt;- readRDS(&quot;data/output/Study_1_2/df_graphs_z.rds&quot;) #zscore version has both raw and zscores
+df_questions_long_s12 &lt;- readRDS(&quot;data/output/Study_1_2/df_questions_long.rds&quot;) #all qs long
 df_sd_questions_long_s12 &lt;- readRDS(&quot;data/output/Study_1_2/df_sd_questions_long.rds&quot;)
 df_sd_questions_long_s12_z &lt;- readRDS(&quot;data/output/Study_1_2/df_sd_questions_long_z.rds&quot;)
 
@@ -1683,6 +1684,7 @@ df_sd_questions_long_s12_z &lt;- readRDS(&quot;data/output/Study_1_2/df_sd_quest
 ## IMPORT Study 3 FILES
 df_participants_s3 &lt;- readRDS(&quot;data/output/Study_3/df_participants_S3.rds&quot;)
 df_graphs_s3 &lt;- readRDS(&quot;data/output/Study_3/df_graphs_z_S3.rds&quot;) #zscore version has both raw and zscores
+df_questions_long_s3 &lt;- readRDS(&quot;data/output/Study_3/df_questions_long_S3.rds&quot;)
 df_sd_questions_long_s3 &lt;- readRDS(&quot;data/output/Study_3/df_sd_questions_long_S3.rds&quot;)
 df_sd_questions_long_s3_z &lt;- readRDS(&quot;data/output/Study_3/df_sd_questions_long_z_S3.rds&quot;)</code></pre>
 </div>
@@ -1808,8 +1810,362 @@ saveRDS(df, file = &quot;data/output/COMBINED/df_graphs_ALL.rds&quot;)
 ## CLEANUP
 rm(df, df1, df3)</code></pre>
 </div>
-<div id="join-sd-question-long-files" class="section level2" number="6">
-<h2><span class="header-section-number">6</span> JOIN SD QUESTION LONG
+<div id="join-question-long-files" class="section level2" number="6">
+<h2><span class="header-section-number">6</span> JOIN QUESTION LONG
+FILES</h2>
+<p>(useful for graphs and models that need all qs in long format, not
+just the sd questions)</p>
+<pre class="r"><code>## KEEP TIME COLUMN FOR GRAPHING
+
+## WRANGLE STUDIES 1_3, 
+df1 &lt;- df_questions_long_s12 %&gt;% 
+  # Retain only cols needed for modelling
+  select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
+         STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value) %&gt;% 
+  # Filter out questions dropped from Study 3
+  filter(QUESTION %nin% c(&quot;MAKER_ARGUE&quot;,&quot;MAKER_SELF&quot;,&quot;CHART_LIKE&quot;,&quot;CHART_TRUST&quot;)) %&gt;% 
+  # Rename questions to match Study 3
+  mutate(
+    QUESTION = str_replace(QUESTION, &quot;MAKER_CONF&quot;,&quot;ID_CONF&quot;), #handle maker conf
+    QUESTION = str_replace(QUESTION, &quot;MAKER_&quot;,&quot;&quot;), #strip MAKER_ prefix
+    QUESTION = str_replace(QUESTION, &quot;CHART_&quot;,&quot;&quot;), #strip CHART_ prefix
+    QUESTION = str_replace(QUESTION, &quot;POLITIC&quot;,&quot;POLITICS&quot;), 
+    TIME = &quot;PRE&quot; #INDICATES measuremeent was on obscured graph 
+  ) %&gt;% 
+  # Drop levels
+  droplevels()
+
+## Study 3, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
+df3 &lt;- df_questions_long_s3 %&gt;% 
+  #Retail only cols needed for modelling
+  select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal, 
+        STIMULUS_CATEGORY, STIMULUS, BLOCK, QUESTION, value, TIME) %&gt;% 
+  ######### OLD CODE 
+  # # Filter out responses from the POST test
+  # filter(TIME==&quot;PRE&quot;) %&gt;% 
+  # # Drop time
+  # select(-TIME) %&gt;% 
+  # Drop levels
+  droplevels()
+
+## JOIN STUDIES
+df &lt;- rbind(df1, df3) %&gt;% 
+  mutate(TIME=factor(TIME)) %&gt;% 
+  #drop questions we don&#39;t use
+  filter(QUESTION %nin% c(&quot;DETAIL&quot;,&quot;EXPLAIN&quot;,&quot;LATENCY&quot;,&quot;TOOL_ID&quot;,&quot;TOOL_CONF&quot;,&quot;TOOL_DETAIL&quot;,&quot;TYPE&quot;,&quot;ACTION&quot;))
+
+
+## PRINT 
+print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS AND time&quot;)</code></pre>
+<pre><code>## [1] &quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS AND time&quot;</code></pre>
+<pre class="r"><code>addmargins(table(df$QUESTION, df$STIMULUS, df$Study))</code></pre>
+<pre><code>## , ,  = Study1
+## 
+##              
+##                B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
+##   AGE            78    15    15    15    15    12    12    12    12    12    12
+##   AGE_CONF       78    15    15    15    15    12    12    12    12    12    12
+##   ALIGN          78    15    15    15    15    12    12    12    12    12    12
+##   BEAUTY         78    15    15    15    15    12    12    12    12    12    12
+##   DATA           78    15    15    15    15    12    12    12    12    12    12
+##   DESIGN         78    15    15    15    15    12    12    12    12    12    12
+##   ENCOUNTER      78    15    15    15    15    12    12    12    12    12    12
+##   GENDER         78    15    15    15    15    12    12    12    12    12    12
+##   GENDER_CONF    78    15    15    15    15    12    12    12    12    12    12
+##   ID             78    15    15    15    15    12    12    12    12    12    12
+##   ID_CONF        78    15    15    15    15    12    12    12    12    12    12
+##   INTENT         78    15    15    15    15    12    12    12    12    12    12
+##   POLITICS       78    15    15    15    15    12    12    12    12    12    12
+##   TRUST          78    15    15    15    15    12    12    12    12    12    12
+##   Sum          1092   210   210   210   210   168   168   168   168   168   168
+##              
+##                B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
+##   AGE            12    12    14    14    14    14    13    13    13    13    12
+##   AGE_CONF       12    12    14    14    14    14    13    13    13    13    12
+##   ALIGN          12    12    14    14    14    14    13    13    13    13    12
+##   BEAUTY         12    12    14    14    14    14    13    13    13    13    12
+##   DATA           12    12    14    14    14    14    13    13    13    13    12
+##   DESIGN         12    12    14    14    14    14    13    13    13    13    12
+##   ENCOUNTER      12    12    14    14    14    14    13    13    13    13    12
+##   GENDER         12    12    14    14    14    14    13    13    13    13    12
+##   GENDER_CONF    12    12    14    14    14    14    13    13    13    13    12
+##   ID             12    12    14    14    14    14    13    13    13    13    12
+##   ID_CONF        12    12    14    14    14    14    13    13    13    13    12
+##   INTENT         12    12    14    14    14    14    13    13    13    13    12
+##   POLITICS       12    12    14    14    14    14    13    13    13    13    12
+##   TRUST          12    12    14    14    14    14    13    13    13    13    12
+##   Sum           168   168   196   196   196   196   182   182   182   182   168
+##              
+##                B6-2  B6-3  B6-4   Sum
+##   AGE            12    12    12   390
+##   AGE_CONF       12    12    12   390
+##   ALIGN          12    12    12   390
+##   BEAUTY         12    12    12   390
+##   DATA           12    12    12   390
+##   DESIGN         12    12    12   390
+##   ENCOUNTER      12    12    12   390
+##   GENDER         12    12    12   390
+##   GENDER_CONF    12    12    12   390
+##   ID             12    12    12   390
+##   ID_CONF        12    12    12   390
+##   INTENT         12    12    12   390
+##   POLITICS       12    12    12   390
+##   TRUST          12    12    12   390
+##   Sum           168   168   168  5460
+## 
+## , ,  = Study2
+## 
+##              
+##                B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
+##   AGE           240    40    40    40    40    40    40    40    40    40    40
+##   AGE_CONF      240    40    40    40    40    40    40    40    40    40    40
+##   ALIGN         240    40    40    40    40    40    40    40    40    40    40
+##   BEAUTY        240    40    40    40    40    40    40    40    40    40    40
+##   DATA          240    40    40    40    40    40    40    40    40    40    40
+##   DESIGN        240    40    40    40    40    40    40    40    40    40    40
+##   ENCOUNTER     240    40    40    40    40    40    40    40    40    40    40
+##   GENDER        240    40    40    40    40    40    40    40    40    40    40
+##   GENDER_CONF   240    40    40    40    40    40    40    40    40    40    40
+##   ID            240    40    40    40    40    40    40    40    40    40    40
+##   ID_CONF       240    40    40    40    40    40    40    40    40    40    40
+##   INTENT        240    40    40    40    40    40    40    40    40    40    40
+##   POLITICS      240    40    40    40    40    40    40    40    40    40    40
+##   TRUST         240    40    40    40    40    40    40    40    40    40    40
+##   Sum          3360   560   560   560   560   560   560   560   560   560   560
+##              
+##                B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
+##   AGE            40    40    40    40    40    40    40    40    40    40    40
+##   AGE_CONF       40    40    40    40    40    40    40    40    40    40    40
+##   ALIGN          40    40    40    40    40    40    40    40    40    40    40
+##   BEAUTY         40    40    40    40    40    40    40    40    40    40    40
+##   DATA           40    40    40    40    40    40    40    40    40    40    40
+##   DESIGN         40    40    40    40    40    40    40    40    40    40    40
+##   ENCOUNTER      40    40    40    40    40    40    40    40    40    40    40
+##   GENDER         40    40    40    40    40    40    40    40    40    40    40
+##   GENDER_CONF    40    40    40    40    40    40    40    40    40    40    40
+##   ID             40    40    40    40    40    40    40    40    40    40    40
+##   ID_CONF        40    40    40    40    40    40    40    40    40    40    40
+##   INTENT         40    40    40    40    40    40    40    40    40    40    40
+##   POLITICS       40    40    40    40    40    40    40    40    40    40    40
+##   TRUST          40    40    40    40    40    40    40    40    40    40    40
+##   Sum           560   560   560   560   560   560   560   560   560   560   560
+##              
+##                B6-2  B6-3  B6-4   Sum
+##   AGE            40    40    40  1200
+##   AGE_CONF       40    40    40  1200
+##   ALIGN          40    40    40  1200
+##   BEAUTY         40    40    40  1200
+##   DATA           40    40    40  1200
+##   DESIGN         40    40    40  1200
+##   ENCOUNTER      40    40    40  1200
+##   GENDER         40    40    40  1200
+##   GENDER_CONF    40    40    40  1200
+##   ID             40    40    40  1200
+##   ID_CONF        40    40    40  1200
+##   INTENT         40    40    40  1200
+##   POLITICS       40    40    40  1200
+##   TRUST          40    40    40  1200
+##   Sum           560   560   560 16800
+## 
+## , ,  = Study0
+## 
+##              
+##                B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
+##   AGE            40    40    40    40    40     0     0     0     0     0     0
+##   AGE_CONF       40    40    40    40    40     0     0     0     0     0     0
+##   ALIGN          40    40    40    40    40     0     0     0     0     0     0
+##   BEAUTY         40    40    40    40    40     0     0     0     0     0     0
+##   DATA           40    40    40    40    40     0     0     0     0     0     0
+##   DESIGN         40    40    40    40    40     0     0     0     0     0     0
+##   ENCOUNTER      40    40    40    40    40     0     0     0     0     0     0
+##   GENDER         40    40    40    40    40     0     0     0     0     0     0
+##   GENDER_CONF    40    40    40    40    40     0     0     0     0     0     0
+##   ID             40    40    40    40    40     0     0     0     0     0     0
+##   ID_CONF        40    40    40    40    40     0     0     0     0     0     0
+##   INTENT         40    40    40    40    40     0     0     0     0     0     0
+##   POLITICS       40    40    40    40    40     0     0     0     0     0     0
+##   TRUST          40    40    40    40    40     0     0     0     0     0     0
+##   Sum           560   560   560   560   560     0     0     0     0     0     0
+##              
+##                B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
+##   AGE             0     0     0     0     0     0     0     0     0     0     0
+##   AGE_CONF        0     0     0     0     0     0     0     0     0     0     0
+##   ALIGN           0     0     0     0     0     0     0     0     0     0     0
+##   BEAUTY          0     0     0     0     0     0     0     0     0     0     0
+##   DATA            0     0     0     0     0     0     0     0     0     0     0
+##   DESIGN          0     0     0     0     0     0     0     0     0     0     0
+##   ENCOUNTER       0     0     0     0     0     0     0     0     0     0     0
+##   GENDER          0     0     0     0     0     0     0     0     0     0     0
+##   GENDER_CONF     0     0     0     0     0     0     0     0     0     0     0
+##   ID              0     0     0     0     0     0     0     0     0     0     0
+##   ID_CONF         0     0     0     0     0     0     0     0     0     0     0
+##   INTENT          0     0     0     0     0     0     0     0     0     0     0
+##   POLITICS        0     0     0     0     0     0     0     0     0     0     0
+##   TRUST           0     0     0     0     0     0     0     0     0     0     0
+##   Sum             0     0     0     0     0     0     0     0     0     0     0
+##              
+##                B6-2  B6-3  B6-4   Sum
+##   AGE             0     0     0   200
+##   AGE_CONF        0     0     0   200
+##   ALIGN           0     0     0   200
+##   BEAUTY          0     0     0   200
+##   DATA            0     0     0   200
+##   DESIGN          0     0     0   200
+##   ENCOUNTER       0     0     0   200
+##   GENDER          0     0     0   200
+##   GENDER_CONF     0     0     0   200
+##   ID              0     0     0   200
+##   ID_CONF         0     0     0   200
+##   INTENT          0     0     0   200
+##   POLITICS        0     0     0   200
+##   TRUST           0     0     0   200
+##   Sum             0     0     0  2800
+## 
+## , ,  = Study3
+## 
+##              
+##                B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
+##   AGE            80    80    80    80    80     0     0     0     0     0     0
+##   AGE_CONF       80    80    80    80    80     0     0     0     0     0     0
+##   ALIGN          80    80    80    80    80     0     0     0     0     0     0
+##   BEAUTY         80    80    80    80    80     0     0     0     0     0     0
+##   DATA           80    80    80    80    80     0     0     0     0     0     0
+##   DESIGN         80    80    80    80    80     0     0     0     0     0     0
+##   ENCOUNTER      80    80    80    80    80     0     0     0     0     0     0
+##   GENDER         80    80    80    80    80     0     0     0     0     0     0
+##   GENDER_CONF    80    80    80    80    80     0     0     0     0     0     0
+##   ID             80    80    80    80    80     0     0     0     0     0     0
+##   ID_CONF        80    80    80    80    80     0     0     0     0     0     0
+##   INTENT         80    80    80    80    80     0     0     0     0     0     0
+##   POLITICS       80    80    80    80    80     0     0     0     0     0     0
+##   TRUST          80    80    80    80    80     0     0     0     0     0     0
+##   Sum          1120  1120  1120  1120  1120     0     0     0     0     0     0
+##              
+##                B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
+##   AGE             0     0     0     0     0     0     0     0     0     0     0
+##   AGE_CONF        0     0     0     0     0     0     0     0     0     0     0
+##   ALIGN           0     0     0     0     0     0     0     0     0     0     0
+##   BEAUTY          0     0     0     0     0     0     0     0     0     0     0
+##   DATA            0     0     0     0     0     0     0     0     0     0     0
+##   DESIGN          0     0     0     0     0     0     0     0     0     0     0
+##   ENCOUNTER       0     0     0     0     0     0     0     0     0     0     0
+##   GENDER          0     0     0     0     0     0     0     0     0     0     0
+##   GENDER_CONF     0     0     0     0     0     0     0     0     0     0     0
+##   ID              0     0     0     0     0     0     0     0     0     0     0
+##   ID_CONF         0     0     0     0     0     0     0     0     0     0     0
+##   INTENT          0     0     0     0     0     0     0     0     0     0     0
+##   POLITICS        0     0     0     0     0     0     0     0     0     0     0
+##   TRUST           0     0     0     0     0     0     0     0     0     0     0
+##   Sum             0     0     0     0     0     0     0     0     0     0     0
+##              
+##                B6-2  B6-3  B6-4   Sum
+##   AGE             0     0     0   400
+##   AGE_CONF        0     0     0   400
+##   ALIGN           0     0     0   400
+##   BEAUTY          0     0     0   400
+##   DATA            0     0     0   400
+##   DESIGN          0     0     0   400
+##   ENCOUNTER       0     0     0   400
+##   GENDER          0     0     0   400
+##   GENDER_CONF     0     0     0   400
+##   ID              0     0     0   400
+##   ID_CONF         0     0     0   400
+##   INTENT          0     0     0   400
+##   POLITICS        0     0     0   400
+##   TRUST           0     0     0   400
+##   Sum             0     0     0  5600
+## 
+## , ,  = Sum
+## 
+##              
+##                B0-0  B1-1  B1-2  B1-3  B1-4  B2-1  B2-2  B2-3  B2-4  B3-1  B3-2
+##   AGE           438   175   175   175   175    52    52    52    52    52    52
+##   AGE_CONF      438   175   175   175   175    52    52    52    52    52    52
+##   ALIGN         438   175   175   175   175    52    52    52    52    52    52
+##   BEAUTY        438   175   175   175   175    52    52    52    52    52    52
+##   DATA          438   175   175   175   175    52    52    52    52    52    52
+##   DESIGN        438   175   175   175   175    52    52    52    52    52    52
+##   ENCOUNTER     438   175   175   175   175    52    52    52    52    52    52
+##   GENDER        438   175   175   175   175    52    52    52    52    52    52
+##   GENDER_CONF   438   175   175   175   175    52    52    52    52    52    52
+##   ID            438   175   175   175   175    52    52    52    52    52    52
+##   ID_CONF       438   175   175   175   175    52    52    52    52    52    52
+##   INTENT        438   175   175   175   175    52    52    52    52    52    52
+##   POLITICS      438   175   175   175   175    52    52    52    52    52    52
+##   TRUST         438   175   175   175   175    52    52    52    52    52    52
+##   Sum          6132  2450  2450  2450  2450   728   728   728   728   728   728
+##              
+##                B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
+##   AGE            52    52    54    54    54    54    53    53    53    53    52
+##   AGE_CONF       52    52    54    54    54    54    53    53    53    53    52
+##   ALIGN          52    52    54    54    54    54    53    53    53    53    52
+##   BEAUTY         52    52    54    54    54    54    53    53    53    53    52
+##   DATA           52    52    54    54    54    54    53    53    53    53    52
+##   DESIGN         52    52    54    54    54    54    53    53    53    53    52
+##   ENCOUNTER      52    52    54    54    54    54    53    53    53    53    52
+##   GENDER         52    52    54    54    54    54    53    53    53    53    52
+##   GENDER_CONF    52    52    54    54    54    54    53    53    53    53    52
+##   ID             52    52    54    54    54    54    53    53    53    53    52
+##   ID_CONF        52    52    54    54    54    54    53    53    53    53    52
+##   INTENT         52    52    54    54    54    54    53    53    53    53    52
+##   POLITICS       52    52    54    54    54    54    53    53    53    53    52
+##   TRUST          52    52    54    54    54    54    53    53    53    53    52
+##   Sum           728   728   756   756   756   756   742   742   742   742   728
+##              
+##                B6-2  B6-3  B6-4   Sum
+##   AGE            52    52    52  2190
+##   AGE_CONF       52    52    52  2190
+##   ALIGN          52    52    52  2190
+##   BEAUTY         52    52    52  2190
+##   DATA           52    52    52  2190
+##   DESIGN         52    52    52  2190
+##   ENCOUNTER      52    52    52  2190
+##   GENDER         52    52    52  2190
+##   GENDER_CONF    52    52    52  2190
+##   ID             52    52    52  2190
+##   ID_CONF        52    52    52  2190
+##   INTENT         52    52    52  2190
+##   POLITICS       52    52    52  2190
+##   TRUST          52    52    52  2190
+##   Sum           728   728   728 30660</code></pre>
+<pre class="r"><code>table(df$Study, df$STIMULUS, df$TIME)</code></pre>
+<pre><code>## , ,  = POST
+## 
+##         
+##          B0-0 B1-1 B1-2 B1-3 B1-4 B2-1 B2-2 B2-3 B2-4 B3-1 B3-2 B3-3 B3-4 B4-1
+##   Study1    0    0    0    0    0    0    0    0    0    0    0    0    0    0
+##   Study2    0    0    0    0    0    0    0    0    0    0    0    0    0    0
+##   Study0    0    0    0    0    0    0    0    0    0    0    0    0    0    0
+##   Study3  560  560  560  560  560    0    0    0    0    0    0    0    0    0
+##         
+##          B4-2 B4-3 B4-4 B5-1 B5-2 B5-3 B5-4 B6-1 B6-2 B6-3 B6-4
+##   Study1    0    0    0    0    0    0    0    0    0    0    0
+##   Study2    0    0    0    0    0    0    0    0    0    0    0
+##   Study0    0    0    0    0    0    0    0    0    0    0    0
+##   Study3    0    0    0    0    0    0    0    0    0    0    0
+## 
+## , ,  = PRE
+## 
+##         
+##          B0-0 B1-1 B1-2 B1-3 B1-4 B2-1 B2-2 B2-3 B2-4 B3-1 B3-2 B3-3 B3-4 B4-1
+##   Study1 1092  210  210  210  210  168  168  168  168  168  168  168  168  196
+##   Study2 3360  560  560  560  560  560  560  560  560  560  560  560  560  560
+##   Study0  560  560  560  560  560    0    0    0    0    0    0    0    0    0
+##   Study3  560  560  560  560  560    0    0    0    0    0    0    0    0    0
+##         
+##          B4-2 B4-3 B4-4 B5-1 B5-2 B5-3 B5-4 B6-1 B6-2 B6-3 B6-4
+##   Study1  196  196  196  182  182  182  182  168  168  168  168
+##   Study2  560  560  560  560  560  560  560  560  560  560  560
+##   Study0    0    0    0    0    0    0    0    0    0    0    0
+##   Study3    0    0    0    0    0    0    0    0    0    0    0</code></pre>
+<pre class="r"><code>## WRITE FILE
+saveRDS(df, file = &quot;data/output/COMBINED/df_questions_long_ALL.rds&quot;)
+
+## CLEANUP
+rm(df, df1, df3)</code></pre>
+</div>
+<div id="join-sd-question-long-files" class="section level2" number="7">
+<h2><span class="header-section-number">7</span> JOIN SD QUESTION LONG
 Files</h2>
 <pre class="r"><code>## KEEP TIME COLUMN FOR GRAPHING
 
@@ -1860,30 +2216,30 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS AND time&quot;)</code><
 ##   DESIGN      78    15    15    15    15    12    12    12    12    12    12
 ##   DATA        78    15    15    15    15    12    12    12    12    12    12
 ##   POLITICS    78    15    15    15    15    12    12    12    12    12    12
-##   TRUST       78    15    15    15    15    12    12    12    12    12    12
 ##   ALIGN       78    15    15    15    15    12    12    12    12    12    12
-##   BEAUTY      78    15    15    15    15    12    12    12    12    12    12
 ##   INTENT      78    15    15    15    15    12    12    12    12    12    12
+##   TRUST       78    15    15    15    15    12    12    12    12    12    12
+##   BEAUTY      78    15    15    15    15    12    12    12    12    12    12
 ##   Sum        546   105   105   105   105    84    84    84    84    84    84
 ##           
 ##             B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN      12    12    14    14    14    14    13    13    13    13    12
 ##   DATA        12    12    14    14    14    14    13    13    13    13    12
 ##   POLITICS    12    12    14    14    14    14    13    13    13    13    12
-##   TRUST       12    12    14    14    14    14    13    13    13    13    12
 ##   ALIGN       12    12    14    14    14    14    13    13    13    13    12
-##   BEAUTY      12    12    14    14    14    14    13    13    13    13    12
 ##   INTENT      12    12    14    14    14    14    13    13    13    13    12
+##   TRUST       12    12    14    14    14    14    13    13    13    13    12
+##   BEAUTY      12    12    14    14    14    14    13    13    13    13    12
 ##   Sum         84    84    98    98    98    98    91    91    91    91    84
 ##           
 ##             B6-2  B6-3  B6-4   Sum
 ##   DESIGN      12    12    12   390
 ##   DATA        12    12    12   390
 ##   POLITICS    12    12    12   390
-##   TRUST       12    12    12   390
 ##   ALIGN       12    12    12   390
-##   BEAUTY      12    12    12   390
 ##   INTENT      12    12    12   390
+##   TRUST       12    12    12   390
+##   BEAUTY      12    12    12   390
 ##   Sum         84    84    84  2730
 ## 
 ## , ,  = Study2
@@ -1893,30 +2249,30 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS AND time&quot;)</code><
 ##   DESIGN     240    40    40    40    40    40    40    40    40    40    40
 ##   DATA       240    40    40    40    40    40    40    40    40    40    40
 ##   POLITICS   240    40    40    40    40    40    40    40    40    40    40
-##   TRUST      240    40    40    40    40    40    40    40    40    40    40
 ##   ALIGN      240    40    40    40    40    40    40    40    40    40    40
-##   BEAUTY     240    40    40    40    40    40    40    40    40    40    40
 ##   INTENT     240    40    40    40    40    40    40    40    40    40    40
+##   TRUST      240    40    40    40    40    40    40    40    40    40    40
+##   BEAUTY     240    40    40    40    40    40    40    40    40    40    40
 ##   Sum       1680   280   280   280   280   280   280   280   280   280   280
 ##           
 ##             B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN      40    40    40    40    40    40    40    40    40    40    40
 ##   DATA        40    40    40    40    40    40    40    40    40    40    40
 ##   POLITICS    40    40    40    40    40    40    40    40    40    40    40
-##   TRUST       40    40    40    40    40    40    40    40    40    40    40
 ##   ALIGN       40    40    40    40    40    40    40    40    40    40    40
-##   BEAUTY      40    40    40    40    40    40    40    40    40    40    40
 ##   INTENT      40    40    40    40    40    40    40    40    40    40    40
+##   TRUST       40    40    40    40    40    40    40    40    40    40    40
+##   BEAUTY      40    40    40    40    40    40    40    40    40    40    40
 ##   Sum        280   280   280   280   280   280   280   280   280   280   280
 ##           
 ##             B6-2  B6-3  B6-4   Sum
 ##   DESIGN      40    40    40  1200
 ##   DATA        40    40    40  1200
 ##   POLITICS    40    40    40  1200
-##   TRUST       40    40    40  1200
 ##   ALIGN       40    40    40  1200
-##   BEAUTY      40    40    40  1200
 ##   INTENT      40    40    40  1200
+##   TRUST       40    40    40  1200
+##   BEAUTY      40    40    40  1200
 ##   Sum        280   280   280  8400
 ## 
 ## , ,  = Study0
@@ -1926,30 +2282,30 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS AND time&quot;)</code><
 ##   DESIGN      40    40    40    40    40     0     0     0     0     0     0
 ##   DATA        40    40    40    40    40     0     0     0     0     0     0
 ##   POLITICS    40    40    40    40    40     0     0     0     0     0     0
-##   TRUST       40    40    40    40    40     0     0     0     0     0     0
 ##   ALIGN       40    40    40    40    40     0     0     0     0     0     0
-##   BEAUTY      40    40    40    40    40     0     0     0     0     0     0
 ##   INTENT      40    40    40    40    40     0     0     0     0     0     0
+##   TRUST       40    40    40    40    40     0     0     0     0     0     0
+##   BEAUTY      40    40    40    40    40     0     0     0     0     0     0
 ##   Sum        280   280   280   280   280     0     0     0     0     0     0
 ##           
 ##             B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN       0     0     0     0     0     0     0     0     0     0     0
 ##   DATA         0     0     0     0     0     0     0     0     0     0     0
 ##   POLITICS     0     0     0     0     0     0     0     0     0     0     0
-##   TRUST        0     0     0     0     0     0     0     0     0     0     0
 ##   ALIGN        0     0     0     0     0     0     0     0     0     0     0
-##   BEAUTY       0     0     0     0     0     0     0     0     0     0     0
 ##   INTENT       0     0     0     0     0     0     0     0     0     0     0
+##   TRUST        0     0     0     0     0     0     0     0     0     0     0
+##   BEAUTY       0     0     0     0     0     0     0     0     0     0     0
 ##   Sum          0     0     0     0     0     0     0     0     0     0     0
 ##           
 ##             B6-2  B6-3  B6-4   Sum
 ##   DESIGN       0     0     0   200
 ##   DATA         0     0     0   200
 ##   POLITICS     0     0     0   200
-##   TRUST        0     0     0   200
 ##   ALIGN        0     0     0   200
-##   BEAUTY       0     0     0   200
 ##   INTENT       0     0     0   200
+##   TRUST        0     0     0   200
+##   BEAUTY       0     0     0   200
 ##   Sum          0     0     0  1400
 ## 
 ## , ,  = Study3
@@ -1959,30 +2315,30 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS AND time&quot;)</code><
 ##   DESIGN      80    80    80    80    80     0     0     0     0     0     0
 ##   DATA        80    80    80    80    80     0     0     0     0     0     0
 ##   POLITICS    80    80    80    80    80     0     0     0     0     0     0
-##   TRUST       80    80    80    80    80     0     0     0     0     0     0
 ##   ALIGN       80    80    80    80    80     0     0     0     0     0     0
-##   BEAUTY      80    80    80    80    80     0     0     0     0     0     0
 ##   INTENT      80    80    80    80    80     0     0     0     0     0     0
+##   TRUST       80    80    80    80    80     0     0     0     0     0     0
+##   BEAUTY      80    80    80    80    80     0     0     0     0     0     0
 ##   Sum        560   560   560   560   560     0     0     0     0     0     0
 ##           
 ##             B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN       0     0     0     0     0     0     0     0     0     0     0
 ##   DATA         0     0     0     0     0     0     0     0     0     0     0
 ##   POLITICS     0     0     0     0     0     0     0     0     0     0     0
-##   TRUST        0     0     0     0     0     0     0     0     0     0     0
 ##   ALIGN        0     0     0     0     0     0     0     0     0     0     0
-##   BEAUTY       0     0     0     0     0     0     0     0     0     0     0
 ##   INTENT       0     0     0     0     0     0     0     0     0     0     0
+##   TRUST        0     0     0     0     0     0     0     0     0     0     0
+##   BEAUTY       0     0     0     0     0     0     0     0     0     0     0
 ##   Sum          0     0     0     0     0     0     0     0     0     0     0
 ##           
 ##             B6-2  B6-3  B6-4   Sum
 ##   DESIGN       0     0     0   400
 ##   DATA         0     0     0   400
 ##   POLITICS     0     0     0   400
-##   TRUST        0     0     0   400
 ##   ALIGN        0     0     0   400
-##   BEAUTY       0     0     0   400
 ##   INTENT       0     0     0   400
+##   TRUST        0     0     0   400
+##   BEAUTY       0     0     0   400
 ##   Sum          0     0     0  2800
 ## 
 ## , ,  = Sum
@@ -1992,30 +2348,30 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS AND time&quot;)</code><
 ##   DESIGN     438   175   175   175   175    52    52    52    52    52    52
 ##   DATA       438   175   175   175   175    52    52    52    52    52    52
 ##   POLITICS   438   175   175   175   175    52    52    52    52    52    52
-##   TRUST      438   175   175   175   175    52    52    52    52    52    52
 ##   ALIGN      438   175   175   175   175    52    52    52    52    52    52
-##   BEAUTY     438   175   175   175   175    52    52    52    52    52    52
 ##   INTENT     438   175   175   175   175    52    52    52    52    52    52
+##   TRUST      438   175   175   175   175    52    52    52    52    52    52
+##   BEAUTY     438   175   175   175   175    52    52    52    52    52    52
 ##   Sum       3066  1225  1225  1225  1225   364   364   364   364   364   364
 ##           
 ##             B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN      52    52    54    54    54    54    53    53    53    53    52
 ##   DATA        52    52    54    54    54    54    53    53    53    53    52
 ##   POLITICS    52    52    54    54    54    54    53    53    53    53    52
-##   TRUST       52    52    54    54    54    54    53    53    53    53    52
 ##   ALIGN       52    52    54    54    54    54    53    53    53    53    52
-##   BEAUTY      52    52    54    54    54    54    53    53    53    53    52
 ##   INTENT      52    52    54    54    54    54    53    53    53    53    52
+##   TRUST       52    52    54    54    54    54    53    53    53    53    52
+##   BEAUTY      52    52    54    54    54    54    53    53    53    53    52
 ##   Sum        364   364   378   378   378   378   371   371   371   371   364
 ##           
 ##             B6-2  B6-3  B6-4   Sum
 ##   DESIGN      52    52    52  2190
 ##   DATA        52    52    52  2190
 ##   POLITICS    52    52    52  2190
-##   TRUST       52    52    52  2190
 ##   ALIGN       52    52    52  2190
-##   BEAUTY      52    52    52  2190
 ##   INTENT      52    52    52  2190
+##   TRUST       52    52    52  2190
+##   BEAUTY      52    52    52  2190
 ##   Sum        364   364   364 15330</code></pre>
 <pre class="r"><code>table(df$Study, df$STIMULUS, df$TIME)</code></pre>
 <pre><code>## , ,  = POST
@@ -2053,8 +2409,8 @@ saveRDS(df, file = &quot;data/output/COMBINED/df_sd_questions_long_ALL.rds&quot;
 ## CLEANUP
 rm(df, df1, df3)</code></pre>
 </div>
-<div id="join-sd-question-long-files-z-scored" class="section level2" number="7">
-<h2><span class="header-section-number">7</span> JOIN SD QUESTION LONG
+<div id="join-sd-question-long-files-z-scored" class="section level2" number="8">
+<h2><span class="header-section-number">8</span> JOIN SD QUESTION LONG
 Files (Z-SCORED)</h2>
 <pre class="r"><code>## WRANGLE STUDIES 1_3, 
 df1 &lt;- df_sd_questions_long_s12_z %&gt;% 
@@ -2101,30 +2457,30 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   DESIGN_z      78    15    15    15    15    12    12    12    12    12    12
 ##   DATA_z        78    15    15    15    15    12    12    12    12    12    12
 ##   POLITICS_z    78    15    15    15    15    12    12    12    12    12    12
-##   TRUST_z       78    15    15    15    15    12    12    12    12    12    12
 ##   ALIGN_z       78    15    15    15    15    12    12    12    12    12    12
-##   BEAUTY_z      78    15    15    15    15    12    12    12    12    12    12
 ##   INTENT_z      78    15    15    15    15    12    12    12    12    12    12
+##   TRUST_z       78    15    15    15    15    12    12    12    12    12    12
+##   BEAUTY_z      78    15    15    15    15    12    12    12    12    12    12
 ##   Sum          546   105   105   105   105    84    84    84    84    84    84
 ##             
 ##               B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN_z      12    12    14    14    14    14    13    13    13    13    12
 ##   DATA_z        12    12    14    14    14    14    13    13    13    13    12
 ##   POLITICS_z    12    12    14    14    14    14    13    13    13    13    12
-##   TRUST_z       12    12    14    14    14    14    13    13    13    13    12
 ##   ALIGN_z       12    12    14    14    14    14    13    13    13    13    12
-##   BEAUTY_z      12    12    14    14    14    14    13    13    13    13    12
 ##   INTENT_z      12    12    14    14    14    14    13    13    13    13    12
+##   TRUST_z       12    12    14    14    14    14    13    13    13    13    12
+##   BEAUTY_z      12    12    14    14    14    14    13    13    13    13    12
 ##   Sum           84    84    98    98    98    98    91    91    91    91    84
 ##             
 ##               B6-2  B6-3  B6-4   Sum
 ##   DESIGN_z      12    12    12   390
 ##   DATA_z        12    12    12   390
 ##   POLITICS_z    12    12    12   390
-##   TRUST_z       12    12    12   390
 ##   ALIGN_z       12    12    12   390
-##   BEAUTY_z      12    12    12   390
 ##   INTENT_z      12    12    12   390
+##   TRUST_z       12    12    12   390
+##   BEAUTY_z      12    12    12   390
 ##   Sum           84    84    84  2730
 ## 
 ## , ,  = Study2
@@ -2134,30 +2490,30 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   DESIGN_z     240    40    40    40    40    40    40    40    40    40    40
 ##   DATA_z       240    40    40    40    40    40    40    40    40    40    40
 ##   POLITICS_z   240    40    40    40    40    40    40    40    40    40    40
-##   TRUST_z      240    40    40    40    40    40    40    40    40    40    40
 ##   ALIGN_z      240    40    40    40    40    40    40    40    40    40    40
-##   BEAUTY_z     240    40    40    40    40    40    40    40    40    40    40
 ##   INTENT_z     240    40    40    40    40    40    40    40    40    40    40
+##   TRUST_z      240    40    40    40    40    40    40    40    40    40    40
+##   BEAUTY_z     240    40    40    40    40    40    40    40    40    40    40
 ##   Sum         1680   280   280   280   280   280   280   280   280   280   280
 ##             
 ##               B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN_z      40    40    40    40    40    40    40    40    40    40    40
 ##   DATA_z        40    40    40    40    40    40    40    40    40    40    40
 ##   POLITICS_z    40    40    40    40    40    40    40    40    40    40    40
-##   TRUST_z       40    40    40    40    40    40    40    40    40    40    40
 ##   ALIGN_z       40    40    40    40    40    40    40    40    40    40    40
-##   BEAUTY_z      40    40    40    40    40    40    40    40    40    40    40
 ##   INTENT_z      40    40    40    40    40    40    40    40    40    40    40
+##   TRUST_z       40    40    40    40    40    40    40    40    40    40    40
+##   BEAUTY_z      40    40    40    40    40    40    40    40    40    40    40
 ##   Sum          280   280   280   280   280   280   280   280   280   280   280
 ##             
 ##               B6-2  B6-3  B6-4   Sum
 ##   DESIGN_z      40    40    40  1200
 ##   DATA_z        40    40    40  1200
 ##   POLITICS_z    40    40    40  1200
-##   TRUST_z       40    40    40  1200
 ##   ALIGN_z       40    40    40  1200
-##   BEAUTY_z      40    40    40  1200
 ##   INTENT_z      40    40    40  1200
+##   TRUST_z       40    40    40  1200
+##   BEAUTY_z      40    40    40  1200
 ##   Sum          280   280   280  8400
 ## 
 ## , ,  = Study0
@@ -2167,30 +2523,30 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   DESIGN_z      40    40    40    40    40     0     0     0     0     0     0
 ##   DATA_z        40    40    40    40    40     0     0     0     0     0     0
 ##   POLITICS_z    40    40    40    40    40     0     0     0     0     0     0
-##   TRUST_z       40    40    40    40    40     0     0     0     0     0     0
 ##   ALIGN_z       40    40    40    40    40     0     0     0     0     0     0
-##   BEAUTY_z      40    40    40    40    40     0     0     0     0     0     0
 ##   INTENT_z      40    40    40    40    40     0     0     0     0     0     0
+##   TRUST_z       40    40    40    40    40     0     0     0     0     0     0
+##   BEAUTY_z      40    40    40    40    40     0     0     0     0     0     0
 ##   Sum          280   280   280   280   280     0     0     0     0     0     0
 ##             
 ##               B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN_z       0     0     0     0     0     0     0     0     0     0     0
 ##   DATA_z         0     0     0     0     0     0     0     0     0     0     0
 ##   POLITICS_z     0     0     0     0     0     0     0     0     0     0     0
-##   TRUST_z        0     0     0     0     0     0     0     0     0     0     0
 ##   ALIGN_z        0     0     0     0     0     0     0     0     0     0     0
-##   BEAUTY_z       0     0     0     0     0     0     0     0     0     0     0
 ##   INTENT_z       0     0     0     0     0     0     0     0     0     0     0
+##   TRUST_z        0     0     0     0     0     0     0     0     0     0     0
+##   BEAUTY_z       0     0     0     0     0     0     0     0     0     0     0
 ##   Sum            0     0     0     0     0     0     0     0     0     0     0
 ##             
 ##               B6-2  B6-3  B6-4   Sum
 ##   DESIGN_z       0     0     0   200
 ##   DATA_z         0     0     0   200
 ##   POLITICS_z     0     0     0   200
-##   TRUST_z        0     0     0   200
 ##   ALIGN_z        0     0     0   200
-##   BEAUTY_z       0     0     0   200
 ##   INTENT_z       0     0     0   200
+##   TRUST_z        0     0     0   200
+##   BEAUTY_z       0     0     0   200
 ##   Sum            0     0     0  1400
 ## 
 ## , ,  = Study3
@@ -2200,30 +2556,30 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   DESIGN_z      80    80    80    80    80     0     0     0     0     0     0
 ##   DATA_z        80    80    80    80    80     0     0     0     0     0     0
 ##   POLITICS_z    80    80    80    80    80     0     0     0     0     0     0
-##   TRUST_z       80    80    80    80    80     0     0     0     0     0     0
 ##   ALIGN_z       80    80    80    80    80     0     0     0     0     0     0
-##   BEAUTY_z      80    80    80    80    80     0     0     0     0     0     0
 ##   INTENT_z      80    80    80    80    80     0     0     0     0     0     0
+##   TRUST_z       80    80    80    80    80     0     0     0     0     0     0
+##   BEAUTY_z      80    80    80    80    80     0     0     0     0     0     0
 ##   Sum          560   560   560   560   560     0     0     0     0     0     0
 ##             
 ##               B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN_z       0     0     0     0     0     0     0     0     0     0     0
 ##   DATA_z         0     0     0     0     0     0     0     0     0     0     0
 ##   POLITICS_z     0     0     0     0     0     0     0     0     0     0     0
-##   TRUST_z        0     0     0     0     0     0     0     0     0     0     0
 ##   ALIGN_z        0     0     0     0     0     0     0     0     0     0     0
-##   BEAUTY_z       0     0     0     0     0     0     0     0     0     0     0
 ##   INTENT_z       0     0     0     0     0     0     0     0     0     0     0
+##   TRUST_z        0     0     0     0     0     0     0     0     0     0     0
+##   BEAUTY_z       0     0     0     0     0     0     0     0     0     0     0
 ##   Sum            0     0     0     0     0     0     0     0     0     0     0
 ##             
 ##               B6-2  B6-3  B6-4   Sum
 ##   DESIGN_z       0     0     0   400
 ##   DATA_z         0     0     0   400
 ##   POLITICS_z     0     0     0   400
-##   TRUST_z        0     0     0   400
 ##   ALIGN_z        0     0     0   400
-##   BEAUTY_z       0     0     0   400
 ##   INTENT_z       0     0     0   400
+##   TRUST_z        0     0     0   400
+##   BEAUTY_z       0     0     0   400
 ##   Sum            0     0     0  2800
 ## 
 ## , ,  = Sum
@@ -2233,30 +2589,30 @@ print(&quot;PARTICIPANT-QUESTSIONS BY STUDY AND STIMULUS&quot;)</code></pre>
 ##   DESIGN_z     438   175   175   175   175    52    52    52    52    52    52
 ##   DATA_z       438   175   175   175   175    52    52    52    52    52    52
 ##   POLITICS_z   438   175   175   175   175    52    52    52    52    52    52
-##   TRUST_z      438   175   175   175   175    52    52    52    52    52    52
 ##   ALIGN_z      438   175   175   175   175    52    52    52    52    52    52
-##   BEAUTY_z     438   175   175   175   175    52    52    52    52    52    52
 ##   INTENT_z     438   175   175   175   175    52    52    52    52    52    52
+##   TRUST_z      438   175   175   175   175    52    52    52    52    52    52
+##   BEAUTY_z     438   175   175   175   175    52    52    52    52    52    52
 ##   Sum         3066  1225  1225  1225  1225   364   364   364   364   364   364
 ##             
 ##               B3-3  B3-4  B4-1  B4-2  B4-3  B4-4  B5-1  B5-2  B5-3  B5-4  B6-1
 ##   DESIGN_z      52    52    54    54    54    54    53    53    53    53    52
 ##   DATA_z        52    52    54    54    54    54    53    53    53    53    52
 ##   POLITICS_z    52    52    54    54    54    54    53    53    53    53    52
-##   TRUST_z       52    52    54    54    54    54    53    53    53    53    52
 ##   ALIGN_z       52    52    54    54    54    54    53    53    53    53    52
-##   BEAUTY_z      52    52    54    54    54    54    53    53    53    53    52
 ##   INTENT_z      52    52    54    54    54    54    53    53    53    53    52
+##   TRUST_z       52    52    54    54    54    54    53    53    53    53    52
+##   BEAUTY_z      52    52    54    54    54    54    53    53    53    53    52
 ##   Sum          364   364   378   378   378   378   371   371   371   371   364
 ##             
 ##               B6-2  B6-3  B6-4   Sum
 ##   DESIGN_z      52    52    52  2190
 ##   DATA_z        52    52    52  2190
 ##   POLITICS_z    52    52    52  2190
-##   TRUST_z       52    52    52  2190
 ##   ALIGN_z       52    52    52  2190
-##   BEAUTY_z      52    52    52  2190
 ##   INTENT_z      52    52    52  2190
+##   TRUST_z       52    52    52  2190
+##   BEAUTY_z      52    52    52  2190
 ##   Sum          364   364   364 15330</code></pre>
 <pre class="r"><code>table(df$Study, df$STIMULUS, df$TIME)</code></pre>
 <pre><code>## , ,  = PRE
