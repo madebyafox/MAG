@@ -103,6 +103,7 @@ ref_stim_id <- levels(ref_stimuli$ID)
 ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
 ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
 ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
+ref_conf_questions_combined <- c("ID_CONF", "AGE_CONF", "GENDER_CONF")
 ref_sd_questions <- rownames(ref_labels)
 ref_blocks <- c(1,2,3,4,5,6)
 
@@ -149,7 +150,7 @@ order_encounter = c("scroll", "engage")
 
 ```{r import-data, message=FALSE, warning = FALSE}
 
-############## IMPORT Study 1_3 DATA FILES
+############## IMPORT Study 1_2 DATA FILES
 df_participants <- readRDS("data/output/Study_1_2/df_participants.rds") #1 row per participant — demographic
 df_graphs <- readRDS("data/output/Study_1_2/df_graphs.rds") #only categorical and numeric questions
 df_graphs_z <- readRDS("data/output/Study_1_2/df_graphs_z.rds") #only categorical and numeric questions
@@ -164,6 +165,7 @@ df_graphs_s3 <- readRDS("data/output/Study_3/df_graphs_s3.rds") #only categorica
 ############## IMPORT COMBINED DATA FILES
 df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds") 
 df_sd_questions_long_all <- readRDS("data/output/COMBINED/df_sd_questions_long_ALL.rds") # only sd questions LONG
+df_questions_long_all <- readRDS("data/output/COMBINED/df_questions_long_ALL.rds") # only sd questions LONG
 ```
 
 
@@ -225,7 +227,7 @@ jmv::efa(
 ```
 
 
-## (2) MODELLING | Predicting TRUST
+## TODO INSERT (2) MODELLING | Predicting TRUST (IN WIP)
 
 
 ## (3) DESCRIPTIVES | 
@@ -422,7 +424,102 @@ for (s in stimuli){
 
 ```
 
-### [3] Categorical Variables Plots (Study 1,2) (aggregated)
+### [3] Confidence Scores (block1)(Studies 1, 2 3(pre-post))
+
+This plots the concicse set of confidence scores for BLOCK 1 stimuli for Study 1,2,3 faceting by pre/post on study 4, as a stacked ridgeplot
+
+```{r plot_ridglines_confs_questions_stimulus_studies_block1_pre_post}
+  
+#### DENSITY RIDGES#############################################################################
+#### loop over questions and stimuli, vertically stack studies, color by sample
+
+## DEFINE DF
+df <- df_questions_long_all%>% 
+  #only block 1 for balanced data
+  filter(Assigned.Block==1) %>% 
+  #drop pilot data
+  filter(Study != "Study0") %>% 
+  #for Study 3 ONLY, set SAMPLE = TIME (for graphing purpose)
+  mutate(
+    Sample = case_when(Study =="Study3" ~ TIME ,
+                       .default = Sample)) %>% 
+  mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
+  mutate(Study = factor(Study, levels=order_study)) %>% 
+  filter(QUESTION %in% ref_conf_questions_combined) %>%
+  mutate(QUESTION = factor(QUESTION, levels=ref_conf_questions_combined),
+         value = as.numeric(value)) %>% 
+  droplevels()
+  
+print("participants data in this graph")
+table(df$Study, df$Assigned.Block)/3/5 #3 questions, 5 graphs
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+stimuli <- levels(df$STIMULUS)
+questions <- ref_conf_questions_combined #has qs in right order
+
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+for (s in stimuli){
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% filter(QUESTION ==q) %>% 
+    group_by(Study,Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = Study, fill = Sample, color = Sample, )) +
+      geom_density_ridges2(scale = 1, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            jittered_points = TRUE,
+            position = position_points_jitter(width = 0.5, height = 0),
+            point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 4,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + easy_remove_legend() 
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  p <- x[[1]] / x[[2]] /x[[3]] 
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS 
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/MVP/FIG_Descriptives/by_stacked", filename =paste0("FULL_STUDY_STACK_CONF_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+
+}## END LOOP OVER STIMULI
+
+
+```
+
+
+### [4] Categorical Variables Plots (Study 1,2) (aggregated)
 
 
 
@@ -491,7 +588,7 @@ ggsave(plot = ENCOUNTER, path="figs/MVP/FIG_Descriptives/categoricals", filename
 
 ```
 
-### [4] Categorical Variables Plots (block1)
+### [5] Categorical Variables Plots (block1)
 
 
 ```{r categoricals_by_stimulus}
@@ -568,7 +665,7 @@ ggsave(plot = ENCOUNTER, path="figs/MVP/FIG_Descriptives/categoricals", filename
 
 
 
-### [5] Sankey Categorical Variables Change (Study 3)
+### [6] Sankey Categorical Variables Change (Study 3)
 
 
 #### MAKER
@@ -606,7 +703,7 @@ ds <- df %>%
   geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
   # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
   #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
-  scale_fill_manual(values = my_palettes(name="reds", direction = "1"), guide = guide_legend(reverse = TRUE)) +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
   labs(title = "CHANGE in MAKER ID by STIMULUS", 
        x = "TIME", y = "(count)", fill = "MAKER",
        caption = "") + 
@@ -636,8 +733,8 @@ ds <- df %>%
   ##custom from ggsankey
   make_long(PRE_AGE, POST_AGE, value=STIMULUS) %>% 
   mutate(
-    node = factor(node, levels=order_age),
-    next_node= factor(next_node,order_age),
+    node = factor(node, levels=rev(order_age)),
+    next_node= factor(next_node,rev(order_age)),
     match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
   ) 
 
@@ -650,7 +747,7 @@ ds <- df %>%
   geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
   # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
   #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
-  scale_fill_manual(values = my_palettes(name="lightblues", direction = "1"), guide = guide_legend(reverse = TRUE)) +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
   labs(title = "CHANGE in AGE by STIMULUS", 
        x = "TIME", y = "(count)", fill = "AGE",
        caption = "") + 

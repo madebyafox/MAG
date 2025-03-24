@@ -391,7 +391,7 @@ table(df$Study, df$Assigned.Block)
 #   droplevels()
 ```
 
-#### M1 \| TRUST \~ BEAUTY
+#### M1 \| TRUST \~ BEAUTY (REPORT FOR COMPARISON)
 
 We begin by fitting a linear mixed effects, model predicting
 `CHART_TRUST` by `CHART_BEAUTY` to see whether our data support the
@@ -1075,6 +1075,29 @@ df %>% ggplot(aes(x=ALIGN_z, y= TRUST_z, color = ID))  +
 - MAKER_ID D yes SIG ixn w/ align
 - TECHNICALLY THE ALIGN*MAKER is a sig better fit BUT this model is far too complicated to report AND it is only explains a miniscule amount more variance
 
+#### OMBNIBUS 
+
+```{r, trust_ombinbus}
+
+################## FIT MODEL
+f.all <-  "TRUST_z ~ (ALL SDS) + (1|PID)"
+mm.all <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + INTENT_z*ALIGN_z + DATA_z + POLITICS_z+ DESIGN_z + ID + AGE + GENDER + (1|PID), data = df)
+summary(mm.all)
+car::Anova(mm.all) 
+
+################## COMPARE MODEL
+compare_performance(mm.all, mm.BxIxAD, rank = TRUE)
+anova(mm.all, mm.BxIxAD)
+
+```
+- In a model with simple main effects of all predictors (including categoricals), ID and POLITICS are also significant. However, we believe some of the variance in ID is accounted for by INTENT, and variance in POLITICS is better represented in ALIGNMENT
+
+Even though this model is a marginally (though significantly) better fit, we shoose to go with the simpler model
+
+- BEAUTY DOES INTERACT WITH MAKER (ALONE)
+
+- I explored means-centering vs. z-scoring, as well as running the model on the original response scales, and demonstrated that the plots are the same (as expected) and z-scoring makes the coefficients interpretable as 1SD difference and main effects as value of that variable when all other vars are held at their mean
+
 #### M11 \| TRUST \~ BEAUTY * MAKER 
 
 ```{r, m11}
@@ -1094,14 +1117,6 @@ print("two-way interaction")
 plot_model(mm.BxM, type = "pred", terms = c("ID","BEAUTY_z")) + theme_minimal() + labs(title = f.BxM)
 
 ```
-BEAUTY DOES INTERACT WITH MAKER (ALONE)
-#### RE-RUN THIS PARTIAL R2 ANALYSIS with new best model
-
-
-
-- I explored means-centering vs. z-scoring, as well as running the model on the original response scales, and demonstrated that the plots are the same (as expected) and z-scoring makes the coefficients interpretable as 1SD difference and main effects as value of that variable when all other vars are held at their mean
-
-
 
 #### TODO MAIN FIGURE (FIG 9) Predicting Trust
 
