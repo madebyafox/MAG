@@ -150,8 +150,567 @@ df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds")
 
 # NEW
 
+## WIP CONFIDENCE BY BLOCK 1 STIM BY STUDY 3 PRE/POST
 
-## SPARKLINES TABLE
+```{r sparktabletest}
+
+library(tinytable)
+library(webshot2)
+
+
+## SETUP LIST OF NUMERIC DATAFRAMES 
+all_q <- c(ref_min_conf_questions,ref_min_sd_questions)
+
+
+## DECIDE DATAFRAME VERSION (Raw, minimal questions)
+df <- df_graphs_all %>% 
+  filter(
+    #filter for only block 1 data
+    Assigned.Block==1, 
+    #drop pilot data 
+    Study != "Study0"
+  ) %>% 
+  #drop z-score cols
+  select(-contains("_z"), -contains("_politics")) %>% 
+  filter(Study =="Study3") %>% 
+  mutate(TIME = factor(TIME, levels = c("PRE","POST"))) %>% 
+  droplevels()
+
+
+## SANITY CHECK INCLUDED DATA
+# addmargins(table(df$Study, df$Assigned.Block)/5)
+
+## SETUP NUMERIC DATAFRAME
+df_num <- df %>% select(all_of(all_q))
+
+## CALC MEANS 
+### MEANS 
+# m <- sapply(df_num, FUN=mean)
+# m <- round(m,1)
+# m <- paste0("M=",m)
+# sd <- sapply(df_num, FUN=sd)
+# sd <- round(sd,1)
+# sd <- paste0("SD=",sd)
+# stat <- paste0(m," ",sd)
+
+
+############ POPULATE LIST OF FILTERED DATAFRAMES NUMERIC QUESTIONS
+d_q <- all_q
+stimuli <- as.vector(levels(df$STIMULUS))
+
+# Define row and column names
+col_names <- d_q 
+row_names <- stimuli
+
+# Initialize an empty list to store the structure
+m <- list() ## MINIMAL LIST OF JUST NUMERIC VALUS
+f <- list() ## DATAFRAME WITH STUDY AND SAMPLE
+
+# Loop over row names
+for (s in row_names) { #ROWS ARE QUESTIONS
+  # Initialize an empty list for each row
+  m[[s]] <- list()
+  f[[s]] <- list()
+  
+  # Loop over column names
+  for (q in col_names) { #COLS ARE STIMULI
+    # Create a small dataframe for demonstration
+    # m[[r]][[c]] <- data.frame(Value = sample(1:10, 5, replace = TRUE))
+    m[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(q) %>% pull()
+    f[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(TIME,q) 
+  }
+}
+################################################
+
+
+
+
+
+####### WORKS WITH NUMBER ONLY DATAFRAME passed through data = 
+# CUSTOM DENSITY PLOT
+dist <- function(d, ...){
+  d <- as.data.frame(d)
+  ggplot(d,aes(x = d )) +
+      geom_density(alpha=0.5, fill="black") +
+      theme_void()
+}
+###########################################################
+
+
+##WIP faceted by color
+amy <- function(x, question_name, full_data,...) {
+  # 'x' is a vector (extracted column) — useless
+  # 'full_data' is the original list of dataframes
+  ## CONSTRUCT DATAFRAME
+  vf <- full_data[[question_name]]
+  # browser()
+    ggplot(vf, aes(x = vf[[2]], fill = TIME)) +
+    geom_density(alpha=0.35) +
+    scale_fill_manual(values = my_palettes(name="blackgreen", direction = "1")) +
+    scale_color_manual(values = my_palettes(name="blackgreen", direction = "1")) +
+    theme_void() + easy_remove_legend()
+}
+
+
+######### ROW TRACKING FUNCTION
+# make_row_tracking_fun <- function(rows, full_data) {
+#   counter <- 0
+#   function(x, ...) {
+#     counter <<- counter + 1
+#     current_index <- rows[counter]
+#     amy(x = x, row_index = current_index, full_data = full_data, ...)
+#   }
+# }
+make_row_tracking_fun <- function(rows, full_data, tab) {
+  counter <- 0
+  function(x, ...) {
+    counter <<- counter + 1
+    current_index <- rows[counter]
+    question_name <- tab$VARIABLE[current_index]
+    
+    amy(
+      x = x,
+      # row_index = current_index,
+      full_data = full_data,
+      question_name = question_name,
+      ...
+    )
+  }
+}
+
+
+
+#### SETUP TABLE (CONFIDENCE ONLY)
+tab <- data.frame(
+  VARIABLE = all_q,
+  LABEL = c("Maker Confidence", "Age Confidence","Gender Confidence"),
+  AGGREGATE = "",
+  B1_A="",
+  B1_B="",
+  B1_C="",
+  B1_D="",
+  B0_D=""
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_encounter,stat)
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
+    # c("","","","","","","",stat)
+)
+
+#### SETUP TABLE (FULL SDS)
+tab2 <- data.frame(
+  VARIABLE = all_q,
+  LABEL = c("Maker Confidence", "Age Confidence","Gender Confidence","DESIGN", "DATA", "POLITICS","TRUST","ALIGN","BEAUTY","TRUST"),
+  AGGREGATE = "",
+  B1_A="",
+  B1_B="",
+  B1_C="",
+  B1_D="",
+  B0_D=""
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_encounter,stat)
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
+    # c("","","","","","","",stat)
+)
+
+
+##hacky workaround for plot_tt not passing row number to function
+row_counter <- 0
+
+# just conf
+#rows <- 1:3
+
+#full sd
+rows <- 1:10
+
+############## TINY TABLE
+### themes: bootstrap, grid, spacing
+t <- tinytable::tt(tab2, theme = "bootstrap") %>%
+  ## PLOT AGGREGATE PLOTS IN COLUMN 2
+  plot_tt(j=3, i= rows, fun=dist, data = df_num, color="black") %>% 
+# %>% 
+  ## PLOT B1_A IN COLUMN 3
+  plot_tt(j=4, i=rows, fun = make_row_tracking_fun(rows, f[["B1-1"]],tab2), data = f[["B1-1"]]) %>%
+  plot_tt(j=5, i=rows, fun = make_row_tracking_fun(rows, f[["B1-2"]],tab2), data = f[["B1-2"]]) %>%
+  plot_tt(j=6, i=rows, fun = make_row_tracking_fun(rows, f[["B1-3"]],tab2), data = f[["B1-3"]]) %>% 
+  plot_tt(j=7, i=rows, fun = make_row_tracking_fun(rows, f[["B1-4"]],tab2), data = f[["B1-4"]]) %>%
+  plot_tt(j=8, i=rows, fun = make_row_tracking_fun(rows, f[["B0-0"]],tab2), data = f[["B0-0"]])
+  
+
+## saved manually as png 
+# if(GRAPH_SAVE){
+#   # save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) ## CAN'T SAVE, HAVE TO MANUALLY SAVE FROM VIEWER WINDOW
+#   save_tt(t, output="figs/tables/confidence_sparklines.tex", overwrite = TRUE)
+# }
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## WORKING CONFIDENCE BY BLOCK 1 STIM BY STUDY 1,2
+
+```{r sparktabletest}
+
+library(tinytable)
+library(webshot2)
+
+
+## SETUP LIST OF NUMERIC DATAFRAMES 
+all_q <- c(ref_min_conf_questions)
+
+
+## DECIDE DATAFRAME VERSION (Raw, minimal questions)
+df <- df_graphs_all %>% 
+  filter(
+    #filter for only block 1 data
+    Assigned.Block==1, 
+    #drop pilot data 
+    Study != "Study0"
+  ) %>% 
+  #drop z-score cols
+  select(-contains("_z"), -contains("_politics")) %>% 
+  filter(Study !="Study3") %>% 
+  droplevels()
+
+
+## SANITY CHECK INCLUDED DATA
+# addmargins(table(df$Study, df$Assigned.Block)/5)
+
+## SETUP NUMERIC DATAFRAME
+df_num <- df %>% select(all_of(all_q))
+
+## CALC MEANS 
+### MEANS 
+# m <- sapply(df_num, FUN=mean)
+# m <- round(m,1)
+# m <- paste0("M=",m)
+# sd <- sapply(df_num, FUN=sd)
+# sd <- round(sd,1)
+# sd <- paste0("SD=",sd)
+# stat <- paste0(m," ",sd)
+
+
+############ POPULATE LIST OF FILTERED DATAFRAMES NUMERIC QUESTIONS
+d_q <- c(ref_min_conf_questions)
+stimuli <- as.vector(levels(df$STIMULUS))
+
+# Define row and column names
+col_names <- d_q 
+row_names <- stimuli
+
+# Initialize an empty list to store the structure
+m <- list() ## MINIMAL LIST OF JUST NUMERIC VALUS
+f <- list() ## DATAFRAME WITH STUDY AND SAMPLE
+
+# Loop over row names
+for (s in row_names) { #ROWS ARE QUESTIONS
+  # Initialize an empty list for each row
+  m[[s]] <- list()
+  f[[s]] <- list()
+  
+  # Loop over column names
+  for (q in col_names) { #COLS ARE STIMULI
+    # Create a small dataframe for demonstration
+    # m[[r]][[c]] <- data.frame(Value = sample(1:10, 5, replace = TRUE))
+    m[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(q) %>% pull()
+    f[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(Study,q) 
+  }
+}
+################################################
+
+
+
+
+
+####### WORKS WITH NUMBER ONLY DATAFRAME passed through data = 
+# CUSTOM DENSITY PLOT
+dist <- function(d, ...){
+  d <- as.data.frame(d)
+  ggplot(d,aes(x = d )) +
+      geom_density(alpha=0.5, fill="black") +
+      theme_void()
+}
+###########################################################
+
+
+##WIP faceted by color
+amy <- function(x, question_name, full_data,...) {
+  # 'x' is a vector (extracted column) — useless
+  # 'full_data' is the original list of dataframes
+  ## CONSTRUCT DATAFRAME
+  vf <- full_data[[question_name]]
+  # browser()
+    ggplot(vf, aes(x = vf[[2]], fill = Study)) +
+    geom_density(alpha=0.5) +
+    scale_fill_manual(values = my_palettes(name="simple_studies", direction = "1")) +
+    scale_color_manual(values = my_palettes(name="simple_studies", direction = "1")) +
+    theme_void() + easy_remove_legend()
+}
+
+
+######### ROW TRACKING FUNCTION
+# make_row_tracking_fun <- function(rows, full_data) {
+#   counter <- 0
+#   function(x, ...) {
+#     counter <<- counter + 1
+#     current_index <- rows[counter]
+#     amy(x = x, row_index = current_index, full_data = full_data, ...)
+#   }
+# }
+make_row_tracking_fun <- function(rows, full_data, tab) {
+  counter <- 0
+  function(x, ...) {
+    counter <<- counter + 1
+    current_index <- rows[counter]
+    question_name <- tab$VARIABLE[current_index]
+    
+    amy(
+      x = x,
+      # row_index = current_index,
+      full_data = full_data,
+      question_name = question_name,
+      ...
+    )
+  }
+}
+
+
+
+#### SETUP TABLE
+tab <- data.frame(
+  VARIABLE = all_q,
+  LABEL = c("Maker Confidence", "Age Confidence","Gender Confidence"),
+  AGGREGATE = "",
+  B1_A="",
+  B1_B="",
+  B1_C="",
+  B1_D="",
+  B0_D=""
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_encounter,stat)
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
+    # c("","","","","","","",stat)
+)
+
+
+##hacky workaround for plot_tt not passing row number to function
+row_counter <- 0
+rows <- 1:3
+
+
+############## TINY TABLE
+### themes: bootstrap, grid, spacing
+t <- tinytable::tt(tab, theme = "bootstrap") %>%
+  ## PLOT AGGREGATE PLOTS IN COLUMN 2
+  plot_tt(j=3, i= rows, fun=dist, data = df_num, color="black") %>% 
+  ## PLOT B1_A IN COLUMN 3
+  plot_tt(j=4, i=rows, fun = make_row_tracking_fun(rows, f[["B1-1"]],tab), data = f[["B1-1"]]) %>% 
+  plot_tt(height=1,j=5, i=rows, fun = make_row_tracking_fun(rows, f[["B1-2"]],tab), data = f[["B1-2"]]) %>%
+  plot_tt(height=1,j=6, i=rows, fun = make_row_tracking_fun(rows, f[["B1-3"]],tab), data = f[["B1-3"]]) %>%
+  plot_tt(height=1,j=7, i=rows, fun = make_row_tracking_fun(rows, f[["B1-4"]],tab), data = f[["B1-4"]]) %>%
+  plot_tt(height=1,j=8, i=rows, fun = make_row_tracking_fun(rows, f[["B0-0"]],tab), data = f[["B0-0"]])
+  
+
+## saved manually as png 
+# if(GRAPH_SAVE){
+#   # save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) ## CAN'T SAVE, HAVE TO MANUALLY SAVE FROM VIEWER WINDOW
+#   save_tt(t, output="figs/tables/confidence_sparklines.tex", overwrite = TRUE)
+# }
+
+```
+
+
+
+
+
+
+
+
+
+
+## WORKING CONFIDENCE SPARKLINES BY STUDY
+```{r sparktabletest}
+
+library(tinytable)
+library(webshot2)
+
+
+## SETUP LIST OF NUMERIC DATAFRAMES 
+all_q <- c(ref_min_conf_questions)
+
+
+## DECIDE DATAFRAME VERSION all studies; all samples, only conf
+df <- df_graphs_all %>% 
+  filter(
+    #filter for only block 1 data
+    # Assigned.Block==1, 
+    #drop pilot data 
+    Study != "Study0"
+  ) %>% 
+  #drop z-score cols
+  select(Study,Sample,STIMULUS,TIME,ref_min_conf_questions) %>% 
+   mutate(
+    Sample = case_when(Study =="Study3" ~ TIME ,
+                       .default = Sample)) %>% 
+  mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
+  droplevels()
+
+
+## SANITY CHECK INCLUDED DATA
+# addmargins(table(df$Study, df$Assigned.Block)/5)
+
+## SETUP NUMERIC DATAFRAME
+df_num <- df %>% select(Study,STIMULUS,where(is.numeric))
+
+## CALC MEANS 
+### MEANS 
+# m <- sapply(df_num, FUN=mean)
+# m <- round(m,1)
+# m <- paste0("M=",m)
+# sd <- sapply(df_num, FUN=sd)
+# sd <- round(sd,1)
+# sd <- paste0("SD=",sd)
+# stat <- paste0(m," ",sd)
+
+
+
+############ FILTER SIMPLE DATAFRAMES 
+df_all <- df %>% select(ID_CONF,AGE_CONF,GENDER_CONF)
+df_1 <- df %>% filter(Study=="Study1") %>% select(ID_CONF,AGE_CONF,GENDER_CONF)
+df_2 <- df %>% filter(Study=="Study2") %>% select(ID_CONF,AGE_CONF,GENDER_CONF)
+df_3 <- df %>% filter(Study=="Study3") %>% select(ID_CONF,AGE_CONF,GENDER_CONF)
+
+
+############ POPULATE LIST OF FILTERED DATAFRAMES NUMERIC QUESTIONS FOR STUDY 3 THAT INCLUDES FACET
+d_q <- c(ref_min_conf_questions)
+# Define row and column names
+col_names <- d_q 
+# Initialize an empty list to store the structure
+f <- list() ## DATAFRAME WITH STUDY AND SAMPLE
+# Loop over row names
+for (q in col_names) { 
+  # Initialize an empty list for each row
+  f[[q]] <- df %>% filter(Study=="Study3") %>% select(Sample,q) 
+}
+################################################
+
+
+
+####### WORKS WITH NUMBER ONLY DATAFRAME passed through data = 
+# CUSTOM DENSITY PLOT
+dist <- function(d, ...){
+  d <- as.data.frame(d)
+  ggplot(d,aes(x = d )) +
+  # ggplot(d,aes(x = value)) +
+      geom_density(alpha=0.5, fill="grey") +
+      theme_void()
+}
+###########################################################
+
+
+
+##WORKING FACETED
+# amy <- function(x, row_index, full_data,...) {
+#   # browser()
+#   # 'x' is a vector (extracted column)
+#   # 'row_index' is the index passed by plot_tt()
+#   # 'full_data' is the original list of dataframes
+#   
+#   # Reconstruct dataframe for the given row index
+#   vf <- full_data[[row_index]]
+#   ggplot(vf, aes(x = DATA, fill = Study)) + 
+#     geom_density(alpha=0.5) + 
+#     theme_void() + easy_remove_legend()
+# }
+
+
+##WIP faceted by color
+amy <- function(x, question_name, full_data,...) {
+
+  # 'x' is a vector (extracted column) — useless
+  # 'full_data' is the original list of dataframes
+  # browser()
+  ## CONSTRUCT DATAFRAME
+  vf <- full_data[[question_name]]
+  # browser()
+    ggplot(vf, aes(x = vf[[2]], fill = Sample)) +
+    geom_density(alpha=0.5) +
+    scale_fill_manual(values = my_palettes(name="blackred", direction = "1")) +
+    scale_color_manual(values = my_palettes(name="blackred", direction = "1")) +
+    theme_void() + easy_remove_legend()
+}
+
+
+
+######### ROW TRACKING FUNCTION
+make_row_tracking_fun <- function(rows, full_data, tab) {
+  counter <- 0
+  function(x, ...) {
+    counter <<- counter + 1
+    current_index <- rows[counter]
+    question_name <- tab$VARIABLE[current_index]
+    
+    amy(
+      x = x,
+      # row_index = current_index,
+      full_data = full_data,
+      question_name = question_name,
+      ...
+    )
+  }
+}
+
+
+#### SETUP TABLE
+tab <- data.frame(
+  VARIABLE = d_q,
+  AGGREGATE = "",
+  Study_1="",
+  Study_2="",
+  Study_3=""
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_encounter,stat)
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
+    # c("","","","","","","",stat)
+)
+
+
+##hacky workaround for plot_tt not passing row number to function
+# row_counter <- 0
+rows <- 1:3
+
+
+############## TINY TABLE
+### themes: bootstrap, grid, spacing
+t <- tinytable::tt(tab, theme = "grid") %>%
+  
+  ## PLOT AGGREGATE PLOTS IN COLUMN 2
+  plot_tt(j=2, i= 1:3, fun=dist, data = df_all, color="black") %>% 
+  ## PLOT BY STUDY
+  plot_tt(j=3, i= 1:3, fun=dist, data = df_1, color="black") %>% 
+  plot_tt(j=4, i= 1:3, fun=dist, data = df_2, color="black") %>% 
+  plot_tt(j=5, i=rows, fun = make_row_tracking_fun(rows, f,tab), data = f)
+
+
+
+t
+# if(GRAPH_SAVE){
+#   # save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) ## CAN'T SAVE, HAVE TO MANUALLY SAVE FROM VIEWER WINDOW
+#   save_tt(t, output="figs/tables/sparklines.tex", overwrite = TRUE)  
+# }
+
+```
+
+
+## WORKING PARTIAL SPARKLINES TABLE
 
 ```{r sparktabletest}
 
@@ -177,7 +736,6 @@ df <- df_graphs_all %>%
     Sample = case_when(Study =="Study3" ~ TIME ,
                        .default = Sample)) %>% 
   mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
-  mutate(Study = factor(Study, levels=order_study)) %>% 
   droplevels()
 
 
@@ -241,34 +799,7 @@ stat_encounter <- paste0(m_encounter$value, "(", m_encounter$prop,"%)") %>%  unl
 
 
 
-
-### RENDER TABLE
-# t <- tinytable::tt(tab, theme = "void") %>% 
-#   plot_tt(j=2, i= 1:7, fun=g, data = df_cat, height = 1.5) %>% 
-#   plot_tt(j=2, i= 8:22, fun="density", data = df_num, color="darkgrey") %>% 
-
-#### CUSTOM HORIZONTAL STACKED BARPLOT
-g <- function(d, ...){
-  # print(i)
-  p <- d$pal %>% unique
-  ggplot(d, aes(x="", fill=value)) +
-    geom_bar(stat="count", position = "stack") +
-    scale_fill_manual(values=my_colors[[p]]) + 
-    coord_flip() + theme_void() + easy_remove_axes() + easy_remove_legend()
-}
-
-
-
-
-
-## SETUP QUESTIONS 
-questions <- all_q
-
-
-
-
-
-############ POPULATE LIST OF FILTERED DATAFRAMES 
+############ POPULATE LIST OF FILTERED DATAFRAMES NUMERIC QUESTIONS
 d_q <- c(ref_min_conf_questions,ref_min_sd_questions)
 stimuli <- as.vector(levels(df$STIMULUS))
 
@@ -277,8 +808,8 @@ col_names <- d_q
 row_names <- stimuli
 
 # Initialize an empty list to store the structure
-m <- list()
-f <- list()
+m <- list() ## MINIMAL LIST OF JUST NUMERIC VALUS
+f <- list() ## DATAFRAME WITH STUDY AND SAMPLE
 
 # Loop over row names
 for (s in row_names) { #ROWS ARE QUESTIONS
@@ -291,14 +822,22 @@ for (s in row_names) { #ROWS ARE QUESTIONS
     # Create a small dataframe for demonstration
     # m[[r]][[c]] <- data.frame(Value = sample(1:10, 5, replace = TRUE))
     m[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(q) %>% pull()
-    f[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(Study,q) 
+    f[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(Study,Sample,q) 
   }
 }
 ################################################
 
 
 
-
+#### CUSTOM HORIZONTAL STACKED BARPLOT
+g <- function(d, ...){
+  # print(i)
+  p <- d$pal %>% unique
+  ggplot(d, aes(x="", fill=value)) +
+    geom_bar(stat="count", position = "stack") +
+    scale_fill_manual(values=my_colors[[p]]) + 
+    coord_flip() + theme_void() + easy_remove_axes() + easy_remove_legend()
+}
 
 ####### WORKS WITH NUMBER ONLY DATAFRAME passed through data = 
 # CUSTOM DENSITY PLOT
@@ -348,11 +887,11 @@ amy <- function(x, question_name, full_data,...) {
 
   # 'x' is a vector (extracted column) — useless
   # 'full_data' is the original list of dataframes
-  
+  # browser()
   ## CONSTRUCT DATAFRAME
   vf <- full_data[[question_name]]
   # browser()
-  ggplot(vf, aes(x = vf[[2]], y = Study, fill = Study)) +
+  ggplot(vf, aes(x = vf[[3]], y = Study, fill = Sample)) +
       geom_density_ridges2(scale = 0.85, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,linewidth=0.25 ) +
       scale_fill_manual(values = my_palettes(name="simple_samples", direction = "1")) +
       scale_color_manual(values = my_palettes(name="simple_samples", direction = "1")) +
@@ -379,7 +918,7 @@ make_row_tracking_fun <- function(rows, full_data, tab) {
     
     amy(
       x = x,
-      row_index = current_index,
+      # row_index = current_index,
       full_data = full_data,
       question_name = question_name,
       ...
@@ -409,20 +948,23 @@ tab <- data.frame(
 
 
 ##hacky workaround for plot_tt not passing row number to function
-row_counter <- 0
+# row_counter <- 0
 rows <- 5:14
 
-t <- tinytable::tt(tab, theme = "bootstrap") %>%
+
+############## TINY TABLE
+### themes: bootstrap, grid, spacing
+t <- tinytable::tt(tab, theme = "grid", width=c(3,2,1,1,1,1,1)) %>%
   ## PLOT AGGREGATE PLOTS IN COLUMN 2
   plot_tt(j=2, i= 1:4, fun=g, data = df_cat, height = 1) %>% #CATEGORICALS
   plot_tt(j=2, i= 5:14, fun=dist, data = df_num, color="black") %>% #NUMERIC
   
   ## PLOT B1_A IN COLUMN 3
-  plot_tt(height=3,j=3, i=rows, fun = make_row_tracking_fun(rows, f[["B1-1"]],tab), data = f[["B1-1"]]) %>% 
-  plot_tt(height=3,j=4, i=rows, fun = make_row_tracking_fun(rows, f[["B1-2"]],tab), data = f[["B1-2"]]) %>% 
-  plot_tt(height=3,j=5, i=rows, fun = make_row_tracking_fun(rows, f[["B1-3"]],tab), data = f[["B1-3"]]) %>% 
-  plot_tt(height=3,j=6, i=rows, fun = make_row_tracking_fun(rows, f[["B1-4"]],tab), data = f[["B1-4"]]) %>% 
-  plot_tt(height=3,j=7, i=rows, fun = make_row_tracking_fun(rows, f[["B0-0"]],tab), data = f[["B0-0"]]) 
+  plot_tt(height=3,j=3, i=rows, fun = make_row_tracking_fun(rows, f[["B1-1"]],tab), data = f[["B1-1"]])%>%
+  plot_tt(height=3,j=4, i=rows, fun = make_row_tracking_fun(rows, f[["B1-2"]],tab), data = f[["B1-2"]]) %>%
+  plot_tt(height=3,j=5, i=rows, fun = make_row_tracking_fun(rows, f[["B1-3"]],tab), data = f[["B1-3"]]) %>%
+  plot_tt(height=3,j=6, i=rows, fun = make_row_tracking_fun(rows, f[["B1-4"]],tab), data = f[["B1-4"]]) %>%
+  plot_tt(height=3,j=7, i=rows, fun = make_row_tracking_fun(rows, f[["B0-0"]],tab), data = f[["B0-0"]])
   
 
   ### WORKING AGGREGATED ACROSS STUDIES  
@@ -460,14 +1002,14 @@ t <- tinytable::tt(tab, theme = "bootstrap") %>%
   
   
   ##built in plot types: "histogram","density,"bar,line
-  style_tt(j=2, align="c")
+  # style_tt(j=2, align="c")
 
 
-ttt
-if(GRAPH_SAVE){
-  # save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) ## CAN'T SAVE, HAVE TO MANUALLY SAVE FROM VIEWER WINDOW
-  save_tt(t, output="figs/tables/sparklines.tex", overwrite = TRUE)  
-}
+t
+# if(GRAPH_SAVE){
+#   # save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) ## CAN'T SAVE, HAVE TO MANUALLY SAVE FROM VIEWER WINDOW
+#   save_tt(t, output="figs/tables/sparklines.tex", overwrite = TRUE)  
+# }
 
 ```
 
