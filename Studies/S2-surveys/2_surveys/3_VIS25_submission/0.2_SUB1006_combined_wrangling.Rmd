@@ -218,22 +218,19 @@ df1 <- df_graphs_s12 %>%
   ) %>% 
   # Drop old columns
   select(-c(MAKER_DESIGN_z:CHART_INTENT_z)) %>%
+  mutate(TIME="PRE") %>% ## SET ALL STUDY 1,2 GRAPHS TO PRE B/C the obscured stimulus was presented
   # Drop levels
   droplevels()
 
 ## Study 3, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=PRE
-df3 <- df_graphs_s3%>% 
+df3_PRE <- df_graphs_s3%>% 
   # Retail only cols needed for modelling
   select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal,
-        STIMULUS_CATEGORY, STIMULUS, BLOCK, 
+        STIMULUS_CATEGORY, STIMULUS, BLOCK,
         # only keep pre-test columns
-        contains("PRE")) %>% 
-  # drop confidence 
-  # select(-contains("CONF")) %>%  
+        contains("PRE")) %>%
   # drop latency
-  select(-contains("LATENCY"))%>% 
-  # drop non-zscore cols 
-  # select(-c(PRE_DESIGN: PRE_INTENT)) %>% 
+  select(-contains("LATENCY")) %>% 
   # rename categoricals
   rename(
     ENCOUNTER = PRE_ENCOUNTER,
@@ -267,10 +264,60 @@ df3 <- df_graphs_s3%>%
   # drop old columns datawizard columns
   select(-c(PRE_DESIGN_z: PRE_INTENT_z)) %>%
   select(-c(PRE_ID_CONF_z, PRE_AGE_CONF_z, PRE_GENDER_CONF_z)) %>% 
+  mutate(TIME = "PRE") %>% 
   droplevels()
+
+
+# Study 3, RETAIN ONLY COLUMNS NECESSARY FOR MODELLING, and only TIME=post
+df3_POST <- df_graphs_s3%>% 
+  # Retail only cols needed for modelling
+  select(PID, Assigned.Block, Study, Sample, D_politicsSocial, D_politicsFiscal,
+        STIMULUS_CATEGORY, STIMULUS, BLOCK,
+        # only keep pre-test columns
+        contains("POST")) %>%
+  # drop latency
+  select(-contains("LATENCY")) %>% 
+  # rename categoricals
+  rename(
+    ENCOUNTER = POST_ENCOUNTER,
+    ID = POST_ID,
+    AGE = POST_AGE,
+    GENDER = POST_GENDER,
+    DESIGN = POST_DESIGN,
+    DATA = POST_DATA,
+    POLITICS = POST_POLITICS,
+    ALIGN = POST_ALIGN,
+    INTENT = POST_INTENT,
+    TRUST = POST_TRUST,
+    BEAUTY = POST_BEAUTY,
+    ID_CONF = POST_ID_CONF,
+    AGE_CONF = POST_AGE_CONF,
+    GENDER_CONF = POST_GENDER_CONF
+  ) %>% 
+  #get rid of magicwizard transform for raw z value
+  mutate(
+    DESIGN_z = as.numeric(POST_DESIGN_z),
+    DATA_z = as.numeric(POST_DATA_z),
+    POLITICS_z = as.numeric(POST_POLITICS_z),
+    ALIGN_z = as.numeric(POST_ALIGN_z),
+    TRUST_z = as.numeric(POST_TRUST_z),
+    BEAUTY_z = as.numeric(POST_BEAUTY_z),
+    INTENT_z = as.numeric(POST_INTENT_z),
+    ID_CONF_z = as.numeric(POST_ID_CONF_z),
+    AGE_CONF_z = as.numeric(POST_AGE_CONF_z),
+    GENDER_CONF_z = as.numeric(POST_GENDER_CONF_z)
+    ) %>% 
+  # drop old columns datawizard columns
+  select(-c(POST_DESIGN_z: POST_INTENT_z)) %>%
+  select(-c(POST_ID_CONF_z, POST_AGE_CONF_z, POST_GENDER_CONF_z)) %>% 
+  mutate(TIME="POST") %>% 
+  droplevels()
+
+
+
   
 ## JOIN STUDIES
-df <- rbind(df1, df3)
+df <- rbind(df1, df3_PRE, df3_POST)
 
 ## PRINT 
 print("PARTICIPANTS BY STUDY AND STIMULUS")
