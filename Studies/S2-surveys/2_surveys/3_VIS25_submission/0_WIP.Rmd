@@ -118,7 +118,7 @@ ref_sd_questions_z <- c("MAKER_DESIGN_z","MAKER_DATA_z",
 ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
 ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
 ref_min_conf_questions <- c("ID_CONF","AGE_CONF","GENDER_CONF")
-ref_min_cat_questions <- c("ENCOUNTER","ID","AGE","GENDER")
+ref_min_cat_questions <- c("ID","AGE","GENDER","ENCOUNTER")
 ref_min_free_questions <- c("EXPLAIN")
 
 
@@ -149,6 +149,335 @@ df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds")
 ```
 
 # NEW
+
+
+## SPARKLINES TABLE
+
+```{r sparktabletest}
+
+library(tinytable)
+library(webshot2)
+
+
+## SETUP LIST OF NUMERIC DATAFRAMES 
+all_q <- c(ref_min_cat_questions, ref_min_conf_questions,ref_min_sd_questions)
+
+
+## DECIDE DATAFRAME VERSION (Raw, minimal questions)
+df <- df_graphs_all %>% 
+  filter(
+    #filter for only block 1 data
+    Assigned.Block==1, 
+    #drop pilot data 
+    Study != "Study0"
+  ) %>% 
+  #drop z-score cols
+  select(-contains("_z"), -contains("_politics")) %>% 
+   mutate(
+    Sample = case_when(Study =="Study3" ~ TIME ,
+                       .default = Sample)) %>% 
+  mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
+  mutate(Study = factor(Study, levels=order_study)) %>% 
+  droplevels()
+
+
+## SANITY CHECK INCLUDED DATA
+# addmargins(table(df$Study, df$Assigned.Block)/5)
+
+## SETUP NUMERIC DATAFRAME
+df_num <- df %>% select(Study,STIMULUS,where(is.numeric))
+
+## CALC MEANS 
+### MEANS 
+# m <- sapply(df_num, FUN=mean)
+# m <- round(m,1)
+# m <- paste0("M=",m)
+# sd <- sapply(df_num, FUN=sd)
+# sd <- round(sd,1)
+# sd <- paste0("SD=",sd)
+# stat <- paste0(m," ",sd)
+
+
+### CREATE LIST OF CATEGORICAL DATAFRAMES
+#before
+# encounter = df %>% select(ENCOUNTER) %>% 
+#   pivot_longer(cols=1)%>% mutate(pal="encounter") %>% as.data.frame()
+
+id = df %>% select(ID,Study,STIMULUS) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="reds") %>% as.data.frame()
+age = df %>% select(AGE,Study,STIMULUS) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="lightblues") %>% as.data.frame()
+gender = df %>% select(GENDER,Study,STIMULUS) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="smallgreens") %>% as.data.frame()
+encounter = df %>% select(ENCOUNTER,Study,STIMULUS) %>% 
+  pivot_longer(cols=1)%>% mutate(pal="encounter") %>% as.data.frame()
+
+
+df_cat <- list()
+df_cat[["ID"]] <- id
+df_cat[["AGE"]] <- age
+df_cat[["GENDER"]] <- gender
+df_cat[["ENCOUNTER"]] <- encounter
+
+
+
+## CALC CAT PROPORTIONS 
+n <- nrow(id)
+m_id <- table(id) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100) %>% map_df(rev) #reverse reading order 
+stat_id <- paste0(m_id$value, "(", m_id$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(age)
+m_age <- table(age) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_age <- paste0(m_age$value, "(", m_age$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+n <- nrow(gender)
+m_gender <- table(gender) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_gender <- paste0(m_gender$value, "(", m_gender$prop,"%)")%>%  unlist() %>% paste0(collapse=''," ")
+
+
+n <- nrow(encounter)
+m_encounter <- table(encounter) %>% as.data.frame() %>% mutate(prop = round(Freq/n, 2)*100)%>% map_df(rev)
+stat_encounter <- paste0(m_encounter$value, "(", m_encounter$prop,"%)") %>%  unlist() %>% paste0(collapse=''," ")
+
+
+
+
+### RENDER TABLE
+# t <- tinytable::tt(tab, theme = "void") %>% 
+#   plot_tt(j=2, i= 1:7, fun=g, data = df_cat, height = 1.5) %>% 
+#   plot_tt(j=2, i= 8:22, fun="density", data = df_num, color="darkgrey") %>% 
+
+#### CUSTOM HORIZONTAL STACKED BARPLOT
+g <- function(d, ...){
+  # print(i)
+  p <- d$pal %>% unique
+  ggplot(d, aes(x="", fill=value)) +
+    geom_bar(stat="count", position = "stack") +
+    scale_fill_manual(values=my_colors[[p]]) + 
+    coord_flip() + theme_void() + easy_remove_axes() + easy_remove_legend()
+}
+
+
+
+
+
+## SETUP QUESTIONS 
+questions <- all_q
+
+
+
+
+
+############ POPULATE LIST OF FILTERED DATAFRAMES 
+d_q <- c(ref_min_conf_questions,ref_min_sd_questions)
+stimuli <- as.vector(levels(df$STIMULUS))
+
+# Define row and column names
+col_names <- d_q 
+row_names <- stimuli
+
+# Initialize an empty list to store the structure
+m <- list()
+f <- list()
+
+# Loop over row names
+for (s in row_names) { #ROWS ARE QUESTIONS
+  # Initialize an empty list for each row
+  m[[s]] <- list()
+  f[[s]] <- list()
+  
+  # Loop over column names
+  for (q in col_names) { #COLS ARE STIMULI
+    # Create a small dataframe for demonstration
+    # m[[r]][[c]] <- data.frame(Value = sample(1:10, 5, replace = TRUE))
+    m[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(q) %>% pull()
+    f[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(Study,q) 
+  }
+}
+################################################
+
+
+
+
+
+####### WORKS WITH NUMBER ONLY DATAFRAME passed through data = 
+# CUSTOM DENSITY PLOT
+dist <- function(d, ...){
+  d <- as.data.frame(d)
+  ggplot(d,aes(x = d )) +
+  # ggplot(d,aes(x = value)) +
+      geom_density(alpha=0.5, fill="grey") +
+      theme_void()
+}
+###########################################################
+
+# ####### WORKS WITH NUMBER ONLY DATAFRAME passed through data = 
+# # CUSTOM DENSITY PLOT
+# amy <- function(d, ...){
+#  browser()
+#   # study <-  d[[1]]
+#   # value <-  d[[2]]
+#   # z <- bind_cols(study=study,value=value)
+#   # head(z)
+#   z <- data.frame(d)
+#   browser()
+#   z %>% 
+#     ggplot(aes(x = z[[1]])) +
+#       geom_density(alpha=0.5, fill="grey") +
+#       theme_void()
+# }
+
+
+##WORKING FACETED
+# amy <- function(x, row_index, full_data,...) {
+#   # browser()
+#   # 'x' is a vector (extracted column)
+#   # 'row_index' is the index passed by plot_tt()
+#   # 'full_data' is the original list of dataframes
+#   
+#   # Reconstruct dataframe for the given row index
+#   vf <- full_data[[row_index]]
+#   ggplot(vf, aes(x = DATA, fill = Study)) + 
+#     geom_density(alpha=0.5) + 
+#     theme_void() + easy_remove_legend()
+# }
+
+
+##WIP ridelines
+amy <- function(x, question_name, full_data,...) {
+
+  # 'x' is a vector (extracted column) — useless
+  # 'full_data' is the original list of dataframes
+  
+  ## CONSTRUCT DATAFRAME
+  vf <- full_data[[question_name]]
+  # browser()
+  ggplot(vf, aes(x = vf[[2]], y = Study, fill = Study)) +
+      geom_density_ridges2(scale = 0.85, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,linewidth=0.25 ) +
+      scale_fill_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      theme_void() + easy_remove_legend()
+}
+
+
+
+######### ROW TRACKING FUNCTION
+# make_row_tracking_fun <- function(rows, full_data) {
+#   counter <- 0
+#   function(x, ...) {
+#     counter <<- counter + 1
+#     current_index <- rows[counter]
+#     amy(x = x, row_index = current_index, full_data = full_data, ...)
+#   }
+# }
+make_row_tracking_fun <- function(rows, full_data, tab) {
+  counter <- 0
+  function(x, ...) {
+    counter <<- counter + 1
+    current_index <- rows[counter]
+    question_name <- tab$VARIABLE[current_index]
+    
+    amy(
+      x = x,
+      row_index = current_index,
+      full_data = full_data,
+      question_name = question_name,
+      ...
+    )
+  }
+}
+
+## AGGREGATE DATA ALL STIMULI
+df_num <- df_num %>% select(where(is.numeric))
+
+#   style_tt(j=2, align="c") 
+# theme options: void, grid, bootstrap, spacing
+
+#### SETUP TABLE
+tab <- data.frame(
+  VARIABLE = all_q,
+  AGGREGATE = "",
+  B1_A="",
+  B1_B="",
+  B1_C="",
+  B1_D="",
+  B0_D=""
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_encounter,stat)
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
+    # c("","","","","","","",stat)
+)
+
+
+##hacky workaround for plot_tt not passing row number to function
+row_counter <- 0
+rows <- 5:14
+
+t <- tinytable::tt(tab, theme = "bootstrap") %>%
+  ## PLOT AGGREGATE PLOTS IN COLUMN 2
+  plot_tt(j=2, i= 1:4, fun=g, data = df_cat, height = 1) %>% #CATEGORICALS
+  plot_tt(j=2, i= 5:14, fun=dist, data = df_num, color="black") %>% #NUMERIC
+  
+  ## PLOT B1_A IN COLUMN 3
+  plot_tt(height=3,j=3, i=rows, fun = make_row_tracking_fun(rows, f[["B1-1"]],tab), data = f[["B1-1"]]) %>% 
+  plot_tt(height=3,j=4, i=rows, fun = make_row_tracking_fun(rows, f[["B1-2"]],tab), data = f[["B1-2"]]) %>% 
+  plot_tt(height=3,j=5, i=rows, fun = make_row_tracking_fun(rows, f[["B1-3"]],tab), data = f[["B1-3"]]) %>% 
+  plot_tt(height=3,j=6, i=rows, fun = make_row_tracking_fun(rows, f[["B1-4"]],tab), data = f[["B1-4"]]) %>% 
+  plot_tt(height=3,j=7, i=rows, fun = make_row_tracking_fun(rows, f[["B0-0"]],tab), data = f[["B0-0"]]) 
+  
+
+  ### WORKING AGGREGATED ACROSS STUDIES  
+  # plot_tt(j=3, i= 5:14, fun=dist, data = m[["B1-1"]], color="black") %>%
+  # plot_tt(j=4, i= 5:14, fun=dist, data = m[["B1-2"]], color="black") %>%
+  # plot_tt(j=5, i= 5:14, fun=dist, data = m[["B1-3"]], color="black") %>%
+  # plot_tt(j=6, i= 5:14, fun=dist, data = m[["B1-4"]], color="black") %>%
+  # plot_tt(j=7, i= 5:14, fun=dist, data = m[["B0-0"]], color="black")
+  
+  
+  # plot_tt(j=3, i= 1:4, fun=g, data = df_cat, height = 1) %>% #CATEGORICALS
+  # plot_tt(j=4, i= 5:14, fun=dist, (df_num %>% filter(STIMULUS=="B1-1") %>%
+                                     # select(where(is.numeric))), color="black") %>%
+  
+  # ## PLOT B1_B IN COLUMN 3
+  # # plot_tt(j=3, i= 1:4, fun=g, data = df_cat, height = 1) %>% #CATEGORICALS
+  # plot_tt(j=4, i= 5:14, fun=dist, (df_num %>% filter(STIMULUS=="B1-2") %>% 
+  #                                    select(where(is.numeric))), color="black") %>% #NUMERIC
+  # 
+  # ## PLOT B1_C IN COLUMN 3
+  # # plot_tt(j=3, i= 1:4, fun=g, data = df_cat, height = 1) %>% #CATEGORICALS
+  # plot_tt(j=5, i= 5:14, fun=dist, (df_num %>% filter(STIMULUS=="B1-3") %>% 
+  #                                    select(where(is.numeric))), color="black") %>% #NUMERIC
+  # 
+  # ## PLOT B1_D IN COLUMN 3
+  # # plot_tt(j=3, i= 1:4, fun=g, data = df_cat, height = 1) %>% #CATEGORICALS
+  # plot_tt(j=6, i= 5:14, fun=dist, (df_num %>% filter(STIMULUS=="B1-4") %>% 
+  #                                    select(where(is.numeric))), color="black") %>% #NUMERIC
+  # 
+  # ## PLOT B1_A IN COLUMN 3
+  # # plot_tt(j=3, i= 1:4, fun=g, data = df_cat, height = 1) %>% #CATEGORICALS
+  # plot_tt(j=7, i= 5:14, fun=dist, (df_num %>% filter(STIMULUS=="B0-0") %>% 
+  #                                    select(where(is.numeric))), color="black") %>% #NUMERIC
+  # 
+  
+  
+  ##built in plot types: "histogram","density,"bar,line
+  style_tt(j=2, align="c")
+
+
+ttt
+if(GRAPH_SAVE){
+  # save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) ## CAN'T SAVE, HAVE TO MANUALLY SAVE FROM VIEWER WINDOW
+  save_tt(t, output="figs/tables/sparklines.tex", overwrite = TRUE)  
+}
+
+```
+
+
+
+
+
+
+
+
 
 ## [1] EFA
 
