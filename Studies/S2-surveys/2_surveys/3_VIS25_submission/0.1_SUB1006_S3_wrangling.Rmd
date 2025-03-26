@@ -1057,7 +1057,7 @@ saveRDS(df_sd_questions_long_z, file = "data/output/Study_3/df_sd_questions_long
 
 ```
 
-## !! ABSOLUTE_VALUE
+## ABSOLUTE_VALUE
 
 ```{r, standardizing-absvalue}
 
@@ -1095,7 +1095,7 @@ df_sd_questions_abs <- df_questions %>%
   ) %>% 
   droplevels()
 write.csv(df_sd_questions_abs, file = "data/output/Study_3/df_sd_questions_abs_S3.csv", na="")
-saveRDS(df_sd_questions_abs, file = "data/output/Study_3/df_sd_questions_abs_S3.csv.rds")
+saveRDS(df_sd_questions_abs, file = "data/output/Study_3/df_sd_questions_abs_S3.rds")
 
 
 ## DF_SD_QUESTIONS_LONG_Z
