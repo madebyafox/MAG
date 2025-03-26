@@ -156,13 +156,22 @@ ref_sd_questions_wide_z <- c(
                            "POST_INTENT_z")
 
 ############## GRAPH LABELS
-left <- c("professional","professional",
-          "left-leaning","untrustworthy","does NOT share","NOT at all",
-          "inform")
+left <- c("professional",
+          "professional",
+          "left-leaning",
+          "does NOT share",
+          "inform",
+          "untrustworthy",
+          "NOT at all")
 
-right <- c("layperson","layperson", 
-           "right-leaning","trustworthy", "DOES share", "very much",
-           "persuade")
+right <- c("layperson",
+           "layperson", 
+           "right-leaning",
+           "DOES share", 
+           "persuade",
+           "trustworthy", 
+           "very much"
+           )
 
 category <- c("COMPETENCY","COMPETENCY",
               "MAKER","MAKER","MAKER","CHART","CHART")
