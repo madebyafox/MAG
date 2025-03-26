@@ -42,6 +42,7 @@ my_colors = list(
   actions = c("#8E8E8E","#2A363B","#99b898ff","#fdcea8ff","#ff837bff","#e84a60ff"),
   studies = c("#8B69B5", "#66818e","#2A363B"), #study1, study2, study3
   samples = c("#8B69B5", "#7AAFE1","#ADC69D","#A3A3A3","green","#2A363B"), #tumblr, datacollar, bluecollar, general, PRE,POST
+  simple_studies = c( "#827099", "#1A4974"),#Study 1, Study 3
   simple_samples = c("#2C6378", "black","#398C4F","#3D3D3D"), #tumblr, prolific, POST,PRE"#37A236",
   # simple_samples = c("#827099", "#707070","#7FCE5B","#707070"), #tumblr, prolific, PRE,POST"#37A236",
   repeated = c("#2A363B","#C2C2C2"), #before/after
