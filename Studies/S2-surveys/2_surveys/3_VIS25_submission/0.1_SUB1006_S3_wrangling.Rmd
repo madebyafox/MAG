@@ -184,14 +184,23 @@ saveRDS(ref_labels, file = "data/input/REFERENCE/ref_labels_S3.rds")
 
 
 ### LABELS FOR ABS VALUE OF SD QUESTIONS
-ref_sd_questions_abs <-c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
+ref_sd_questions_abs <-ref_sd_questions
 
-left <- c("(neutral)","(neutral)",
-          "(neutral)","(neutral)","(neutral)","(neutral)","(neutral)")
+left <- c("(neutral)",
+          "(neutral)",
+          "(neutral)",
+          "(neutral)",
+          "(neutral)",
+          "(neutral)",
+          "(neutral)")
 
-right <- c("professional/layperson","professionaL/layperson",
-           "left-leaning/right-leaning","untrustworthy/trustworthy", "does NOT share/DOES share",
-            "NOT at all/VERY much","inform/persuade" )
+right <- c("professional/layperson",
+           "professionaL/layperson",
+           "left-leaning/right-leaning",
+           "does NOT share/DOES share",
+           "inform/persuade",
+           "untrustworthy/trustworthy", 
+           "NOT at all/VERY much")
 
 
 ref_labels_abs <- as.data.frame(cbind(ref_sd_questions_abs,left,right,category))
@@ -1048,7 +1057,7 @@ saveRDS(df_sd_questions_long_z, file = "data/output/Study_3/df_sd_questions_long
 
 ```
 
-## ABSOLUTE_VALUE
+## !! ABSOLUTE_VALUE
 
 ```{r, standardizing-absvalue}
 
@@ -1056,7 +1065,6 @@ saveRDS(df_sd_questions_long_z, file = "data/output/Study_3/df_sd_questions_long
 ## COLLAPSE SD SCALES AT 0 TO SHOW MIDDLE VS EXTREMES
 
 ## DF_GRAPHS_ABS
-## VARIABLE WISE STANDARDIZATION
 df_graphs_abs <- df_graphs %>% 
   mutate(
     PRE_DESIGN = abs(PRE_DESIGN - 50),
@@ -1077,6 +1085,17 @@ df_graphs_abs <- df_graphs %>%
 write.csv(df_graphs_abs, file = "data/output/Study_3/df_graphs_abs_S3.csv", na="")
 saveRDS(df_graphs_abs, file = "data/output/Study_3/df_graphs_abs_S3.rds")
 
+
+## DF_SD_QUESTIONS_ABS
+df_sd_questions_abs <- df_questions %>% 
+  filter(QUESTION %in% ref_sd_questions) %>% 
+  mutate(
+    PRE = abs(as.numeric(PRE)-50),
+    POST = abs(as.numeric(POST)-50)
+  ) %>% 
+  droplevels()
+write.csv(df_sd_questions_abs, file = "data/output/Study_3/df_sd_questions_abs_S3.csv", na="")
+saveRDS(df_sd_questions_abs, file = "data/output/Study_3/df_sd_questions_abs_S3.csv.rds")
 
 
 ## DF_SD_QUESTIONS_LONG_Z
