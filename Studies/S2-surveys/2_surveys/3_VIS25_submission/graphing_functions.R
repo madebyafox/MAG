@@ -1,5 +1,27 @@
 
 
+
+
+
+
+############ DEFINE FACTOR ORDERS USED IN MULTIPLE PLOTS
+
+## set order of several factor vars used in plots 
+order_times = c("PRE","POST")
+order_study = c("Study3","Study2","Study1","Study0") ##NEW for VIS
+order_sample = c("TUMBLR","DATACOLLAR","BLUECOLLAR", "GENERAL") ## NEW for VIS
+order_distribution = c("TUMBLR","PROLIFIC")
+order_maker = c("individual","organization","education","business","news","political")
+order_age = c("boomer", "gen-x","millennial","gen-z")
+order_gender = c("Other","Female","Male" )
+order_encounter = c("scroll", "engage")
+
+
+
+
+
+
+
 ############## SETUP CLEAN THEME
 # Custom ggplot theme to make pretty plots
 # Get the font at https://fonts.google.com/specimen/Barlow+Semi+Condensed
