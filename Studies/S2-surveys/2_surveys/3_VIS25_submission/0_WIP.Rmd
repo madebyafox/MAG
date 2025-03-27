@@ -121,10 +121,6 @@ ref_min_conf_questions <- c("ID_CONF","AGE_CONF","GENDER_CONF")
 ref_min_cat_questions <- c("ID","AGE","GENDER","ENCOUNTER")
 ref_min_free_questions <- c("EXPLAIN")
 
-
-
-
-
 ```
 
 ### Import Data
@@ -143,14 +139,427 @@ df_questions_s3 <- readRDS("data/output/Study_3/df_questions_S3.rds")
 df_graphs_s3 <- readRDS("data/output/Study_3/df_graphs_s3.rds") #only categorical and numeric questions
 df_graphs_z_s3 <- readRDS("data/output/Study_3/df_graphs_z_s3.rds") #only categorical and numeric questions
 
+
+df_sd_questions_long_S3 <- readRDS("data/output/Study_3/df_sd_questions_long_S3.rds")
+df_sd_questions_abs_s3 <- readRDS("data/output/Study_3/df_sd_questions_abs_S3.rds")
+df_sd_questions_long_z_S3 <- readRDS("data/output/Study_3/df_sd_questions_long_z_S3.rds")
+
+
+
 ############## IMPORT COMBINED DATA FILES
 df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds")
 
 ```
 
-# NEW
+## SETUP ATTITUDE CHANGE DATA 
+```{r setup-attitude-change-data}
 
-## WIP CONFIDENCE BY BLOCK 1 STIM BY STUDY 3 PRE/POST
+## SETUP DATA FRAME
+df_change_all <- df_questions_s3 %>% 
+  mutate(
+    SAME = PRE==POST,
+    SAME = factor(SAME, levels = c("TRUE","FALSE"))
+  )
+
+## SETUP SD ONLY ATTITUDE CHANGE DATAFRAME
+df_change_sd <- df_change_all %>% 
+  filter(QUESTION %in% ref_min_sd_questions) %>% 
+  mutate(
+    PRE = as.numeric(PRE),
+    POST = as.numeric(POST),
+    shift = POST-PRE
+  )
+
+```
+
+# S3
+
+## (S3 2.1) Proportion of Participants who changed categoricals  (annotations IN FIGURE)
+```{r}
+
+# SETUP DATA
+df <- df_change_all %>% 
+  filter(QUESTION %in% ref_min_cat_questions) %>% 
+  droplevels()
+
+
+## 1. How many ppl changed for each stimulus x question 
+table(df$QUESTION, df$SAME, df$STIMULUS)/40
+
+
+
+
+```
+
+
+## (S3 2.2) MODEL what stimulusX categorical questions change (in significant numbers)?
+```{r s3-attitude-change-model}
+
+# SETUP DATA
+df <- df_change_all %>% 
+  filter(QUESTION %in% ref_min_cat_questions) %>% 
+  mutate(QUESTION = factor(QUESTION, levels = c("AGE","ID","GENDER","ENCOUNTER"))) %>% #reset factor levels for modelling b/c age is not sig
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-2","B1-1","B1-3","B1-4","B0-0"))) %>% 
+  droplevels()
+
+## sanity check 
+print("data in this model")
+table(df$Study, df$STIMULUS)
+
+# PRE-REQ CHECKS  :::::::::::::::::::::::::::::::::::::
+
+## check for sparse cells
+table(df$QUESTION, df$SAME, df$STIMULUS)
+levels(df$SAME)
+levels(df$QUESTION)
+levels(df$STIMULUS)
+
+
+# MODEL PREDICTING CHANGE AT ALL :::::::::::::::::::::::::::::::::::::
+
+#:: RANDOM INTERCEPT SUBJECT
+mm.rS <- glmer(SAME ~ (1|PID), data = df,family = "binomial")
+summary(mm.rS)
+
+#:: QUESTION X STIMULUS
+mm.QS <- glmer(SAME ~ QUESTION * STIMULUS + (1|PID), data = df,family = "binomial", 
+               control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=100000)))
+
+summ(mm.QS)
+summary(mm.QS)
+car::Anova(mm.QS)
+
+#: 3 TEST SUPERIOR FIT
+test_lrt(mm.rS,mm.QS) #same as anova
+paste("Likelihood Ratio test is significant? p = ",(test_lrt(mm.QS,mm.rS))$p[2])
+
+## REPORT 
+report(mm.QS)
+
+
+```
+TODO REPORT:: 
+A logistics mixed effects regression model predicting change in value by an interaction between QUESTION and STIMULUS (with participant as a random effect) indicated a significant main effect of ID, and interaction between gender and B1-1, indicating that most frequently indivdiual's changed their answer to the MAKER ID question, and also there were a lot of changes (45%) of participants changed their identification of maker gender when seeing the data from B1-1.  
+
+SIGNIFICANT CHANGES IN CATEGORICALS
+1. main effect MAKERID
+2. sig ixn GENDER::B1-1 
+
+
+
+
+##(S3 2.3) Categoricals and CONFIDENCE
+
+### S2 2.3.1 MAKER ID
+```{r}
+
+## SETUP DATA
+df <- df_graphs_z_s3 %>% 
+  select("PID", "Study","Assigned.Block","STIMULUS","PRE_ID", "POST_ID","PRE_ID_CONF_z","POST_ID_CONF_z") %>%
+  mutate(
+    STIMULUS = factor(STIMULUS, levels = c("B1-2","B1-1","B1-3","B1-4","B0-0")),
+    SAME = PRE_ID == POST_ID, 
+    SAME = factor(SAME, levels = c("TRUE","FALSE")),
+    SHIFT = as.numeric(POST_ID_CONF_z - PRE_ID_CONF_z)
+)
+
+
+## MODEL EFFECT OF STIMULUS ON AND CHANGE ON ID CONFIDENCE 
+m <- lmer(SHIFT ~ STIMULUS+SAME + (1|PID), data = df)
+summary(m)
+anova(m)
+
+## try with sum coding (comparing to grand mean rather than reference level as first categorical)
+m2 <- lmer(SHIFT ~ STIMULUS+SAME + (1|PID), data = df, 
+      # contrasts = list(STIMULUS = contr.sum, SAME = contr.sum)
+      )
+
+summary(m2)
+## get the colnames from R
+# colnames(model.matrix(m2))
+# contrasts(df$SAME)
+# anova(m2)
+
+
+
+
+## MODEL WITH INTERACTION 
+# m2 <- lmer(SHIFT ~ STIMULUS*SAME + (1|PID), data = df)
+# summary(m2)
+# anova(m2)
+# 
+# anova(m,m2)
+# compare_performance(m,m2, rank = TRUE)
+
+plot_model(m, show.intercept = TRUE, show.p = TRUE, show.values = TRUE)
+plot_model(m, type = "pred", terms=c("STIMULUS","SAME"), show.data = FALSE)
+plot_model(m, type = "pred", terms=c("STIMULUS"), show.data = TRUE)
+plot_model(m, type = "pred", terms=c("SAME"), show.data = TRUE)
+
+# library(emmeans)
+# emmeans(m2, ~ STIMULUS)
+# emmeans(m2, ~ SAME)
+
+report(m2)
+
+```
+
+A linear mixed effects model predicting change in maker confidence by stimulus and change in maker showed that changes a significant main effect of both predictors, such that confidence slightly increased for each stimulus when the maker ID changed as well.  
+
+
+
+
+### S2 2.3.2 AGE 
+```{r}
+
+## SETUP DATA
+df <- df_graphs_z_s3 %>% 
+  select("PID", "Study","Assigned.Block","STIMULUS","PRE_AGE", "POST_AGE","PRE_AGE_CONF_z","POST_AGE_CONF_z") %>%
+  mutate(
+    STIMULUS = factor(STIMULUS, levels = c("B1-2","B1-1","B1-3","B1-4","B0-0")),
+    SAME = PRE_AGE == POST_AGE, 
+    SAME = factor(SAME, levels = c("TRUE","FALSE")),
+    SHIFT = as.numeric(POST_AGE_CONF_z - PRE_AGE_CONF_z)
+)
+
+
+## MODEL EFFECT OF STIMULUS ON AND CHANGE ON AGE CONFIDENCE 
+m <- lmer(SHIFT ~ STIMULUS+SAME + (1|PID), data = df)
+summary(m)
+anova(m)
+
+## MODEL WITH INTERACTION 
+m2 <- lmer(SHIFT ~ STIMULUS*SAME + (1|PID), data = df)
+summary(m2)
+anova(m2)
+
+# anova(m,m2)
+# compare_performance(m,m2, rank = TRUE)
+
+plot_model(m, show.intercept = TRUE, show.p = TRUE, show.values = TRUE)
+plot_model(m, type = "pred", terms=c("STIMULUS","SAME"), show.data = FALSE)
+plot_model(m, type = "pred", terms=c("STIMULUS"), show.data = TRUE)
+plot_model(m, type = "pred", terms=c("SAME"), show.data = TRUE)
+
+# library(emmeans)
+# emmeans(m2, ~ STIMULUS)
+# emmeans(m2, ~ SAME)
+
+report(m2)
+
+```
+
+A linear mixed effects model predicting change in AGE confidence by stimulus and change in AGE showed NEITHER predictor was significant. 
+
+
+
+
+
+### S2 2.3.3 GENDER 
+```{r}
+
+## SETUP DATA
+df <- df_graphs_z_s3 %>% 
+  select("PID", "Study","Assigned.Block","STIMULUS",
+         "PRE_GENDER", "POST_GENDER","PRE_GENDER_CONF_z","POST_GENDER_CONF_z") %>%
+  mutate(
+    STIMULUS = factor(STIMULUS, levels = c("B1-2","B1-1","B1-3","B1-4","B0-0")),
+    SAME = PRE_GENDER == POST_GENDER, 
+    SAME = factor(SAME, levels = c("TRUE","FALSE")),
+    SHIFT = as.numeric(POST_GENDER_CONF_z - PRE_GENDER_CONF_z)
+)
+
+
+## MODEL EFFECT OF STIMULUS ON AND CHANGE ON AGE CONFIDENCE 
+m <- lmer(SHIFT ~ STIMULUS+SAME + (1|PID), data = df)
+summary(m)
+anova(m)
+
+## MODEL WITH INTERACTION 
+m2 <- lmer(SHIFT ~ STIMULUS*SAME + (1|PID), data = df)
+summary(m2)
+anova(m2)
+
+anova(m,m2)
+compare_performance(m,m2, rank = TRUE)
+
+plot_model(m, show.intercept = TRUE, show.p = TRUE, show.values = TRUE)
+plot_model(m, type = "pred", terms=c("STIMULUS","SAME"), show.data = FALSE)
+plot_model(m, type = "pred", terms=c("STIMULUS"), show.data = TRUE)
+plot_model(m, type = "pred", terms=c("SAME"), show.data = TRUE)
+
+# library(emmeans)
+# emmeans(m2, ~ STIMULUS)
+# emmeans(m2, ~ SAME)
+
+report(m2)
+
+```
+
+A linear mixed effects model predicting change in AGE confidence by stimulus and change in AGE showed NEITHER predictor was significant. 
+
+
+## (S3 2.4) CHANGE IN SEMANTIC DIFFERENTIALS [RAW]
+
+```{r}
+
+
+
+## SETUP DATA 
+df <- df_change_sd %>% 
+  filter(QUESTION %in% q) %>% 
+  mutate(
+    STIMULUS = factor(STIMULUS, levels=c("B0-0","B1-2","B1-1","B1-3","B1-4")),
+    QUESTION = factor(QUESTION, levels = c("DESIGN","DATA","POLITICS","TRUST","ALIGN","INTENT","BEAUTY"))
+  ) %>%
+  droplevels()
+  
+
+
+## MODEL SHIFT(RAW) by question and stimulus
+  m1 <- lmer(shift ~ QUESTION + STIMULUS + (1|PID), data = df)
+  summary(m1)
+  anova(m1)
+  
+  m2 <- lmer(shift ~ QUESTION * STIMULUS + (1|PID), data = df)
+  summary(m2)
+  anova(m2)
+  
+  compare_performance(m1,m2, rank = TRUE)
+
+## USE EMMEANS TO GET MORE INTERPRETABLE COEFFICIENTS 
+library(emmeans)
+contrast(emmeans(m2, ~ QUESTION * STIMULUS), method = "eff")
+contrast(emmeans(m2, ~ QUESTION), method = "eff")
+contrast(emmeans(m2, ~ STIMULUS), method = "eff")
+  
+  
+  
+  
+####### BEST FITTING MODEL IS IXN OF Q & STIMULUS
+plot_model(m2, show.intercept = TRUE, show.values = TRUE, show.p = TRUE)
+plot_model(m2, type = "pred", terms = c("QUESTION","STIMULUS"), show.intercept = TRUE, show.values = TRUE, show.p = TRUE, show.data=FALSE)
+plot_model(m2, type = "pred", terms = c("STIMULUS","QUESTION"), show.intercept = TRUE, show.values = TRUE, show.p = TRUE, show.data=FALSE) 
+
+report(m2)
+
+
+
+```
+
+
+## (S3 2.5) CHANGE IN SEMANTIC DIFFERENTIAL (ABS)
+
+```{r}
+
+## SD QUESTIONS
+df_sd <- df_questions_s3 %>% 
+  filter( QUESTION %in% ref_min_sd_questions) %>% 
+  droplevels() %>% 
+  mutate(
+      POST = as.numeric(POST),
+      PRE = as.numeric(PRE),
+     
+      ## TRUE ABS CALC (absolute value difference) -- MAGNITUDE OF DIFF
+       ## calculate change
+      CHANGE_RAW = POST - PRE,
+      ## calculate absolute values
+      # PRE_abs = abs(PRE - 50),
+      # POST_abs = abs(POST - 50),
+      CHANGE_ABS = abs(CHANGE_RAW),
+      
+      ## DIRECTIONAL ABS CALC - towards neutral + toward 
+      abs_post = abs(POST-50),
+      abs_pre = abs(PRE-50),
+      abs_change = abs_post - abs_pre
+  )
+
+df <- df_sd %>% 
+  mutate(
+    QUESTION = factor(QUESTION, levels = c("DESIGN","DATA","POLITICS","TRUST","ALIGN","INTENT","BEAUTY"))
+  )
+
+##### USING INCORRECT ABSOLUTE VALUE CALCULATION 
+## linear model
+# f.1 <- "CHANGE ~ QUESTION + STIMULUS"
+# m.1 <- lmer(data = df, CHANGE_ABS ~ QUESTION + STIMULUS + (1|PID))
+# summary(m.1)  
+# anova(m.1)
+# performance(m.1)
+# plot_model(m.1, type = "pred", terms=c("QUESTION","STIMULUS")) + labs(title = f.1)
+# plot_model(m.1, type = "pred", terms=c("STIMULUS","QUESTION")) + labs(title = f.1)
+
+
+################### CALCULATE USING TRUE ABS VALUE, MAGNITUDE OF CHANGE ONLY 
+# ixn model
+ f.2 <- "CHANGE ~ QUESTION * STIMULUS"
+ m.2 <- lmer(data = df, CHANGE_ABS ~ QUESTION * STIMULUS + (1|PID))
+ summary(m.2)
+ anova(m.2)
+ performance(m.2)
+ plot_model(m.2, type = "pred", terms=c("QUESTION","STIMULUS")) + labs(title = f.2)
+ plot_model(m.2, type = "pred", terms=c("STIMULUS","QUESTION")) + labs(title = f.2)
+
+ ## compare models
+ compare_performance(m.1, m.2, rank = TRUE)
+ anova(m.1, m.2)
+
+ ## USE EMMEANS TO GET MORE INTERPRETABLE COEFFICIENTS
+ library(emmeans)
+ contrast(emmeans(m.2, ~ QUESTION * STIMULUS), method = "eff")
+ contrast(emmeans(m.2, ~ QUESTION), method = "eff")
+ contrast(emmeans(m.2, ~ STIMULUS), method = "eff")
+
+
+
+############## CALCULATE USING THE OTHER ABSOLUTE VALUE APPROACH — WHERE - IS TOWARD NEUTRAL POSITIVE TOWARD POLES
+## ixn model
+f.2 <- "CHANGE ~ QUESTION * STIMULUS"
+m.2 <- lmer(data = df, abs_change ~ QUESTION * STIMULUS + (1|PID))
+summary(m.2)  
+anova(m.2)
+performance(m.2)
+plot_model(m.2, type = "pred", terms=c("QUESTION","STIMULUS")) + labs(title = f.2)
+plot_model(m.2, type = "pred", terms=c("STIMULUS","QUESTION")) + labs(title = f.2)
+
+## USE EMMEANS TO GET MORE INTERPRETABLE COEFFICIENTS 
+library(emmeans)
+contrast(emmeans(m.2, ~ QUESTION * STIMULUS), method = "eff")
+contrast(emmeans(m.2, ~ QUESTION), method = "eff")
+contrast(emmeans(m.2, ~ STIMULUS), method = "eff")
+
+gf_histogram(data = df, ~df$CHANGE_ABS)
+gf_histogram(data = df, ~df$abs_change)
+
+```
+
+
+
+
+
+
+### MODEL CHANGE IN ATTITUDE (incl categoricals and conf)
+```{r}
+
+ref_sd_change = data.frame(ref_min_sd_questions)
+ref_sd_change <- ref_sd_change %>% 
+  mutate(
+    QUESTION = ref_min_sd_questions,
+    RAW = paste0(QUESTION,"_CHANGE_RAW"),
+    ABS = paste0(QUESTION,"_CHANGE_ABS")
+  ) %>% select(-ref_min_sd_questions)
+
+
+
+```
+
+
+
+
+# SPARKTABLE STUFF
+
+
+## xx WIP CONFIDENCE BY BLOCK 1 STIM BY STUDY 3 PRE/POST
 
 ```{r sparktabletest}
 
@@ -282,7 +691,7 @@ make_row_tracking_fun <- function(rows, full_data, tab) {
 
 #### SETUP TABLE (CONFIDENCE ONLY)
 tab <- data.frame(
-  VARIABLE = all_q,
+  VARIABLE = ref_min,
   LABEL = c("Maker Confidence", "Age Confidence","Gender Confidence"),
   AGGREGATE = "",
   B1_A="",
@@ -1018,7 +1427,7 @@ t
 
 
 
-
+# EXPLORATORY FACTOR ANALYSIS
 
 
 ## [1] EFA
@@ -1235,6 +1644,8 @@ jmv::efa(
 # fa.diagram(efa_result)
 
 ```
+
+# MODELLING TRUST
 
 ## [2] MODELLING TRUST
 

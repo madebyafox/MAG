@@ -88,7 +88,7 @@ n_blocks = 6
 ## IMPORTANT 
 GRAPH_SAVE = TRUE #set to true to generate all the SD graphs and save to folders 
 source("graphing_functions.R") #import graphing palettes and custom functions
-
+#factor order vectors moved to graphing file
 
 
 ```
@@ -125,26 +125,8 @@ ref_blocks <- c(1,2,3,4,5,6)
 
 ```
 
-### Define Factors
-
-*Define order of factors for multiple-choice variables*
-
-```{r define-factor-orders}
-
-## set order of several factor vars used in plots 
-order_times = c("PRE","POST")
-order_study = c("Study0","Study1","Study2","Study3") ##NEW for VIS
-order_sample = c("TUMBLR","DATACOLLAR","BLUECOLLAR", "GENERAL") ## NEW for VIS
-order_distribution = c("TUMBLR","PROLIFIC")
-order_maker = c("individual","organization","education","business","news","political")
-order_age = c("boomer", "gen-x","millennial","gen-z")
-order_gender = c("Other","Female","Male" )
-order_encounter = c("scroll", "engage")
-
-```
 
 ### Import Data
-
 
 ```{r import-data}
 
@@ -164,10 +146,11 @@ df_graphs_z <- readRDS("data/output/Study_3/df_graphs_z_S3.rds")
 # sd questions LONG (with pre/post in sep cols)
 df_questions_long <- readRDS("data/output/Study_3/df_questions_long_S3.rds")
 df_sd_questions_long <- readRDS("data/output/Study_3/df_sd_questions_long_S3.rds") #pre/post in sep rows as TIME
-df_questions <- readRDS("data/output/Study_3/df_questions_S3.rds") #pre/post in sep cols
-
-
 df_sd_questions_long_abs <-  readRDS("data/output/Study_3/df_sd_questions_long_abs_S3.rds")
+
+df_questions <- readRDS("data/output/Study_3/df_questions_S3.rds") #pre/post in sep cols
+df_sd_questions_abs <- readRDS("data/output/Study_3/df_sd_questions_abs_S3.rds") #pre/post in sep cols
+
 
 ```
 
@@ -184,7 +167,71 @@ table(df_participants$Assigned.Block, df_participants$Study)
 
 # EXPLORATION
 
-## PRE-POST SD Questions
+
+## RAW CONFIDENCE
+```{r block1_confidence, message=FALSE, warning = FALSE}
+
+
+### FILTER FOR ONLY SD QUESTIONS
+df <- df_questions_long %>% 
+  filter(QUESTION %in% ref_conf_questions) %>% 
+  mutate(value = as.numeric(value)) %>% 
+  droplevels()
+# %>% filter(QUESTION %in% ref_sd_questions)
+
+
+
+####### PRE/POST BY QUESTION AND STIMULUS  
+(x <-
+  df %>%   ggplot(aes(x = value, y = QUESTION, fill = TIME, color= TIME)) +
+    geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = FALSE)+ 
+  
+    
+    scale_fill_manual(values = my_palettes(name="blackgreen", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="blackgreen", direction = "1"))+
+    facet_grid(.~STIMULUS)
+)    
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_CONF_by_Stimulus_ridges.png"), units = c("in"), width = 10, height = 10,  bg='#ffffff'  )}
+
+
+
+#######PRE/POST BY QUESTION
+(x <-
+  df %>%   ggplot(aes(x = value, y = QUESTION, fill = TIME, color= TIME)) +
+    geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = FALSE)+ 
+    scale_fill_manual(values = my_palettes(name="blackgreen", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="blackgreen", direction = "1"))
+)    
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_CONF_by_Question_ridges.png"), units = c("in"), width = 10, height = 10,  bg='#ffffff'  )}
+
+
+
+
+#######PRE/POST BY 
+(x <-
+  df %>%   ggplot(aes(x = value, y = TIME, fill = TIME, color= TIME)) +
+    geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = FALSE)+ 
+    scale_fill_manual(values = my_palettes(name="blackgreen", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="blackgreen", direction = "1"))
+)    
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_CONF_by_Time_ridges.png"), units = c("in"), width = 10, height = 10,  bg='#ffffff'  )}
+
+```
+
+
+
+
+
+
+
+
+## RAW PRE-POST SD Questions
 ```{r block1_sds_by_sample, message=FALSE, warning = FALSE}
 
 
@@ -245,7 +292,7 @@ if(GRAPH_SAVE == TRUE) {
 
 
 
-## PRE-POST SD ABSOLUTE VALUES
+## ABS PRE-POST SD ABSOLUTE VALUES
 ```{r block1_sds_by_sample_ABS, message=FALSE, warning = FALSE}
 
 
@@ -291,7 +338,7 @@ df <- df_sd_questions_long_abs
       y.sec = guide_axis_manual(labels = rev(ref_labels_abs$right))
     ) +
     labs (title = "ABS VALUE Attitude Shift by Stimulus", y = "", caption = "(point is median)") +
-    cowplot::draw_text(text = ref_sd_questions_abs, x = 100, y= ref_sd_questions_abs,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    cowplot::draw_text(text = ref_sd_questions_abs, x = 45, y= ref_sd_questions_abs,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
   
     theme_minimal() 
   # + easy_remove_legend() 
@@ -307,7 +354,7 @@ if(GRAPH_SAVE == TRUE) {
 
 
 
-## SHIFT SDs
+## RAW SHIFT SDs
 ```{r shift_sds, message=FALSE, warning = FALSE}
 
 
@@ -356,7 +403,7 @@ df <- df_questions %>%
       y = guide_axis_manual(labels = rev(ref_labels$left)),
       y.sec = guide_axis_manual(labels = rev(ref_labels$right))
     ) +
-    labs (title = "Attitude Shift by Stimulus", y = "", caption = "(point is median)") +
+    labs (title = "RAW Attitude Shift by Stimulus", y = "", caption = "(point is median)") +
     cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
     # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
     theme_minimal() 
@@ -367,6 +414,76 @@ df <- df_questions %>%
 if(GRAPH_SAVE == TRUE) {
     ggsave(plot = x, path="figs/study3", filename =paste0("S3_B1_SDS_by_Stimulus_ridges_SHIFT.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
 ```
+
+
+
+
+
+
+## ABS SHIFT SDs
+```{r shift_sds_abs, message=FALSE, warning = FALSE}
+
+
+### FILTER FOR ONLY SD QUESTIONS
+df <- df_sd_questions_abs%>% 
+  filter(QUESTION %in% ref_sd_questions) %>% 
+  droplevels() %>% 
+  mutate(
+    POST = as.numeric(POST),
+    PRE = as.numeric(PRE),
+    shift = POST - PRE
+  )
+
+############## BLOCK 1 SDs by SAMPLE
+ df <- df %>% select(1:7, STIMULUS, QUESTION, shift)  
+ d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+          category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions)) %>% 
+    group_by(STIMULUS, QUESTION) %>% 
+    mutate(m=median(shift)) %>% droplevels() ## calc median for printing on graph
+  
+(x <-
+    ggplot(d, aes(x = shift, y = fct_rev(QUESTION), fill = category, color= category)) +
+    # geom_density_ridges(scale = 0.75, quantile_lines = TRUE, alpha = 0.25, panel_scaling = FALSE) + 
+    
+    geom_density_ridges( 
+              ## ridge geometry
+              scale = 0.65, alpha = 0.25, quantile_lines = TRUE,  panel_scaling = FALSE,
+              ## rug geometry
+              jittered_points = TRUE, rel_min_height = .01,
+              point_shape = "|", point_size = 3,
+              position = position_points_jitter(height = 0)) +
+    
+    
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
+    scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
+    facet_grid(.~STIMULUS) + 
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    # scale_x_continuous(limits = c(0,100))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left)),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+    labs (title = "ABS Attitude Shift by Stimulus", y = "", caption = "(point is median)") +
+    cowplot::draw_text(text = ref_sd_questions, x = 100, y= ref_sd_questions,size = 8, vjust=-2, position=position_nudge(y=-.20))  + ##raw
+    # cowplot::draw_text(text = ref_sd_questions, x = -4, y= ref_sd_questions,size = 10, vjust=-2) + ##z-score
+    theme_minimal() 
+  # + easy_remove_legend() 
+)
+  
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = x, path="figs/study3", filename =paste0("S3_B1_SDS_by_Stimulus_ridges_ABS_SHIFT.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+```
+
+
+
+
 
 
 
@@ -793,7 +910,8 @@ if(GRAPH_SAVE == TRUE) {
 
 ```{r anovas}
 
-df <- df_sd_questions_long %>% filter(QUESTION=="POLITICS")
+df <- df_sd_questions_long 
+# %>% filter(QUESTION=="POLITICS")
 # %>% filter(QUESTION=="POLITICS")
 
 m1.aov <- aov(value ~ TIME*STIMULUS  + Error(PID), data = df)
