@@ -45,6 +45,7 @@ set_theme(base = theme_clean())
 ## list of color pallettes
 my_colors = list(
   politics = c("#184aff","#5238bf", "#4f4a52" ,"#84649c", "#ff0000"),
+  blackblack = c("black","black"),
   blackred = c("black","red"),
   blackgreen = c("black","green"),
   greys = c("#707070","#999999","#C2C2C2"),

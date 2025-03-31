@@ -212,7 +212,470 @@ jmv::efa(
 ## TODO INSERT (2) MODELLING | Predicting TRUST (IN WIP)
 
 
-## (3) DESCRIPTIVES | 
+## (2) DESCRIPTIVES | 
+
+### [0] TEASTER S3 SDs FACETED 
+
+```{r }
+  
+## DEFINE DF
+df <- df_sd_questions_long_all%>% 
+  #only block 1 for balanced data
+  filter(Assigned.Block==1) %>% 
+  #drop pilot data
+  filter(Study == "Study3") %>% 
+  mutate( TIME = factor(TIME, levels=c("PRE","POST"))) %>% 
+  mutate( QUESTION = fct_rev(QUESTION)) %>% 
+  droplevels()
+  
+  
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+stimuli <- levels(df$STIMULUS)
+questions <- ref_min_sd_questions #has qs in right order
+labels <- ref_labels_min
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+i=0
+for (s in stimuli){
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% 
+    group_by(TIME,QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x <- 
+      ggplot(d, aes(x = value, y = QUESTION, fill = TIME, color = TIME, )) +
+      geom_density_ridges2(scale = 0.5, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
+                           quantile_lines=TRUE,
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            jittered_points = TRUE,
+            position = position_points_jitter(width = 0.5, height = 0),
+            point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      facet_wrap(~TIME) + 
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="blackblack", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="blackblack", direction = "1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 5,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = s,  x = "") +
+      # guides(
+      #   y = guide_axis_manual(labels = labels[q,"left"]),
+      #   y.sec = guide_axis_manual(labels = labels[q,"right"]),
+      #   # x.sec = guide_axis_manual(position = "top", title = q, breaks = NULL)
+      #   ) +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + easy_remove_legend() + theme_minimal()
+  
+  
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  x <- x + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = x, path="figs/MVP/FIG_TEASER/", filename =paste0("S3_",s,"_FACET.png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+  
+
+
+}## END LOOP OVER STIMULI
+
+```
+
+
+
+### [0] TEASER S3 SDs BLACK/RED RIDGED 
+
+
+```{r plot_teaser}
+  
+#### DENSITY RIDGES#############################################################################
+  
+## DEFINE DF
+df <- df_sd_questions_long_all%>% 
+  #only block 1 for balanced data
+  filter(Assigned.Block==1) %>% 
+  #drop pilot data
+  filter(Study == "Study3") %>% 
+  mutate( TIME = factor(TIME, levels=c("POST","PRE"))) %>% 
+  mutate( QUESTION = fct_rev(QUESTION)) %>% 
+  droplevels()
+  
+
+
+
+print("participants data in this graph")
+table(df$Study, df$STIMULUS)/7 #7QS
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+stimuli <- levels(df$STIMULUS)
+questions <- ref_min_sd_questions #has qs in right order
+
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+for (s in stimuli){
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% filter(QUESTION ==q) %>% 
+    group_by(TIME) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = TIME, fill = TIME, color = TIME )) +
+      
+      geom_density_ridges2(scale = 0.75, panel_scaling = TRUE, rel_min_height = 0, alpha = 0.25, quantile_lines=TRUE)+
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            # jittered_points = TRUE,
+            # position = position_points_jitter(width = 0.5, height = 0),
+            # point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      # facet_wrap(~TIME) + 
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="blackred", direction = "-1")) +
+      scale_color_manual(values = my_palettes(name="blackred", direction = "-1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 5,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + 
+      easy_remove_legend() + theme_minimal()
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  p <- x[[1]] / x[[2]] /x[[3]] /x[[4]]/x[[5]] / x[[6]] /x[[7]]
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/MVP/FIG_TEASER/", filename =paste0("S3_",s,"_RIDGES_RED.png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+
+}## END LOOP OVER STIMULI
+
+
+
+
+```
+
+
+### [0] TEASER S3 SDs BLACK RIDGED 
+
+
+```{r plot_teaser}
+  
+#### DENSITY RIDGES#############################################################################
+  
+## DEFINE DF
+df <- df_sd_questions_long_all%>% 
+  #only block 1 for balanced data
+  filter(Assigned.Block==1) %>% 
+  #drop pilot data
+  filter(Study == "Study3") %>% 
+  mutate( TIME = factor(TIME, levels=c("POST","PRE"))) %>% 
+  mutate( QUESTION = fct_rev(QUESTION)) %>% 
+  droplevels()
+  
+
+
+
+print("participants data in this graph")
+table(df$Study, df$STIMULUS)/7 #7QS
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+stimuli <- levels(df$STIMULUS)
+questions <- ref_min_sd_questions #has qs in right order
+
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+for (s in stimuli){
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% filter(QUESTION ==q) %>% 
+    group_by(TIME) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = TIME, fill = TIME, color = TIME )) +
+      
+      geom_density_ridges2(scale = 0.75, panel_scaling = TRUE, rel_min_height = 0, alpha = 0.25, quantile_lines=TRUE)+
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            # jittered_points = TRUE,
+            # position = position_points_jitter(width = 0.5, height = 0),
+            # point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      # facet_wrap(~TIME) + 
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="blackblack", direction = "-1")) +
+      scale_color_manual(values = my_palettes(name="blackblack", direction = "-1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 5,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + 
+      easy_remove_legend() + theme_minimal()
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  p <- x[[1]] / x[[2]] /x[[3]] /x[[4]]/x[[5]] / x[[6]] /x[[7]]
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/MVP/FIG_TEASER/", filename =paste0("S3_",s,"_RIDGES_BLACK.png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+
+}## END LOOP OVER STIMULI
+
+
+
+
+```
+
+
+### [0] TEASER S3 SDs TINY RIDGED 
+
+
+```{r plot_teaser}
+  
+#### DENSITY RIDGES#############################################################################
+  
+## DEFINE DF
+df <- df_sd_questions_long_all%>% 
+  #only block 1 for balanced data
+  filter(Assigned.Block==1) %>% 
+  #drop pilot data
+  filter(Study == "Study3") %>% 
+  mutate( TIME = factor(TIME, levels=c("POST","PRE"))) %>% 
+  mutate( QUESTION = fct_rev(QUESTION)) %>% 
+  droplevels()
+  
+
+
+
+print("participants data in this graph")
+table(df$Study, df$STIMULUS)/7 #7QS
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+stimuli <- levels(df$STIMULUS)
+questions <- ref_min_sd_questions #has qs in right order
+
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+for (s in stimuli){
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% filter(QUESTION ==q) %>% 
+    group_by(TIME) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = TIME, fill = TIME, color = TIME )) +
+      
+      geom_density_ridges2(scale = 1.5, panel_scaling = TRUE, rel_min_height = 0, alpha = 0.25, quantile_lines=TRUE)+
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            # jittered_points = TRUE,
+            # position = position_points_jitter(width = 0.5, height = 0),
+            # point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      # facet_wrap(~TIME) + 
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="blackblack", direction = "-1")) +
+      scale_color_manual(values = my_palettes(name="blackblack", direction = "-1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 5,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + 
+      easy_remove_legend() + theme_minimal()
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  p <- x[[1]] / x[[2]] /x[[3]] /x[[4]]/x[[5]] / x[[6]] /x[[7]]
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/MVP/FIG_TEASER/", filename =paste0("S3_",s,"_RIDGES_SMALL.png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+
+}## END LOOP OVER STIMULI
+
+
+
+
+```
+
+
+
+
+### [0] Teaser CONFIDENCE  for B1-1 and B1-3 in Study 3
+```{r plot_teaser}
+  
+#### DENSITY RIDGES#############################################################################
+
+## DEFINE DF
+df <- df_questions_long_all%>% 
+  #only block 1 for balanced data
+  filter(Assigned.Block==1) %>% 
+  #drop pilot data
+  filter(Study == "Study3") %>% 
+  #for Study 3 ONLY, set SAMPLE = TIME (for graphing purpose)
+  # mutate(Study = factor(Study, levels=order_study)) %>% 
+  filter(QUESTION %in% ref_conf_questions_combined) %>%
+  mutate(value = as.numeric(value),
+         TIME = factor(TIME, levels=c("PRE","POST"))) %>% 
+  droplevels()
+  
+print("participants data in this graph")
+table(df$Study, df$STIMULUS)/3 #7QS
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+stimuli <- levels(df$STIMULUS)
+questions <- ref_conf_questions_combined #has qs in right order
+
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+for (s in stimuli){
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% filter(QUESTION ==q) %>% 
+    group_by(TIME) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = TIME, fill = TIME, color = TIME )) +
+      
+      geom_density_ridges2(scale = 1, panel_scaling = TRUE, rel_min_height = 0, alpha = 0.25, quantile_lines=TRUE)+
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            # jittered_points = TRUE,
+            # position = position_points_jitter(width = 0.5, height = 0),
+            # point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      facet_wrap(~TIME) + 
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="blackred", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="blackred", direction = "1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 5,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + 
+      easy_remove_legend() + theme_minimal()
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  p <- x[[1]] / x[[2]] /x[[3]] 
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/MVP/FIG_TEASER/", filename =paste0(s,"_CONF.png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+
+}## END LOOP OVER STIMULI
+
+
+
+
+```
+
+
 
 ### [1] Semantic Differential (aggregated)
 
@@ -364,7 +827,7 @@ for (s in stimuli){
   
     x[[i]] <- 
       ggplot(d, aes(x = value, y = Study, fill = Sample, color = Sample, )) +
-      geom_density_ridges2(scale = 1, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
+      geom_density_ridges2(scale = 0.75, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
           # ## POINT JITTER GEOMETRY
           # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
            # ## RUG GEOMETRY
@@ -375,8 +838,8 @@ for (s in stimuli){
       scale_fill_manual(values = my_palettes(name="simple_samples", direction = "1")) +
       scale_color_manual(values = my_palettes(name="simple_samples", direction = "1")) +
       ## MEDIAN
-      stat_summary(fun=median, geom="text", fontface = "bold", size= 4,
-                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 5,
+                vjust=1.5, hjust = 0.50, aes(label=round(m, digits=0)))+
       stat_summary(fun=median, geom="point", size=2) +
    
       labs (title = q, y = "", x = "") +

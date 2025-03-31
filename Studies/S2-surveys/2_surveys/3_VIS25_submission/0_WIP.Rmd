@@ -132,6 +132,7 @@ df_participants <- readRDS("data/output/Study_1_2/df_participants.rds") #1 row p
 df_graphs <- readRDS("data/output/Study_1_2/df_graphs.rds") #only categorical and numeric questions
 df_graphs_z <- readRDS("data/output/Study_1_2/df_graphs_z.rds") #only categorical and numeric questions
 df_sd_questions_long <- readRDS("data/output/Study_1_2/df_sd_questions_long.rds") # only sd questions LONG
+df_sd_questions_long_z <- readRDS("data/output/Study_1_2/df_sd_questions_long_z.rds") # only sd questions LONG
 
 
 ############## IMPORT Study 3 DATA FILES
@@ -148,7 +149,8 @@ df_sd_questions_long_z_S3 <- readRDS("data/output/Study_3/df_sd_questions_long_z
 
 ############## IMPORT COMBINED DATA FILES
 df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds")
-
+df_questions_long_all <- readRDS("data/output/COMBINED/df_questions_long_ALL.rds") # only sd questions LONG
+df_sd_questions_long_all_z <- readRDS("data/output/COMBINED/df_sd_questions_long_ALL_z.rds") # only sd questions LONG
 ```
 
 ## SETUP ATTITUDE CHANGE DATA 
@@ -172,6 +174,68 @@ df_change_sd <- df_change_all %>%
 
 ```
 
+
+#S1/S2 
+
+## REPORTED IN 4.1.3 
+CAN REPORT REPORTED what is sig for general 
+
+```{r}
+
+
+
+## SETUP DATA 
+df <- df_sd_questions_long_z %>%
+  filter(Study %in% c("Study1","Study2")) 
+  # mutate(
+  #   STIMULUS = factor(STIMULUS, levels=c("B0-0","B1-2","B1-1","B1-3","B1-4")),
+  #   QUESTION = factor(QUESTION, levels = c("DESIGN","DATA","POLITICS","TRUST","ALIGN","INTENT","BEAUTY"))
+  # ) %>%
+  # droplevels()
+  
+## SANITY CHECK
+table(df$Study, df$STIMULUS)
+
+## MODEL SHIFT(RAW) by question and stimulus
+  m1 <- lmer(value ~ QUESTION + STIMULUS + (1|PID), data = df)
+  summary(m1)
+  anova(m1)
+  
+  m2 <- lmer(value ~ QUESTION * STIMULUS + (1|PID), data = df)
+  summary(m2)
+  anova(m2)
+  
+  m3 <- lmer(value ~ QUESTION * STIMULUS + Study + (1|PID), data = df)
+  summary(m3)
+  anova(m3)
+  
+  compare_performance(m1,m2,m3, rank = TRUE)
+
+## VALUES REPORTED THESE 
+## USE EMMEANS TO GET MORE INTERPRETABLE COEFFICIENTS 
+library(emmeans)
+contrast(emmeans(m2, ~ QUESTION * STIMULUS), method = "eff")
+contrast(emmeans(m2, ~ QUESTION), method = "eff")
+contrast(emmeans(m2, ~ STIMULUS), method = "eff")
+  
+  
+  
+  
+####### BEST FITTING MODEL IS IXN OF Q & STIMULUS
+plot_model(m2, show.intercept = TRUE, show.values = TRUE, show.p = TRUE)
+plot_model(m2, type = "pred", terms = c("QUESTION","STIMULUS"), show.intercept = TRUE, show.values = TRUE, show.p = TRUE, show.data=FALSE)
+plot_model(m2, type = "pred", terms = c("STIMULUS","QUESTION"), show.intercept = TRUE, show.values = TRUE, show.p = TRUE, show.data=FALSE) 
+
+report(m2)
+
+
+
+```
+
+
+
+
+
 # S3
 
 ## (S3 2.1) Proportion of Participants who changed categoricals  (annotations IN FIGURE)
@@ -192,7 +256,7 @@ table(df$QUESTION, df$SAME, df$STIMULUS)/40
 ```
 
 
-## (S3 2.2) MODEL what stimulusX categorical questions change (in significant numbers)?
+## (S3 2.2) REPORTED MODEL what stimulusX categorical questions change (in significant numbers)?
 ```{r s3-attitude-change-model}
 
 # SETUP DATA
@@ -228,6 +292,16 @@ mm.QS <- glmer(SAME ~ QUESTION * STIMULUS + (1|PID), data = df,family = "binomia
 summ(mm.QS)
 summary(mm.QS)
 car::Anova(mm.QS)
+emmeans(mm.QS, specs = c("QUESTION","STIMULUS"))
+
+
+### REPORT THIS 
+pigs.emm.s <- emmeans(mm.QS, specs = c("QUESTION","STIMULUS"))
+pairs(pigs.emm.s)
+
+
+mvcontrast(pigs.emm.s, "pairwise", mult.name = c("QUESTION", "STIMULUS"))
+
 
 #: 3 TEST SUPERIOR FIT
 test_lrt(mm.rS,mm.QS) #same as anova
@@ -399,7 +473,7 @@ report(m2)
 A linear mixed effects model predicting change in AGE confidence by stimulus and change in AGE showed NEITHER predictor was significant. 
 
 
-## (S3 2.4) CHANGE IN SEMANTIC DIFFERENTIALS [RAW]
+## REPORTED (S3 2.4) CHANGE IN SEMANTIC DIFFERENTIALS [RAW]
 
 ```{r}
 
@@ -407,7 +481,7 @@ A linear mixed effects model predicting change in AGE confidence by stimulus and
 
 ## SETUP DATA 
 df <- df_change_sd %>% 
-  filter(QUESTION %in% q) %>% 
+  filter(QUESTION %in% ref_min_sd_questions) %>% 
   mutate(
     STIMULUS = factor(STIMULUS, levels=c("B0-0","B1-2","B1-1","B1-3","B1-4")),
     QUESTION = factor(QUESTION, levels = c("DESIGN","DATA","POLITICS","TRUST","ALIGN","INTENT","BEAUTY"))
@@ -427,6 +501,7 @@ df <- df_change_sd %>%
   
   compare_performance(m1,m2, rank = TRUE)
 
+## VALUES REPORTED THESE 
 ## USE EMMEANS TO GET MORE INTERPRETABLE COEFFICIENTS 
 library(emmeans)
 contrast(emmeans(m2, ~ QUESTION * STIMULUS), method = "eff")
@@ -538,20 +613,6 @@ gf_histogram(data = df, ~df$abs_change)
 
 
 
-### MODEL CHANGE IN ATTITUDE (incl categoricals and conf)
-```{r}
-
-ref_sd_change = data.frame(ref_min_sd_questions)
-ref_sd_change <- ref_sd_change %>% 
-  mutate(
-    QUESTION = ref_min_sd_questions,
-    RAW = paste0(QUESTION,"_CHANGE_RAW"),
-    ABS = paste0(QUESTION,"_CHANGE_ABS")
-  ) %>% select(-ref_min_sd_questions)
-
-
-
-```
 
 
 
@@ -559,7 +620,7 @@ ref_sd_change <- ref_sd_change %>%
 # SPARKTABLE STUFF
 
 
-## xx WIP CONFIDENCE BY BLOCK 1 STIM BY STUDY 3 PRE/POST
+## WORKING SPARKTABLE S3 PRE/POST SDS & CONFIDENCE
 
 ```{r sparktabletest}
 
@@ -689,20 +750,20 @@ make_row_tracking_fun <- function(rows, full_data, tab) {
 
 
 
-#### SETUP TABLE (CONFIDENCE ONLY)
-tab <- data.frame(
-  VARIABLE = ref_min,
-  LABEL = c("Maker Confidence", "Age Confidence","Gender Confidence"),
-  AGGREGATE = "",
-  B1_A="",
-  B1_B="",
-  B1_C="",
-  B1_D="",
-  B0_D=""
-  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_encounter,stat)
-  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
-    # c("","","","","","","",stat)
-)
+# #### SETUP TABLE (CONFIDENCE ONLY)
+# tab <- data.frame(
+#   VARIABLE = ref_min,
+#   LABEL = c("Maker Confidence", "Age Confidence","Gender Confidence"),
+#   AGGREGATE = "",
+#   B1_A="",
+#   B1_B="",
+#   B1_C="",
+#   B1_D="",
+#   B0_D=""
+#   # STATISTICS = c(stat_id, stat_age, stat_gender, stat_encounter,stat)
+#   # STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
+#     # c("","","","","","","",stat)
+# )
 
 #### SETUP TABLE (FULL SDS)
 tab2 <- data.frame(
@@ -946,178 +1007,37 @@ t <- tinytable::tt(tab, theme = "bootstrap") %>%
 
 
 
-## WORKING CONFIDENCE SPARKLINES BY STUDY
-```{r sparktabletest}
-
-library(tinytable)
-library(webshot2)
+## SANITY CHECK CONFIDENCE BY STUDY
+```{r}
 
 
-## SETUP LIST OF NUMERIC DATAFRAMES 
-all_q <- c(ref_min_conf_questions)
+######### JUST STUDY 3
+df <- df_questions_long_all %>% 
+  filter(Study =="Study3") %>% 
+  filter(QUESTION %in% ref_min_conf_questions) %>% 
+  mutate(value=as.numeric(value))
 
 
-## DECIDE DATAFRAME VERSION all studies; all samples, only conf
-df <- df_graphs_all %>% 
-  filter(
-    #filter for only block 1 data
-    # Assigned.Block==1, 
-    #drop pilot data 
-    Study != "Study0"
-  ) %>% 
-  #drop z-score cols
-  select(Study,Sample,STIMULUS,TIME,ref_min_conf_questions) %>% 
-   mutate(
-    Sample = case_when(Study =="Study3" ~ TIME ,
-                       .default = Sample)) %>% 
-  mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
-  droplevels()
+df %>% ggplot(aes(x=value, y=QUESTION, fill=TIME)) + 
+  geom_density_ridges2(alpha=0.5, scale=1) + 
+  facet_grid(. ~ STIMULUS)
+##################################################  
 
 
-## SANITY CHECK INCLUDED DATA
-# addmargins(table(df$Study, df$Assigned.Block)/5)
-
-## SETUP NUMERIC DATAFRAME
-df_num <- df %>% select(Study,STIMULUS,where(is.numeric))
-
-## CALC MEANS 
-### MEANS 
-# m <- sapply(df_num, FUN=mean)
-# m <- round(m,1)
-# m <- paste0("M=",m)
-# sd <- sapply(df_num, FUN=sd)
-# sd <- round(sd,1)
-# sd <- paste0("SD=",sd)
-# stat <- paste0(m," ",sd)
+######### JUST STUDY 1,2 BLOCK 1
+df <- df_questions_long_all %>% 
+  filter(Study %in% c("Study1","Study2")) %>% 
+  filter(Assigned.Block ==1) %>% 
+  filter(QUESTION %in% ref_min_conf_questions) %>% 
+  mutate(value=as.numeric(value))
 
 
-
-############ FILTER SIMPLE DATAFRAMES 
-df_all <- df %>% select(ID_CONF,AGE_CONF,GENDER_CONF)
-df_1 <- df %>% filter(Study=="Study1") %>% select(ID_CONF,AGE_CONF,GENDER_CONF)
-df_2 <- df %>% filter(Study=="Study2") %>% select(ID_CONF,AGE_CONF,GENDER_CONF)
-df_3 <- df %>% filter(Study=="Study3") %>% select(ID_CONF,AGE_CONF,GENDER_CONF)
-
-
-############ POPULATE LIST OF FILTERED DATAFRAMES NUMERIC QUESTIONS FOR STUDY 3 THAT INCLUDES FACET
-d_q <- c(ref_min_conf_questions)
-# Define row and column names
-col_names <- d_q 
-# Initialize an empty list to store the structure
-f <- list() ## DATAFRAME WITH STUDY AND SAMPLE
-# Loop over row names
-for (q in col_names) { 
-  # Initialize an empty list for each row
-  f[[q]] <- df %>% filter(Study=="Study3") %>% select(Sample,q) 
-}
-################################################
-
-
-
-####### WORKS WITH NUMBER ONLY DATAFRAME passed through data = 
-# CUSTOM DENSITY PLOT
-dist <- function(d, ...){
-  d <- as.data.frame(d)
-  ggplot(d,aes(x = d )) +
-  # ggplot(d,aes(x = value)) +
-      geom_density(alpha=0.5, fill="grey") +
-      theme_void()
-}
-###########################################################
-
-
-
-##WORKING FACETED
-# amy <- function(x, row_index, full_data,...) {
-#   # browser()
-#   # 'x' is a vector (extracted column)
-#   # 'row_index' is the index passed by plot_tt()
-#   # 'full_data' is the original list of dataframes
-#   
-#   # Reconstruct dataframe for the given row index
-#   vf <- full_data[[row_index]]
-#   ggplot(vf, aes(x = DATA, fill = Study)) + 
-#     geom_density(alpha=0.5) + 
-#     theme_void() + easy_remove_legend()
-# }
-
-
-##WIP faceted by color
-amy <- function(x, question_name, full_data,...) {
-
-  # 'x' is a vector (extracted column) — useless
-  # 'full_data' is the original list of dataframes
-  # browser()
-  ## CONSTRUCT DATAFRAME
-  vf <- full_data[[question_name]]
-  # browser()
-    ggplot(vf, aes(x = vf[[2]], fill = Sample)) +
-    geom_density(alpha=0.5) +
-    scale_fill_manual(values = my_palettes(name="blackred", direction = "1")) +
-    scale_color_manual(values = my_palettes(name="blackred", direction = "1")) +
-    theme_void() + easy_remove_legend()
-}
-
-
-
-######### ROW TRACKING FUNCTION
-make_row_tracking_fun <- function(rows, full_data, tab) {
-  counter <- 0
-  function(x, ...) {
-    counter <<- counter + 1
-    current_index <- rows[counter]
-    question_name <- tab$VARIABLE[current_index]
-    
-    amy(
-      x = x,
-      # row_index = current_index,
-      full_data = full_data,
-      question_name = question_name,
-      ...
-    )
-  }
-}
-
-
-#### SETUP TABLE
-tab <- data.frame(
-  VARIABLE = d_q,
-  AGGREGATE = "",
-  Study_1="",
-  Study_2="",
-  Study_3=""
-  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_encounter,stat)
-  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
-    # c("","","","","","","",stat)
-)
-
-
-##hacky workaround for plot_tt not passing row number to function
-# row_counter <- 0
-rows <- 1:3
-
-
-############## TINY TABLE
-### themes: bootstrap, grid, spacing
-t <- tinytable::tt(tab, theme = "grid") %>%
-  
-  ## PLOT AGGREGATE PLOTS IN COLUMN 2
-  plot_tt(j=2, i= 1:3, fun=dist, data = df_all, color="black") %>% 
-  ## PLOT BY STUDY
-  plot_tt(j=3, i= 1:3, fun=dist, data = df_1, color="black") %>% 
-  plot_tt(j=4, i= 1:3, fun=dist, data = df_2, color="black") %>% 
-  plot_tt(j=5, i=rows, fun = make_row_tracking_fun(rows, f,tab), data = f)
-
-
-
-t
-# if(GRAPH_SAVE){
-#   # save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) ## CAN'T SAVE, HAVE TO MANUALLY SAVE FROM VIEWER WINDOW
-#   save_tt(t, output="figs/tables/sparklines.tex", overwrite = TRUE)  
-# }
+df %>% ggplot(aes(x=value, y=QUESTION, fill=Sample)) + 
+  geom_density_ridges2(alpha=0.5, scale=1) + 
+  facet_grid(. ~ STIMULUS)
+##################################################  
 
 ```
-
 
 ## WORKING PARTIAL SPARKLINES TABLE
 
