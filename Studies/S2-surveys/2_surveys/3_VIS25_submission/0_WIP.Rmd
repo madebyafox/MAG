@@ -151,6 +151,12 @@ df_sd_questions_long_z_S3 <- readRDS("data/output/Study_3/df_sd_questions_long_z
 df_graphs_all <- readRDS("data/output/COMBINED/df_graphs_ALL.rds")
 df_questions_long_all <- readRDS("data/output/COMBINED/df_questions_long_ALL.rds") # only sd questions LONG
 df_sd_questions_long_all_z <- readRDS("data/output/COMBINED/df_sd_questions_long_ALL_z.rds") # only sd questions LONG
+
+
+table(df_participants$Study, df_participants$Assigned.Block)
+
+
+
 ```
 
 ## SETUP ATTITUDE CHANGE DATA 
@@ -205,6 +211,7 @@ table(df$Study, df$STIMULUS)
   summary(m2)
   anova(m2)
   
+  ## THIS IS THE REPORTED MODEL
   m3 <- lmer(value ~ QUESTION * STIMULUS + Study + (1|PID), data = df)
   summary(m3)
   anova(m3)
