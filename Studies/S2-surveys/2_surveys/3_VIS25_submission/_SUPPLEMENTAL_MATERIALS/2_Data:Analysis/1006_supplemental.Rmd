@@ -1,0 +1,2383 @@
+---
+title: "QUANTIFYING VISUALIZATION VIBES REPRODUCIBLE ANALYSIS"
+author: "ANONYMIZED"
+date: "2025-04-01"
+output:
+  html_document:
+    theme: cosmo
+    code_folding: hide
+    fig_caption: yes
+    number_sections: no
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    toc_depth: 6
+  pdf_document:
+    toc: yes
+    toc_depth: '5'
+always_allow_html: yes
+font-family: DejaVu Sans
+mainfont: DejaVu Sans
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+In the QUANTIFYING VISUALIZATION VIBES project studies, participants completed an
+*attribution eliciation* survey, asking questions about their social inferences drawn from  (5) stimulus images (data visualizations). Each participant was
+randomly assigned to one of 6 stimulus blocks, each containing 1 image
+from each of (4) 'embellishment categories' (ranging from most abstract
+to most figural). Each participant started by responding to questions
+for a single 'common' stimulus (B0-0). Two participant recruitment pools
+were used: Prolific, with a smaller set of participants recruited from
+Tumblr (to replicate and compare survey results to Study 1 interviews
+with participants sourced from Tumblr).
+
+This notebook contains code to replicate quantitative analysis of data reported in VIS submission #1006.
+
+# SETUP
+
+### Import Packages
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#UTILITIES
+library(Hmisc) # %nin% operator
+library(psych) #describe()
+library(tidyverse) #all the things
+library(magrittr) #special pipes like %<>%
+library(summarytools) #data quality
+library(lubridate) #dealing with dates
+library(tinytable) ##sparkline tables 
+library(webshot2) ##saving sparkline tables
+
+#EDA
+library(qacBase)
+
+#VIZ
+library(ggformula) #regression syntax viz
+library(ggstatsplot) #dummies
+library(gghalves) #half boxplots 
+library(GGally) #extends ggplot for EDA 
+library(corrplot) #sophisticated correlation plots
+library(ggeasy) #easy labelling
+library(ggh4x) #guides [dual axes]
+library(patchwork) #multi-plot layout
+library(ggdist) #raincloud plots and other distributionals
+library(viridis) #color palettes
+library(RColorBrewer) #color palettes
+library(plotly) # interactive graphs
+library(paletteer) #more palettes
+library(interactions) ##easier regression ixn plots.srlsy
+library(tidygraph)
+library(ggsankey) ## sankey plots for study 3 categorical change
+
+
+
+#MODELLING
+library(jtools) #Social Science regression utilities
+library(easystats) #modelling helpers
+library(see)
+library(sjPlot)
+library(lme4)
+library(lmerTest) #for CIs in glmer
+# library(mixed) ## utilities for glmers 
+library(jmv) ## jamovi EFA
+
+
+#STATISTICAL TESTS 
+library(kSamples) #AD K-SAMPLE TEST (for distribution comparison)
+library(rstatix) #FRIEDMAN'S TESTS and effect sizes 
+
+#CONFIG
+options(readr.show_col_types = FALSE) #don't show coltypes on read_csv
+n_blocks = 6
+
+## IMPORTANT 
+GRAPH_SAVE = FALSE #set to true to generate all the SD graphs and save to folders (note this will overwrite existing graphs)
+source("graphing_functions.R") #import graphing palettes and custom functions
+```
+
+
+### Import References
+
+```{r import-refs, message=FALSE, warning = FALSE}
+
+############## IMPORT REFERENCE FILES
+ref_stimuli <- readRDS("data/reference/ref_stimuli.rds")
+ref_labels <- readRDS("data/reference/ref_labels.rds")
+
+
+############## SETUP Graph Labels
+ref_labels_min <- readRDS("data/REFERENCE/ref_labels_S3.rds")
+ref_stim_id <- levels(ref_stimuli$ID)
+ref_cat_questions <- c("MAKER_ID","MAKER_AGE","MAKER_GENDER")
+ref_free_response <- c("MAKER_DETAIL", "MAKER_EXPLAIN", "TOOL_DETAIL", "CHART_EXPLAIN")
+ref_conf_questions <- c("MAKER_CONF", "AGE_CONF", "GENDER_CONF", "TOOL_CONF")
+ref_sd_questions <- rownames(ref_labels)
+
+# ref_blocks <- c("block1", "block2", "block3", "block4", "block5", "block6")
+ref_blocks <- c(1,2,3,4,5,6)
+
+
+
+############## MINIMAL QUESTION SET FOR Study 3
+ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
+ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
+ref_min_conf_questions <- c("ID_CONF","AGE_CONF","GENDER_CONF")
+# ref_min_cat_questions <- c("ID","AGE","GENDER","ENCOUNTER")
+# ref_min_free_questions <- c("EXPLAIN")
+```
+
+### Import Data
+
+```{r import-data, message=FALSE, warning = FALSE}
+
+
+############## IMPORT COMBINED DATA FILES
+df_participants_all <- readRDS("data/input/df_participants_ALL.rds") #1 row per participant — demographic
+df_graphs_all <- readRDS("data/input/df_graphs_ALL.rds") #1 row per participantXgraph (i.e. a trial)
+df_sd_questions_long_all <- readRDS("data/input/df_sd_questions_long_ALL.rds") #1 row per participantXgraphXSD question  (i.e. a question on one trial)
+
+
+############## STUDY 1 & 2 DATA FILES
+df_graphs <- readRDS("data/input/df_graphs.rds") #only categorical and numeric questions
+
+############## IMPORT Study 3 DATA FILES
+df_graphs_s3 <- readRDS("data/input/df_graphs_s3.rds") #only categorical and numeric questions from Study 3
+
+
+
+####################NOT TESTED
+############## IMPORT DATA FILES
+df_participants <- readRDS("data/input/df_participants.rds") #1 row per participant — demographic
+
+df_sd_questions_long <- readRDS("data/input/df_sd_questions_long.rds") # only sd questions LONG
+
+```
+
+
+# METHODS
+## (3.2) Participants
+
+```{r demo-sample-size}
+
+df <- df_participants_all
+
+## FOR DESCRIPTIVES PARAGRAPH
+# STUDY 1
+df1 <- df %>% filter(Study == "Study1")
+desc.gender.1 <- table(df1$D_gender) %>% prop.table()
+names(desc.gender.1) <- levels(df1$D_gender)
+participants_s1 <- nrow(df1)
+
+# STUDY 2
+df2 <- df %>% filter(Study == "Study2")
+desc.gender.2 <- table(df2$D_gender) %>% prop.table()
+names(desc.gender.2) <- levels(df2$D_gender)
+participants_s2 <- nrow(df2)
+
+
+# STUDY 3
+df3 <- df %>% filter(Study == "Study3")
+desc.gender.3 <- table(df3$D_gender) %>% prop.table()
+names(desc.gender.3) <- levels(df3$D_gender)
+participants_s3 <- nrow(df3)
+
+```
+
+**As Reported in Section 3.2 Participants :**
+
+
+
+`r participants_s1` US-Based English-speaking individuals users of the social media platform TUMBLR participated in Study 1, (
+`r round(desc.gender.1["Female"],2)*100`% Female,# 
+`r round(desc.gender.1["Male"],2)*100`% Male,
+`r round(desc.gender.1["Non-binary / third gender"],2)*100`%
+Non-binary, `r round(desc.gender.1["Prefer not to say"],2)*100` %
+Prefer Not to Say,
+`r round(desc.gender.1["Prefer to self-describe"],2)*100`% Prefer to
+Self Describe).
+
+
+`r participants_s2` US-Based English-speaking individuals were recruited from Prolific to participate in Study 2, (
+`r round(desc.gender.2["Female"],2)*100`% Female,
+`r round(desc.gender.2["Male"],2)*100`% Male,
+`r round(desc.gender.2["Non-binary / third gender"],2)*100`%
+Non-binary, `r round(desc.gender.2["Prefer to self-describe"],3)*100`%
+Prefer to Self Describe,
+`r round(desc.gender.2["Prefer not to say"],2)*100`% Prefer Not to
+Say. Other).
+
+
+`r participants_s3` US-Based English-speaking individuals were recruited from Prolific to participate in Study 3, (
+`r round(desc.gender.3["Female"],2)*100`% Female,
+`r round(desc.gender.3["Male"],3)*100`% Male,
+`r round(desc.gender.3["Non-binary / third gender"],3)*100`%
+Non-binary, `r round(desc.gender.3["Prefer to self-describe"],3)*100`%
+Prefer to Self Describe,
+`r round(desc.gender.2["Prefer not to say"],2)*100`% Prefer Not to
+Say. Other).
+
+
+```{r demo-sample-cleanup}
+rm(df, df1, desc.gender.1, participants_s1, df2, desc.gender.2, participants_s2, df3, desc.gender.3, participants_s3)
+```
+
+
+
+
+
+## (3.3) Survey Response Time
+
+```{r demo-response-time}
+
+df <- df_participants_all
+
+## for descriptives paragraph
+s12.desc.duration <- psych::describe(df %>% filter(Study %in% c("Study1","Study2")) %>% pull(duration.min))
+s3.desc.duration <- psych::describe(df %>% filter(Study == "Study3") %>% pull(duration.min))
+```
+
+**As Reported in Section 3.3 Procedure :**
+
+In studies 1 and 2, responses ranged from `r round(s12.desc.duration$min,0)` to
+`r round(s12.desc.duration$max,0)` minutes, with a mean response time of
+`r round(s12.desc.duration$mean,0)` minutes, SD =
+`r (round(s12.desc.duration$sd,0))`.
+
+
+In study 3, responses 
+ranged from `r round(s3.desc.duration$min,0)` to
+`r round(s3.desc.duration$max,0)` minutes, with a mean response time of
+`r round(s3.desc.duration$mean,0)` minutes, SD =
+`r (round(s3.desc.duration$sd,0))`.
+
+```{r demo-cleanup}
+rm(df, s12.desc.duration, s3.desc.duration)
+```
+
+
+
+# RESULTS
+
+## (4.1.2) Variance in Confidence
+
+```{r confidence-sparktable}
+
+library(tinytable)
+library(webshot2)
+
+
+## SETUP LIST OF NUMERIC DATAFRAMES 
+all_q <- c(ref_min_conf_questions)
+
+
+## DECIDE DATAFRAME VERSION (Raw, minimal questions)
+df <- df_graphs_all %>% 
+  filter(
+    #filter for only block 1 data
+    Assigned.Block==1, 
+    #drop pilot data 
+    Study != "Study0"
+  ) %>% 
+  #drop z-score cols
+  select(-contains("_z"), -contains("_politics")) %>% 
+  #only include studies 1 and 2
+  filter(Study !="Study3") %>% 
+  droplevels()
+
+
+## SANITY CHECK INCLUDED DATA
+# addmargins(table(df$Study, df$Assigned.Block)/5)
+
+## SETUP NUMERIC DATAFRAME
+df_num <- df %>% select(all_of(all_q))
+
+############ POPULATE LIST OF FILTERED DATAFRAMES NUMERIC QUESTIONS
+d_q <- c(ref_min_conf_questions)
+stimuli <- as.vector(levels(df$STIMULUS))
+
+# Define row and column names
+col_names <- d_q 
+row_names <- stimuli
+
+# Initialize an empty list to store the structure
+m <- list() ## MINIMAL LIST OF JUST NUMERIC VALUS
+f <- list() ## DATAFRAME WITH STUDY AND SAMPLE
+
+# Loop over row names
+for (s in row_names) { #ROWS ARE QUESTIONS
+  # Initialize an empty list for each row
+  m[[s]] <- list()
+  f[[s]] <- list()
+  
+  # Loop over column names
+  for (q in col_names) { #COLS ARE STIMULI
+    # Create a small dataframe for demonstration
+    # m[[r]][[c]] <- data.frame(Value = sample(1:10, 5, replace = TRUE))
+    m[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(q) %>% pull()
+    f[[s]][[q]] <- df %>% filter(STIMULUS==s) %>% select(Study,q) 
+  }
+}
+################################################
+
+
+####### WORKS WITH NUMBER ONLY DATAFRAME passed through data = 
+# CUSTOM DENSITY PLOT
+dist <- function(d, ...){
+  d <- as.data.frame(d)
+  ggplot(d,aes(x = d )) +
+      geom_density(alpha=0.5, fill="black") +
+      theme_void()
+}
+###########################################################
+
+
+##density faceted by color
+custom_plot <- function(x, question_name, full_data,...) {
+  # 'x' is a vector (extracted column) — useless
+  # 'full_data' is the original list of dataframes
+  ## CONSTRUCT DATAFRAME
+  vf <- full_data[[question_name]]
+  # browser()
+    ggplot(vf, aes(x = vf[[2]], fill = Study)) +
+    geom_density(alpha=0.5) +
+    scale_fill_manual(values = my_palettes(name="simple_studies", direction = "1")) +
+    scale_color_manual(values = my_palettes(name="simple_studies", direction = "1")) +
+    theme_void() + easy_remove_legend()
+}
+###########################################################
+
+###########################################################
+make_row_tracking_fun <- function(rows, full_data, tab) {
+  counter <- 0
+  function(x, ...) {
+    counter <<- counter + 1
+    current_index <- rows[counter]
+    question_name <- tab$VARIABLE[current_index]
+    
+    custom_plot(
+      x = x,
+      # row_index = current_index,
+      full_data = full_data,
+      question_name = question_name,
+      ...
+    )
+  }
+}
+
+
+
+#### SETUP TABLE
+tab <- data.frame(
+  VARIABLE = all_q,
+  LABEL = c("Maker Confidence", "Age Confidence","Gender Confidence"),
+  AGGREGATE = "",
+  B1_A="",
+  B1_B="",
+  B1_C="",
+  B1_D="",
+  B0_D=""
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_encounter,stat)
+  # STATISTICS = c(stat_id, stat_age, stat_gender, stat_tools, stat_encounter, stat_action2, stat_action4, stat)
+    # c("","","","","","","",stat)
+)
+
+
+##hacky workaround for plot_tt not passing row number to function
+row_counter <- 0
+rows <- 1:3
+
+
+############## TINY TABLE
+### themes: bootstrap, grid, spacing
+t <- tinytable::tt(tab, theme = "bootstrap") %>%
+  ## PLOT AGGREGATE PLOTS IN COLUMN 2
+  plot_tt(j=3, i= rows, fun=dist, data = df_num, color="black") %>% 
+  ## PLOT B1_A IN COLUMN 3
+  plot_tt(j=4, i=rows, fun = make_row_tracking_fun(rows, f[["B1-1"]],tab), data = f[["B1-1"]]) %>% 
+  plot_tt(height=1,j=5, i=rows, fun = make_row_tracking_fun(rows, f[["B1-2"]],tab), data = f[["B1-2"]]) %>%
+  plot_tt(height=1,j=6, i=rows, fun = make_row_tracking_fun(rows, f[["B1-3"]],tab), data = f[["B1-3"]]) %>%
+  plot_tt(height=1,j=7, i=rows, fun = make_row_tracking_fun(rows, f[["B1-4"]],tab), data = f[["B1-4"]]) %>%
+  plot_tt(height=1,j=8, i=rows, fun = make_row_tracking_fun(rows, f[["B0-0"]],tab), data = f[["B0-0"]])
+  
+
+## saved manually as png 
+# if(GRAPH_SAVE){
+#   # save_tt(t, output="figs/tables/sparklines.png", overwrite = TRUE) ## CAN'T SAVE, HAVE TO MANUALLY SAVE FROM VIEWER WINDOW
+#   save_tt(t, output="figs/tables/confidence_sparklines.tex", overwrite = TRUE)
+# }
+
+## TO RENDER TO VIEWER
+print("note that object t can only be rendered to viewer in RStudio, not to Rmd notebook")
+t
+
+##CLEANUP
+rm(tab,m,f,col_names, row_names, all_q, df, d_q, df_num, stimuli)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+## (4.1.3) Variance in Identifications & Characterizations
+
+**The following code blocks generate stimulus-level images for responses to short-form survey questions from Block 1.**. Note that these images are manually combined in an vector-illustration program for annotation.
+
+### Semantic Differential Questions (Block 1)
+
+This plots the concicse set of semantic differential questions for BLOCK 1 stimuli for Study 1,2,3 faceting by pre/post on study 4, as a stacked ridgeplot
+
+```{r plot_ridglines_sds_questions_stimulus_studies_block1_pre_post}
+  
+#### DENSITY RIDGES#############################################################################
+#### loop over questions and stimuli, vertically stack studies, color by sample
+
+## DEFINE DF
+df <- df_sd_questions_long_all%>% 
+  #only block 1 for balanced data
+  filter(Assigned.Block==1) %>% 
+  #drop pilot data
+  filter(Study != "Study0") %>% 
+  #for Study 3 ONLY, set SAMPLE = TIME (for graphing purpose)
+  mutate(
+    Sample = case_when(Study =="Study3" ~ TIME ,
+                       .default = Sample)) %>% 
+  mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
+  mutate(Study = factor(Study, levels=order_study)) %>% 
+  droplevels()
+  
+  
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+stimuli <- levels(df$STIMULUS)
+questions <- ref_min_sd_questions #has qs in right order
+labels <- ref_labels_min
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+for (s in stimuli){
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% filter(QUESTION ==q) %>% 
+    group_by(Study,Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = Study, fill = Sample, color = Sample, )) +
+      geom_density_ridges2(scale = 0.75, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            jittered_points = TRUE,
+            position = position_points_jitter(width = 0.5, height = 0),
+            point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 5,
+                vjust=1.5, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      guides(
+        y = guide_axis_manual(labels = labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = labels[q,"right"]),
+        # x.sec = guide_axis_manual(position = "top", title = q, breaks = NULL)
+        ) +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + easy_remove_legend() 
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  p <- x[[1]] / x[[2]] /x[[3]] / x[[4]] /x[[5]] / x[[6]] /x[[7]] 
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS 
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/FIG5_Descriptives", filename =paste0("SD_ridges_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+
+1}## END LOOP OVER STIMULI
+
+
+```
+
+
+
+
+
+
+
+
+
+### Categorical Variables (Studies 1&2) (Block1)
+
+### Categorical Variables Sankey (Study 3) (Block 1)
+
+
+#### MAKER
+```{r SANKEY-ID}
+
+### FILTER FOR ONLY ID QUESTION
+df <- df_graphs_s3 %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0"))) %>% 
+  select(PRE_ID, POST_ID, STIMULUS, PID) %>% 
+  mutate(
+    PRE_ID = factor(PRE_ID, levels = rev(order_maker)),
+    POST_ID = factor(POST_ID, levels = rev(order_maker))
+  )
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_ID, POST_ID, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels=rev(order_maker)),
+    next_node= factor(next_node, levels=rev(order_maker)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in MAKER ID by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "MAKER",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_ID_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+```
+
+#### AGE
+```{r SANKEY-AGE}
+
+### FILTER FOR ONLY AGE QUESTION
+df <- df_graphs_s3 %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0"))) %>% 
+  select(PRE_AGE, POST_AGE, STIMULUS, PID) 
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_AGE, POST_AGE, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels=rev(order_age)),
+    next_node= factor(next_node,rev(order_age)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in AGE by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "AGE",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_AGE_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+#### GENDER
+```{r SANKEY-GENDER}
+
+### FILTER FOR ONLY GENDER QUESTION
+df <- df_graphs_s3 %>% 
+  select(PRE_GENDER, POST_GENDER, STIMULUS, PID) %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_GENDER, POST_GENDER, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels = rev(order_gender)),
+    next_node= factor(next_node, levels = rev(order_gender)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in GENDER by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "GENDER",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_GENDER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+
+
+
+
+#### ENCOUNTER
+```{r SANKEY-ENCOUNTER}
+
+### FILTER FOR ONLY GENDER QUESTION
+df <- df_graphs_s3 %>% 
+  select(PRE_ENCOUNTER, POST_ENCOUNTER, STIMULUS, PID) %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_ENCOUNTER, POST_ENCOUNTER, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels = rev(order_encounter)),
+    next_node= factor(next_node, levels = rev(order_encounter)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in ENCOUNTER by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "ENCOUNTER",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_ENCOUNTER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r categoricals_by_stimulus}
+
+
+## SETUP DATA 
+ df <- df_graphs %>% 
+  select(PID, Assigned.Block, Study, STIMULUS, ENCOUNTER, MAKER_ID, MAKER_AGE,MAKER_GENDER) %>% 
+  filter(Study %in% c("Study1", "Study2")) %>%
+  filter(Assigned.Block ==1) %>% 
+  mutate(Study = factor(Study, levels=order_study)) %>% 
+  #reorder stimuli
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
+
+
+######## FACETED BARPLOT MAKER
+(ID <-  df %>% 
+  ggplot(aes(x=Study, fill=MAKER_ID)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="reds", direction = "1"))+
+   facet_grid( .~ STIMULUS) + 
+   coord_flip() +
+   labs(title="MAKER_BY_STIMULUS_B1")
+
+)
+   
+######## FACETED BARPLOT AGE
+(AGE <- df %>% 
+  ggplot(aes(x=Study, fill=MAKER_AGE)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="lightblues", direction = "1"))+
+   facet_grid( .~ STIMULUS) + 
+   coord_flip() + 
+    labs(title="AGE_BY_STIMULUS_B1")
+) 
+   
+######## FACETED BARPLOT GENDER
+(GENDER <-  df %>% 
+  ggplot(aes(x=Study, fill=MAKER_GENDER)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1"))+
+   facet_grid( .~ STIMULUS) + 
+   coord_flip()+
+   labs(title="GENDER_BY_STIMULUS_B1")
+)   
+   
+######## FACETED BARPLOT ENCOUNTER
+(ENCOUNTER <-  df %>% 
+  ggplot(aes(x=Study, fill=ENCOUNTER)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "1"))+
+   facet_grid( .~ STIMULUS) + 
+   coord_flip() + 
+   labs(title="ENCOUNTER_ID_BY_STIMULUS_B1")
+)
+
+
+
+if(GRAPH_SAVE){
+  
+ggsave(plot = ID, path="figs/FIG5_Descriptives", filename =paste0("MAKER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = AGE, path="figs/FIG5_Descriptives", filename =paste0("AGE_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = GENDER, path="figs/FIG5_Descriptives", filename =paste0("GENDER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = ENCOUNTER, path="figs/FIG5_Descriptives", filename =paste0("ENCOUNTER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+## (4.1.4) Exploratory Factor Analysis
+
+
+
+**As Reported in Section 4.1.4, and Figure 6, here we conduct an exploratory factor analysis of the short-form semantic differential scale questions for Studies 1 & 2.**
+
+This analysis was performed on the combined dataset from Study 1 (Tumblr) and Study 2 (Prolific). Both studies were run on all 6 stimulus blocks, meaning the data are balanced across all stimuli. 
+
+We use a parallel analysis method, verified by inspection of the scree plot to determine (f=4) factors, and see that both the KMO measure and Bartlett's test of sphericity meet the necessary pre-requisites to support this analysis.  The resultant factor loadings are described below.
+
+```{r efa}
+
+## SETUP DATA
+df <- df_graphs_all %>% 
+  filter(Study %in% c("Study1","Study2")) 
+  # %>% filter(STIMULUS !="B0-0") ## filtering out B0-0 doesn't change factors
+  
+x <- ref_min_sd_questions_z
+
+# ## SANITY CHECK INCLUDED DDATA
+# print("Dataset for EFA")
+# addmargins(table(df$Study, df$Assigned.Block)/5)
+
+
+## RUN EFA JAMOVI STYLE
+jmv::efa(
+    data = df,
+    vars = as.vector(x),
+    # nFactors = 3,
+    extraction = "ml",
+    sortLoadings = FALSE,
+    screePlot = TRUE,
+    eigen = FALSE,
+    factorCor = TRUE,
+    factorSummary = TRUE,
+    modelFit = TRUE,
+    kmo = TRUE,
+    bartlett = TRUE)
+
+```
+
+
+
+
+
+
+
+
+
+## (4.2) Predicting Trust
+
+In this section we describe a series of linear mixed effects models constructed to explore the relationship between trust, beauty and social attributions, as reported in section 4.2. Specifically, we test the hypotheses that 3 variables related to a visualization maker's intent and competency (INTENT, ALIGNment, DATA skill) influence the relationship between beauty and trust. 
+
+
+### SETUP MODEL DATA 
+
+This model includes data from Studies 1&2, as Study 3 used a pre-post design
+
+```{r hypo-trust_beauty_intent-data}
+
+df <- df_graphs_all %>% 
+  # filter only Study 1 and 2
+  filter(Study %in% c("Study1","Study2"))
+
+# ## SANITY CHECK DATA IN MODEL
+# print("Data in Model")
+# table(df$Study, df$Assigned.Block)
+```
+
+### M1 \| TRUST \~ BEAUTY (REPORT FOR COMPARISON)
+
+We begin by fitting a linear mixed effects, model predicting
+`CHART_TRUST` by `CHART_BEAUTY` to see whether our data support the
+claims made by Lin & Thorton, 2021.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+```{r, m1}
+
+################## FIT MODEL
+f.B <-  "TRUST ~ BEAUTY + (1|PID)"
+mm.B <- lmer(TRUST_z ~ BEAUTY_z + (1|PID), data = df)
+summary(mm.B)
+car::Anova(mm.B, type=2)
+performance(mm.B)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.B, type = "est", show.intercept = TRUE,show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <- plot_model(mm.B, type = "pred", terms = "BEAUTY_z") +  theme_minimal()
+(g <- (e+p) + plot_annotation(title = f.B))
+
+
+```
+
+A model predicting `TRUST` by `BEAUTY` explains 22% variance in
+`CHART_TRUST`, with 12% variance explained by a significant main effect
+of `BEAUTY` ($t(1548) = 15.30, p <
+.001$). The model coefficient indicates that for every 1 standard
+deviation increase in `BEAUTY`, `CHART-TRUST` increases on average by
+0.35 SD.
+
+**Model 1 supports the argument of Lin & Thorton (2021) that graphs
+judged to be more attractive are also judged as more trustworthy.**
+
+
+#### M2 \| TRUST \~ BEAUTY + INTENT
+
+Here we add a main effect term `INTENT` as a predictor to the previous
+model and compare fit with Model 1, to determine whether a social
+attribution (in this case inference about the maker's intent) is also
+predictive of `TRUST`.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+-   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
+
+```{r m2}
+
+################## FIT MODEL
+f.BI <-  "TRUST ~ BEAUTY + INTENT + (1|PID)"
+mm.BI <- lmer(TRUST_z ~ BEAUTY_z + INTENT_z + (1|PID), data = df)
+summary(mm.BI)
+car::Anova(mm.BI, type=2)
+
+################## COMPARE MODEL
+compare_performance(mm.BI, mm.B, rank = TRUE)
+anova(mm.BI, mm.B)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.BI, type = "est", show.intercept = TRUE,show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <- plot_model(mm.BI, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal()
+(g <- (e+p) + plot_annotation(title = f.B, caption="low intent = inform, high intent = persuade"))
+
+
+################## ALT PLOTS
+# plot_model(mm.BI, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal()
+# plot_model(mm.BI, type = "pred", terms = c("INTENT_z","BEAUTY_z")) + theme_minimal()
+```
+
+A model predicting `TRUST` by a linear combination of `BEAUTY` and
+`INTENT` explains 38% variance in `TRUST`, with 28% variance explained
+by fixed effects alone:
+
+1.  A significant main effect of `BEAUTY` ($t(1540) = 14.62, p <.001$),
+    and
+
+2.  A significant main effect of `INTENT` ($t(1584) = -18.97, p <.001$).
+
+    The model coefficients indicates that for every 1 standard deviation
+    increase in `BEAUTY`, `TRUST` increases on average by 0.3 SD (more
+    beauty corresponds to more trust). For every 1 standard deviation
+    increase in `INTENT`, (where LOW values correspond to intent to
+    INFORM and high values correspond to intent to PERSUADE) `TRUST`
+    decreases by 0.4 SD (more persuasive corresponds to less
+    trustworthy).
+
+Further, model comparisons indicate that MODEL 2 (including
+`CHART_INTENT`) is a significantly better fit to the data
+($\chi^2(1) = 324 , p < 0.001$) than MODEL 1 including `BEAUTY` alone.
+
+**Model 2 supports our claim that social attributions (in this case, an
+inference about the communicative intent of the chart) *also* predict
+beauty, above and beyond the beauty-centric argument of Lin & Thorton
+(2021) that graphs judged to be more attractive are also judged as more
+trustworthy.**
+
+#### M3 \| TRUST \~ BEAUTY X INTENT
+
+Here we fit a model with `INTENT` as an **interaction** with `BEAUTY`,
+and compare with the previous model (with the simple linear combination
+of the two predictors) to determine whether simply affecting `TRUST`,
+the social attribution of `INTENT` **moderates** the effect of `BEAUTY`
+on `TRUST`.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+-   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
+
+```{r m3}
+
+################## FIT MODEL
+f.BxI <-  "TRUST ~ BEAUTY X INTENT + (1|PID)"
+mm.BxI <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + (1|PID), data = df)
+summary(mm.BxI)
+car::Anova(mm.BxI, type=3)  #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxI, mm.BI, rank = TRUE)
+anova(mm.BxI, mm.BI)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.BxI, type = "est", show.intercept = TRUE,show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <- plot_model(mm.BxI, type = "int", terms = c("INTENT_z","BEAUTY_z"),mdrt.values = "all") + theme_minimal()
+(g <- (e+p) + plot_annotation(title = f.BxI, caption="low intent = inform, high intent = persuade", subtitle = f.BxI))
+
+
+################## ALT PLOTS
+# plot_model(mm.BxI, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal()
+# plot_model(mm.BxI, type = "pred", terms = c("INTENT_z","BEAUTY_z")) + theme_minimal()
+
+```
+
+A model predicting `CHART-TRUST` by a linear **interaction** of
+`CHART_BEAUTY` and `CHART_INTENT` explains 40% variance in
+`CHART_TRUST`, with 30% variance explained by fixed effects alone:
+
+1.  A significant main effect of `CHART_BEAUTY`
+    ($\chi^2(1) = 210, p <.001$)
+
+2.  A significant main effect of `CHART_INTENT`
+    ($\chi^2(1) = 338, p <.001$)
+
+3.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
+    ($\chi^2(1) = 35, p <.001$)
+
+    The model coefficients indicates that for every 1 standard deviation
+    increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
+    0.3 SD (more beauty corresponds to more trust). For every 1 standard
+    deviation increase in `CHART_INTENT`, (where LOW values correspond
+    to intent to INFORM and high values correspond to intent to
+    PERSUADE) `CHART-TRUST` decreases on average by 0.4 SD (more
+    persuasive corresponds to less trust). The significant interaction
+    term indicates the difference in slope between the two main effects,
+    that is to say, that the effect of `CHART_BEAUTY` on `CHART_TRUST`
+    is **moderated** such that the effect of `CHART_BEAUTY` is
+    *minimized* when `CHART_INTENT` is attributed as more informative
+    (lower values of chart_intent) than persuasive (higher values of
+    chart_intent) (Trust increases as a function of beauty MORE for more
+    persuasive intents. The difference in trust for unattractive and
+    attractive images intended to inform is lower. )
+
+Further, model comparisons indicate that MODEL 3 (an interaction rather
+than MODEL 2 with a linear combination of `CHART_BEAUTY` and
+`CHART_INTENT`) is a significantly better fit to the data
+($\chi^2(1)=34.81 , p < 0.001$).
+
+**Model 3 supports our claim that social attributions (in this case, an
+inference about the communicative intent of the chart) *also* predict
+beauty, and in fact can change (moderate) the effect of beauty on
+trust.**
+
+#### M4 \| TRUST \~ BEAUTY X INTENT + DATA
+
+Here we add `MAKER_DATA` competency to our previous model to determine
+whether a viewer's inferences about the data analysis ability of the
+chart's maker affect assesments of the chart's trustworthiness.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+-   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
+
+-   (`MAKER_DATA` 0 = *professional* in data analysis , 100 =
+    *layperson* in data analysis)
+
+```{r, m4}
+
+################## FIT MODEL
+f.BxID <-  "TRUST ~ BEAUTY X INTENT + DATA (1|PID)"
+mm.BxID <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + DATA_z + (1|PID), data = df)
+summary(mm.BxID)
+car::Anova(mm.BxID, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxID, mm.BxI, rank = TRUE)
+anova(mm.BxID, mm.BxI)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.BxID, type = "est", show.intercept = TRUE,show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <- plot_model(mm.BxID, type = "pred", terms = c("INTENT_z","DATA_z","BEAUTY_z"))  + theme_minimal()
+(g <- (e/p) + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID))
+
+
+################## ALT PLOTS
+# plot_model(mm.BxID, type = "pred", terms = c("BEAUTY_z", "INTENT_z","DATA_z")) + theme_minimal()
+# plot_model(mm.BxID, type = "pred", terms = c("INTENT_z","BEAUTY_z","DATA_z")) + theme_minimal()
+# plot_model(mm.BxID, type = "pred", terms = c("BEAUTY_z", "DATA_z","INTENT_z"))+ theme_minimal()
+```
+
+A model predicting `CHART-TRUST` by a linear **interaction** of
+`CHART_BEAUTY` and `CHART_INTENT` as well as a main effect of
+`MAKER_DATA` competency explains 41% variance in `CHART_TRUST`, with 32%
+variance explained by fixed effects alone:
+
+1.  A significant main effect of `CHART_BEAUTY`
+    ($\chi^2(1) = 175, p <.001$)
+
+2.  A significant main effect of `CHART_INTENT`
+    ($\chi^2(1) = 243, p <.001$)
+
+3.  A significant main effect of `MAKER_DATA`
+    ($\chi^2(1) = 57, p <.001$)
+
+4.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
+    ($\chi^2(1) = 31, p <.001$)
+
+    The model coefficients indicates that for every 1 standard deviation
+    increase in `MAKER_DATA`, `CHART-TRUST` decreases on average by 0.16
+    SD (less expertise/more layperson corresponds to lower trust). For
+    every 1 standard deviation increase in `CHART-BEAUTY`, `CHART-TRUST`
+    increases on average by 0.3 SD (more beauty corresponds to more
+    trust). For every 1 standard deviation increase in `CHART_INTENT`,
+    (where LOW values correspond to intent to INFORM and high values
+    correspond to intent to PERSUADE) `CHART-TRUST` decreases on average
+    by 0.3 SD ( persuasive corresponds to less trust; informative
+    corresponds to more trust). The significant interaction term
+    indicates the difference in slope between the main effects for
+    `CHART_BEAUTY` and `CHART_INTENT`, that is to say, that the effect
+    of `CHART_BEAUTY` on `CHART_TRUST` is **moderated** such that the
+    effect of `CHART_BEAUTY` is *minimized* when `CHART_INTENT` is
+    attributed as more informative (lower values on chart_intent) than
+    persuasive (higher values on chart_intent)
+
+Further, model comparisons indicate that MODEL 4 (adding a simple main
+effect of `MAKER_DATA`) is a significantly better fit to the data than
+MODEL 3 without the `MAKER_DATA` fixed effect
+($\chi^2(1)=56.4 , p < 0.001$) .
+
+**Model 4 supports our claim that social attributions (in this case,
+*both* an inference about the communicative intent of the chart and
+inference about the data analysis skill of the maker) *also* predict
+beauty, and in fact can change (in the case of intent, moderate) the
+effect of beauty on trust.**
+
+#### M5 \| TRUST \~ BEAUTY X INTENT X DATA
+
+Here we add an interaction with `MAKER_DATA` competency to our previous
+model to determine whether a viewer's inferences about the data analysis
+ability of the chart's maker MODERATE the effects of INTENT and BEAUTY
+on assesments of trustworthiness.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+-   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
+
+-   (`MAKER_DATA` 0 = *professional* in data analysis , 100 =
+    *layperson* in data analysis)
+
+```{r, m5}
+
+################## FIT MODEL
+f.BxIxD <-  "TRUST ~ BEAUTY X INTENT X DATA (1|PID)"
+mm.BxIxD <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z * DATA_z + (1|PID), data = df)
+summary(mm.BxIxD)
+car::Anova(mm.BxIxD, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxIxD, mm.BxID, rank = TRUE)
+anova(mm.BxIxD, mm.BxID)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+# e <- plot_model(mm.BxIxD, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+# ## PLOT MODEL PREDICTIONS
+# p <- plot_model(mm.BxIxD, type = "pred", terms = c("BEAUTY_z","INTENT_z", "DATA_z")) + theme_minimal()
+# (g <- (e/p) + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxIxD))
+
+
+################## ALT PLOTS
+# plot_model(mm.BxIxD, type = "pred", terms = c("INTENT_z", "BEAUTY_z")) + theme_minimal() + labs(subtitle ="sig ixn beauty x intent")
+# plot_model(mm.BxIxD, type = "pred", terms = c("INTENT_z", "DATA_z")) + theme_minimal() + labs(subtitle ="sig ixn data x intent")
+# plot_model(mm.BxIxD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="NO IXN BEAUTY x DATA")
+# plot_model(mm.BxIxD, type = "pred", terms = c("BEAUTY_z","DATA_z", "INTENT_z")) + theme_minimal()
+```
+
+Here we see that the three-way interaction between BEAUTY X INTENT X
+DATA is not statistically significant. ($\chi^2(1) = 1.4, p =0.24$).
+There is a significant 2-way interaction between INTENT & DATA, such
+that increased DATA competency (low data values) lessen the effect of
+intent on trust. However there is NOT a significant interaction between
+DATA and BEAUTY (the maker's skill in data analysis does not affect the
+relationship between beauty and trust)
+
+The more complicated model is not a significantly better fit, and so we
+keep the simpler model (no three-way interaction).
+($\chi^2(3)=5.13 , p = 0.16$) .
+
+#### M6 \| TRUST \~ BEAUTY X INTENT + DATA + ALIGN
+
+Here we add a main effect of `ALIGNMENT` to our previous model to
+determine whether a viewer's attitudes about how the maker's values
+align with their own affect assesments of trustworthiness.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+-   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
+
+-   (`MAKER_DATA` 0 = *professional* in data analysis , 100 =
+    *layperson* in data analysis)
+
+-   (`ALIGN` 0 = *does NOTshare* my values , 100 = *DOES SHARE* my
+    values)
+
+```{r, m6}
+
+################## FIT MODEL
+f.BxIDA <-  "TRUST ~ BEAUTY X INTENT + DATA + ALIGN (1|PID)"
+mm.BxIDA <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + DATA_z + ALIGN_z + (1|PID), data = df)
+summary(mm.BxIDA)
+car::Anova(mm.BxIDA, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxIDA, mm.BxID, rank = TRUE)
+anova(mm.BxIDA, mm.BxID)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.BxIDA, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p1 <- plot_model(mm.BxIDA, type = "pred", terms = c("BEAUTY_z","INTENT_z")) + theme_minimal()
+p2 <- plot_model(mm.BxIDA, type = "pred", terms = c("DATA_z","ALIGN_z")) + theme_minimal()
+(g <- (e/p1/p2) + plot_annotation(title = f.BxIDA, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxIDA))
+
+
+
+## see each two-way interaction
+# plot_model(mm.BxIxD, type = "pred", terms = c("INTENT_z", "BEAUTY_z")) + theme_minimal() + labs(subtitle ="sig ixn beauty x intent")
+# plot_model(mm.BxIxD, type = "pred", terms = c("INTENT_z", "DATA_z")) + theme_minimal() + labs(subtitle ="sig ixn data x intent")
+# plot_model(mm.BxIxD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="NO IXN BEAUTY x DATA")
+
+```
+
+A model predicting `CHART-TRUST` by a linear combination of maker
+`ALIGN`ment with `DATA` competency and an **interaction** of
+`CHART_BEAUTY` and `CHART_INTENT` as explains 58% variance in
+`CHART_TRUST`, with 51% variance explained by fixed effects alone:
+
+1.  A significant main effect of `CHART_BEAUTY`
+    ($\chi^2(1) = 34, p <.001$)
+
+2.  A significant main effect of `CHART_INTENT`
+    ($\chi^2(1) = 152, p <.001$)
+
+3.  A significant main effect of `MAKER_DATA`
+    ($\chi^2(1) = 80, p <.001$)
+
+4.  A significant main effect of `MAKER_ALIGN`
+    ($\chi^2(1) = 628, p <.001$)
+
+5.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
+    ($\chi^2(1) = 31, p <.001$)
+
+    The model standardized beta coefficients indicates that for every 1
+    standard deviation increase `MAKER_DATA` (more layperson, less
+    professional), `CHART-TRUST` decreases on average by 0.17 SD (less
+    professional corresponds with less trust). For every in 1 standard
+    deviation increase in `MAKER_ALIGN` (more values shared)
+    `CHART-TRUST` increases on average by 0.5 SD (more alignment
+    corresponds with more trust). For every 1 standard deviation
+    increase in `CHART_INTENT`, (where LOW values correspond to intent
+    to INFORM and high values correspond to intent to PERSUADE)
+    `CHART-TRUST` decreases on average by 0.23 SD ( persuasive
+    corresponds to less trust; informative corresponds to more trust).
+    And for every in 1 standard deviation increase in `CHART_BEAUTY`
+    trustworthiness increases by 0.2 SD on average. The significant
+    interaction term indicates the difference in slope between the main
+    effects for `CHART_BEAUTY` and `CHART_INTENT`, that is to say, that
+    the effect of `CHART_BEAUTY` on `CHART_TRUST` is **moderated** such
+    that the effect of `CHART_BEAUTY` is *minimized* when `CHART_INTENT`
+    is attributed as more informative (lower values on chart_intent)
+    than persuasive (higher values on chart_intent)
+
+Further, model comparisons indicate that MODEL 6 (adding a simple main
+effect of `MAKER_ALIGN`) is a significantly better fit to the data than
+MODEL 4 without the fixed effect ($\chi^2(1)= 529 , p < 0.001$) .
+
+**Model 6 supports our claim that social attributions (in this case,
+*both* an inference about the communicative intent of the chart and
+inference about the data analysis skill of the maker and the extent to
+which the maker's values align with the participants') *also* predict
+beauty, and in fact can change (in the case of intent, moderate) the
+effect of beauty on trust.**
+
+#### M7 \| TRUST \~ BEAUTY X INTENT + INTENT X ALIGN + DATA
+
+
+1.  **ALIGNMENT moderates INTENT** (more alignment mitigates differences
+    in trust based on intent; the more aligned the values are the less
+    difference there is in trust based on intent to inform vs. to
+    persuade) 2.
+
+2.  **INTENT moderates BEAUTY** (more beauty mitigates differences in
+    trust based on intent; the more beautiful the less difference there
+    is in trust based on intent to inform or persuade)
+
+3.  **MAIN EFFECT DATA** (less professional =\> less trustworthy)
+
+4.  **MAIN EFFECT INTENT** (more persuasive =\> less trustworthy)
+
+5.  **MAIN EFFECT ALIGNMENT** (more aligned =\> more trustworthy)
+
+6.  **MAIN EFFECT BEAUTY** (more beautify =\> more trustworthy)
+
+Here we add `ALIGNMENT` as an interaction term to our previous model to
+determine whether a viewer's attitudes about how the maker's values
+align with their own might moderate the effects of intent and beauty on
+assesments of trustworthiness.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+-   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
+
+-   (`MAKER_DATA` 0 = *professional* in data analysis , 100 =
+    *layperson* in data analysis)
+
+-   (`ALIGN` 0 = *does NOTshare* my values , 100 = *DOES SHARE* my
+    values)
+
+```{r, m7}
+
+################## FIT MODEL
+f.BxIxAD <-  "TRUST ~ BEAUTY X INTENT + INTENT X ALIGN + DATA + (1|PID)"
+mm.BxIxAD <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + INTENT_z*ALIGN_z + DATA_z + (1|PID), data = df)
+summary(mm.BxIxAD)
+car::Anova(mm.BxIxAD, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxIxAD, mm.BxIDA, mm.BxID, rank = TRUE)
+anova(mm.BxIxAD, mm.BxIDA)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.BxIxAD, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p1 <- plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","INTENT_z","DATA_z")) + theme_minimal()
+p2 <- plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z","INTENT_z","DATA_z")) + theme_minimal()
+(g <- (e/p1/p2) + plot_annotation(title = f.BxIxAD, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxIxAD))
+
+
+
+## alternative plots 
+# print("two-way interaction")
+# plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="sig ixn intent x beauty", caption="INTENT matters MORE less beautiful")
+# plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z", "INTENT_z")) + theme_minimal() + labs(subtitle ="sig ixn intent align")
+#                                                                                                 
+# plot_model(mm.BxIxAD, type = "pred", terms = c("INTENT_z","ALIGN_z")) + theme_minimal() 
+# 
+# plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "ALIGN_z")) + theme_minimal() + labs(subtitle ="NO IXN beauty align", caption = "MAIN EFFECT ALIGN; more aligned more trustworthy")
+# plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z", "DATA_z")) + theme_minimal() + labs(subtitle ="MAIN EFFECT DATA", caption = "MAIN EFFECT DATA; more professional = more trustworthy")
+# 
+# ## plot all combinations
+# plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z")) + theme_minimal() # facet align
+# plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z")) + theme_minimal() # facet intent
+# 
+# plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z","INTENT_z","BEAUTY_z")) + theme_minimal() # facet intent
+# plot_model(mm.BxIxAD, type = "pred", terms = c("ALIGN_z","BEAUTY_z","INTENT_z")) + theme_minimal() # facet intent
+# 
+# plot_model(mm.BxIxAD, type = "pred", terms = c("INTENT_z","BEAUTY_z","ALIGN_z")) + theme_minimal() # facet intent
+# plot_model(mm.BxIxAD, type = "pred", terms = c("INTENT_z","ALIGN_z","BEAUTY_z")) + theme_minimal() # facet intent
+# 
+
+
+### PLOT WITH DATA EFFECT 
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z","DATA_z")) + theme_minimal() # facet align
+plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z","DATA_z")) + theme_minimal() # facet intent
+
+
+
+```
+
+
+A model predicting `CHART-TRUST` explains 59% variance in `CHART_TRUST`,
+with 51% variance explained by fixed effects alone:
+
+1.  A significant main effect of `CHART_BEAUTY`
+    ($\chi^2(1) = 34, p <.001$) For every in 1 standard deviation
+    increase in `CHART_BEAUTY` trustworthiness increases by 0.1 SD on
+    average.
+
+2.  A significant main effect of `CHART_INTENT`
+    ($\chi^2(1) = 146, p <.001$). For every 1 standard deviation
+    increase in `CHART_INTENT`, (where LOW values correspond to intent
+    to INFORM and high values correspond to intent to PERSUADE)
+    `CHART-TRUST` decreases on average by 0.23 SD ( persuasive
+    corresponds to less trust; informative corresponds to more trust).
+
+3.  A significant main effect of `MAKER_ALIGN`
+    ($\chi^2(1) = 578, p <.001$). For every in 1 standard deviation
+    increase in `MAKER_ALIGN` (more values shared) `CHART-TRUST`
+    increases on average by 0.5 SD (more alignment corresponds with more
+    trust).
+
+4.  A significant main effect of `MAKER_DATA`
+    ($\chi^2(1) = 81, p <.001$). The model standardized beta
+    coefficients indicates that for every 1 standard deviation increase
+    `MAKER_DATA` (more layperson, less professional), `CHART-TRUST`
+    decreases on average by 0.17 SD (less professional corresponds with
+    less trust).
+
+5.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
+    ($\chi^2(1) = 31, p <.001$). The significant interaction term
+    indicates the difference in slope between the main effects for
+    `CHART_BEAUTY` and `CHART_INTENT`, that is to say, that the effect
+    of `CHART_BEAUTY` on `CHART_TRUST` is **moderated** such that the
+    effect of `CHART_BEAUTY` is *minimized* when `CHART_INTENT` is
+    attributed as more informative (lower values on chart_intent) than
+    persuasive (higher values on chart_intent)
+
+6.  A significant interaction between `CHART_INTENT` and `CHART_ALIGN`
+    ($\chi^2(1) = 31, p <.001$) The significant interaction term
+    indicates that the difference in slope between the main effects for
+    `CHART_INTENT` and `MAKER_ALIGN`, that is to say that the effect of
+    intent on trust is moderated such that the effect of intent on trust
+    is minimized the the more aligned a viewer feels with the maker. For
+    less alignment, there is a greater difference in trust for
+    persuasive vs. informative images; when the alignment is high, the
+    trustworthiness of persuasive and informative images converge.
+
+    The significant interaction term indicates the difference in slope
+    between the main effects for `CHART_BEAUTY` and `CHART_INTENT`, that
+    is to say, that the effect of `CHART_BEAUTY` on `CHART_TRUST` is
+    **moderated** such that the effect of `CHART_BEAUTY` is *minimized*
+    when `CHART_INTENT` is attributed as more informative (lower values
+    on chart_intent) than persuasive (higher values on chart_intent)
+
+Further, model comparisons indicate that MODEL 7 (adding an interaction with `MAKER_ALIGN`) is a significantly better fit to the data than the MODEL 6 without the interaction term
+MODEL 4 without the fixed effect ($\chi^2(1)= 10.24 , p < 0.001$) .
+
+**Model 7 supports our claim that social attributions (in this case,
+*both* an inference about the communicative intent of the chart and
+inference about the data analysis skill of the maker and the extent to
+which the maker's values align with the participants') *also* predict
+beauty, and in fact can change (in the case of intent, moderate) the
+effect of beauty on trust.**
+
+
+#### M8 \| TRUST \~ BEAUTY X INTENT + INTENT X ALIGN (REMOVE DATA)
+
+HERE we test whether we really actually need the DATA main effect 
+
+```{r, m8}
+
+################## FIT MODEL
+f.BxIxA <-  "TRUST ~ BEAUTY X INTENT + INTENT X ALIGN + (1|PID)"
+mm.BxIxA <- lmer(TRUST_z ~ BEAUTY_z * INTENT_z + INTENT_z * ALIGN_z + (1|PID), data = df)
+summary(mm.BxIxA)
+car::Anova(mm.BxIxA, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxIxA, mm.BxIxAD, rank = TRUE)
+anova(mm.BxIxA, mm.BxIxAD)
+
+```
+
+Yes, model 7 is better is a significantly better fit that the more complex Model 8 ($\chi^2(1)= 80 , p < 0.001$) .
+
+
+#### MODEL FIGURE (FIG 7) Predicting Trust
+
+**Here we produce the visualization and model parameters table reported
+in Figure 7.**
+
+```{r best-fit-model}
+
+## SET BEST MODEL
+m.best <- mm.BxIxAD
+f.best <- f.BxIxAD
+name="BxIxAD"
+
+## SAVE BEST MODEL
+saveRDS(m.best, file = paste0("models/TRUST_bestfit_","BxIxAD",".rds"))
+
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+(e <- plot_model(m.best, type = "est", show.intercept = TRUE, show.p=TRUE, show.values = TRUE) + labs(title = "Model Coefficients") + theme_minimal())
+## PLOT MODEL PREDICTIONS
+(p <- plot_model(m.best, type = "pred", terms = c("BEAUTY_z","INTENT_z","ALIGN_z")) + theme_minimal())
+
+(g <- (e / p) + plot_annotation(title = f.best, caption="INTENT [inform <--> persuade] \n ALIGN[does NOT share <--> DOES share my values]"))
+
+
+################## PRINT MODEL TABLE
+(t <- tab_model(m.best, file = "tab.html"))
+# library(webshot)
+webshot("tab.html", "figs/FIG7_Trust_Model/TRUST_model_table.png")
+############
+ggsave(plot= e, path="figs/FIG7_Trust_Model", filename = "TRUST_model_coefficients.png",units = c("in"), width = 8, height = 8,bg='#ffffff')
+ggsave(plot = g, path="figs/FIG7_Trust_Model", filename =paste0("TRUST_model.png"), units = c("in"), width = 8, height = 10,bg='#ffffff'   )
+
+```
+
+#### CALCULATE PARTIAL R2
+
+```{r partialr2}
+## <!-- https://chatgpt.com/c/67d6271c-15dc-800e-9e81-aa2b07a84d52 -->
+
+## CAUTION THIS TAKES A VERY LONG TIME TO RUN 
+
+# # install.packages("partR2")
+# library(partR2)
+# library(future)
+# library(furrr)
+# # 
+# # ## setup multiple cores to 
+# plan(multisession, workers = 4)
+# # 
+# # # Mixed model
+# model <- m.best
+# 
+# ######## GROUP PREDICTORS
+# 
+# # run Partial R2
+# result <- partR2(
+#   model,
+#   partbatch = list(
+#     "BEAUTY" = "BEAUTY_z",
+#     "ALIGN" = "ALIGN_z",
+#     "INTENT" = "INTENT_z",
+#     "DATA" = "DATA_z",
+#     "BEAUTY:INTENT" = "BEAUTY_z:INTENT_z",
+#     "ALIGN:INTENT" = "INTENT_z:ALIGN_z"
+#   ),
+#   nboot = 1000
+# )
+
+# Print
+# summary(result, sort = TRUE)
+# saveRDS(result, file = "models/TRUST_bestfit_mm.BxIxAD_partR2.rds")
+```
+
+#### DISPLAY PARTIAL R2
+```{r}
+## LOAD PARTIAL R ANALYSIS 
+partialR <- readRDS("models/TRUST_bestfit_mm.BxIxAD_partR2.rds") # only sd questions LONG
+print(partialR, sort=TRUE)
+summary(partialR, sort = TRUE)
+
+```
+
+## [3] MODELLING CHANGE
+
+What predicts change in attitude?
+
+### RECORD CHANGE
+```{r}
+
+# SETUP DATA FRAMES AND RECORD CHANGES FROM PRE-POST
+
+## CATEGORICALS
+df_cat <- df_questions_s3 %>% 
+  filter( QUESTION %nin% ref_min_sd_questions) %>% 
+  filter( QUESTION %nin% ref_min_conf_questions) %>% 
+  filter( QUESTION %nin% ref_min_free_questions) %>% 
+  filter( QUESTION != "LATENCY") %>%  
+  droplevels() %>% 
+  mutate(
+    #set logical, did the value change?
+    CHANGE_RAW = PRE!=POST,
+    CHANGE_ABS = abs(CHANGE_RAW)
+  )
+
+  
+## CONF QUESTIONS
+df_conf <- df_questions_s3 %>% 
+  filter( QUESTION %in% ref_min_conf_questions) %>% 
+  droplevels() %>% 
+  mutate(
+    POST = as.numeric(POST),
+    PRE = as.numeric(PRE),
+    ## calculate change
+    CHANGE_RAW = POST - PRE,
+    ## calculate absolute values
+    # PRE_abs = abs(PRE - 50),
+    # POST_abs = abs(POST - 50),
+    CHANGE_ABS = abs(CHANGE_RAW)
+  )
+
+## SD QUESTIONS
+df_sd <- df_questions_s3 %>% 
+  filter( QUESTION %in% ref_min_sd_questions) %>% 
+  droplevels() %>% 
+  mutate(
+     POST = as.numeric(POST),
+      PRE = as.numeric(PRE),
+      ## calculate change
+      CHANGE_RAW = POST - PRE,
+      ## calculate absolute values
+      # PRE_abs = abs(PRE - 50),
+      # POST_abs = abs(POST - 50),
+      CHANGE_ABS = abs(CHANGE_RAW)
+  )
+
+
+df_all <- rbind(df_cat,df_conf, df_sd) %>% 
+  pivot_wider(
+    names_from = QUESTION,
+    names_glue = "{QUESTION}_{.value}",
+    values_from = c(PRE,POST,CHANGE_RAW,CHANGE_ABS)
+  ) %>% mutate(
+    ID_CHANGE = as.logical(ID_CHANGE_RAW),
+    ID_CHANGE = as.factor(ID_CHANGE),
+    ENCOUNTER_CHANGE = as.logical(ENCOUNTER_CHANGE_RAW),
+    ENCOUNTER_CHANGE = as.factor(ENCOUNTER_CHANGE)
+  )
+
+
+
+```
+
+### MODEL CHANGE IN TRUST BY CATEGORICALS — CONTINUE THIS 
+```{r}
+
+df <- df_all 
+
+## model 
+m.1 <- lmer(TRUST_CHANGE_RAW ~ ALIGN_CHANGE_RAW + INTENT_CHANGE_RAW + (1|PID), data = df)
+summary(m.1)
+anova(m.1)
+performance(m.1)
+plot_model(m.1, type = "pred", terms=c("ALIGN_CHANGE_RAW","INTENT_CHANGE_ABS")) + labs(title = f.1)
+plot_model(m.1, type = "pred", terms=c("STIMULUS","QUESTION")) + labs(title = f.1)
+
+```
+
+### MODEL ENCOUNTER
+```{r}
+
+df <- df_all
+
+## glmer 
+m.1 <- glmer( data = df, ENCOUNTER_CHANGE ~ STIMULUS + (1|PID),
+              family = "binomial")
+summary(m.1)
+performance(m.1)
+
+
+## glmer 
+m.2 <- glmer( data = df, ENCOUNTER_CHANGE ~ STIMULUS + ID_CHANGE + (1|PID),
+              family = "binomial")
+summary(m.2)
+compare_performance(m.1, m.2, rank =TRUE)
+
+
+####### EXPLORATORY VISUALIZATIONS 
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+# OTHER BLOCKS
+### Semantic Differential Questions (Other Blocks)
+
+This plots the short-form set of semantic differential questions for each stimulus for Studies 1 & 2. Note that the blue ridge refers to Study 1, and black ridge to Study 2
+
+```{r other_blocks_sds}
+  
+#### DENSITY RIDGES#############################################################################
+#### loop over questions and stimuli, vertically stack studies, color by sample
+
+## DEFINE DF
+df <- df_sd_questions_long_all%>% 
+  #only block 1 for balanced data
+  filter(Assigned.Block!=1) %>% 
+  #drop pilot data
+  filter(Study != "Study0") %>% 
+  #for Study 3 ONLY, set SAMPLE = TIME (for graphing purpose)
+  mutate(
+    Sample = case_when(Study =="Study3" ~ TIME ,
+                       .default = Sample)) %>% 
+  # mutate(Sample = factor(Sample, levels = c("TUMBLR","GENERAL","POST","PRE"))) %>% 
+  mutate(Study = factor(Study, levels=order_study)) %>% 
+  droplevels()
+  
+  
+
+## DEFINE REFS
+n_q <- length(levels(df$QUESTION))
+stimuli <- levels(df$STIMULUS)
+questions <- ref_min_sd_questions #has qs in right order
+labels <- ref_labels_min
+
+## SET INITIAL VALUES
+s <- stimuli[1]
+q <- questions[1]
+x = list() #list of plots
+
+## LOOP OVER STIMULI, LOOP OVER QUESTIONS
+
+for (s in stimuli){
+  i=0
+  # print(s)
+  for (q in questions) {
+    i = i+1
+    # print(i)
+    # print(q)
+  
+    ## FILTER Q AND CALCULATE MEDIAN
+    d <- df %>% filter(STIMULUS ==s) %>% filter(QUESTION ==q) %>% 
+    group_by(Study,Sample) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+  
+    x[[i]] <- 
+      ggplot(d, aes(x = value, y = Study, fill = Sample, color = Sample )) +
+      geom_density_ridges2(scale = 0.75, panel_scaling = TRUE, rel_min_height = 0.01, alpha = 0.25,
+          # ## POINT JITTER GEOMETRY
+          # jittered_points = TRUE, alpha = 0.7, scale = 0.9)+
+           # ## RUG GEOMETRY
+            jittered_points = TRUE,
+            position = position_points_jitter(width = 0.5, height = 0),
+            point_shape = '|', point_size = 3, point_alpha = 0.5) +
+      scale_x_continuous(limits=c(0,100)) +
+      scale_fill_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      scale_color_manual(values = my_palettes(name="simple_samples", direction = "1")) +
+      ## MEDIAN
+      stat_summary(fun=median, geom="text", fontface = "bold", size= 5,
+                vjust=1.5, hjust = 0.50, aes(label=round(m, digits=0)))+
+      stat_summary(fun=median, geom="point", size=2) +
+   
+      labs (title = q, y = "", x = "") +
+      guides(
+        y = guide_axis_manual(labels = labels[q,"left"]),
+        y.sec = guide_axis_manual(labels = labels[q,"right"]),
+        # x.sec = guide_axis_manual(position = "top", title = q, breaks = NULL)
+        ) +
+      theme_ridges(grid = TRUE, center_axis_labels = TRUE) + easy_remove_legend() 
+  
+  }## END loop over questions
+
+  ## JOIN QUESTION LEVEL PLOTS FOR THIS STIMULUS
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+  p <- x[[1]] / x[[2]] /x[[3]] / x[[4]] /x[[5]] / x[[6]] /x[[7]] 
+  p <- p + plot_annotation(
+     title = title,
+     subtitle ="", caption = "(point is median)")
+
+  ## SAVE GRAPH FOR THIS STIMULIS 
+  if(GRAPH_SAVE == TRUE) {
+     ggsave(plot = p, path="figs/OTHER_Blocks", filename =paste0("SD_ridges_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
+
+1}## END LOOP OVER STIMULI
+
+
+```
+
+
+
+### Categorical Questions (Other Blocks)
+
+```{r categoricals_by_stimulus_otherblocks}
+
+
+## SETUP DATA 
+ df <- df_graphs %>% 
+  select(PID, Assigned.Block, Study, STIMULUS, ENCOUNTER, MAKER_ID, MAKER_AGE,MAKER_GENDER) %>% 
+  filter(Study %in% c("Study1", "Study2")) %>%
+  filter(Assigned.Block !=1) %>% 
+  mutate(Study = factor(Study, levels=order_study)) 
+  
+
+
+######## FACETED BARPLOT MAKER
+(ID <-  df %>% 
+  ggplot(aes(x=Study, fill=MAKER_ID)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="reds", direction = "1"))+
+   facet_wrap( .~ STIMULUS) + 
+   coord_flip() +
+   labs(title="MAKER_BY_STIMULUS")
+
+)
+   
+######## FACETED BARPLOT AGE
+(AGE <- df %>% 
+  ggplot(aes(x=Study, fill=MAKER_AGE)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="lightblues", direction = "1"))+
+   facet_wrap( .~ STIMULUS) + 
+   coord_flip() + 
+    labs(title="AGE_BY_STIMULUS")
+) 
+   
+######## FACETED BARPLOT GENDER
+(GENDER <-  df %>% 
+  ggplot(aes(x=Study, fill=MAKER_GENDER)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="smallgreens", direction = "1"))+
+   facet_wrap( .~ STIMULUS) + 
+   coord_flip()+
+   labs(title="GENDER_BY_STIMULUS")
+)   
+   
+######## FACETED BARPLOT ENCOUNTER
+(ENCOUNTER <-  df %>% 
+  ggplot(aes(x=Study, fill=ENCOUNTER)) + 
+    geom_bar(position="fill") + 
+    scale_fill_manual(values = my_palettes(name="encounter", direction = "1"))+
+   facet_wrap( .~ STIMULUS) + 
+   coord_flip() + 
+   labs(title="ENCOUNTER_ID_BY_STIMULUS")
+)
+
+
+
+if(GRAPH_SAVE){
+  
+ggsave(plot = ID, path="figs/OTHER_Blocks", filename =paste0("MAKER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = AGE, path="figs/OTHER_Blocks", filename =paste0("AGE_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = GENDER, path="figs/OTHER_Blocks", filename =paste0("GENDER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+  
+ggsave(plot = ENCOUNTER, path="figs/OTHER_Blocks", filename =paste0("ENCOUNTER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# OLD STARTING THERE 
+# AGGREGATED DATA
+
+## (5.1.4) Participants per Block
+
+**As Reported in Section 5.1.4 Participants, there were \~ 53
+participants per stimulus block**
+
+```{r participant-block}
+
+df <- df_participants
+table(df$Assigned.Block)
+```
+
+## (FIG 6) Exploratory Factor Analysis
+
+**As Reported in Section 5.3, Figure 6, here we conduct an exploratory factor analysis of the semantic differential scale questions.**
+
+We use a parallel analysis method, verified by inspection of the scree plot to determine (4) factors, and see that both the KMO measure and Bartlett's test of sphericity meet the necessary pre-requisites to support this analysis.  The resultant factor loadings are described below. 
+
+
+```{r efa, message=FALSE}
+
+jmv::efa(
+    data = df_graphs,
+    vars = as.vector(ref_sd_questions),
+    nFactors = 4,
+    extraction = "ml",
+    sortLoadings = TRUE,
+    screePlot = TRUE,
+    eigen = FALSE,
+    factorCor = TRUE,
+    factorSummary = FALSE,
+    modelFit = TRUE,
+    kmo = TRUE,
+    bartlett = TRUE)
+
+```
+
+# BLOCK 2 DATA
+
+## (5.4) Design Features Index Social Attributions
+
+**As Reported in Section 5.4, here we visualize the semantic
+differential scale survey questions for each stimulus in randomization
+block #2**
+
+```{r plot_halfeye_sds_BLOCK2, warning=FALSE}
+
+
+#DEFINE BLOCK 2 STIMULI
+stimuli <- c("B2-1" ,"B2-2", "B2-3", "B2-4")
+graphs <- list()
+
+## LOOP THROUGH EACH STIMULUS IN LIST
+i = 0
+
+for (s in stimuli){
+  i = i+1
+  
+  # setup titles 
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+
+  # setup dataframe
+  df <- df_sd_questions_long %>% select(1:8, STIMULUS, QUESTION, STIMULUS_CATEGORY, value) %>% filter(STIMULUS == s)
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+               category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions)) %>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+
+  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+  (g <- d %>%
+      ggplot(aes(y = fct_rev(QUESTION), x = value, fill=category)) +
+    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
+    
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+  cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 8, vjust=-2) +
+  labs (title = title, y = "", caption = "(point is median)") +
+  theme_minimal() + easy_remove_legend()
+)
+  
+  graphs[[i]] <- g
+
+  if(GRAPH_SAVE == TRUE){ 
+  ggsave(plot = g, path="figs/", filename =paste0("fig_7_",s,"_ggdist.png"), units = c("in"), width = 10, height = 14,bg='#ffffff'   )
+  }
+
+
+} ## END LOOP 
+
+graphs
+```
+
+# PREDICTING TRUST
+
+## (5.5) Social Inferences & Trust: Makers Matter
+
+**As reported in Section 5.5**
+
+What predicts CHART-TRUST? Recent work in psychology (Lin & Thorton,
+2021) suggests that beauty is a strong predictor of trust. However, from
+our free response data, we have reason to believe the relationship is
+not this simple. For example, some participants explained that very
+aesthetically pleasing images were likely meant to be persuasive and thus were
+less trustworthy. Similarly, we observed that participants frequently
+talked about a maker's data competency in relation to their
+trustworthiness. On this basis, we expect that in predicting
+`CHART_TRUST`: (1) there will be a significant interaction between
+`CHART_BEAUTY` and `CHART_INTENT`, and (2) that `MAKER_DATA`
+(competency) will also be a significant predictor.
+
+We test this hypothesis by fitting a series of linear mixed effects
+models, with `PID` (participant unique identifier) as a random intercept
+to account for repeated measures. All continuous measures were
+originally taken on a (0-100) scale. In these models, all continuous
+predictors are first z-scored. We compare model fit via ChiSquared
+difference tests and likelihood ratio tests (for nested models).
+
+#### Setup Data
+
+```{r hypo-trust_beauty_intent-data}
+
+df <- df_graphs %>%
+  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
+  # filter(STIMULUS != "B0-0") %>% 
+  select(PID, STIMULUS,STIMULUS_CATEGORY, MAKER_ID, MAKER_TRUST, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_DATA) %>% 
+  mutate(
+    TRUST_Z = datawizard::standardise(CHART_TRUST),
+    BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
+    INTENT_Z = datawizard::standardise(CHART_INTENT),
+    DATA_Z = datawizard::standardise(MAKER_DATA)
+  ) %>% 
+  droplevels()
+```
+
+#### M1 \| TRUST \~ BEAUTY
+
+We begin by fitting a linear mixed effects, model predicting
+`CHART_TRUST` by `CHART_BEAUTY` to see whether our data support the
+claims made by Lin & Thorton, 2021.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+```{r, m1}
+
+################## FIT MODEL
+f.B <-  "TRUST ~ BEAUTY + (1|PID)"
+mm.B <- lmer(TRUST_Z ~ BEAUTY_Z + (1|PID), data = df)
+summary(mm.B)
+car::Anova(mm.B, type=2)
+performance(mm.B)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.B, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <- plot_model(mm.B, type = "pred", terms = "BEAUTY_Z") +  theme_minimal()
+(g <- (e+p) + plot_annotation(title = f.B))
+
+```
+
+A model predicting `CHART-TRUST` by `CHART_BEAUTY` explains 30% variance
+in `CHART_TRUST`, with 22% variance explained by a significant main
+effect of `CHART_BEAUTY` ($t(1554) = 21.59, p <
+.001$). The model coefficient indicates that for every 1 standard
+deviation increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average
+by 0.47 SD.
+
+**Model 1 supports the argument of Lin & Thorton (2021) that graphs
+judged to be more attractive are also judged as more trustworthy.**
+
+#### M2 \| TRUST \~ BEAUTY + INTENT
+
+Here we add a main effect term `CHART_INTENT` as a predictor to the
+previous model and compare fit with Model 1, to determine whether a
+social attribution (in this case inference about the chart's intent) is
+also predictive of `CHART_TRUST`.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+-   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
+
+```{r m2}
+
+################## FIT MODEL
+f.BI <-  "TRUST ~ BEAUTY + INTENT + (1|PID)"
+mm.BI <- lmer(TRUST_Z ~ BEAUTY_Z + INTENT_Z + (1|PID), data = df)
+summary(mm.BI)
+car::Anova(mm.BI, type=2)
+
+################## COMPARE MODEL
+compare_performance(mm.BI, mm.B, rank = TRUE)
+anova(mm.BI, mm.B)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.BI, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <- plot_model(mm.BI, type = "pred", terms = c("BEAUTY_Z", "INTENT_Z")) + theme_minimal()
+(g <- (e+p) + plot_annotation(title = f.B, caption="low intent = inform, high intent = persuade"))
+
+```
+
+A model predicting `CHART-TRUST` by a linear combination of
+`CHART_BEAUTY` and `CHART_INTENT` explains 49% variance in
+`CHART_TRUST`, with 41% variance explained by fixed effects alone:
+
+1.  A significant main effect of `CHART_BEAUTY`
+    ($t(1532) = 22.04, p <.001$), and
+
+2.  A significant main effect of `CHART_INTENT`
+    ($t(1581) = -22.83, p <.001$).
+
+    The model coefficients indicates that for every 1 standard deviation
+    increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
+    0.42 SD (more beauty corresponds to more trust). For every 1
+    standard deviation increase in `CHART_INTENT`, (where LOW values
+    correspond to intent to INFORM and high values correspond to intent
+    to PERSUADE) `CHART-TRUST` decreases by 0.44 SD (more persuasive
+    corresponds to less trust).
+
+Further, model comparisons indicate that MODEL 2 (including
+`CHART_INTENT`) is a significantly better fit to the data
+($\chi^2(1) = 448 , p < 0.001$) than MODEL 1 including `CHART_BEAUTY` alone. 
+
+**Model 2 supports our claim that social attributions (in this case, an
+inference about the communicative intent of the chart) *also* predict
+beauty, above and beyond the beauty-centric argument of Lin & Thorton
+(2021) that graphs judged to be more attractive are also judged as more
+trustworthy.**
+
+#### M3 \| TRUST \~ BEAUTY X INTENT
+
+Here we fit a model with `CHART_INTENT` as an **interaction** with
+`CHART_BEAUTY`, and compare with the previous model (with the simple linear combination of the two predictors) 
+to determine whether simply affecting `CHART_TRUST`, the social attribution of `CHART_INTENT` **moderates** the effect of
+`CHART_BEAUTY` on `CHART_TRUST`.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+-   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
+
+```{r m3}
+
+################## FIT MODEL
+f.BxI <-  "TRUST ~ BEAUTY X INTENT + (1|PID)"
+mm.BxI <- lmer(TRUST_Z ~ BEAUTY_Z * INTENT_Z + (1|PID), data = df)
+summary(mm.BxI)
+car::Anova(mm.BxI, type=3)  #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxI, mm.BI, rank = TRUE)
+anova(mm.BxI, mm.BI)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.BxI, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <- plot_model(mm.BxI, type = "int", terms = c("INTENT_Z","BEAUTY_Z"),mdrt.values = "all") + theme_minimal()
+(g <- (e+p) + plot_annotation(title = f.BxI, caption="low intent = inform, high intent = persuade", subtitle = f.BxI))
+
+```
+
+A model predicting `CHART-TRUST` by a linear **interaction** of
+`CHART_BEAUTY` and `CHART_INTENT` explains 51% variance in
+`CHART_TRUST`, with 42% variance explained by fixed effects alone:
+
+1.  A significant main effect of `CHART_BEAUTY`
+    ($\chi^2(1) = 487, p <.001$)
+
+2.  A significant main effect of `CHART_INTENT`
+    ($\chi^2(1) = 486, p <.001$)
+
+3.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
+    ($\chi^2(1) = 49, p <.001$)
+
+    The model coefficients indicates that for every 1 standard deviation
+    increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
+    0.41 SD (more beauty corresponds to more trust). For every 1
+    standard deviation increase in `CHART_INTENT`, (where LOW values
+    correspond to intent to INFORM and high values correspond to intent
+    to PERSUADE) `CHART-TRUST` decreases on average by 0.42 SD (more
+    persuasive corresponds to less trust). The significant interaction
+    term indicates the difference in slope between the two main effects,
+    that is to say, that the effect of `CHART_BEAUTY` on `CHART_TRUST`
+    is **moderated** such that the effect of `CHART_BEAUTY` is
+    *minimized* when `CHART_INTENT` is attributed as more informative
+    (lower values of chart_intent) than persuasive (higher values of
+    chart_intent)
+
+Further, model comparisons indicate that MODEL 3 (an interaction rather
+than MODEL 2 with a linear combination of `CHART_BEAUTY` and `CHART_INTENT`) is a
+significantly better fit to the data ($\chi^2(1)=48.5 , p < 0.001$).
+
+**Model 3 supports our claim that social attributions (in this case, an
+inference about the communicative intent of the chart) *also* predict
+beauty, and in fact can change (moderate) the effect of beauty on
+trust.**
+
+#### M4 \| TRUST \~ BEAUTY X INTENT + MAKER_DATA
+
+Here we add `MAKER_DATA` competency to our previous model to determine
+whether a viewer's inferences about the data analysis ability of the
+chart's maker affect assesments of the chart's trustworthiness.
+
+-   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
+
+-   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
+    aesthetically pleasing)
+
+-   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
+
+-   (`MAKER_DATA` 0 = *professional* in data analysis , 100 =
+    *layperson* in data analysis)
+
+```{r, m4}
+
+################## FIT MODEL
+f.BxID <-  "TRUST ~ BEAUTY X INTENT + DATA (1|PID)"
+mm.BxID <- lmer(TRUST_Z ~ BEAUTY_Z * INTENT_Z + DATA_Z + (1|PID), data = df)
+summary(mm.BxID)
+car::Anova(mm.BxID, type=3) #type 3 tests for interaction model
+
+################## COMPARE MODEL
+compare_performance(mm.BxID, mm.BxI, rank = TRUE)
+anova(mm.BxID, mm.BxI)
+
+################## PLOT MODEL
+## PLOT MODEL COEFFICIENTS
+e <- plot_model(mm.BxID, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
+## PLOT MODEL PREDICTIONS
+p <- plot_model(mm.BxID, type = "pred", terms = c("INTENT_Z", "BEAUTY_Z", "DATA_Z")) + theme_minimal()
+(g <- (e/p) + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID))
+
+if(GRAPH_SAVE){
+ ggsave(g, scale =1, filename = "figs/fig_9_mm.BxID.png", width = 14, height = 6, dpi = 320, limitsize = FALSE,bg='#ffffff')
+ tab_model(mm.BxID, file = "figs/fig_9_mm.BxID_table.html")
+}
+
+
+```
+
+A model predicting `CHART-TRUST` by a linear **interaction** of
+`CHART_BEAUTY` and `CHART_INTENT` as well as a main effect of
+`MAKER_DATA` competency explains 54% variance in `CHART_TRUST`, with 45%
+variance explained by fixed effects alone:
+
+1.  A significant main effect of `CHART_BEAUTY`
+    ($\chi^2(1) = 429, p <.001$)
+
+2.  A significant main effect of `CHART_INTENT`
+    ($\chi^2(1) = 354, p <.001$)
+
+3.  A significant main effect of `MAKER_DATA`
+    ($\chi^2(1) = 91, p <.001$)
+
+4.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
+    ($\chi^2(1) = 44, p <.001$)
+
+    The model coefficients indicates that for every 1 standard deviation
+    increase in `MAKER_DATA`, `CHART-TRUST` decreases on average by
+    0.19 SD (less expertise/more layperson corresponds to lower trust). For every 1 standard deviation
+    increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
+    0.38 SD (more beauty corresponds to more trust). For every 1
+    standard deviation increase in `CHART_INTENT`, (where LOW values
+    correspond to intent to INFORM and high values correspond to intent
+    to PERSUADE) `CHART-TRUST` decreases on average by 0.37 SD (
+    persuasive corresponds to less trust; informative corresponds to more trust). The significant interaction
+    term indicates the difference in slope between the main effects for `CHART_BEAUTY` and `CHART_INTENT`,
+    that is to say, that the effect of `CHART_BEAUTY` on `CHART_TRUST`
+    is **moderated** such that the effect of `CHART_BEAUTY` is
+    *minimized* when `CHART_INTENT` is attributed as more informative
+    (lower values on chart_intent) than persuasive (higher values on
+    chart_intent)
+
+Further, model comparisons indicate that MODEL 4 (adding a simple main effect of `MAKER_DATA`) is a
+significantly better fit to the data than MODEL 3 without the `MAKER_DATA` fixed effect ($\chi^2(1)=89.1 , p < 0.001$) . 
+
+**Model 4 supports our claim that social attributions (in this case, _both_ an
+inference about the communicative intent of the chart and inference about the data analysis skill of the maker) *also* predict
+beauty, and in fact can change (in the case of intent, moderate) the effect of beauty on
+trust.**
+
+
+#### (FIG 9) Predicting Trust
+
+**Here we produce the visualization and model parameters table reported in Figure 9.**
+
+```{r best-fit-model}
+
+################## PLOT MODEL
+p + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID)
+
+################## PRINT MODEL
+tab_model(mm.BxID)
+
+```
+
+# ADDITIONAL BLOCKS
+
+**In addition to the descriptive analysis of stimuli in Block 2 that is
+reported in the manuscript, here we create visualize the semantic
+differential scale for *each* stimulus in Study 2.**
+
+## SD questions for each stimulus
+
+```{r plot_halfeye_sdsplot_ALL, warning=FALSE}
+
+
+#DEFINE STIMULI
+df <- df_graphs
+stimuli <- levels(df$STIMULUS)
+graphs <- list()
+
+
+## LOOP THROUGH EACH STIMULUS IN LIST
+i = 0
+
+for (s in stimuli){
+  i = i+1
+  
+  # setup titles 
+  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
+  title <- paste(s,"|",title)
+
+  # setup dataframe
+  df <- df_sd_questions_long %>% select(1:8, STIMULUS, QUESTION, STIMULUS_CATEGORY, value) %>% filter(STIMULUS == s)
+  d <- left_join( x = df, y = ref_labels, 
+                  by = c("QUESTION" = "ref_sd_questions")) %>% 
+        mutate(
+               category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
+          QUESTION = factor(QUESTION, levels=ref_sd_questions)) %>% 
+    group_by(QUESTION) %>% 
+    mutate(m=median(value)) ## calc median for printing on graph
+
+  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
+  (g <- d %>%
+      ggplot(aes(y = fct_rev(QUESTION), x = value, fill=category)) +
+    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
+    
+    ## MEDIAN
+    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
+                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
+    stat_summary(fun=median, geom="point", size=2) +
+    scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
+    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
+    guides(
+      y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
+      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
+    ) +
+  cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 8, vjust=-2) +
+  labs (title = title, y = "", caption = "(point is median)") +
+  theme_minimal() + easy_remove_legend()
+)
+
+  graphs[[i]] <- g
+  
+  if(GRAPH_SAVE == TRUE){ 
+  ggsave(plot = g, path="figs/other_blocks/", filename =paste0(s,"_ggdist.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
+  
+
+  
+  
+} ## END LOOP 
+
+graphs
+```
+
+# SESSION
+
+```{r session}
+sessionInfo()
+```
