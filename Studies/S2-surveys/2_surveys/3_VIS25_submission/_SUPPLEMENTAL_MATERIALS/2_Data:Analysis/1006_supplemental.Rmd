@@ -24,23 +24,25 @@ editor_options:
     wrap: 72
 ---
 
-In the QUANTIFYING VISUALIZATION VIBES project studies, participants completed an
-*attribution eliciation* survey, asking questions about their social inferences drawn from  (5) stimulus images (data visualizations). Each participant was
-randomly assigned to one of 6 stimulus blocks, each containing 1 image
-from each of (4) 'embellishment categories' (ranging from most abstract
-to most figural). Each participant started by responding to questions
-for a single 'common' stimulus (B0-0). Two participant recruitment pools
-were used: Prolific, with a smaller set of participants recruited from
-Tumblr (to replicate and compare survey results to Study 1 interviews
-with participants sourced from Tumblr).
+In the QUANTIFYING VISUALIZATION VIBES project studies, participants
+completed an *attribution eliciation* survey, asking questions about
+their social inferences drawn from (5) stimulus images (data
+visualizations). Each participant was randomly assigned to one of 6
+stimulus blocks, each containing 1 image from each of (4) 'embellishment
+categories' (ranging from most abstract to most figural). Each
+participant started by responding to questions for a single 'common'
+stimulus (B0-0). Two participant recruitment pools were used: Tumblr (to replicate
+and compare survey results to the interview study conducted by Morgenstern, Fox, Jones & Satyanarayan (under review))
+and a broader demographic sample recruited via Prolific.
 
-This notebook contains code to replicate quantitative analysis of data reported in VIS submission #1006.
+This notebook contains code to replicate quantitative analysis of data
+reported in VIS submission #1006.
 
 # SETUP
 
 ### Import Packages
 
-```{r setup, include=FALSE}
+```{r setup, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 #UTILITIES
@@ -100,7 +102,6 @@ GRAPH_SAVE = FALSE #set to true to generate all the SD graphs and save to folder
 source("graphing_functions.R") #import graphing palettes and custom functions
 ```
 
-
 ### Import References
 
 ```{r import-refs, message=FALSE, warning = FALSE}
@@ -127,7 +128,7 @@ ref_blocks <- c(1,2,3,4,5,6)
 ref_min_sd_questions <-  c("DESIGN","DATA","POLITICS", "TRUST","ALIGN","BEAUTY","INTENT")
 ref_min_sd_questions_z <-  c("DESIGN_z","DATA_z","POLITICS_z", "TRUST_z","ALIGN_z","BEAUTY_z","INTENT_z")
 ref_min_conf_questions <- c("ID_CONF","AGE_CONF","GENDER_CONF")
-# ref_min_cat_questions <- c("ID","AGE","GENDER","ENCOUNTER")
+ref_min_cat_questions <- c("ID","AGE","GENDER","ENCOUNTER")
 # ref_min_free_questions <- c("EXPLAIN")
 ```
 
@@ -144,22 +145,16 @@ df_sd_questions_long_all <- readRDS("data/input/df_sd_questions_long_ALL.rds") #
 
 ############## STUDY 1 & 2 DATA FILES
 df_graphs <- readRDS("data/input/df_graphs.rds") #only categorical and numeric questions
+df_sd_questions_long_z <- readRDS("data/input/df_sd_questions_long_z.rds") # only sd questions LONG, zscored
 
 ############## IMPORT Study 3 DATA FILES
 df_graphs_s3 <- readRDS("data/input/df_graphs_s3.rds") #only categorical and numeric questions from Study 3
-
-
-
-####################NOT TESTED
-############## IMPORT DATA FILES
-df_participants <- readRDS("data/input/df_participants.rds") #1 row per participant — demographic
-
-df_sd_questions_long <- readRDS("data/input/df_sd_questions_long.rds") # only sd questions LONG
+df_questions_s3 <- readRDS("data/input/df_questions_S3.rds")
 
 ```
 
-
 # METHODS
+
 ## (3.2) Participants
 
 ```{r demo-sample-size}
@@ -190,45 +185,36 @@ participants_s3 <- nrow(df3)
 
 **As Reported in Section 3.2 Participants :**
 
-
-
-`r participants_s1` US-Based English-speaking individuals users of the social media platform TUMBLR participated in Study 1, (
-`r round(desc.gender.1["Female"],2)*100`% Female,# 
+`r participants_s1` US-Based English-speaking individuals users of the
+social media platform TUMBLR participated in Study 1, (
+`r round(desc.gender.1["Female"],2)*100`% Female,
 `r round(desc.gender.1["Male"],2)*100`% Male,
-`r round(desc.gender.1["Non-binary / third gender"],2)*100`%
-Non-binary, `r round(desc.gender.1["Prefer not to say"],2)*100` %
-Prefer Not to Say,
+`r round(desc.gender.1["Non-binary / third gender"],2)*100`% Non-binary,
+`r round(desc.gender.1["Prefer not to say"],2)*100` % Prefer Not to Say,
 `r round(desc.gender.1["Prefer to self-describe"],2)*100`% Prefer to
 Self Describe).
 
-
-`r participants_s2` US-Based English-speaking individuals were recruited from Prolific to participate in Study 2, (
+`r participants_s2` US-Based English-speaking individuals were recruited
+from Prolific to participate in Study 2, (
 `r round(desc.gender.2["Female"],2)*100`% Female,
 `r round(desc.gender.2["Male"],2)*100`% Male,
-`r round(desc.gender.2["Non-binary / third gender"],2)*100`%
-Non-binary, `r round(desc.gender.2["Prefer to self-describe"],3)*100`%
-Prefer to Self Describe,
-`r round(desc.gender.2["Prefer not to say"],2)*100`% Prefer Not to
-Say. Other).
+`r round(desc.gender.2["Non-binary / third gender"],2)*100`% Non-binary,
+`r round(desc.gender.2["Prefer to self-describe"],3)*100`% Prefer to
+Self Describe, `r round(desc.gender.2["Prefer not to say"],2)*100`%
+Prefer Not to Say. Other).
 
-
-`r participants_s3` US-Based English-speaking individuals were recruited from Prolific to participate in Study 3, (
+`r participants_s3` US-Based English-speaking individuals were recruited
+from Prolific to participate in Study 3, (
 `r round(desc.gender.3["Female"],2)*100`% Female,
 `r round(desc.gender.3["Male"],3)*100`% Male,
-`r round(desc.gender.3["Non-binary / third gender"],3)*100`%
-Non-binary, `r round(desc.gender.3["Prefer to self-describe"],3)*100`%
-Prefer to Self Describe,
-`r round(desc.gender.2["Prefer not to say"],2)*100`% Prefer Not to
-Say. Other).
-
+`r round(desc.gender.3["Non-binary / third gender"],3)*100`% Non-binary,
+`r round(desc.gender.3["Prefer to self-describe"],3)*100`% Prefer to
+Self Describe, `r round(desc.gender.2["Prefer not to say"],2)*100`%
+Prefer Not to Say. Other).
 
 ```{r demo-sample-cleanup}
 rm(df, df1, desc.gender.1, participants_s1, df2, desc.gender.2, participants_s2, df3, desc.gender.3, participants_s3)
 ```
-
-
-
-
 
 ## (3.3) Survey Response Time
 
@@ -243,14 +229,13 @@ s3.desc.duration <- psych::describe(df %>% filter(Study == "Study3") %>% pull(du
 
 **As Reported in Section 3.3 Procedure :**
 
-In studies 1 and 2, responses ranged from `r round(s12.desc.duration$min,0)` to
-`r round(s12.desc.duration$max,0)` minutes, with a mean response time of
+In studies 1 and 2, responses ranged from
+`r round(s12.desc.duration$min,0)` to `r round(s12.desc.duration$max,0)`
+minutes, with a mean response time of
 `r round(s12.desc.duration$mean,0)` minutes, SD =
 `r (round(s12.desc.duration$sd,0))`.
 
-
-In study 3, responses 
-ranged from `r round(s3.desc.duration$min,0)` to
+In study 3, responses ranged from `r round(s3.desc.duration$min,0)` to
 `r round(s3.desc.duration$max,0)` minutes, with a mean response time of
 `r round(s3.desc.duration$mean,0)` minutes, SD =
 `r (round(s3.desc.duration$sd,0))`.
@@ -259,13 +244,11 @@ ranged from `r round(s3.desc.duration$min,0)` to
 rm(df, s12.desc.duration, s3.desc.duration)
 ```
 
-
-
 # RESULTS
 
 ## (4.1.2) Variance in Confidence
 
-```{r confidence-sparktable}
+```{r confidence-sparktable, warning=FALSE}
 
 library(tinytable)
 library(webshot2)
@@ -419,27 +402,76 @@ t
 rm(tab,m,f,col_names, row_names, all_q, df, d_q, df_num, stimuli)
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
 ## (4.1.3) Variance in Identifications & Characterizations
 
-**The following code blocks generate stimulus-level images for responses to short-form survey questions from Block 1.**. Note that these images are manually combined in an vector-illustration program for annotation.
+### Statistical Model
+
+**As reported in 4.3.1, here we test for significant effects in a model
+predicting response by QUESTION and STIMULUS (for Studies 1&2, Block 1)
+to verify that survey responses do indeed vary in response to each
+question and stimulus.**
+
+```{r, study1_2_model}
+
+
+## SETUP DATA 
+df <- df_sd_questions_long_z %>%
+  filter(Study %in% c("Study1","Study2")) 
+  # mutate(
+  #   STIMULUS = factor(STIMULUS, levels=c("B0-0","B1-2","B1-1","B1-3","B1-4")),
+  #   QUESTION = factor(QUESTION, levels = c("DESIGN","DATA","POLITICS","TRUST","ALIGN","INTENT","BEAUTY"))
+  # ) %>%
+  # droplevels()
+  
+## SANITY CHECK data in model
+# table(df$Study, df$STIMULUS)
+
+## MODEL question response by question and stimulus
+  m1 <- lmer(value ~ QUESTION * STIMULUS + (1|PID), data = df)
+  # summary(m1)
+  # anova(m1)
+  
+## MODEL question response by question and stimulus and study
+  m2 <- lmer(value ~ QUESTION * STIMULUS + Study + (1|PID), data = df)
+  # summary(m2)
+  anova(m2)
+  compare_performance(m1,m2,rank = TRUE)
+
+## USE EMMEANS TO GET MORE INTERPRETABLE COEFFICIENTS 
+# library(emmeans)
+# contrast(emmeans(m2, ~ QUESTION * STIMULUS), method = "eff")
+# contrast(emmeans(m2, ~ QUESTION), method = "eff")
+# contrast(emmeans(m2, ~ STIMULUS), method = "eff")
+  
+```
+
+*Note that analysis of variance for the model predicting (value) by an
+interaction between QUESTION and STIMULUS with linear fixed term Study
+indicates a significant interaction between QUESTION as STIMULUS (as
+expected), and a non-significant fixed effect of Study (indicating
+answers did not significantly vary between Study 1 and Study 2).*
+
+-   Significant main effect of question ($F(10) = 11, p <0.001$)
+
+-   Significant main effect of stimulus ($F(24) = 3, p <0.001$)
+
+-   **Significant interaction of stimulus and question
+    (**$F(240) =14.48, p < 0.001$**) (reported in paper)**
+
+-   **Not significant main effect of study (**$F(1) = 2, p = 0.15$**)
+    (reported in paper)**
+
+**The following code blocks generate stimulus-level images for responses
+to short-form survey questions from Block 1.**. Note that these images
+are manually combined in an vector-illustration program for annotation.
 
 ### Semantic Differential Questions (Block 1)
 
-This plots the concicse set of semantic differential questions for BLOCK 1 stimuli for Study 1,2,3 faceting by pre/post on study 4, as a stacked ridgeplot
+This plots the short_form survey set of semantic differential questions
+for BLOCK 1 stimuli for Study 1,2,3 faceting by pre/post on study 3,
+visualized as a stacked ridgeplot (Note: these plots are written to the figs directory, not displayed inline)
 
-```{r plot_ridglines_sds_questions_stimulus_studies_block1_pre_post}
+```{r plot_ridglines_sds_questions_stimulus_studies_block1_pre_post, warning=FALSE, message=FALSE}
   
 #### DENSITY RIDGES#############################################################################
 #### loop over questions and stimuli, vertically stack studies, color by sample
@@ -530,219 +562,7 @@ for (s in stimuli){
 
 ```
 
-
-
-
-
-
-
-
-
 ### Categorical Variables (Studies 1&2) (Block1)
-
-### Categorical Variables Sankey (Study 3) (Block 1)
-
-
-#### MAKER
-```{r SANKEY-ID}
-
-### FILTER FOR ONLY ID QUESTION
-df <- df_graphs_s3 %>% 
-  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0"))) %>% 
-  select(PRE_ID, POST_ID, STIMULUS, PID) %>% 
-  mutate(
-    PRE_ID = factor(PRE_ID, levels = rev(order_maker)),
-    POST_ID = factor(POST_ID, levels = rev(order_maker))
-  )
-
-### {GGSANKEY} ################################
-
-## REPEATED MEASURES
-## SANKEY DIAGRAM
-## MUST RESHAPE FOR SANKEY 
-ds <- df %>% 
-  ##custom from ggsankey
-  make_long(PRE_ID, POST_ID, value=STIMULUS) %>% 
-  mutate(
-    node = factor(node, levels=rev(order_maker)),
-    next_node= factor(next_node, levels=rev(order_maker)),
-    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
-  ) 
-
-(S <- ggplot(ds, aes(x = x, 
-               next_x = next_x, 
-               node = node, 
-               next_node = next_node,
-               fill = node
-               ))+
-  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
-  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
-  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
-  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
-  labs(title = "CHANGE in MAKER ID by STIMULUS", 
-       x = "TIME", y = "(count)", fill = "MAKER",
-       caption = "") + 
-  theme_minimal() + facet_grid(.~value)
-)
-#############################################
-
-if(GRAPH_SAVE == TRUE) {
-    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_ID_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
-  }
-```
-
-#### AGE
-```{r SANKEY-AGE}
-
-### FILTER FOR ONLY AGE QUESTION
-df <- df_graphs_s3 %>% 
-  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0"))) %>% 
-  select(PRE_AGE, POST_AGE, STIMULUS, PID) 
-
-### {GGSANKEY} ################################
-
-## REPEATED MEASURES
-## SANKEY DIAGRAM
-## MUST RESHAPE FOR SANKEY 
-ds <- df %>% 
-  ##custom from ggsankey
-  make_long(PRE_AGE, POST_AGE, value=STIMULUS) %>% 
-  mutate(
-    node = factor(node, levels=rev(order_age)),
-    next_node= factor(next_node,rev(order_age)),
-    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
-  ) 
-
-(S <- ggplot(ds, aes(x = x, 
-               next_x = next_x, 
-               node = node, 
-               next_node = next_node,
-               fill = node
-               ))+
-  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
-  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
-  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
-  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
-  labs(title = "CHANGE in AGE by STIMULUS", 
-       x = "TIME", y = "(count)", fill = "AGE",
-       caption = "") + 
-  theme_minimal() + facet_grid(.~value)
-)
-#############################################
-
-
-if(GRAPH_SAVE == TRUE) {
-    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_AGE_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
-  }
-
-```
-
-#### GENDER
-```{r SANKEY-GENDER}
-
-### FILTER FOR ONLY GENDER QUESTION
-df <- df_graphs_s3 %>% 
-  select(PRE_GENDER, POST_GENDER, STIMULUS, PID) %>% 
-  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
-
-### {GGSANKEY} ################################
-
-## REPEATED MEASURES
-## SANKEY DIAGRAM
-## MUST RESHAPE FOR SANKEY 
-ds <- df %>% 
-  ##custom from ggsankey
-  make_long(PRE_GENDER, POST_GENDER, value=STIMULUS) %>% 
-  mutate(
-    node = factor(node, levels = rev(order_gender)),
-    next_node= factor(next_node, levels = rev(order_gender)),
-    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
-  ) 
-
-(S <- ggplot(ds, aes(x = x, 
-               next_x = next_x, 
-               node = node, 
-               next_node = next_node,
-               fill = node
-               ))+
-  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
-  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
-  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
-  scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
-  labs(title = "CHANGE in GENDER by STIMULUS", 
-       x = "TIME", y = "(count)", fill = "GENDER",
-       caption = "") + 
-  theme_minimal() + facet_grid(.~value)
-)
-#############################################
-
-
-if(GRAPH_SAVE == TRUE) {
-    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_GENDER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
-  }
-
-```
-
-
-
-
-
-#### ENCOUNTER
-```{r SANKEY-ENCOUNTER}
-
-### FILTER FOR ONLY GENDER QUESTION
-df <- df_graphs_s3 %>% 
-  select(PRE_ENCOUNTER, POST_ENCOUNTER, STIMULUS, PID) %>% 
-  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
-
-### {GGSANKEY} ################################
-
-## REPEATED MEASURES
-## SANKEY DIAGRAM
-## MUST RESHAPE FOR SANKEY 
-ds <- df %>% 
-  ##custom from ggsankey
-  make_long(PRE_ENCOUNTER, POST_ENCOUNTER, value=STIMULUS) %>% 
-  mutate(
-    node = factor(node, levels = rev(order_encounter)),
-    next_node= factor(next_node, levels = rev(order_encounter)),
-    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
-  ) 
-
-(S <- ggplot(ds, aes(x = x, 
-               next_x = next_x, 
-               node = node, 
-               next_node = next_node,
-               fill = node
-               ))+
-  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
-  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
-  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
-  scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
-  labs(title = "CHANGE in ENCOUNTER by STIMULUS", 
-       x = "TIME", y = "(count)", fill = "ENCOUNTER",
-       caption = "") + 
-  theme_minimal() + facet_grid(.~value)
-)
-#############################################
-
-
-if(GRAPH_SAVE == TRUE) {
-    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_ENCOUNTER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
-  }
-
-```
-
-
-
-
-
-
-
-
-
-
-
 ```{r categoricals_by_stimulus}
 
 
@@ -813,26 +633,215 @@ ggsave(plot = ENCOUNTER, path="figs/FIG5_Descriptives", filename =paste0("ENCOUN
 
 ```
 
+### Categorical Variables Sankey (Study 3) (Block 1)
+
+#### MAKER
+
+```{r SANKEY-ID}
+
+### FILTER FOR ONLY ID QUESTION
+df <- df_graphs_s3 %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0"))) %>% 
+  select(PRE_ID, POST_ID, STIMULUS, PID) %>% 
+  mutate(
+    PRE_ID = factor(PRE_ID, levels = rev(order_maker)),
+    POST_ID = factor(POST_ID, levels = rev(order_maker))
+  )
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_ID, POST_ID, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels=rev(order_maker)),
+    next_node= factor(next_node, levels=rev(order_maker)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="reds", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in MAKER ID by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "MAKER",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
+
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_ID_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+```
+
+#### AGE
+
+```{r SANKEY-AGE}
+
+### FILTER FOR ONLY AGE QUESTION
+df <- df_graphs_s3 %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0"))) %>% 
+  select(PRE_AGE, POST_AGE, STIMULUS, PID) 
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_AGE, POST_AGE, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels=rev(order_age)),
+    next_node= factor(next_node,rev(order_age)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="lightblues", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in AGE by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "AGE",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
 
 
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_AGE_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+#### GENDER
+
+```{r SANKEY-GENDER}
+
+### FILTER FOR ONLY GENDER QUESTION
+df <- df_graphs_s3 %>% 
+  select(PRE_GENDER, POST_GENDER, STIMULUS, PID) %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_GENDER, POST_GENDER, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels = rev(order_gender)),
+    next_node= factor(next_node, levels = rev(order_gender)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="smallgreens", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in GENDER by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "GENDER",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
 
 
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_GENDER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
+
+```
+
+#### ENCOUNTER
+
+```{r SANKEY-ENCOUNTER}
+
+### FILTER FOR ONLY GENDER QUESTION
+df <- df_graphs_s3 %>% 
+  select(PRE_ENCOUNTER, POST_ENCOUNTER, STIMULUS, PID) %>% 
+  mutate(STIMULUS = factor(STIMULUS, levels=c("B1-1","B1-2","B1-3","B1-4","B0-0")))
+
+### {GGSANKEY} ################################
+
+## REPEATED MEASURES
+## SANKEY DIAGRAM
+## MUST RESHAPE FOR SANKEY 
+ds <- df %>% 
+  ##custom from ggsankey
+  make_long(PRE_ENCOUNTER, POST_ENCOUNTER, value=STIMULUS) %>% 
+  mutate(
+    node = factor(node, levels = rev(order_encounter)),
+    next_node= factor(next_node, levels = rev(order_encounter)),
+    match = ifelse(node==next_node, 1, 0.5), # try to highlight throughflows
+  ) 
+
+(S <- ggplot(ds, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = node
+               ))+
+  geom_sankey(width = 0.25, flow.alpha = 0.65, node.alpha = 1, node.color = "white") +
+  # geom_sankey_text(aes( x = as.numeric(x),  label = after_stat(freq)),
+  #         size = 3, color = "white", fontface = "bold", check_overlap = TRUE) +
+  scale_fill_manual(values = my_palettes(name="encounter", direction = "-1"), guide = guide_legend(reverse = TRUE)) +
+  labs(title = "CHANGE in ENCOUNTER by STIMULUS", 
+       x = "TIME", y = "(count)", fill = "ENCOUNTER",
+       caption = "") + 
+  theme_minimal() + facet_grid(.~value)
+)
+#############################################
 
 
+if(GRAPH_SAVE == TRUE) {
+    ggsave(plot = S, path="figs/FIG5_Descriptives", filename =paste0("S3_ENCOUNTER_CHANGE_by_STIMLUS.png"), units = c("in"), width = 16, height = 8,  bg='#ffffff'  )
+  }
 
-
+```
 
 
 
 ## (4.1.4) Exploratory Factor Analysis
 
+**As Reported in Section 4.1.4, and Figure 6, here we conduct an
+exploratory factor analysis of the short-form semantic differential
+scale questions for Studies 1 & 2.**
 
+This analysis was performed on the combined dataset from Study 1
+(Tumblr) and Study 2 (Prolific). Both studies were run on all 6 stimulus
+blocks, meaning the data are balanced across all stimuli.
 
-**As Reported in Section 4.1.4, and Figure 6, here we conduct an exploratory factor analysis of the short-form semantic differential scale questions for Studies 1 & 2.**
-
-This analysis was performed on the combined dataset from Study 1 (Tumblr) and Study 2 (Prolific). Both studies were run on all 6 stimulus blocks, meaning the data are balanced across all stimuli. 
-
-We use a parallel analysis method, verified by inspection of the scree plot to determine (f=4) factors, and see that both the KMO measure and Bartlett's test of sphericity meet the necessary pre-requisites to support this analysis.  The resultant factor loadings are described below.
+We use a parallel analysis method, verified by inspection of the scree
+plot to determine (f=4) factors, and see that both the KMO measure and
+Bartlett's test of sphericity meet the necessary pre-requisites to
+support this analysis. The resultant factor loadings are described
+below.
 
 ```{r efa}
 
@@ -865,22 +874,19 @@ jmv::efa(
 
 ```
 
-
-
-
-
-
-
-
-
 ## (4.2) Predicting Trust
 
-In this section we describe a series of linear mixed effects models constructed to explore the relationship between trust, beauty and social attributions, as reported in section 4.2. Specifically, we test the hypotheses that 3 variables related to a visualization maker's intent and competency (INTENT, ALIGNment, DATA skill) influence the relationship between beauty and trust. 
+In this section we describe a series of linear mixed effects models
+constructed to explore the relationship between trust, beauty and social
+attributions, as reported in section 4.2. Specifically, we test the
+hypotheses that 3 variables related to a visualization maker's intent
+and competency (INTENT, ALIGNment, DATA skill) influence the
+relationship between beauty and trust.
 
+### SETUP MODEL DATA
 
-### SETUP MODEL DATA 
-
-This model includes data from Studies 1&2, as Study 3 used a pre-post design
+This model includes data from Studies 1&2, as Study 3 used a pre-post
+design
 
 ```{r hypo-trust_beauty_intent-data}
 
@@ -932,7 +938,6 @@ deviation increase in `BEAUTY`, `CHART-TRUST` increases on average by
 
 **Model 1 supports the argument of Lin & Thorton (2021) that graphs
 judged to be more attractive are also judged as more trustworthy.**
-
 
 #### M2 \| TRUST \~ BEAUTY + INTENT
 
@@ -1324,7 +1329,6 @@ effect of beauty on trust.**
 
 #### M7 \| TRUST \~ BEAUTY X INTENT + INTENT X ALIGN + DATA
 
-
 1.  **ALIGNMENT moderates INTENT** (more alignment mitigates differences
     in trust based on intent; the more aligned the values are the less
     difference there is in trust based on intent to inform vs. to
@@ -1412,7 +1416,6 @@ plot_model(mm.BxIxAD, type = "pred", terms = c("BEAUTY_z","ALIGN_z","INTENT_z","
 
 ```
 
-
 A model predicting `CHART-TRUST` explains 59% variance in `CHART_TRUST`,
 with 51% variance explained by fixed effects alone:
 
@@ -1467,8 +1470,10 @@ with 51% variance explained by fixed effects alone:
     when `CHART_INTENT` is attributed as more informative (lower values
     on chart_intent) than persuasive (higher values on chart_intent)
 
-Further, model comparisons indicate that MODEL 7 (adding an interaction with `MAKER_ALIGN`) is a significantly better fit to the data than the MODEL 6 without the interaction term
-MODEL 4 without the fixed effect ($\chi^2(1)= 10.24 , p < 0.001$) .
+Further, model comparisons indicate that MODEL 7 (adding an interaction
+with `MAKER_ALIGN`) is a significantly better fit to the data than the
+MODEL 6 without the interaction term MODEL 4 without the fixed effect
+($\chi^2(1)= 10.24 , p < 0.001$) .
 
 **Model 7 supports our claim that social attributions (in this case,
 *both* an inference about the communicative intent of the chart and
@@ -1477,10 +1482,9 @@ which the maker's values align with the participants') *also* predict
 beauty, and in fact can change (in the case of intent, moderate) the
 effect of beauty on trust.**
 
-
 #### M8 \| TRUST \~ BEAUTY X INTENT + INTENT X ALIGN (REMOVE DATA)
 
-HERE we test whether we really actually need the DATA main effect 
+HERE we test whether we really actually need the DATA main effect
 
 ```{r, m8}
 
@@ -1496,8 +1500,8 @@ anova(mm.BxIxA, mm.BxIxAD)
 
 ```
 
-Yes, model 7 is better is a significantly better fit that the more complex Model 8 ($\chi^2(1)= 80 , p < 0.001$) .
-
+Yes, model 7 is better is a significantly better fit that the more
+complex Model 8 ($\chi^2(1)= 80 , p < 0.001$) .
 
 #### MODEL FIGURE (FIG 7) Predicting Trust
 
@@ -1525,9 +1529,9 @@ saveRDS(m.best, file = paste0("models/TRUST_bestfit_","BxIxAD",".rds"))
 
 
 ################## PRINT MODEL TABLE
-(t <- tab_model(m.best, file = "tab.html"))
+# (t <- tab_model(m.best, file = "tab.html"))
 # library(webshot)
-webshot("tab.html", "figs/FIG7_Trust_Model/TRUST_model_table.png")
+# webshot("tab.html", "figs/FIG7_Trust_Model/TRUST_model_table.png")
 ############
 ggsave(plot= e, path="figs/FIG7_Trust_Model", filename = "TRUST_model_coefficients.png",units = c("in"), width = 8, height = 8,bg='#ffffff')
 ggsave(plot = g, path="figs/FIG7_Trust_Model", filename =paste0("TRUST_model.png"), units = c("in"), width = 8, height = 10,bg='#ffffff'   )
@@ -1574,138 +1578,96 @@ ggsave(plot = g, path="figs/FIG7_Trust_Model", filename =paste0("TRUST_model.png
 ```
 
 #### DISPLAY PARTIAL R2
-```{r}
+
+```{r display_partial, warning=FALSE}
 ## LOAD PARTIAL R ANALYSIS 
-partialR <- readRDS("models/TRUST_bestfit_mm.BxIxAD_partR2.rds") # only sd questions LONG
-print(partialR, sort=TRUE)
-summary(partialR, sort = TRUE)
+partialR <- readRDS("models/TRUST_bestfit_mm.BxIxAD_partR2.rds") # sd questions LONG
+# run the following line to see stored values for partR2
+# print(partialR, sort=TRUE)
 
 ```
 
-## [3] MODELLING CHANGE
+## (4.3) Study 3 — Predicting Change in Social Attributions
 
-What predicts change in attitude?
+**As reported in section 4.3, here we determine which questions and which
+stimuli demonstrate a significant change in value from first exposure
+(message-obscured stimulus) to second exposure(original unobscured
+stimulus).**
 
-### RECORD CHANGE
-```{r}
+### Setup Attribution Change Values
 
-# SETUP DATA FRAMES AND RECORD CHANGES FROM PRE-POST
+```{r setup-attitude-change-data}
 
-## CATEGORICALS
-df_cat <- df_questions_s3 %>% 
-  filter( QUESTION %nin% ref_min_sd_questions) %>% 
-  filter( QUESTION %nin% ref_min_conf_questions) %>% 
-  filter( QUESTION %nin% ref_min_free_questions) %>% 
-  filter( QUESTION != "LATENCY") %>%  
-  droplevels() %>% 
+## SETUP DATA FRAME
+df_change_all <- df_questions_s3 %>% 
   mutate(
-    #set logical, did the value change?
-    CHANGE_RAW = PRE!=POST,
-    CHANGE_ABS = abs(CHANGE_RAW)
+    SAME = PRE==POST,
+    SAME = factor(SAME, levels = c("TRUE","FALSE"))
   )
 
-  
-## CONF QUESTIONS
-df_conf <- df_questions_s3 %>% 
-  filter( QUESTION %in% ref_min_conf_questions) %>% 
-  droplevels() %>% 
+## SETUP SD ONLY ATTITUDE CHANGE DATAFRAME
+df_change_sd <- df_change_all %>% 
+  filter(QUESTION %in% ref_min_sd_questions) %>% 
   mutate(
-    POST = as.numeric(POST),
     PRE = as.numeric(PRE),
-    ## calculate change
-    CHANGE_RAW = POST - PRE,
-    ## calculate absolute values
-    # PRE_abs = abs(PRE - 50),
-    # POST_abs = abs(POST - 50),
-    CHANGE_ABS = abs(CHANGE_RAW)
+    POST = as.numeric(POST),
+    shift = POST-PRE
   )
 
-## SD QUESTIONS
-df_sd <- df_questions_s3 %>% 
-  filter( QUESTION %in% ref_min_sd_questions) %>% 
-  droplevels() %>% 
+```
+
+### (4.3) Modelling change in semantic differential questions
+
+```{r, s3_sd_change}
+
+## SETUP DATA 
+df <- df_change_sd %>% 
+  filter(QUESTION %in% ref_min_sd_questions) %>% 
   mutate(
-     POST = as.numeric(POST),
-      PRE = as.numeric(PRE),
-      ## calculate change
-      CHANGE_RAW = POST - PRE,
-      ## calculate absolute values
-      # PRE_abs = abs(PRE - 50),
-      # POST_abs = abs(POST - 50),
-      CHANGE_ABS = abs(CHANGE_RAW)
-  )
+    STIMULUS = factor(STIMULUS, levels=c("B0-0","B1-2","B1-1","B1-3","B1-4")),
+    QUESTION = factor(QUESTION, levels = c("DESIGN","DATA","POLITICS","TRUST","ALIGN","INTENT","BEAUTY"))
+  ) %>%
+  droplevels()
+  
 
 
-df_all <- rbind(df_cat,df_conf, df_sd) %>% 
-  pivot_wider(
-    names_from = QUESTION,
-    names_glue = "{QUESTION}_{.value}",
-    values_from = c(PRE,POST,CHANGE_RAW,CHANGE_ABS)
-  ) %>% mutate(
-    ID_CHANGE = as.logical(ID_CHANGE_RAW),
-    ID_CHANGE = as.factor(ID_CHANGE),
-    ENCOUNTER_CHANGE = as.logical(ENCOUNTER_CHANGE_RAW),
-    ENCOUNTER_CHANGE = as.factor(ENCOUNTER_CHANGE)
-  )
+## MODEL SHIFT(RAW) by question and stimulus
+  m1 <- lmer(shift ~ QUESTION + STIMULUS + (1|PID), data = df)
+  summary(m1)
+  anova(m1)
+  
+  m2 <- lmer(shift ~ QUESTION * STIMULUS + (1|PID), data = df)
+  summary(m2)
+  
+  ##PRINT 
+  print("This is the first model reported in section  4.3 ")
+  anova(m2)
+  
+## COMPARE PERFORMANCE
+  anova(m1,m2)
+  compare_performance(m1,m2, rank = TRUE)
 
-
-
-```
-
-### MODEL CHANGE IN TRUST BY CATEGORICALS — CONTINUE THIS 
-```{r}
-
-df <- df_all 
-
-## model 
-m.1 <- lmer(TRUST_CHANGE_RAW ~ ALIGN_CHANGE_RAW + INTENT_CHANGE_RAW + (1|PID), data = df)
-summary(m.1)
-anova(m.1)
-performance(m.1)
-plot_model(m.1, type = "pred", terms=c("ALIGN_CHANGE_RAW","INTENT_CHANGE_ABS")) + labs(title = f.1)
-plot_model(m.1, type = "pred", terms=c("STIMULUS","QUESTION")) + labs(title = f.1)
+## VALUES REPORTED THESE 
+## USE EMMEANS TO GET MORE INTERPRETABLE COEFFICIENTS 
+library(emmeans)
+contrast(emmeans(m2, ~ QUESTION * STIMULUS), method = "eff")
+# contrast(emmeans(m2, ~ QUESTION), method = "eff")
+# contrast(emmeans(m2, ~ STIMULUS), method = "eff")
+  
+####### BEST FITTING MODEL IS IXN OF Q & STIMULUS
+# plot_model(m2, show.intercept = TRUE, show.values = TRUE, show.p = TRUE)
+# plot_model(m2, type = "pred", terms = c("QUESTION","STIMULUS"), show.intercept = TRUE, show.values = TRUE, show.p = TRUE, show.data=FALSE)
+# plot_model(m2, type = "pred", terms = c("STIMULUS","QUESTION"), show.intercept = TRUE, show.values = TRUE, show.p = TRUE, show.data=FALSE) 
 
 ```
-
-### MODEL ENCOUNTER
-```{r}
-
-df <- df_all
-
-## glmer 
-m.1 <- glmer( data = df, ENCOUNTER_CHANGE ~ STIMULUS + (1|PID),
-              family = "binomial")
-summary(m.1)
-performance(m.1)
-
-
-## glmer 
-m.2 <- glmer( data = df, ENCOUNTER_CHANGE ~ STIMULUS + ID_CHANGE + (1|PID),
-              family = "binomial")
-summary(m.2)
-compare_performance(m.1, m.2, rank =TRUE)
-
-
-####### EXPLORATORY VISUALIZATIONS 
-
-
-
-
-```
-
-
-
-
-
-
-
-
-
 
 # OTHER BLOCKS
+
 ### Semantic Differential Questions (Other Blocks)
 
-This plots the short-form set of semantic differential questions for each stimulus for Studies 1 & 2. Note that the blue ridge refers to Study 1, and black ridge to Study 2
+This plots the short-form set of semantic differential questions for
+each stimulus for Studies 1 & 2. Note that the blue ridge refers to
+Study 1, and black ridge to Study 2. (Note: these plots are written to the figs directory, not displayed inline)
 
 ```{r other_blocks_sds}
   
@@ -1788,7 +1750,7 @@ for (s in stimuli){
   p <- p + plot_annotation(
      title = title,
      subtitle ="", caption = "(point is median)")
-
+  
   ## SAVE GRAPH FOR THIS STIMULIS 
   if(GRAPH_SAVE == TRUE) {
      ggsave(plot = p, path="figs/OTHER_Blocks", filename =paste0("SD_ridges_",s,".png"), units = c("in"), width = 8, height = 24,  bg='#ffffff'  )}
@@ -1797,8 +1759,6 @@ for (s in stimuli){
 
 
 ```
-
-
 
 ### Categorical Questions (Other Blocks)
 
@@ -1856,524 +1816,18 @@ for (s in stimuli){
 )
 
 
-
 if(GRAPH_SAVE){
   
-ggsave(plot = ID, path="figs/OTHER_Blocks", filename =paste0("MAKER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+ggsave(plot = ID, path="figs/OTHER_Blocks", filename =paste0("MAKER_by_stimulus.png"), units = c("in"), width = 12, height = 12 ,  bg='#ffffff'  )
   
-ggsave(plot = AGE, path="figs/OTHER_Blocks", filename =paste0("AGE_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+ggsave(plot = AGE, path="figs/OTHER_Blocks", filename =paste0("AGE_by_stimulus.png"), units = c("in"), width = 12, height = 12 ,  bg='#ffffff'  )
   
-ggsave(plot = GENDER, path="figs/OTHER_Blocks", filename =paste0("GENDER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+ggsave(plot = GENDER, path="figs/OTHER_Blocks", filename =paste0("GENDER_by_stimulus.png"), units = c("in"), width = 12, height = 12 ,  bg='#ffffff'  )
   
-ggsave(plot = ENCOUNTER, path="figs/OTHER_Blocks", filename =paste0("ENCOUNTER_by_stimulus.png"), units = c("in"), width = 12, height = 2 ,  bg='#ffffff'  )
+ggsave(plot = ENCOUNTER, path="figs/OTHER_Blocks", filename =paste0("ENCOUNTER_by_stimulus.png"), units = c("in"), width = 12, height = 12 ,  bg='#ffffff'  )
 }
 
 
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# OLD STARTING THERE 
-# AGGREGATED DATA
-
-## (5.1.4) Participants per Block
-
-**As Reported in Section 5.1.4 Participants, there were \~ 53
-participants per stimulus block**
-
-```{r participant-block}
-
-df <- df_participants
-table(df$Assigned.Block)
-```
-
-## (FIG 6) Exploratory Factor Analysis
-
-**As Reported in Section 5.3, Figure 6, here we conduct an exploratory factor analysis of the semantic differential scale questions.**
-
-We use a parallel analysis method, verified by inspection of the scree plot to determine (4) factors, and see that both the KMO measure and Bartlett's test of sphericity meet the necessary pre-requisites to support this analysis.  The resultant factor loadings are described below. 
-
-
-```{r efa, message=FALSE}
-
-jmv::efa(
-    data = df_graphs,
-    vars = as.vector(ref_sd_questions),
-    nFactors = 4,
-    extraction = "ml",
-    sortLoadings = TRUE,
-    screePlot = TRUE,
-    eigen = FALSE,
-    factorCor = TRUE,
-    factorSummary = FALSE,
-    modelFit = TRUE,
-    kmo = TRUE,
-    bartlett = TRUE)
-
-```
-
-# BLOCK 2 DATA
-
-## (5.4) Design Features Index Social Attributions
-
-**As Reported in Section 5.4, here we visualize the semantic
-differential scale survey questions for each stimulus in randomization
-block #2**
-
-```{r plot_halfeye_sds_BLOCK2, warning=FALSE}
-
-
-#DEFINE BLOCK 2 STIMULI
-stimuli <- c("B2-1" ,"B2-2", "B2-3", "B2-4")
-graphs <- list()
-
-## LOOP THROUGH EACH STIMULUS IN LIST
-i = 0
-
-for (s in stimuli){
-  i = i+1
-  
-  # setup titles 
-  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
-  title <- paste(s,"|",title)
-
-  # setup dataframe
-  df <- df_sd_questions_long %>% select(1:8, STIMULUS, QUESTION, STIMULUS_CATEGORY, value) %>% filter(STIMULUS == s)
-  d <- left_join( x = df, y = ref_labels, 
-                  by = c("QUESTION" = "ref_sd_questions")) %>% 
-        mutate(
-               category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
-          QUESTION = factor(QUESTION, levels=ref_sd_questions)) %>% 
-    group_by(QUESTION) %>% 
-    mutate(m=median(value)) ## calc median for printing on graph
-
-  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
-  (g <- d %>%
-      ggplot(aes(y = fct_rev(QUESTION), x = value, fill=category)) +
-    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
-    
-    ## MEDIAN
-    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
-                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
-    stat_summary(fun=median, geom="point", size=2) +
-    scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
-    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
-    guides(
-      y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
-      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
-    ) +
-  cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 8, vjust=-2) +
-  labs (title = title, y = "", caption = "(point is median)") +
-  theme_minimal() + easy_remove_legend()
-)
-  
-  graphs[[i]] <- g
-
-  if(GRAPH_SAVE == TRUE){ 
-  ggsave(plot = g, path="figs/", filename =paste0("fig_7_",s,"_ggdist.png"), units = c("in"), width = 10, height = 14,bg='#ffffff'   )
-  }
-
-
-} ## END LOOP 
-
-graphs
-```
-
-# PREDICTING TRUST
-
-## (5.5) Social Inferences & Trust: Makers Matter
-
-**As reported in Section 5.5**
-
-What predicts CHART-TRUST? Recent work in psychology (Lin & Thorton,
-2021) suggests that beauty is a strong predictor of trust. However, from
-our free response data, we have reason to believe the relationship is
-not this simple. For example, some participants explained that very
-aesthetically pleasing images were likely meant to be persuasive and thus were
-less trustworthy. Similarly, we observed that participants frequently
-talked about a maker's data competency in relation to their
-trustworthiness. On this basis, we expect that in predicting
-`CHART_TRUST`: (1) there will be a significant interaction between
-`CHART_BEAUTY` and `CHART_INTENT`, and (2) that `MAKER_DATA`
-(competency) will also be a significant predictor.
-
-We test this hypothesis by fitting a series of linear mixed effects
-models, with `PID` (participant unique identifier) as a random intercept
-to account for repeated measures. All continuous measures were
-originally taken on a (0-100) scale. In these models, all continuous
-predictors are first z-scored. We compare model fit via ChiSquared
-difference tests and likelihood ratio tests (for nested models).
-
-#### Setup Data
-
-```{r hypo-trust_beauty_intent-data}
-
-df <- df_graphs %>%
-  ## FILTER OUT B0-0 COMMON STIMULUS (so cells can be balanced)
-  # filter(STIMULUS != "B0-0") %>% 
-  select(PID, STIMULUS,STIMULUS_CATEGORY, MAKER_ID, MAKER_TRUST, CHART_TRUST, CHART_BEAUTY, CHART_INTENT, MAKER_DATA) %>% 
-  mutate(
-    TRUST_Z = datawizard::standardise(CHART_TRUST),
-    BEAUTY_Z = datawizard::standardise(CHART_BEAUTY),
-    INTENT_Z = datawizard::standardise(CHART_INTENT),
-    DATA_Z = datawizard::standardise(MAKER_DATA)
-  ) %>% 
-  droplevels()
-```
-
-#### M1 \| TRUST \~ BEAUTY
-
-We begin by fitting a linear mixed effects, model predicting
-`CHART_TRUST` by `CHART_BEAUTY` to see whether our data support the
-claims made by Lin & Thorton, 2021.
-
--   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
-
--   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
-    aesthetically pleasing)
-
-```{r, m1}
-
-################## FIT MODEL
-f.B <-  "TRUST ~ BEAUTY + (1|PID)"
-mm.B <- lmer(TRUST_Z ~ BEAUTY_Z + (1|PID), data = df)
-summary(mm.B)
-car::Anova(mm.B, type=2)
-performance(mm.B)
-
-################## PLOT MODEL
-## PLOT MODEL COEFFICIENTS
-e <- plot_model(mm.B, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
-## PLOT MODEL PREDICTIONS
-p <- plot_model(mm.B, type = "pred", terms = "BEAUTY_Z") +  theme_minimal()
-(g <- (e+p) + plot_annotation(title = f.B))
-
-```
-
-A model predicting `CHART-TRUST` by `CHART_BEAUTY` explains 30% variance
-in `CHART_TRUST`, with 22% variance explained by a significant main
-effect of `CHART_BEAUTY` ($t(1554) = 21.59, p <
-.001$). The model coefficient indicates that for every 1 standard
-deviation increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average
-by 0.47 SD.
-
-**Model 1 supports the argument of Lin & Thorton (2021) that graphs
-judged to be more attractive are also judged as more trustworthy.**
-
-#### M2 \| TRUST \~ BEAUTY + INTENT
-
-Here we add a main effect term `CHART_INTENT` as a predictor to the
-previous model and compare fit with Model 1, to determine whether a
-social attribution (in this case inference about the chart's intent) is
-also predictive of `CHART_TRUST`.
-
--   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
-
--   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
-    aesthetically pleasing)
-
--   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
-
-```{r m2}
-
-################## FIT MODEL
-f.BI <-  "TRUST ~ BEAUTY + INTENT + (1|PID)"
-mm.BI <- lmer(TRUST_Z ~ BEAUTY_Z + INTENT_Z + (1|PID), data = df)
-summary(mm.BI)
-car::Anova(mm.BI, type=2)
-
-################## COMPARE MODEL
-compare_performance(mm.BI, mm.B, rank = TRUE)
-anova(mm.BI, mm.B)
-
-################## PLOT MODEL
-## PLOT MODEL COEFFICIENTS
-e <- plot_model(mm.BI, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
-## PLOT MODEL PREDICTIONS
-p <- plot_model(mm.BI, type = "pred", terms = c("BEAUTY_Z", "INTENT_Z")) + theme_minimal()
-(g <- (e+p) + plot_annotation(title = f.B, caption="low intent = inform, high intent = persuade"))
-
-```
-
-A model predicting `CHART-TRUST` by a linear combination of
-`CHART_BEAUTY` and `CHART_INTENT` explains 49% variance in
-`CHART_TRUST`, with 41% variance explained by fixed effects alone:
-
-1.  A significant main effect of `CHART_BEAUTY`
-    ($t(1532) = 22.04, p <.001$), and
-
-2.  A significant main effect of `CHART_INTENT`
-    ($t(1581) = -22.83, p <.001$).
-
-    The model coefficients indicates that for every 1 standard deviation
-    increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
-    0.42 SD (more beauty corresponds to more trust). For every 1
-    standard deviation increase in `CHART_INTENT`, (where LOW values
-    correspond to intent to INFORM and high values correspond to intent
-    to PERSUADE) `CHART-TRUST` decreases by 0.44 SD (more persuasive
-    corresponds to less trust).
-
-Further, model comparisons indicate that MODEL 2 (including
-`CHART_INTENT`) is a significantly better fit to the data
-($\chi^2(1) = 448 , p < 0.001$) than MODEL 1 including `CHART_BEAUTY` alone. 
-
-**Model 2 supports our claim that social attributions (in this case, an
-inference about the communicative intent of the chart) *also* predict
-beauty, above and beyond the beauty-centric argument of Lin & Thorton
-(2021) that graphs judged to be more attractive are also judged as more
-trustworthy.**
-
-#### M3 \| TRUST \~ BEAUTY X INTENT
-
-Here we fit a model with `CHART_INTENT` as an **interaction** with
-`CHART_BEAUTY`, and compare with the previous model (with the simple linear combination of the two predictors) 
-to determine whether simply affecting `CHART_TRUST`, the social attribution of `CHART_INTENT` **moderates** the effect of
-`CHART_BEAUTY` on `CHART_TRUST`.
-
--   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
-
--   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
-    aesthetically pleasing)
-
--   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
-
-```{r m3}
-
-################## FIT MODEL
-f.BxI <-  "TRUST ~ BEAUTY X INTENT + (1|PID)"
-mm.BxI <- lmer(TRUST_Z ~ BEAUTY_Z * INTENT_Z + (1|PID), data = df)
-summary(mm.BxI)
-car::Anova(mm.BxI, type=3)  #type 3 tests for interaction model
-
-################## COMPARE MODEL
-compare_performance(mm.BxI, mm.BI, rank = TRUE)
-anova(mm.BxI, mm.BI)
-
-################## PLOT MODEL
-## PLOT MODEL COEFFICIENTS
-e <- plot_model(mm.BxI, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
-## PLOT MODEL PREDICTIONS
-p <- plot_model(mm.BxI, type = "int", terms = c("INTENT_Z","BEAUTY_Z"),mdrt.values = "all") + theme_minimal()
-(g <- (e+p) + plot_annotation(title = f.BxI, caption="low intent = inform, high intent = persuade", subtitle = f.BxI))
-
-```
-
-A model predicting `CHART-TRUST` by a linear **interaction** of
-`CHART_BEAUTY` and `CHART_INTENT` explains 51% variance in
-`CHART_TRUST`, with 42% variance explained by fixed effects alone:
-
-1.  A significant main effect of `CHART_BEAUTY`
-    ($\chi^2(1) = 487, p <.001$)
-
-2.  A significant main effect of `CHART_INTENT`
-    ($\chi^2(1) = 486, p <.001$)
-
-3.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
-    ($\chi^2(1) = 49, p <.001$)
-
-    The model coefficients indicates that for every 1 standard deviation
-    increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
-    0.41 SD (more beauty corresponds to more trust). For every 1
-    standard deviation increase in `CHART_INTENT`, (where LOW values
-    correspond to intent to INFORM and high values correspond to intent
-    to PERSUADE) `CHART-TRUST` decreases on average by 0.42 SD (more
-    persuasive corresponds to less trust). The significant interaction
-    term indicates the difference in slope between the two main effects,
-    that is to say, that the effect of `CHART_BEAUTY` on `CHART_TRUST`
-    is **moderated** such that the effect of `CHART_BEAUTY` is
-    *minimized* when `CHART_INTENT` is attributed as more informative
-    (lower values of chart_intent) than persuasive (higher values of
-    chart_intent)
-
-Further, model comparisons indicate that MODEL 3 (an interaction rather
-than MODEL 2 with a linear combination of `CHART_BEAUTY` and `CHART_INTENT`) is a
-significantly better fit to the data ($\chi^2(1)=48.5 , p < 0.001$).
-
-**Model 3 supports our claim that social attributions (in this case, an
-inference about the communicative intent of the chart) *also* predict
-beauty, and in fact can change (moderate) the effect of beauty on
-trust.**
-
-#### M4 \| TRUST \~ BEAUTY X INTENT + MAKER_DATA
-
-Here we add `MAKER_DATA` competency to our previous model to determine
-whether a viewer's inferences about the data analysis ability of the
-chart's maker affect assesments of the chart's trustworthiness.
-
--   (`CHART_TRUST` 0 = not at all untrustworthy, 100 = very trustworthy)
-
--   (`CHART_BEAUTY` 0 = not at all aesthetically pleasing , 100 = very
-    aesthetically pleasing)
-
--   (`CHART_INTENT` 0 = to *inform* , 100 = *persuade*)
-
--   (`MAKER_DATA` 0 = *professional* in data analysis , 100 =
-    *layperson* in data analysis)
-
-```{r, m4}
-
-################## FIT MODEL
-f.BxID <-  "TRUST ~ BEAUTY X INTENT + DATA (1|PID)"
-mm.BxID <- lmer(TRUST_Z ~ BEAUTY_Z * INTENT_Z + DATA_Z + (1|PID), data = df)
-summary(mm.BxID)
-car::Anova(mm.BxID, type=3) #type 3 tests for interaction model
-
-################## COMPARE MODEL
-compare_performance(mm.BxID, mm.BxI, rank = TRUE)
-anova(mm.BxID, mm.BxI)
-
-################## PLOT MODEL
-## PLOT MODEL COEFFICIENTS
-e <- plot_model(mm.BxID, type = "est", show.intercept = TRUE) + labs(title = "Model Coefficients") + theme_minimal()
-## PLOT MODEL PREDICTIONS
-p <- plot_model(mm.BxID, type = "pred", terms = c("INTENT_Z", "BEAUTY_Z", "DATA_Z")) + theme_minimal()
-(g <- (e/p) + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID))
-
-if(GRAPH_SAVE){
- ggsave(g, scale =1, filename = "figs/fig_9_mm.BxID.png", width = 14, height = 6, dpi = 320, limitsize = FALSE,bg='#ffffff')
- tab_model(mm.BxID, file = "figs/fig_9_mm.BxID_table.html")
-}
-
-
-```
-
-A model predicting `CHART-TRUST` by a linear **interaction** of
-`CHART_BEAUTY` and `CHART_INTENT` as well as a main effect of
-`MAKER_DATA` competency explains 54% variance in `CHART_TRUST`, with 45%
-variance explained by fixed effects alone:
-
-1.  A significant main effect of `CHART_BEAUTY`
-    ($\chi^2(1) = 429, p <.001$)
-
-2.  A significant main effect of `CHART_INTENT`
-    ($\chi^2(1) = 354, p <.001$)
-
-3.  A significant main effect of `MAKER_DATA`
-    ($\chi^2(1) = 91, p <.001$)
-
-4.  A significant interaction between `CHART_BEAUTY` and `CHART_INTENT`
-    ($\chi^2(1) = 44, p <.001$)
-
-    The model coefficients indicates that for every 1 standard deviation
-    increase in `MAKER_DATA`, `CHART-TRUST` decreases on average by
-    0.19 SD (less expertise/more layperson corresponds to lower trust). For every 1 standard deviation
-    increase in `CHART-BEAUTY`, `CHART-TRUST` increases on average by
-    0.38 SD (more beauty corresponds to more trust). For every 1
-    standard deviation increase in `CHART_INTENT`, (where LOW values
-    correspond to intent to INFORM and high values correspond to intent
-    to PERSUADE) `CHART-TRUST` decreases on average by 0.37 SD (
-    persuasive corresponds to less trust; informative corresponds to more trust). The significant interaction
-    term indicates the difference in slope between the main effects for `CHART_BEAUTY` and `CHART_INTENT`,
-    that is to say, that the effect of `CHART_BEAUTY` on `CHART_TRUST`
-    is **moderated** such that the effect of `CHART_BEAUTY` is
-    *minimized* when `CHART_INTENT` is attributed as more informative
-    (lower values on chart_intent) than persuasive (higher values on
-    chart_intent)
-
-Further, model comparisons indicate that MODEL 4 (adding a simple main effect of `MAKER_DATA`) is a
-significantly better fit to the data than MODEL 3 without the `MAKER_DATA` fixed effect ($\chi^2(1)=89.1 , p < 0.001$) . 
-
-**Model 4 supports our claim that social attributions (in this case, _both_ an
-inference about the communicative intent of the chart and inference about the data analysis skill of the maker) *also* predict
-beauty, and in fact can change (in the case of intent, moderate) the effect of beauty on
-trust.**
-
-
-#### (FIG 9) Predicting Trust
-
-**Here we produce the visualization and model parameters table reported in Figure 9.**
-
-```{r best-fit-model}
-
-################## PLOT MODEL
-p + plot_annotation(title = f.BxID, caption="low intent = inform, high intent = persuade; low data = professional, high data = layperson", subtitle = f.BxID)
-
-################## PRINT MODEL
-tab_model(mm.BxID)
-
-```
-
-# ADDITIONAL BLOCKS
-
-**In addition to the descriptive analysis of stimuli in Block 2 that is
-reported in the manuscript, here we create visualize the semantic
-differential scale for *each* stimulus in Study 2.**
-
-## SD questions for each stimulus
-
-```{r plot_halfeye_sdsplot_ALL, warning=FALSE}
-
-
-#DEFINE STIMULI
-df <- df_graphs
-stimuli <- levels(df$STIMULUS)
-graphs <- list()
-
-
-## LOOP THROUGH EACH STIMULUS IN LIST
-i = 0
-
-for (s in stimuli){
-  i = i+1
-  
-  # setup titles 
-  title <- ref_stimuli %>% filter(ID == s) %>% select(NAME)  ##TODO IF NOT WORK ref_stim_id
-  title <- paste(s,"|",title)
-
-  # setup dataframe
-  df <- df_sd_questions_long %>% select(1:8, STIMULUS, QUESTION, STIMULUS_CATEGORY, value) %>% filter(STIMULUS == s)
-  d <- left_join( x = df, y = ref_labels, 
-                  by = c("QUESTION" = "ref_sd_questions")) %>% 
-        mutate(
-               category=factor(category, levels=c("COMPETENCY","MAKER","CHART")),
-          QUESTION = factor(QUESTION, levels=ref_sd_questions)) %>% 
-    group_by(QUESTION) %>% 
-    mutate(m=median(value)) ## calc median for printing on graph
-
-  # GGDIST HALFEYE (raincloud doesn't work b/c long tails)
-  (g <- d %>%
-      ggplot(aes(y = fct_rev(QUESTION), x = value, fill=category)) +
-    stat_halfeye(scale=0.8, density="bounded", point_interval = "median_qi", normalize="xy") +
-    
-    ## MEDIAN
-    stat_summary(fun=median, geom="text", fontface = "bold", size= 2.2,
-                vjust=+2, hjust = 0.50, aes(label=round(m, digits=0)))+
-    stat_summary(fun=median, geom="point", size=2) +
-    scale_color_manual(values = my_palettes(name="greys", direction = "1"))+
-    scale_fill_manual(values = my_palettes(name="greys", direction = "1"))+
-    guides(
-      y = guide_axis_manual(labels = rev(ref_labels$left), title = ""),
-      y.sec = guide_axis_manual(labels = rev(ref_labels$right))
-    ) +
-  cowplot::draw_text(text = ref_sd_questions, x = 90, y= ref_sd_questions,size = 8, vjust=-2) +
-  labs (title = title, y = "", caption = "(point is median)") +
-  theme_minimal() + easy_remove_legend()
-)
-
-  graphs[[i]] <- g
-  
-  if(GRAPH_SAVE == TRUE){ 
-  ggsave(plot = g, path="figs/other_blocks/", filename =paste0(s,"_ggdist.png"), units = c("in"), width = 10, height = 14,  bg='#ffffff'  )}
-  
-
-  
-  
-} ## END LOOP 
-
-graphs
 ```
 
 # SESSION
